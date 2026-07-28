@@ -339,7 +339,90 @@ function updateDailyTotal() {
 
 function closeDailyForm() {
   document.getElementById('daily-form-area').style.display = 'none';
+  document.getElementById('daily-result-area').style.display = 'none';
   renderDailyList();
+}
+
+function renderDailyResult(content) {
+  const shops = content.shops || [];
+  const totalV = shops.reduce((s, r) => s + (parseInt(r.visitors) || 0), 0);
+  const totalI = shops.reduce((s, r) => s + (parseInt(r.inquiries) || 0), 0);
+  const totalP = shops.reduce((s, r) => s + (parseInt(r.payments) || 0), 0);
+
+  const shopRows = shops.map(s => {
+    const inquiries = parseInt(s.inquiries) || 0;
+    const payments = parseInt(s.payments) || 0;
+    const visitors = parseInt(s.visitors) || 0;
+    const target = parseFloat(s.target) || 0;
+    const conv = inquiries > 0 ? (payments / inquiries * 100).toFixed(1) : '--';
+    const convNum = inquiries > 0 ? (payments / inquiries * 100) : 0;
+    const need = target > 0 && inquiries > 0 ? Math.ceil(inquiries * target / 100 - payments) : null;
+    const hit = target > 0 ? convNum >= target : true;
+
+    return `
+      <tr>
+        <td style="padding:6px 8px;border-bottom:1px solid #eee;font-size:14px;text-align:left;">${escapeHtml(s.name)}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #eee;font-size:14px;text-align:center;">${visitors || '-'}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #eee;font-size:14px;text-align:center;">${inquiries || '-'}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #eee;font-size:14px;text-align:center;">${payments || '-'}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #eee;font-size:14px;text-align:center;font-weight:700;${hit ? 'color:#16a34a' : 'color:#dc2626'}">${conv}%${target>0 ? ' <span style="font-size:11px;font-weight:400;color:#999;">/ '+target+'%</span>' : ''}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #eee;font-size:14px;text-align:center;font-weight:700;${need !== null && need > 0 ? 'color:#dc2626' : 'color:#16a34a'}">${need !== null ? (need > 0 ? '差'+need : '✓') : '-'}</td>
+      </tr>`;
+  }).join('');
+
+  const today = new Date();
+  const weekDay = ['周日','周一','周二','周三','周四','周五','周六'][today.getDay()];
+  const dateStr = today.getFullYear() + '.' + (today.getMonth()+1) + '.' + today.getDate();
+
+  const resultDiv = document.getElementById('daily-result-area');
+  resultDiv.innerHTML = `
+    <div style="max-width:680px;margin:0 auto;background:#fff;border-radius:16px;padding:24px 20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#333;line-height:1.5;">
+      <!-- 头部 -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div>
+          <div style="font-size:13px;color:#888;">${dateStr} ${weekDay}</div>
+          <div style="font-size:15px;font-weight:600;color:#333;">${escapeHtml(currentProfile?.name || '')} · ${escapeHtml(currentProfile?.group_name || '')}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:12px;color:#888;">总接待量</div>
+          <div style="font-size:32px;font-weight:800;color:#2563eb;line-height:1;">${totalV}</div>
+        </div>
+      </div>
+      <!-- 表格 -->
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;min-width:500px;">
+          <thead>
+            <tr style="background:#f0f4ff;">
+              <th style="padding:8px;font-size:13px;text-align:left;border-bottom:2px solid #d0d7ff;">店铺</th>
+              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">接待</th>
+              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">询单</th>
+              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">支付</th>
+              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">达成 / 目标</th>
+              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">还差</th>
+            </tr>
+          </thead>
+          <tbody>${shopRows}</tbody>
+        </table>
+      </div>
+      <!-- 汇总 -->
+      <div style="display:flex;justify-content:space-around;margin-top:14px;padding:10px 0;border-top:1px solid #eee;border-bottom:1px solid #eee;text-align:center;">
+        <div><div style="font-size:11px;color:#888;">总询单</div><div style="font-size:20px;font-weight:700;color:#333;">${totalI}</div></div>
+        <div><div style="font-size:11px;color:#888;">总支付</div><div style="font-size:20px;font-weight:700;color:#333;">${totalP}</div></div>
+        <div><div style="font-size:11px;color:#888;">总转化率</div><div style="font-size:20px;font-weight:700;color:#2563eb;">${totalI>0 ? (totalP/totalI*100).toFixed(1) : '--'}%</div></div>
+        <div><div style="font-size:11px;color:#888;">总还差</div><div style="font-size:20px;font-weight:700;color:${shops.some(s => {const i=parseInt(s.inquiries)||0;p=parseInt(s.payments)||0;t=parseFloat(s.target)||0;return t>0&&i>0&&Math.ceil(i*t/100-p)>0;})?'#dc2626':'#16a34a'}">${shops.reduce((sum,s)=>{
+          const i=parseInt(s.inquiries)||0,p=parseInt(s.payments)||0,t=parseFloat(s.target)||0;
+          return t>0&&i>0 ? sum+Math.max(0,Math.ceil(i*t/100-p)) : sum;
+        },0)||'--'}</div></div>
+      </div>
+      ${content.analysis ? `<div style="margin-top:12px;font-size:12px;color:#666;background:#fff7ed;padding:8px 10px;border-radius:8px;border-left:3px solid #f59e0b;"><strong style="color:#d97706;">未成交分析：</strong>${escapeHtml(content.analysis)}</div>` : ''}
+      ${content.followUp ? `<div style="margin-top:8px;font-size:12px;color:#666;background:#f0fdf4;padding:8px 10px;border-radius:8px;border-left:3px solid #22c55e;"><strong style="color:#16a34a;">催付：</strong>${escapeHtml(content.followUp)}</div>` : ''}
+      ${content.feedback ? `<div style="margin-top:8px;font-size:12px;color:#666;background:#eff6ff;padding:8px 10px;border-radius:8px;border-left:3px solid #3b82f6;"><strong style="color:#2563eb;">反馈：</strong>${escapeHtml(content.feedback)}</div>` : ''}
+      <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;">
+        <button onclick="closeDailyForm()" style="padding:8px 20px;border-radius:8px;border:1px solid #d0d7ff;background:#fff;color:#666;font-size:14px;cursor:pointer;">返回</button>
+        <button onclick="copyDailyResult()" style="padding:8px 20px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:14px;cursor:pointer;">📋 复制文本</button>
+      </div>
+    </div>
+  `;
 }
 
 async function submitDaily() {
@@ -373,9 +456,23 @@ async function submitDaily() {
   if (error) { showToast('提交失败：' + error.message); }
   else {
     showToast('日报提交成功');
-    closeDailyForm();
+    // 展示结果卡片（截图发群）
+    renderDailyResult(content);
+    document.getElementById('daily-form-area').style.display = 'none';
+    document.getElementById('daily-result-area').style.display = '';
     loadDailyReports();
   }
+}
+
+function copyDailyResult() {
+  const area = document.getElementById('daily-result-area');
+  if (!area) return;
+  const text = area.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('已复制到剪贴板');
+  }).catch(() => {
+    showToast('复制失败，请手动截图');
+  });
 }
 
 async function renderDailyTrack() {
