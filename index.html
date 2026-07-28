@@ -190,7 +190,7 @@ body {
 .pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:14px; }
 .pattern-card { background:var(--card-bg); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.04); transition:all 0.2s; display:flex; flex-direction:column; }
 .pattern-card:hover { transform:translateY(-2px); box-shadow:0 4px 14px rgba(0,0,0,0.1); }
-.pcard-img { width:100%; height:180px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #f8f5f2, #f0e8e0); font-size:48px; color:#ccc; position:relative; overflow:hidden; }
+.pcard-img { width:100%; height:180px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #f8f5f2, #f0e8e0); font-size:48px; color:#ccc; position:relative; overflow:hidden; cursor:pointer; }
 .pcard-img img { width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; transition:opacity 0.35s; }
 .pcard-img img.img-lens { opacity:0; }
 .pcard-img:hover img.img-eye { opacity:0; }
@@ -424,6 +424,17 @@ body {
 }
 .notes-title-cvt { font-weight:600; color:#3d5a4d; margin-bottom:6px; font-size:13px; }
 @media (max-width:768px) { .eyes-row-cvt { grid-template-columns:1fr; } }
+
+/* Lightbox */
+.lightbox { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.88); z-index:3000; align-items:center; justify-content:center; cursor:zoom-out; }
+.lightbox.show { display:flex; }
+.lightbox img { max-width:92vw; max-height:84vh; object-fit:contain; border-radius:6px; box-shadow:0 8px 40px rgba(0,0,0,0.5); }
+.lightbox-actions { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); display:flex; gap:10px; z-index:3001; }
+.lightbox-btn { padding:8px 22px; border:none; border-radius:20px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; background:#fff; color:#333; transition:opacity 0.15s; }
+.lightbox-btn:active { opacity:0.8; }
+.lightbox-close { position:fixed; top:16px; right:20px; width:40px; height:40px; border:none; background:rgba(255,255,255,0.15); color:#fff; font-size:22px; border-radius:50%; cursor:pointer; z-index:3001; display:flex; align-items:center; justify-content:center; }
+.lightbox-close:hover { background:rgba(255,255,255,0.3); }
+.lightbox-hint { position:fixed; top:20px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.45); font-size:12px; z-index:3001; }
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -1357,6 +1368,9 @@ function renderPatterns() {
       imgHtml = `<div class="img-placeholder"><span>👁️</span>暂无图片</div>`;
     }
 
+    let clickSrc = hasEye ? p.eyeImg : (hasLens ? p.lensImg : '');
+    let clickHint = hasEye && hasLens ? '上眼效果' : (hasEye ? '上眼效果' : (hasLens ? '镜片图' : ''));
+
     const specs = [];
     if (p.material) specs.push('材质 ' + p.material);
     if (p.diameter) specs.push('直径 ' + p.diameter);
@@ -1366,7 +1380,7 @@ function renderPatterns() {
     if (p.spec) specs.push(p.spec);
 
     return `<div class="pattern-card">
-      <div class="pcard-img">
+      <div class="pcard-img"${clickSrc ? ` onclick="openLightbox('${escapeAttr(clickSrc)}','${escapeAttr(clickHint)}')" style="cursor:pointer"` : ''}>
         ${imgHtml}
         <div class="pcard-brand-tag">${escapeHtml(patternBrand)}</div>
       </div>
@@ -1407,6 +1421,43 @@ function copyPatternScript(btn, text) {
   }).catch(() => {
     showToast('复制失败，请手动选中文字复制');
   });
+}
+
+// ==================== LIGHTBOX ====================
+let lightboxImgSrc = '';
+
+function openLightbox(src, hint) {
+  lightboxImgSrc = src;
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox-hint').textContent = hint || '';
+  document.getElementById('lightbox').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+async function copyLightboxImg() {
+  try {
+    const resp = await fetch(lightboxImgSrc);
+    const blob = await resp.blob();
+    await navigator.clipboard.write([
+      new ClipboardItem({ [blob.type]: blob })
+    ]);
+    showToast('✅ 图片已复制到剪贴板，可直接粘贴发送');
+  } catch(e) {
+    window.open(lightboxImgSrc, '_blank');
+    showToast('已在新窗口打开图片，请右键复制');
+  }
+}
+
+function downloadLightboxImg() {
+  const a = document.createElement('a');
+  a.href = lightboxImgSrc;
+  a.download = lightboxImgSrc.split('/').pop() || 'image.jpg';
+  a.click();
 }
 
 // ==================== TRAINING ====================
@@ -1675,5 +1726,17 @@ async function init() {
 
 init();
 </script>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" src="" alt="" />
+  <div class="lightbox-hint" id="lightbox-hint"></div>
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <div class="lightbox-actions">
+    <button class="lightbox-btn" onclick="event.stopPropagation();copyLightboxImg()">📋 复制图片</button>
+    <button class="lightbox-btn" onclick="event.stopPropagation();downloadLightboxImg()">💾 保存图片</button>
+  </div>
+</div>
+
 </body>
 </html>
