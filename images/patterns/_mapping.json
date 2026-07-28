@@ -1,0 +1,118 @@
+{
+  "('日抛', 2)": {
+    "lens": "images/patterns/日抛_糖霜日落_lens.jpg",
+    "eye": "images/patterns/日抛_糖霜日落_eye.jpg",
+    "eye2": "images/patterns/日抛_糖霜日落_eye2.jpg"
+  },
+  "('日抛', 3)": {
+    "eye": "images/patterns/日抛_暮色回响_eye.jpg",
+    "eye2": "images/patterns/日抛_暮色回响_eye2.jpg"
+  },
+  "('日抛', 4)": {
+    "lens": "images/patterns/日抛_梨漫花岛_lens.jpg",
+    "eye": "images/patterns/日抛_梨漫花岛_eye.jpg",
+    "eye2": "images/patterns/日抛_梨漫花岛_eye2.jpg"
+  },
+  "('日抛', 5)": {
+    "lens": "images/patterns/日抛_梨花杏雨_lens.jpg",
+    "eye": "images/patterns/日抛_梨花杏雨_eye.jpg"
+  },
+  "('日抛', 6)": {
+    "lens": "images/patterns/日抛_樱落半夏_lens.jpg",
+    "eye": "images/patterns/日抛_樱落半夏_eye.jpg"
+  },
+  "('日抛', 7)": {
+    "lens": "images/patterns/日抛_琥珀柔光_lens.jpg",
+    "eye": "images/patterns/日抛_琥珀柔光_eye.jpg"
+  },
+  "('日抛', 8)": {
+    "eye": "images/patterns/日抛_清欢水漾_eye.jpg",
+    "eye2": "images/patterns/日抛_清欢水漾_eye2.jpg"
+  },
+  "('日抛', 9)": {
+    "eye": "images/patterns/日抛_坠眼青花_eye.jpg"
+  },
+  "('日抛', 10)": {
+    "eye": "images/patterns/日抛_扶光云梦_eye.jpg",
+    "eye2": "images/patterns/日抛_扶光云梦_eye2.jpg"
+  },
+  "('日抛', 11)": {
+    "lens": "images/patterns/日抛_风摇南枝_lens.jpg",
+    "eye": "images/patterns/日抛_风摇南枝_eye.jpg"
+  },
+  "('日抛', 12)": {
+    "lens": "images/patterns/日抛_春野鹿鸣_lens.jpg",
+    "eye": "images/patterns/日抛_春野鹿鸣_eye.jpg"
+  },
+  "('日抛', 13)": {
+    "lens": "images/patterns/日抛_梦蝶晚窗_lens.jpg",
+    "eye": "images/patterns/日抛_梦蝶晚窗_eye.jpg"
+  },
+  "('日抛', 14)": {
+    "lens": "images/patterns/日抛_雪落松香_lens.jpg",
+    "eye": "images/patterns/日抛_雪落松香_eye.jpg",
+    "eye2": "images/patterns/日抛_雪落松香_eye2.jpg"
+  },
+  "('日抛', 15)": {
+    "eye": "images/patterns/日抛_晴空飞鸟_eye.jpg"
+  },
+  "('日抛', 16)": {
+    "eye": "images/patterns/日抛_溪山晚风_eye.jpg",
+    "eye2": "images/patterns/日抛_溪山晚风_eye2.jpg"
+  },
+  "('日抛', 17)": {
+    "eye": "images/patterns/日抛_莫奈花园_eye.jpg",
+    "eye2": "images/patterns/日抛_莫奈花园_eye2.jpg"
+  },
+  "('日抛', 18)": {
+    "eye": "images/patterns/日抛_枫糖戚风_eye.jpg",
+    "eye2": "images/patterns/日抛_枫糖戚风_eye2.jpg"
+  },
+  "('日抛', 19)": {
+    "eye": "images/patterns/日抛_梨花慢慢_eye.jpg"
+  },
+  "('日抛', 20)": {
+    "eye": "images/patterns/日抛_邂逅洱海_eye.jpg"
+  },
+  "('季抛', 2)": {
+    "lens": "images/patterns/季抛_极光金棕_lens.jpg",
+    "eye": "images/patterns/季抛_极光金棕_eye.jpg"
+  },
+  "('季抛', 3)": {
+    "lens": "images/patterns/季抛_极光黑灰_lens.jpg",
+    "eye": "images/patterns/季抛_极光黑灰_eye.jpg"
+  },
+  "('季抛', 4)": {
+    "lens": "images/patterns/季抛_酒心巧克力_lens.jpg",
+    "eye": "images/patterns/季抛_酒心巧克力_eye.jpg"
+  },
+  "('季抛', 5)": {
+    "lens": "images/patterns/季抛_糖霜日落_lens.jpg"
+  },
+  "('季抛', 6)": {
+    "lens": "images/patterns/季抛_月亮情诗_lens.jpg"
+  },
+  "('季抛', 7)": {
+    "lens": "images/patterns/季抛_花漾甜梦_lens.jpg"
+  },
+  "('季抛', 8)": {
+    "lens": "images/patterns/季抛_松涧小鹿_lens.jpg"
+  },
+  "('季抛', 9)": {
+    "lens": "images/patterns/季抛_月光拿铁_lens.jpg"
+  },
+  "('季抛', 10)": {
+    "lens": "images/patterns/季抛_椰影摇光_lens.jpg"
+  },
+  "('季抛', 11)": {
+    "lens": "images/patterns/季抛_凌晨三点_lens.jpg"
+  },
+  "('季抛', 12)": {
+    "lens": "images/patterns/季抛_富士山雾_lens.jpg",
+    "eye": "images/patterns/季抛_富士山雾_eye.jpg"
+  },
+  "('季抛', 13)": {
+    "lens": "images/patterns/季抛_榛果灰棕_lens.jpg",
+    "eye": "images/patterns/季抛_榛果灰棕_eye.jpg"
+  }
+}
