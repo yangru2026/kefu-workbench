@@ -508,39 +508,55 @@ body {
 @media (max-width:560px) { .logistics-box { padding:20px; width:94%; } }
 
 /* ===== Ranking ===== */
-.ranking-groups { display:flex; gap:10px; margin-bottom:20px; }
+.ranking-toolbar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
+.ranking-groups { display:flex; gap:10px; }
+.ranking-actions { display:flex; gap:8px; }
+.rank-action-btn { padding:8px 18px; border:1.5px solid var(--border); border-radius:20px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; background:#fff; color:var(--text-secondary); transition:all 0.15s; }
+.rank-action-btn:hover { border-color:var(--primary); color:var(--primary); }
+.rank-action-btn.primary { background:var(--primary); color:#fff; border-color:var(--primary); }
+.rank-action-btn.primary:hover { background:#5b4bd5; }
 .rank-group-btn { padding:8px 28px; border:2px solid var(--border); border-radius:22px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; background:#fff; color:var(--text-secondary); transition:all 0.15s; }
 .rank-group-btn:hover { border-color:var(--primary); color:var(--primary); }
 .rank-group-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
 .ranking-meta { font-size:12px; color:var(--text-secondary); margin-bottom:16px; }
 .ranking-table-wrap { background:#fff; border-radius:14px; border:1px solid var(--border); overflow:hidden; }
-.ranking-table { width:100%; border-collapse:collapse; font-size:14px; }
+.ranking-table { width:100%; border-collapse:collapse; font-size:15px; }
 .ranking-table thead { background:#faf8ff; }
-.ranking-table th { padding:12px 10px; text-align:left; font-weight:600; color:var(--text); font-size:13px; border-bottom:2px solid var(--border); white-space:nowrap; }
+.ranking-table th { padding:14px 10px; text-align:center; font-weight:700; color:var(--text); font-size:14px; border-bottom:2px solid var(--border); white-space:nowrap; }
 .ranking-table th.sortable { cursor:pointer; user-select:none; }
 .ranking-table th.sortable:hover { color:var(--primary); }
 .ranking-table th.sortable.active { color:var(--primary); }
-.ranking-table th.col-rank { width:60px; text-align:center; }
-.ranking-table th.col-name { width:90px; }
+.ranking-table th.col-rank { width:60px; }
+.ranking-table th.col-name { width:110px; }
 .ranking-table .sort-arrow { font-size:10px; margin-left:2px; color:#ccc; }
 .ranking-table th.sortable.active .sort-arrow { color:var(--primary); }
-.ranking-table td { padding:11px 10px; border-bottom:1px solid #f0edf5; color:var(--text); }
+.ranking-table td { padding:14px 10px; border-bottom:1px solid #f0edf5; color:var(--text); text-align:center; font-size:15px; }
 .ranking-table td.col-rank { text-align:center; font-weight:700; }
+.ranking-table td.col-name { font-weight:600; }
 .ranking-table tr:hover td { background:#faf8ff; }
-.ranking-table .rank-badge { display:inline-flex; width:26px; height:26px; border-radius:50%; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; background:#999; }
-.ranking-table .rank-badge.top1 { background:linear-gradient(135deg,#f9ca24,#f0932b); }
-.ranking-table .rank-badge.top2 { background:linear-gradient(135deg,#b2bec3,#636e72); }
-.ranking-table .rank-badge.top3 { background:linear-gradient(135deg,#e17055,#d63031); }
-.ranking-table .col-crossSales { text-align:right; }
-.ranking-table .col-response { color:var(--text); }
+.ranking-table .rank-badge { display:inline-flex; width:32px; height:32px; border-radius:50%; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#fff; background:#999; }
+.ranking-table .rank-badge.top1 { background:linear-gradient(135deg,#f9ca24,#f0932b); box-shadow:0 2px 8px rgba(240,147,43,0.35); }
+.ranking-table .rank-badge.top2 { background:linear-gradient(135deg,#b2bec3,#636e72); box-shadow:0 2px 8px rgba(99,110,114,0.35); }
+.ranking-table .rank-badge.top3 { background:linear-gradient(135deg,#e17055,#d63031); box-shadow:0 2px 8px rgba(214,48,49,0.35); }
+.ranking-table .col-crossSales { font-weight:600; }
+.ranking-table .col-response { color:var(--text); font-weight:600; }
 .ranking-table .col-response.fast { color:#27ae60; }
 .ranking-table tr.top-row td { background:#fdfcff; }
 .ranking-table tr.top-row td:first-child { border-left:3px solid var(--primary); }
-.ranking-table .highlight { font-weight:700; color:var(--primary); }
+.ranking-table .highlight { font-weight:700; color:var(--primary); font-size:16px; }
+.ranking-table td .rank-cell-input { width:70px; padding:6px 8px; border:1.5px solid var(--border); border-radius:8px; font-size:14px; text-align:center; font-family:inherit; }
+.ranking-table td .rank-cell-input:focus { outline:none; border-color:var(--primary); }
+.ranking-table td .rank-name-input { width:80px; padding:6px 8px; border:1.5px solid var(--border); border-radius:8px; font-size:14px; text-align:center; font-family:inherit; }
+.ranking-table td .rank-name-input:focus { outline:none; border-color:var(--primary); }
+.rank-export-area { margin-top:20px; padding:20px; background:#fff; border-radius:14px; border:1px solid var(--border); }
+.rank-export-title { font-size:14px; font-weight:600; color:var(--text); margin-bottom:10px; }
+.rank-export-text { width:100%; min-height:120px; padding:12px; border:1.5px solid var(--border); border-radius:10px; font-size:12px; font-family:monospace; background:#faf8ff; resize:vertical; margin-bottom:10px; }
 @media (max-width:640px) {
+  .ranking-toolbar { flex-direction:column; align-items:flex-start; }
   .ranking-table { font-size:13px; }
   .ranking-table th, .ranking-table td { padding:10px 6px; }
   .rank-group-btn { padding:6px 18px; font-size:13px; }
+  .ranking-table .rank-badge { width:26px; height:26px; font-size:12px; }
 }
 
 /* ---- Management Panel ---- */
@@ -886,10 +902,16 @@ body {
   <!-- ===== 客服排名 ===== -->
   <div class="page" id="page-ranking">
     <div class="page-header"><h1>🏆 客服排名</h1><p>A/B/C三组，按转化率/连带销售额/满意度/响应时效排名</p></div>
-    <div class="ranking-groups">
-      <button class="rank-group-btn active" data-group="0">A组</button>
-      <button class="rank-group-btn" data-group="1">B组</button>
-      <button class="rank-group-btn" data-group="2">C组</button>
+    <div class="ranking-toolbar">
+      <div class="ranking-groups">
+        <button class="rank-group-btn active" data-group="0">A组</button>
+        <button class="rank-group-btn" data-group="1">B组</button>
+        <button class="rank-group-btn" data-group="2">C组</button>
+      </div>
+      <div class="ranking-actions">
+        <button class="rank-action-btn" id="rank-edit-btn" onclick="toggleRankEdit()">✏️ 编辑数据</button>
+        <button class="rank-action-btn primary" id="rank-export-btn" onclick="exportRankData()" style="display:none;">📋 导出数据</button>
+      </div>
     </div>
     <div class="ranking-meta" id="ranking-meta"></div>
     <div class="ranking-table-wrap">
@@ -906,6 +928,11 @@ body {
         </thead>
         <tbody id="ranking-tbody"></tbody>
       </table>
+    </div>
+    <div class="rank-export-area" id="rank-export-area" style="display:none;">
+      <div class="rank-export-title">📋 导出数据（复制下方JSON给我，我帮你更新部署）</div>
+      <textarea class="rank-export-text" id="rank-export-text" readonly onclick="this.select()"></textarea>
+      <button class="btn" onclick="copyRankExport()">📋 复制到剪贴板</button>
     </div>
   </div>
 
@@ -931,6 +958,7 @@ let rankingData = { groups: [] };
 let rankGroupIdx = 0;
 let rankSortKey = 'response';
 let rankSortAsc = true;
+let rankEditMode = false;
 
 async function loadConfig() {
   try {
@@ -2324,19 +2352,22 @@ function renderRanking() {
   const group = rankingData.groups[rankGroupIdx];
   if (!group) return;
 
-  // Sort members
-  const sorted = [...group.members].sort((a, b) => {
-    const va = a[rankSortKey];
-    const vb = b[rankSortKey];
-    if (rankSortKey === 'response') return rankSortAsc ? va - vb : vb - va; // asc = faster is better
-    return rankSortAsc ? vb - va : va - vb; // higher is better for others
-  });
+  // Sort members (only in view mode)
+  let sorted = [...group.members];
+  if (!rankEditMode) {
+    sorted.sort((a, b) => {
+      const va = a[rankSortKey];
+      const vb = b[rankSortKey];
+      if (rankSortKey === 'response') return rankSortAsc ? va - vb : vb - va;
+      return rankSortAsc ? vb - va : va - vb;
+    });
+  }
 
   // Update table header sort indicators
   document.querySelectorAll('.ranking-table th.sortable').forEach(th => {
     th.classList.remove('active', 'asc', 'desc');
     const key = th.dataset.key;
-    if (key === rankSortKey) {
+    if (!rankEditMode && key === rankSortKey) {
       th.classList.add('active', rankSortAsc ? 'asc' : 'desc');
       th.querySelector('.sort-arrow').textContent = rankSortAsc ? '▲' : '▼';
     } else {
@@ -2347,12 +2378,13 @@ function renderRanking() {
   // Column sort click handlers
   document.querySelectorAll('.ranking-table th.sortable').forEach(th => {
     th.onclick = () => {
+      if (rankEditMode) return;
       const key = th.dataset.key;
       if (rankSortKey === key) {
         rankSortAsc = !rankSortAsc;
       } else {
         rankSortKey = key;
-        rankSortAsc = key === 'response'; // response defaults to asc (fastest first)
+        rankSortAsc = key === 'response';
       }
       renderRanking();
     };
@@ -2360,13 +2392,14 @@ function renderRanking() {
 
   // Render metadata
   const avgConv = (sorted.reduce((s, m) => s + m.conversion, 0) / sorted.length).toFixed(1);
-  const avgSat = (sorted.reduce((s, m) => s + m.satisfaction, 0) / sorted.length).toFixed(1);
+  const avgSat = (sorted.reduce((s, m) => s + m.satisfaction, 0) / sorted.length).toFixed(0);
   const avgResp = Math.round(sorted.reduce((s, m) => s + m.response, 0) / sorted.length);
   document.getElementById('ranking-meta').innerHTML =
-    `共<b>${sorted.length}人</b> · 组均转化率 <b>${avgConv}%</b> · 组均满意度 <b>${avgSat}</b> · 组均响应 <b>${avgResp}秒</b>`;
+    `共<b>${sorted.length}人</b> · 组均转化率 <b>${avgConv}%</b> · 组均满意度 <b>${avgSat}%</b> · 组均响应 <b>${avgResp}秒</b>`;
 
   // Render table rows
-  document.getElementById('ranking-tbody').innerHTML = sorted.map((m, i) => {
+  const tbody = document.getElementById('ranking-tbody');
+  tbody.innerHTML = sorted.map((m, i) => {
     const rank = i + 1;
     let rankClass = '';
     if (rank === 1) rankClass = 'top1';
@@ -2379,15 +2412,73 @@ function renderRanking() {
     const satHighlight = rankSortKey === 'satisfaction' && rank <= 1 ? ' highlight' : '';
     const respClass = m.response <= 30 ? ' fast' : '';
 
+    if (rankEditMode) {
+      return `<tr class="${isTop3}">
+        <td class="col-rank"><span class="rank-badge ${rankClass}">${rank}</span></td>
+        <td class="col-name"><input class="rank-name-input" data-idx="${i}" data-field="name" value="${m.name || ''}" placeholder="姓名" onchange="updateRankCell(${rankGroupIdx},${i},'name',this.value)"></td>
+        <td><input class="rank-cell-input" data-idx="${i}" data-field="conversion" value="${m.conversion}" onchange="updateRankCell(${rankGroupIdx},${i},'conversion',this.value)">%</td>
+        <td>¥<input class="rank-cell-input" data-idx="${i}" data-field="crossSales" value="${m.crossSales}" onchange="updateRankCell(${rankGroupIdx},${i},'crossSales',this.value)"></td>
+        <td><input class="rank-cell-input" data-idx="${i}" data-field="satisfaction" value="${m.satisfaction}" onchange="updateRankCell(${rankGroupIdx},${i},'satisfaction',this.value)">%</td>
+        <td><input class="rank-cell-input" data-idx="${i}" data-field="response" value="${m.response}" onchange="updateRankCell(${rankGroupIdx},${i},'response',this.value)">秒</td>
+      </tr>`;
+    }
+
     return `<tr class="${isTop3}">
       <td class="col-rank"><span class="rank-badge ${rankClass}">${rank}</span></td>
-      <td class="col-name">${m.name}</td>
+      <td class="col-name">${m.name || '<span style="color:#ccc">—</span>'}</td>
       <td class="${convHighlight}">${m.conversion}%</td>
       <td class="col-crossSales${salesHighlight}">¥${m.crossSales.toLocaleString()}</td>
-      <td class="${satHighlight}">${m.satisfaction}</td>
+      <td class="${satHighlight}">${m.satisfaction}%</td>
       <td class="col-response${respClass}">${m.response}秒</td>
     </tr>`;
   }).join('');
+}
+
+function updateRankCell(groupIdx, memberIdx, field, value) {
+  const m = rankingData.groups[groupIdx].members[memberIdx];
+  if (field === 'name') {
+    m[field] = value.trim();
+  } else {
+    const num = parseFloat(value);
+    m[field] = isNaN(num) ? 0 : num;
+  }
+}
+
+function toggleRankEdit() {
+  rankEditMode = !rankEditMode;
+  const btn = document.getElementById('rank-edit-btn');
+  const exportBtn = document.getElementById('rank-export-btn');
+  if (rankEditMode) {
+    btn.textContent = ' 完成编辑';
+    btn.style.borderColor = 'var(--primary)';
+    btn.style.color = 'var(--primary)';
+    exportBtn.style.display = 'inline-block';
+  } else {
+    btn.textContent = '✏️ 编辑数据';
+    btn.style.borderColor = '';
+    btn.style.color = '';
+    exportBtn.style.display = 'none';
+    document.getElementById('rank-export-area').style.display = 'none';
+  }
+  renderRanking();
+}
+
+function exportRankData() {
+  const exportData = JSON.stringify(rankingData, null, 2);
+  document.getElementById('rank-export-text').value = exportData;
+  document.getElementById('rank-export-area').style.display = 'block';
+  document.getElementById('rank-export-area').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function copyRankExport() {
+  const textarea = document.getElementById('rank-export-text');
+  textarea.select();
+  navigator.clipboard.writeText(textarea.value).then(() => {
+    showToast('✅ 已复制到剪贴板，发给我帮你更新部署');
+  }).catch(() => {
+    document.execCommand('copy');
+    showToast('✅ 已复制到剪贴板');
+  });
 }
 
 // ==================== SCHEDULE ====================
