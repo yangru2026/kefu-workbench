@@ -140,7 +140,14 @@ async function doRegister() {
 // ---------- 日报 ----------
 let dailyReports = [];
 let dailySub = null;
-const SAMPLE_SHOPS = ['TM-弥生','KS-弥生','TM-极氧','DY弥生官方','TM-护眼','XHS-弥生','DY-YOUHOO','DY-极氧','JD-弥生','XHS-极氧','有赞-拼多多'];
+// 各组预置店铺（可灵活增删）
+const GROUP_SHOPS = {
+  'A组': ['TM-弥生','KS-弥生','TM-极氧','DY弥生官方','TM-护眼','XHS-弥生','DY-YOUHOO','DY-极氧','JD-弥生','XHS-极氧','有赞-拼多多'],
+  'B组': ['PDD-1店','PDD-2店','PDD-3店','PDD-4店','PDD-5店','PDD-6店','PDD-YOUHOO','XHS-弥生','XHS-YOUHOO'],
+  'C组': ['DY官方-一店','DY旗舰-二店','DY眼镜-三店','DY电子-四店']
+};
+// 默认目标转化率（可手动修改）
+const DEFAULT_TARGET = 15;
 
 async function loadDailyReports() {
   if (!supabase || !currentUser) return;
@@ -213,11 +220,24 @@ function openDailyForm() {
   const today = new Date().toISOString().slice(0, 10);
   const existing = dailyReports.find(r => r.report_date === today);
   const savedShops = existing?.content?.shops;
-  const shops = savedShops && savedShops.length ? savedShops : [
-    { name: '', visitors: '', inquiries: '', payments: '', target: '' },
-    { name: '', visitors: '', inquiries: '', payments: '', target: '' },
-    { name: '', visitors: '', inquiries: '', payments: '', target: '' }
-  ];
+
+  // 用历史记录 → 或用该组的预置店铺 → 或空白行
+  let shops;
+  if (savedShops && savedShops.length) {
+    shops = savedShops;
+  } else {
+    const group = currentProfile?.group_name;
+    const presetNames = GROUP_SHOPS[group];
+    if (presetNames && presetNames.length) {
+      shops = presetNames.map(name => ({ name, visitors: '', inquiries: '', payments: '', target: DEFAULT_TARGET }));
+    } else {
+      shops = [
+        { name: '', visitors: '', inquiries: '', payments: '', target: DEFAULT_TARGET },
+        { name: '', visitors: '', inquiries: '', payments: '', target: DEFAULT_TARGET },
+        { name: '', visitors: '', inquiries: '', payments: '', target: DEFAULT_TARGET }
+      ];
+    }
+  }
 
   renderDailyShopInputs(shops);
   document.getElementById('daily-analysis').value = existing?.content?.analysis || '';
@@ -562,10 +582,11 @@ async function loadMembers() {
 function renderMembers(members) {
   const tbody = document.getElementById('members-tbody');
   if (!members.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-secondary);">暂无成员</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-secondary);">暂无成员</td></tr>';
     return;
   }
   const roleMap = { admin: '管理员', leader: '组长', staff: '员工' };
+  const groupMap = { 'A组': '🔵 A组', 'B组': '🟠 B组', 'C组': '🟢 C组' };
   const isAdmin = currentProfile?.role === 'admin';
   tbody.innerHTML = members.map(m => {
     const date = m.created_at ? new Date(m.created_at).toLocaleDateString('zh-CN') : '-';
@@ -573,6 +594,14 @@ function renderMembers(members) {
     return `<tr>
       <td>${escapeHtml(m.name || '未命名')}</td>
       <td>${escapeHtml(phone)}</td>
+      <td>
+        ${isAdmin ? `<select onchange="updateMemberGroup('${m.id}', this.value)" style="padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);font-size:13px;">
+          <option value="" ${!m.group_name?'selected':''}>未分组</option>
+          <option value="A组" ${m.group_name==='A组'?'selected':''}>A组</option>
+          <option value="B组" ${m.group_name==='B组'?'selected':''}>B组</option>
+          <option value="C组" ${m.group_name==='C组'?'selected':''}>C组</option>
+        </select>` : (groupMap[m.group_name] || (m.group_name || '未分组'))}
+      </td>
       <td><span class="badge" style="background:${m.role==='admin'?'var(--danger)':m.role==='leader'?'var(--warning)':'var(--success)'};color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;">${roleMap[m.role] || '员工'}</span></td>
       <td>${date}</td>
       <td>
@@ -586,10 +615,10 @@ function renderMembers(members) {
   }).join('');
 }
 
-async function updateMemberRole(userId, newRole) {
+async function updateMemberGroup(userId, groupName) {
   if (!supabase) return;
-  const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
+  const { error } = await supabase.from('profiles').update({ group_name: groupName }).eq('id', userId);
   if (error) { showToast('更新失败：' + error.message); return; }
-  showToast('角色已更新');
+  showToast('组别已更新');
   loadMembers();
 }
