@@ -1117,6 +1117,8 @@ body {
 // ==================== SUPABASE CONFIG ====================
 const SUPABASE_URL = 'https://ienmejlxukhrxjjxvfqf.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_emFn7uMsZYdIk0lmLCxP3A_2V4gL68s';
+// CDN 加载的库会创建 var supabase（库对象），先保存引用再覆盖
+const _supabaseLib = window.supabase;
 supabase = null;
 let currentUser = null;
 let currentProfile = null;
@@ -1124,11 +1126,11 @@ let currentProfile = null;
 // ==================== AUTH ====================
 async function initSupabase() {
   try {
-    if (!window.supabase || !window.supabase.createClient) {
+    if (!_supabaseLib || !_supabaseLib.createClient) {
       console.error('Supabase CDN 未加载');
       return;
     }
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    supabase = _supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
     // Check existing session
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
