@@ -1182,7 +1182,7 @@ function updateAuthUI() {
 
 async function signUp(name, phone, password) {
   const { data, error } = await supabase.auth.signUp({
-    email: phone + '@youhu.local',
+    email: phone + '@youhu.app',
     password: password,
     options: { data: { name: name, phone: phone } }
   });
@@ -1193,7 +1193,7 @@ async function signUp(name, phone, password) {
 
 async function signIn(phone, password) {
   const { data, error } = await supabase.auth.signInWithPassword({
-    email: phone + '@youhu.local',
+    email: phone + '@youhu.app',
     password: password
   });
   if (error) { showToast('登录失败：' + error.message); return false; }
