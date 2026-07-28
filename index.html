@@ -315,61 +315,61 @@ body {
 .highlight-row .name-cell { background:#FFF3D4 !important; font-weight:700; }
 
 /* ===== DEGREE CONVERTER ===== */
-.brand-switch-cvt { display:flex; gap:6px; justify-content:center; margin-bottom:16px; background:#fff; padding:8px; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
-.brand-btn-cvt { padding:6px 24px; border:1px solid var(--border); background:transparent; color:var(--text-secondary); border-radius:20px; font-size:14px; cursor:pointer; font-family:inherit; transition:all 0.2s; }
+.brand-switch-cvt { display:flex; gap:6px; justify-content:center; margin-bottom:10px; background:#fff; padding:6px; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+.brand-btn-cvt { padding:5px 20px; border:1px solid var(--border); background:transparent; color:var(--text-secondary); border-radius:18px; font-size:13px; cursor:pointer; font-family:inherit; transition:all 0.2s; }
 .brand-btn-cvt.active { background:#7ba7a6; color:#fff; font-weight:600; border-color:#7ba7a6; }
-.brand-header-cvt { text-align:center; margin-bottom:12px; padding:12px; background:#7ba7a6; border-radius:12px; color:#fff; }
-.brand-header-cvt .brand-name-cvt { font-size:18px; font-weight:600; letter-spacing:2px; }
-.ocr-fold { background:#fff; border-radius:12px; margin-bottom:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
-.ocr-fold-header { padding:12px 16px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none; }
+.brand-header-cvt { text-align:center; margin-bottom:8px; padding:6px 10px; background:#7ba7a6; border-radius:10px; color:#fff; }
+.brand-header-cvt .brand-name-cvt { font-size:14px; font-weight:600; letter-spacing:1px; }
+.ocr-fold { background:#fff; border-radius:10px; margin-bottom:10px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+.ocr-fold-header { padding:10px 14px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none; }
 .ocr-fold-header:hover { background:#f5faf8; }
-.ocr-fold-title { font-size:14px; font-weight:600; color:#3d5a4d; }
-.ocr-fold-arrow { font-size:12px; color:var(--text-secondary); transition:transform 0.3s; }
+.ocr-fold-title { font-size:13px; font-weight:600; color:#3d5a4d; }
+.ocr-fold-arrow { font-size:11px; color:var(--text-secondary); transition:transform 0.3s; }
 .ocr-fold.open .ocr-fold-arrow { transform:rotate(180deg); }
 .ocr-fold-body { max-height:0; overflow:hidden; transition:max-height 0.3s ease; }
 .ocr-fold.open .ocr-fold-body { max-height:500px; }
-.ocr-fold-inner { padding:0 16px 16px; }
-.ocr-upload { border:2px dashed var(--border); border-radius:8px; padding:20px 12px; text-align:center; cursor:pointer; }
+.ocr-fold-inner { padding:0 14px 14px; }
+.ocr-upload { border:2px dashed var(--border); border-radius:8px; padding:14px 10px; text-align:center; cursor:pointer; }
 .ocr-upload:hover { border-color:#7ba7a6; background:#f1f5f4; }
-.ocr-icon { font-size:28px; margin-bottom:4px; }
+.ocr-icon { font-size:24px; margin-bottom:2px; }
 .ocr-text { color:var(--text-secondary); font-size:12px; line-height:1.5; }
 .ocr-text strong { color:#7ba7a6; }
 .ocr-input-hidden { display:none; }
-.ocr-preview { margin-top:8px; display:none; text-align:center; }
+.ocr-preview { margin-top:6px; display:none; text-align:center; }
 .ocr-preview.show { display:block; }
-.ocr-preview img { max-width:100%; max-height:180px; border-radius:6px; border:1px solid var(--border); }
-.ocr-status { margin-top:8px; padding:8px 12px; border-radius:6px; font-size:12px; display:none; }
+.ocr-preview img { max-width:100%; max-height:150px; border-radius:6px; border:1px solid var(--border); }
+.ocr-status { margin-top:6px; padding:6px 10px; border-radius:6px; font-size:11px; display:none; }
 .ocr-status.show { display:block; }
 .ocr-status.processing { background:#f1f5f4; color:#7ba7a6; }
 .ocr-status.success { background:#f0fdf4; color:#15803d; }
 .ocr-status.error { background:#fef2f2; color:#dc2626; }
 .ocr-status.localwarn { background:#fffbeb; color:#b45309; }
-.ocr-raw-text { margin-top:8px; padding:8px 12px; background:#f8f5f2; border:1px solid var(--border); border-radius:8px; font-size:11px; color:var(--text-secondary); white-space:pre-wrap; word-break:break-all; max-height:80px; overflow-y:auto; display:none; }
+.ocr-raw-text { margin-top:6px; padding:6px 10px; background:#f8f5f2; border:1px solid var(--border); border-radius:6px; font-size:11px; color:var(--text-secondary); white-space:pre-wrap; word-break:break-all; max-height:80px; overflow-y:auto; display:none; }
 .ocr-raw-text.show { display:block; }
-.ocr-filled-tag { display:inline-block; font-size:11px; padding:2px 8px; border-radius:10px; background:#f0fdf4; color:#15803d; margin-left:6px; font-weight:500; }
-.quick-input-row { margin:12px 0; }
-.quick-input-row input { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; font-family:inherit; }
+.ocr-filled-tag { display:inline-block; font-size:10px; padding:1px 6px; border-radius:8px; background:#f0fdf4; color:#15803d; margin-left:4px; font-weight:500; }
+.quick-input-row { margin:10px 0; }
+.quick-input-row input { width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px; font-family:inherit; }
 .quick-input-row input:focus { border-color:#7ba7a6; outline:none; }
-.eyes-row-cvt { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
-.eye-card-cvt { background:#fff; border-radius:12px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
-.eye-card-title-cvt { font-size:15px; font-weight:600; color:#3d5a4d; margin-bottom:12px; text-align:center; padding-bottom:8px; border-bottom:1px solid #f0e8e0; }
-.eye-input-row-cvt { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
-.eye-input-row-cvt label { font-size:12px; color:var(--text-secondary); width:50px; flex-shrink:0; }
-.btn-adjust { width:32px; height:32px; border:1px solid var(--border); background:#fff; color:#7ba7a6; font-size:16px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 4px rgba(0,0,0,0.06); flex-shrink:0; font-family:inherit; }
+.eyes-row-cvt { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+.eye-card-cvt { background:#fff; border-radius:10px; padding:10px 12px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+.eye-card-title-cvt { font-size:13px; font-weight:600; color:#3d5a4d; margin-bottom:6px; text-align:center; padding-bottom:4px; border-bottom:1px solid #f0e8e0; }
+.eye-input-row-cvt { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+.eye-input-row-cvt label { font-size:11px; color:var(--text-secondary); width:38px; flex-shrink:0; }
+.btn-adjust { width:26px; height:26px; border:1px solid var(--border); background:#fff; color:#7ba7a6; font-size:14px; border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.06); flex-shrink:0; font-family:inherit; }
 .btn-adjust:active { background:#f1f5f4; }
-.degree-input-cvt { width:60px; height:32px; border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:15px; text-align:center; font-family:inherit; flex-shrink:0; }
+.degree-input-cvt { width:54px; height:26px; border:1px solid var(--border); border-radius:5px; color:var(--text); font-size:13px; text-align:center; font-family:inherit; flex-shrink:0; }
 .degree-input-cvt:focus { outline:none; border-color:#7ba7a6; }
-.eye-result-cvt { text-align:center; font-size:13px; color:var(--text-secondary); margin-top:8px; }
-.eye-result-cvt span { color:#7ba7a6; font-weight:600; font-size:20px; }
-.eye-warning-cvt { display:none; color:#E17055; font-size:11px; text-align:center; margin-top:4px; }
-.final-result-box-cvt { background:#7ba7a6; border-radius:16px; padding:20px; color:#fff; text-align:center; margin-bottom:16px; }
-.final-result-box-cvt .label-cvt { font-size:13px; opacity:0.9; margin-bottom:4px; }
-.final-result-box-cvt .degree-cvt { font-size:36px; font-weight:700; line-height:1.2; }
-.final-result-box-cvt .eye-label-cvt { font-size:12px; opacity:0.8; margin-top:4px; }
-.final-result-row-cvt { display:flex; gap:12px; justify-content:center; }
+.eye-result-cvt { text-align:center; font-size:11px; color:var(--text-secondary); margin-top:4px; }
+.eye-result-cvt span { color:#7ba7a6; font-weight:600; font-size:16px; }
+.eye-warning-cvt { display:none; color:#E17055; font-size:10px; text-align:center; margin-top:2px; }
+.final-result-box-cvt { background:#7ba7a6; border-radius:12px; padding:12px; color:#fff; text-align:center; margin-bottom:12px; }
+.final-result-box-cvt .label-cvt { font-size:11px; opacity:0.9; margin-bottom:2px; }
+.final-result-box-cvt .degree-cvt { font-size:24px; font-weight:700; line-height:1.2; }
+.final-result-box-cvt .eye-label-cvt { font-size:11px; opacity:0.8; margin-top:2px; }
+.final-result-row-cvt { display:flex; gap:10px; justify-content:center; }
 .final-result-row-cvt > div { flex:1; }
-.action-btns-cvt { display:flex; gap:10px; margin-bottom:16px; }
-.action-btns-cvt button { flex:1; padding:12px 0; border:none; border-radius:20px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; background:#7ba7a6; color:#fff; }
+.action-btns-cvt { display:flex; gap:8px; margin-bottom:12px; }
+.action-btns-cvt button { flex:1; padding:10px 0; border:none; border-radius:18px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; background:#7ba7a6; color:#fff; }
 .action-btns-cvt button:active { opacity:0.9; }
 .screenshot-preview-cvt { display:none; margin:0 auto 16px; text-align:center; }
 .screenshot-preview-cvt.show { display:block; }
@@ -381,10 +381,10 @@ body {
 .modal-box-cvt .modal-title-cvt { font-size:17px; font-weight:600; color:#3d5a4d; margin-bottom:10px; }
 .modal-box-cvt .modal-text-cvt { font-size:13px; color:var(--text-secondary); line-height:1.7; margin-bottom:20px; }
 .modal-btn-cvt { padding:10px 32px; background:#7ba7a6; color:#fff; border:none; border-radius:20px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; }
-.clear-row-cvt { display:flex; justify-content:flex-end; margin-bottom:8px; }
-.clear-btn-cvt { padding:4px 14px; background:#fff; border:1px solid var(--border); color:var(--text-secondary); border-radius:15px; font-size:12px; cursor:pointer; font-family:inherit; }
+.clear-row-cvt { display:flex; justify-content:flex-end; margin-bottom:6px; }
+.clear-btn-cvt { padding:3px 10px; background:#fff; border:1px solid var(--border); color:var(--text-secondary); border-radius:12px; font-size:11px; cursor:pointer; font-family:inherit; }
 .clear-btn-cvt:hover { background:#f1f5f4; color:#7ba7a6; border-color:#7ba7a6; }
-.notes-cvt { background:#fff; border-radius:12px; padding:14px; font-size:12px; color:var(--text-secondary); line-height:1.8; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+.notes-cvt { background:#fff; border-radius:10px; padding:10px; font-size:11px; color:var(--text-secondary); line-height:1.7; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
 .notes-title-cvt { font-weight:600; color:#3d5a4d; margin-bottom:6px; font-size:13px; }
 @media (max-width:768px) { .eyes-row-cvt { grid-template-columns:1fr; } }
 
@@ -501,13 +501,13 @@ body {
         <div class="eye-input-row-cvt">
           <label>近视</label>
           <button class="btn-adjust" onclick="adjustCvt('r-myopia', -25)">−</button>
-          <input type="number" class="degree-input-cvt" id="r-myopia" placeholder="0" onchange="calculate()" onblur="focusNextCvt(this)">
+          <input type="number" class="degree-input-cvt" id="r-myopia" placeholder="0" onchange="calculate()" oninput="autoJumpCvt(this)">
           <button class="btn-adjust" onclick="adjustCvt('r-myopia', 25)">+</button>
         </div>
         <div class="eye-input-row-cvt">
           <label>散光</label>
           <button class="btn-adjust" onclick="adjustCvt('r-astigmatism', -25)">−</button>
-          <input type="number" class="degree-input-cvt" id="r-astigmatism" placeholder="0" onchange="calculate()">
+          <input type="number" class="degree-input-cvt" id="r-astigmatism" placeholder="0" onchange="calculate()" oninput="autoJumpCvt(this)">
           <button class="btn-adjust" onclick="adjustCvt('r-astigmatism', 25)">+</button>
         </div>
         <div class="eye-result-cvt">建议 <span id="r-result">0</span> 度</div>
@@ -518,13 +518,13 @@ body {
         <div class="eye-input-row-cvt">
           <label>近视</label>
           <button class="btn-adjust" onclick="adjustCvt('l-myopia', -25)">−</button>
-          <input type="number" class="degree-input-cvt" id="l-myopia" placeholder="0" onchange="calculate()" onblur="focusNextCvt(this)">
+          <input type="number" class="degree-input-cvt" id="l-myopia" placeholder="0" onchange="calculate()" oninput="autoJumpCvt(this)">
           <button class="btn-adjust" onclick="adjustCvt('l-myopia', 25)">+</button>
         </div>
         <div class="eye-input-row-cvt">
           <label>散光</label>
           <button class="btn-adjust" onclick="adjustCvt('l-astigmatism', -25)">−</button>
-          <input type="number" class="degree-input-cvt" id="l-astigmatism" placeholder="0" onchange="calculate()">
+          <input type="number" class="degree-input-cvt" id="l-astigmatism" placeholder="0" onchange="calculate()" oninput="autoJumpCvt(this)">
           <button class="btn-adjust" onclick="adjustCvt('l-astigmatism', 25)">+</button>
         </div>
         <div class="eye-result-cvt">建议 <span id="l-result">0</span> 度</div>
@@ -712,14 +712,37 @@ function adjustCvt(id, delta) {
   calculate();
 }
 
+const CVT_INPUT_ORDER = ['r-myopia', 'r-astigmatism', 'l-myopia', 'l-astigmatism'];
+
 document.querySelectorAll('.degree-input-cvt').forEach(input => {
   input.addEventListener('focus', function() { this.select(); });
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      jumpToNextCvt(this.id);
+    }
+  });
 });
 
-function focusNextCvt(input) {
-  if (input.id === 'r-myopia' && !document.getElementById('r-astigmatism').value) document.getElementById('r-astigmatism').focus();
-  else if (input.id === 'r-astigmatism' && !document.getElementById('l-myopia').value) document.getElementById('l-myopia').focus();
-  else if (input.id === 'l-myopia' && !document.getElementById('l-astigmatism').value) document.getElementById('l-astigmatism').focus();
+function jumpToNextCvt(currentId) {
+  const idx = CVT_INPUT_ORDER.indexOf(currentId);
+  if (idx >= 0 && idx < CVT_INPUT_ORDER.length - 1) {
+    const next = document.getElementById(CVT_INPUT_ORDER[idx + 1]);
+    if (next) next.focus();
+  }
+}
+
+let cvtJumpTimer = null;
+function autoJumpCvt(input) {
+  calculate();
+  const val = input.value.trim();
+  if (val.length >= 2) {
+    if (cvtJumpTimer) clearTimeout(cvtJumpTimer);
+    cvtJumpTimer = setTimeout(() => {
+      jumpToNextCvt(input.id);
+      cvtJumpTimer = null;
+    }, 400);
+  }
 }
 
 function convertDegree(totalDegree) {
