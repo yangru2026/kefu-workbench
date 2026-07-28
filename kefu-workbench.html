@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>美瞳客服工作台</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --primary: #6C5CE7;
+  --primary-light: #A29BFE;
+  --bg: #F5F3FF;
+  --sidebar-bg: #2D2B55;
+  --sidebar-text: #C4C2E0;
+  --sidebar-hover: #3D3B6E;
+  --sidebar-active: #6C5CE7;
+  --card-bg: #FFFFFF;
+  --text: #2D2B55;
+  --text-secondary: #6B6A8A;
+  --border: #E8E6F5;
+  --success: #00B894;
+  --warning: #FDCB6E;
+  --danger: #E17055;
+  --tag-bg: #F0EEFF;
+  --tag-text: #6C5CE7;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 220px;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+  overflow-y: auto;
+}
+
+.sidebar-header {
+  padding: 24px 20px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.sidebar-header h2 {
+  font-size: 18px;
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.sidebar-header .sub {
+  font-size: 12px;
+  color: var(--sidebar-text);
+  margin-top: 4px;
+}
+
+.sidebar-nav { padding: 8px 0; flex: 1; }
+.nav-section { padding: 12px 20px 4px; font-size: 11px; text-transform: uppercase; color: rgba(255,255,255,0.3); letter-spacing: 1.5px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 20px; cursor: pointer;
+  font-size: 14px; transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+.nav-item:hover { background: var(--sidebar-hover); color: #fff; }
+.nav-item.active { background: var(--sidebar-hover); color: #fff; border-left-color: var(--sidebar-active); }
+.nav-item .icon { font-size: 18px; width: 24px; text-align: center; }
+.nav-item .badge { margin-left: auto; background: var(--primary); color: #fff; font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+
+.sidebar-footer {
+  padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.06);
+  font-size: 12px; color: rgba(255,255,255,0.3);
+}
+
+/* Main */
+.main {
+  margin-left: 220px;
+  flex: 1;
+  min-height: 100vh;
+}
+
+.page { display: none; padding: 32px 40px; }
+.page.active { display: block; }
+
+/* Header */
+.page-header { margin-bottom: 28px; }
+.page-header h1 { font-size: 26px; font-weight: 700; color: var(--text); }
+.page-header p { color: var(--text-secondary); margin-top: 6px; font-size: 14px; }
+
+/* Cards */
+.card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+  margin-bottom: 16px;
+}
+.card h3 { font-size: 16px; margin-bottom: 12px; color: var(--text); }
+.card p { color: var(--text-secondary); font-size: 14px; line-height: 1.7; }
+
+/* Home cards */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.home-card {
+  background: var(--card-bg);
+  border-radius: 12px; padding: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  cursor: pointer; transition: all 0.2s;
+  border: 1px solid transparent;
+}
+.home-card:hover { border-color: var(--primary-light); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(108,92,231,0.1); }
+.home-card .emoji { font-size: 32px; margin-bottom: 12px; display: block; }
+.home-card h3 { font-size: 16px; margin-bottom: 6px; }
+.home-card p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+
+/* Stats row */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--card-bg); border-radius: 12px; padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  text-align: center;
+}
+.stat-card .num { font-size: 28px; font-weight: 700; color: var(--primary); }
+.stat-card .label { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+
+/* Converter */
+.converter { max-width: 480px; }
+.input-group { margin-bottom: 16px; }
+.input-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+.input-group input, .input-group select {
+  width: 100%; padding: 10px 14px;
+  border: 1px solid var(--border); border-radius: 8px;
+  font-size: 15px; outline: none; transition: border 0.2s;
+  font-family: inherit;
+}
+.input-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(108,92,231,0.1); }
+
+.btn {
+  background: var(--primary); color: #fff;
+  border: none; padding: 10px 24px; border-radius: 8px;
+  font-size: 14px; cursor: pointer; font-weight: 600;
+  transition: background 0.2s;
+  font-family: inherit;
+}
+.btn:hover { background: #5A4BD1; }
+.btn-outline {
+  background: #fff; color: var(--primary);
+  border: 1px solid var(--primary);
+}
+.btn-outline:hover { background: var(--tag-bg); }
+
+.result-box {
+  margin-top: 20px; padding: 20px;
+  background: linear-gradient(135deg, #F0EEFF, #E8E6F5);
+  border-radius: 12px; text-align: center;
+}
+.result-box .big { font-size: 36px; font-weight: 700; color: var(--primary); }
+.result-box .desc { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+
+/* Filter bar */
+.filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.filter-tag {
+  padding: 6px 16px; border-radius: 20px;
+  font-size: 13px; cursor: pointer; border: 1px solid var(--border);
+  background: #fff; color: var(--text-secondary);
+  transition: all 0.2s; font-family: inherit;
+}
+.filter-tag:hover { border-color: var(--primary); color: var(--primary); }
+.filter-tag.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* Pattern gallery */
+.pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.pattern-card {
+  background: var(--card-bg); border-radius: 12px; overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: all 0.2s;
+}
+.pattern-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.pattern-img {
+  height: 160px; display: flex; align-items: center; justify-content: center;
+  font-size: 48px; color: #fff;
+}
+.pattern-info { padding: 14px; }
+.pattern-info .name { font-size: 14px; font-weight: 600; }
+.pattern-info .tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.pattern-info .tags span {
+  font-size: 11px; padding: 2px 8px; border-radius: 10px;
+  background: var(--tag-bg); color: var(--tag-text);
+}
+
+/* Link list */
+.link-list { list-style: none; }
+.link-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-radius: 8px;
+  transition: background 0.2s;
+}
+.link-item:hover { background: var(--bg); }
+.link-item a { color: var(--primary); text-decoration: none; font-size: 14px; font-weight: 500; }
+.link-item a:hover { text-decoration: underline; }
+.link-item .meta { font-size: 12px; color: var(--text-secondary); }
+.link-item .tag {
+  font-size: 11px; padding: 2px 8px; border-radius: 10px;
+  background: var(--tag-bg); color: var(--tag-text);
+}
+
+/* SOP steps */
+.sop-steps { counter-reset: step; }
+.sop-step {
+  display: flex; gap: 16px; padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+  counter-increment: step;
+}
+.sop-step:last-child { border-bottom: none; }
+.sop-step .num {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px; flex-shrink: 0;
+}
+.sop-step .content h4 { font-size: 15px; margin-bottom: 4px; }
+.sop-step .content p { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+
+/* Bulletin */
+.bulletin-list { list-style: none; }
+.bulletin-item {
+  display: flex; gap: 14px; padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.bulletin-item:last-child { border-bottom: none; }
+.bulletin-item .date {
+  font-size: 12px; color: var(--primary); font-weight: 600;
+  background: var(--tag-bg); padding: 4px 10px; border-radius: 6px;
+  white-space: nowrap; height: fit-content;
+}
+.bulletin-item .content h4 { font-size: 14px; margin-bottom: 4px; }
+.bulletin-item .content p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+
+/* Tool list */
+.tool-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.tool-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px; background: var(--card-bg); border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04); cursor: pointer;
+  transition: all 0.2s; border: 1px solid transparent;
+}
+.tool-item:hover { border-color: var(--primary-light); }
+.tool-item .tool-icon { font-size: 24px; }
+.tool-item .tool-info h4 { font-size: 14px; }
+.tool-item .tool-info p { font-size: 12px; color: var(--text-secondary); }
+
+/* Quiz Styles */
+.quiz-container { max-width: 600px; }
+.quiz-question {
+  background: var(--card-bg); border-radius: 12px; padding: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 16px;
+}
+.quiz-question h4 { margin-bottom: 12px; font-size: 15px; }
+.quiz-option {
+  display: block; width: 100%; text-align: left;
+  padding: 10px 14px; margin-bottom: 8px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: #fff; cursor: pointer; font-size: 14px;
+  transition: all 0.2s; font-family: inherit;
+}
+.quiz-option:hover { border-color: var(--primary); }
+.quiz-option.selected { background: var(--primary); color: #fff; border-color: var(--primary); }
+.quiz-option.correct { background: var(--success); color: #fff; border-color: var(--success); }
+.quiz-option.wrong { background: var(--danger); color: #fff; border-color: var(--danger); }
+.quiz-result { font-size: 18px; font-weight: 600; text-align: center; padding: 20px; }
+.quiz-score { font-size: 48px; color: var(--primary); font-weight: 700; }
+
+/* Search */
+.search-bar { margin-bottom: 20px; }
+.search-bar input {
+  width: 100%; max-width: 400px; padding: 10px 16px;
+  border: 1px solid var(--border); border-radius: 8px;
+  font-size: 14px; outline: none; font-family: inherit;
+}
+.search-bar input:focus { border-color: var(--primary); }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+  background: var(--text); color: #fff; padding: 10px 24px;
+  border-radius: 8px; font-size: 14px; z-index: 1000;
+  opacity: 0; transition: opacity 0.3s;
+}
+.toast.show { opacity: 1; }
+
+/* Schedule */
+.legend-item { display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary); }
+.legend-dot { width:12px;height:12px;border-radius:3px;display:inline-block; }
+.schedule-table { width:100%;border-collapse:collapse;background:#fff;font-size:13px;min-width:800px; }
+.schedule-table th { padding:10px 6px;background:var(--sidebar-bg);color:#fff;font-weight:600;text-align:center;position:sticky;top:0;z-index:2; }
+.schedule-table th:first-child { border-radius:12px 0 0 0;min-width:70px; }
+.schedule-table th:last-child { border-radius:0 12px 0 0; }
+.schedule-table td { padding:8px 6px;text-align:center;border-bottom:1px solid var(--border);white-space:nowrap; }
+.schedule-table tr:last-child td:first-child { border-radius:0 0 0 12px; }
+.schedule-table tr:last-child td:last-child { border-radius:0 0 12px 0; }
+.schedule-table .name-cell { font-weight:600;background:#fafafa;position:sticky;left:0;z-index:1; }
+.schedule-table .shift-morning { background:#F0EEFF;color:var(--primary);font-weight:500;border-radius:4px;display:inline-block;padding:2px 8px;font-size:12px; }
+.schedule-table .shift-night { background:#FFF0ED;color:#E17055;font-weight:500;border-radius:4px;display:inline-block;padding:2px 8px;font-size:12px; }
+.schedule-table .shift-rest { background:#F1F3F4;color:#636E72;border-radius:4px;display:inline-block;padding:2px 8px;font-size:12px; }
+.schedule-table .today-col { background:#FFF9E6 !important; }
+.schedule-table .today-col.name-cell { background:#FFF3D4 !important; }
+.highlight-row { background:#FFF9E6 !important; }
+.highlight-row .name-cell { background:#FFF3D4 !important; font-weight:700; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar { width: 60px; }
+  .sidebar-header h2, .sidebar-header .sub, .nav-section, .nav-item span:not(.icon) { display: none; }
+  .sidebar-header { padding: 16px 0; text-align: center; }
+  .sidebar-header::after { content: '💜'; font-size: 20px; }
+  .main { margin-left: 60px; }
+  .page { padding: 20px; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h2>💜 美瞳客服工作台</h2>
+    <div class="sub">一站式服务工具</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">常用</div>
+    <div class="nav-item active" data-page="home"><span class="icon">🏠</span><span>首页</span></div>
+    <div class="nav-item" data-page="converter"><span class="icon">🔢</span><span>度数换算</span></div>
+    <div class="nav-item" data-page="patterns"><span class="icon">🎨</span><span>花色素材</span></div>
+    <div class="nav-section">培训</div>
+    <div class="nav-item" data-page="training"><span class="icon">📚</span><span>培训资料</span></div>
+    <div class="nav-item" data-page="sop"><span class="icon">📋</span><span>新人SOP</span></div>
+    <div class="nav-item" data-page="quiz"><span class="icon">✅</span><span>知识测验</span></div>
+    <div class="nav-section">运营</div>
+    <div class="nav-item" data-page="bulletin"><span class="icon">📢</span><span>每日速报</span></div>
+    <div class="nav-item" data-page="schedule"><span class="icon">📅</span><span>排班表</span></div>
+    <div class="nav-item" data-page="tools"><span class="icon">🛠</span><span>快捷工具</span></div>
+  </nav>
+  <div class="sidebar-footer"><span id="config-version">加载中...</span> · 更新于 <span id="config-update">-</span> · 小布出品</div>
+</aside>
+
+<!-- Main Content -->
+<main class="main">
+
+  <!-- ===== 首页 ===== -->
+  <div class="page active" id="page-home">
+    <div class="page-header"><h1>👋 欢迎回来</h1><p>今天是 2026年7月28日 星期二 · 祝你工作顺利</p></div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="num" id="stat-training">12</div><div class="label">培训资料</div></div>
+      <div class="stat-card"><div class="num" id="stat-patterns">18</div><div class="label">花色素材</div></div>
+      <div class="stat-card"><div class="num" id="stat-sop">5</div><div class="label">SOP流程</div></div>
+      <div class="stat-card"><div class="num" id="stat-tools">6</div><div class="label">快捷工具</div></div>
+    </div>
+    <h3 style="margin-bottom:14px;">快速入口</h3>
+    <div class="card-grid">
+      <div class="home-card" onclick="switchPage('converter')"><span class="emoji">🔢</span><h3>度数换算</h3><p>框架度数 → 美瞳度数，一键换算</p></div>
+      <div class="home-card" onclick="switchPage('patterns')"><span class="emoji">🎨</span><h3>花色素材</h3><p>按颜色直径快速查找花色</p></div>
+      <div class="home-card" onclick="switchPage('training')"><span class="emoji">📚</span><h3>培训资料</h3><p>产品知识、平台流程、话术库</p></div>
+      <div class="home-card" onclick="switchPage('sop')"><span class="emoji">📋</span><h3>新人SOP</h3><p>新人上岗标准操作流程</p></div>
+      <div class="home-card" onclick="switchPage('bulletin')"><span class="emoji">📢</span><h3>每日速报</h3><p>当天活动、新品、注意事项</p></div>
+      <div class="home-card" onclick="switchPage('schedule')"><span class="emoji">📅</span><h3>排班表</h3><p>每月排班，查看自己的班次</p></div>
+      <div class="home-card" onclick="switchPage('tools')"><span class="emoji">🛠</span><h3>快捷工具</h3><p>运费、发货、退换货规则速查</p></div>
+    </div>
+  </div>
+
+  <!-- ===== 度数换算 ===== -->
+  <div class="page" id="page-converter">
+    <div class="page-header"><h1>🔢 美瞳度数换算</h1><p>输入框架眼镜度数，自动换算为美瞳/隐形眼镜度数</p></div>
+    <div class="card converter">
+      <div class="input-group"><label>框架眼镜度数（近视用负数，远视用正数）</label><input type="number" id="diopter-input" placeholder="例如：-3.50" step="0.25" value="-3.50"></div>
+      <div class="input-group"><label>是否有散光？</label>
+        <select id="astigmatism">
+          <option value="no">无散光</option>
+          <option value="low">低度散光（< 0.75）</option>
+          <option value="high">中高度散光（≥ 0.75）</option>
+        </select>
+      </div>
+      <button class="btn" onclick="convertDiopter()">换算</button>
+      <div class="result-box" id="diopter-result" style="display:none;"></div>
+    </div>
+    <div class="card">
+      <h3>📖 换算规则说明</h3>
+      <p>• 框架度数 < 4.00：无需换算，直接配同等度数<br>
+      • 框架度数 4.00 ~ 5.00：减 0.25<br>
+      • 框架度数 5.00 ~ 7.00：减 0.50<br>
+      • 框架度数 7.00 ~ 9.00：减 0.75<br>
+      • 框架度数 9.00 ~ 11.00：减 1.00<br>
+      • 有散光建议配散光定制片，低度散光可折半加入球镜</p>
+    </div>
+  </div>
+
+  <!-- ===== 花色素材 ===== -->
+  <div class="page" id="page-patterns">
+    <div class="page-header"><h1>🎨 花色素材</h1><p>按颜色、直径、系列筛选查看</p></div>
+    <div class="filter-bar" id="pattern-filters"></div>
+    <div class="search-bar"><input type="text" id="pattern-search" placeholder="🔍 搜索花色名称..." oninput="renderPatterns()"></div>
+    <div class="pattern-grid" id="pattern-grid"></div>
+  </div>
+
+  <!-- ===== 培训资料 ===== -->
+  <div class="page" id="page-training">
+    <div class="page-header"><h1>📚 培训资料中心</h1><p>按分类查看飞书云文档，点击链接即可打开</p></div>
+    <div class="filter-bar" id="training-filters"></div>
+    <div class="search-bar"><input type="text" id="training-search" placeholder="🔍 搜索资料标题..." oninput="renderTraining()"></div>
+    <div id="training-content"></div>
+  </div>
+
+  <!-- ===== 新人SOP ===== -->
+  <div class="page" id="page-sop">
+    <div class="page-header"><h1>📋 新人标准操作流程</h1><p>各平台接待流程，新人打开跟着走</p></div>
+    <div class="filter-bar" id="sop-filters"></div>
+    <div id="sop-content"></div>
+  </div>
+
+  <!-- ===== 知识测验 ===== -->
+  <div class="page" id="page-quiz">
+    <div class="page-header"><h1>✅ 知识测验</h1><p>检验培训成果，看看掌握了多少</p></div>
+    <div id="quiz-content" class="quiz-container"></div>
+  </div>
+
+  <!-- ===== 每日速报 ===== -->
+  <div class="page" id="page-bulletin">
+    <div class="page-header"><h1>📢 每日速报</h1><p>当天活动、促销、新品上架、注意事项</p></div>
+    <ul class="bulletin-list" id="bulletin-list"></ul>
+  </div>
+
+  <!-- ===== 排班表 ===== -->
+  <div class="page" id="page-schedule">
+    <div class="page-header"><h1>📅 客服排班表</h1><p>每月排班一目了然，查看自己的班次</p></div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+      <button class="btn btn-outline" onclick="prevMonth()">◀ 上月</button>
+      <span id="schedule-month-label" style="font-size:18px;font-weight:700;"></span>
+      <button class="btn btn-outline" onclick="nextMonth()">下月 ▶</button>
+      <div style="flex:1;"></div>
+      <div class="legend-item"><span class="legend-dot" style="background:#6C5CE7;"></span> 早班</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#E17055;"></span> 晚班</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#B2BEC3;"></span> 休息</div>
+    </div>
+    <div id="schedule-table-wrapper" style="overflow-x:auto;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04);"></div>
+  </div>
+
+  <!-- ===== 快捷工具 ===== -->
+  <div class="page" id="page-tools">
+    <div class="page-header"><h1>🛠 快捷工具</h1><p>高频信息速查，点击复制或查看</p></div>
+    <div class="tool-list" id="tool-list"></div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== DYNAMIC CONFIG LOADING ====================
+// 数据存储在独立的 config.json 文件中
+// 杨茹修改 config.json 后重新部署，所有客服刷新页面即可看到最新内容
+
+let configVersion = '';
+let trainingData = [];
+let patternData = [];
+let sopData = [];
+let bulletinData = [];
+let toolsData = [];
+let quizData = [];
+let scheduleData = {};
+let scheduleMonth = '';  // current viewing month 'YYYY-MM'
+
+async function loadConfig() {
+  try {
+    const ts = Date.now();
+    const resp = await fetch('config.json?t=' + ts);
+    if (!resp.ok) throw new Error('Config load failed');
+    const cfg = await resp.json();
+    configVersion = cfg.version || '1.0';
+    trainingData = cfg.trainingData || [];
+    patternData = cfg.patternData || [];
+    sopData = cfg.sopData || [];
+    bulletinData = cfg.bulletinData || [];
+    toolsData = cfg.toolsData || [];
+    quizData = cfg.quizData || [];
+    scheduleData = cfg.scheduleData || {};
+    document.getElementById('config-version').textContent = 'v' + configVersion;
+    document.getElementById('config-update').textContent = cfg.lastUpdate || '';
+    updateStats();
+    console.log('配置加载成功 v' + configVersion + ' | 更新于 ' + (cfg.lastUpdate || ''));
+  } catch (e) {
+    console.error('配置加载失败，使用默认数据', e);
+    document.getElementById('config-version').textContent = '离线模式';
+  }
+}
+
+function updateStats() {
+  document.getElementById('stat-training').textContent = trainingData.length;
+  document.getElementById('stat-patterns').textContent = patternData.length;
+  document.getElementById('stat-sop').textContent = sopData.length;
+  document.getElementById('stat-tools').textContent = toolsData.length;
+}
+
+// ==================== NAVIGATION ====================
+let currentPage = 'home';
+let currentFilter = '全部';
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => switchPage(item.dataset.page));
+});
+
+function switchPage(page) {
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById('page-' + page);
+  if (el) el.classList.add('active');
+  currentPage = page;
+
+  // Initialize page content
+  if (page === 'training') renderTraining();
+  if (page === 'patterns') renderPatterns();
+  if (page === 'sop') renderSOP();
+  if (page === 'bulletin') renderBulletin();
+  if (page === 'tools') renderTools();
+  if (page === 'quiz') renderQuiz();
+  if (page === 'schedule') renderSchedule();
+}
+
+// ==================== DIOPTER CONVERTER ====================
+function convertDiopter() {
+  const val = parseFloat(document.getElementById('diopter-input').value);
+  const astig = document.getElementById('astigmatism').value;
+  const resultBox = document.getElementById('diopter-result');
+
+  if (isNaN(val)) {
+    showToast('请输入有效的度数');
+    return;
+  }
+
+  const abs = Math.abs(val);
+  let offset = 0;
+  if (abs < 4.00) offset = 0;
+  else if (abs < 5.00) offset = 0.25;
+  else if (abs < 7.00) offset = 0.50;
+  else if (abs < 9.00) offset = 0.75;
+  else offset = 1.00;
+
+  let result = val < 0 ? -(abs - offset) : (abs - offset);
+  result = Math.round(result * 4) / 4;
+
+  let note = '';
+  if (astig === 'low') note = '💡 低度散光可折半加入球镜度数中计算';
+  if (astig === 'high') note = '⚠️ 中高度散光建议配散光定制片，请联系供应商确认';
+
+  resultBox.style.display = 'block';
+  resultBox.innerHTML = `
+    <div class="desc">框架眼镜 ${val > 0 ? '+' : ''}${val.toFixed(2)} → 美瞳推荐度数</div>
+    <div class="big">${result > 0 ? '+' : ''}${result.toFixed(2)}</div>
+    <div class="desc">换算减免：${offset.toFixed(2)} | ${note}</div>
+  `;
+}
+
+// ==================== PATTERNS ====================
+let patternFilter = '全部';
+const patternColors = ['全部', '棕色', '灰色', '蓝色', '绿色', '粉色', '紫色', '黑色'];
+const patternSeries = ['全部', '自然系', '日系', '混血系'];
+
+function renderPatternFilters() {
+  const container = document.getElementById('pattern-filters');
+  const currentSet = patternFilter.startsWith('颜色') ? patternColors : patternSeries;
+  const prefix = patternFilter.startsWith('颜色') ? '颜色:' : '系列:';
+  
+  container.innerHTML = currentSet.map(c => {
+    const fval = c === '全部' ? '全部' : prefix + c;
+    const active = (patternFilter === fval) || (patternFilter === '全部' && c === '全部');
+    return `<button class="filter-tag${active ? ' active' : ''}" onclick="setPatternFilter('${fval}')">${c}</button>`;
+  }).join('');
+}
+
+function setPatternFilter(f) {
+  patternFilter = f;
+  renderPatternFilters();
+  renderPatterns();
+}
+
+function renderPatterns() {
+  const search = (document.getElementById('pattern-search')?.value || '').toLowerCase();
+  let filtered = patternData;
+
+  if (patternFilter !== '全部') {
+    if (patternFilter.startsWith('颜色:')) {
+      filtered = filtered.filter(p => p.color === patternFilter.replace('颜色:', ''));
+    } else if (patternFilter.startsWith('系列:')) {
+      filtered = filtered.filter(p => p.series === patternFilter.replace('系列:', ''));
+    }
+  }
+
+  if (search) {
+    filtered = filtered.filter(p => p.name.toLowerCase().includes(search) || p.color.includes(search) || p.series.includes(search));
+  }
+
+  const grid = document.getElementById('pattern-grid');
+  grid.innerHTML = filtered.map(p => `
+    <div class="pattern-card">
+      <div class="pattern-img" style="background: radial-gradient(circle, ${p.imgColor} 25%, #222 60%);">
+        <div style="width:60px;height:60px;border-radius:50%;border:3px solid rgba(255,255,255,0.6);background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.3), transparent 60%), ${p.imgColor};box-shadow: 0 0 20px rgba(255,255,255,0.15);"></div>
+      </div>
+      <div class="pattern-info">
+        <div class="name">${p.name}</div>
+        <div class="tags">
+          <span>${p.color}</span><span>${p.diameter}</span><span>${p.series}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ==================== TRAINING ====================
+let trainingFilter = '全部';
+
+function renderTrainingFilters() {
+  const cats = ['全部', '产品知识', '平台流程', '话术库'];
+  document.getElementById('training-filters').innerHTML = cats.map(c =>
+    `<button class="filter-tag${trainingFilter === c ? ' active' : ''}" onclick="setTrainingFilter('${c}')">${c}</button>`
+  ).join('');
+}
+
+function setTrainingFilter(f) { trainingFilter = f; renderTrainingFilters(); renderTraining(); }
+
+function renderTraining() {
+  renderTrainingFilters();
+  const search = (document.getElementById('training-search')?.value || '').toLowerCase();
+  let filtered = trainingFilter === '全部' ? trainingData : trainingData.filter(d => d.category === trainingFilter);
+  if (search) filtered = filtered.filter(d => d.title.toLowerCase().includes(search));
+
+  const cats = ['产品知识', '平台流程', '话术库'];
+  const container = document.getElementById('training-content');
+  let html = '';
+
+  cats.forEach(cat => {
+    const items = filtered.filter(d => d.category === cat);
+    if (items.length === 0) return;
+    html += `<div class="card"><h3>📁 ${cat}</h3><ul class="link-list">`;
+    items.forEach(d => {
+      html += `<li class="link-item"><a href="${d.url}" target="_blank">${d.title}</a><div><span class="tag">${d.tags.join('</span><span class="tag">')}</span></div></li>`;
+    });
+    html += '</ul></div>';
+  });
+
+  if (!html) html = '<div class="card"><p style="text-align:center;padding:40px;color:var(--text-secondary);">没有找到匹配的培训资料，杨茹快来添加吧！</p></div>';
+  container.innerHTML = html;
+}
+
+// ==================== SOP ====================
+let sopFilter = '通用';
+
+function renderSOPFilters() {
+  const platforms = sopData.map(s => s.platform);
+  document.getElementById('sop-filters').innerHTML = platforms.map(p =>
+    `<button class="filter-tag${sopFilter === p ? ' active' : ''}" onclick="setSOPFilter('${p}')">${p}</button>`
+  ).join('');
+}
+
+function setSOPFilter(f) { sopFilter = f; renderSOPFilters(); renderSOP(); }
+
+function renderSOP() {
+  renderSOPFilters();
+  const current = sopData.find(s => s.platform === sopFilter) || sopData[0];
+  const container = document.getElementById('sop-content');
+  container.innerHTML = `
+    <div class="card">
+      <h3>🏪 ${current.platform}平台 · 新人上岗流程</h3>
+      <div class="sop-steps">
+        ${current.steps.map(s => `
+          <div class="sop-step">
+            <div class="num">${current.steps.indexOf(s) + 1}</div>
+            <div class="content">
+              <h4>${s.title}</h4>
+              <p>${s.content}</p>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ==================== BULLETIN ====================
+function renderBulletin() {
+  document.getElementById('bulletin-list').innerHTML = bulletinData.map(b => `
+    <li class="bulletin-item">
+      <span class="date">${b.date}</span>
+      <div class="content">
+        <h4>${b.title}</h4>
+        <p>${b.content}</p>
+      </div>
+    </li>
+  `).join('');
+}
+
+// ==================== TOOLS ====================
+function renderTools() {
+  document.getElementById('tool-list').innerHTML = toolsData.map(t => `
+    <div class="tool-item" onclick="showToolInfo('${t.title}', \`${t.content}\`)">
+      <div class="tool-icon">${t.icon}</div>
+      <div class="tool-info"><h4>${t.title}</h4><p>${t.desc}</p></div>
+    </div>
+  `).join('');
+}
+
+function showToolInfo(title, content) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:999;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:32px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+      <h3 style="margin-bottom:16px;font-size:20px;">${title}</h3>
+      <pre style="font-family:inherit;font-size:14px;line-height:1.8;white-space:pre-wrap;color:var(--text-secondary);">${content}</pre>
+      <div style="margin-top:20px;text-align:right;">
+        <button class="btn btn-outline" onclick="navigator.clipboard.writeText(\`${content.replace(/`/g,'\\`')}\`);showToast('已复制到剪贴板')">📋 复制</button>
+        <button class="btn" style="margin-left:8px;" onclick="this.closest('[style*=fixed]').remove()">关闭</button>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+// ==================== SCHEDULE ====================
+function getDaysInMonth(year, month) {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+function renderSchedule() {
+  // Default to current month
+  if (!scheduleMonth) {
+    const now = new Date();
+    scheduleMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  }
+
+  const monthData = scheduleData[scheduleMonth];
+  document.getElementById('schedule-month-label').textContent = scheduleMonth.replace('-', '年') + '月';
+
+  if (!monthData || !monthData.staff || monthData.staff.length === 0) {
+    document.getElementById('schedule-table-wrapper').innerHTML =
+      '<div class="card"><p style="text-align:center;padding:40px;color:var(--text-secondary);">该月暂无排班数据，杨茹快来添加吧！</p></div>';
+    return;
+  }
+
+  const [year, month] = scheduleMonth.split('-').map(Number);
+  const days = getDaysInMonth(year, month - 1);
+  const today = new Date();
+  const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+  const isCurrentMonth = scheduleMonth === todayStr;
+  const todayDay = today.getDate();
+
+  // Build header
+  let html = '<table class="schedule-table"><thead><tr><th>姓名</th>';
+  for (let d = 1; d <= days; d++) {
+    const todayClass = (isCurrentMonth && d === todayDay) ? ' style="background:#E17055;"' : '';
+    html += '<th' + todayClass + '>' + d + '<br><span style="font-size:10px;font-weight:400;">' +
+      ['日','一','二','三','四','五','六'][new Date(year, month - 1, d).getDay()] + '</span></th>';
+  }
+  html += '</tr></thead><tbody>';
+
+  // Build rows
+  monthData.staff.forEach(staff => {
+    html += '<tr><td class="name-cell">' + staff.name + '</td>';
+    for (let d = 1; d <= days; d++) {
+      const shift = staff.schedule[String(d)] || '-';
+      let shiftClass = '';
+      let label = shift;
+      if (shift.includes('早班')) { shiftClass = 'shift-morning'; label = '早'; }
+      else if (shift.includes('晚班')) { shiftClass = 'shift-night'; label = '晚'; }
+      else if (shift === '休息') { shiftClass = 'shift-rest'; label = '休'; }
+
+      const todayClass = (isCurrentMonth && d === todayDay) ? ' today-col' : '';
+      html += '<td class="' + todayClass + '"><span class="' + shiftClass + '">' + label + '</span></td>';
+    }
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('schedule-table-wrapper').innerHTML = html;
+}
+
+function prevMonth() {
+  const [y, m] = scheduleMonth.split('-').map(Number);
+  const d = new Date(y, m - 2, 1); // previous month
+  scheduleMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  renderSchedule();
+}
+
+function nextMonth() {
+  const [y, m] = scheduleMonth.split('-').map(Number);
+  const d = new Date(y, m, 1); // next month
+  scheduleMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  renderSchedule();
+}
+
+// ==================== QUIZ ====================
+let quizState = { answers: {}, submitted: false, score: 0 };
+
+function renderQuiz() {
+  quizState = { answers: {}, submitted: false, score: 0 };
+  const container = document.getElementById('quiz-content');
+  container.innerHTML = `
+    ${quizData.map((q, qi) => `
+      <div class="quiz-question" id="q-${qi}">
+        <h4>${qi + 1}. ${q.question}</h4>
+        ${q.options.map((o, oi) => `
+          <button class="quiz-option" id="q${qi}o${oi}" onclick="selectAnswer(${qi}, ${oi})">${String.fromCharCode(65 + oi)}. ${o}</button>
+        `).join('')}
+      </div>
+    `).join('')}
+    <button class="btn" onclick="submitQuiz()" style="width:100%;margin-top:16px;padding:14px;font-size:16px;" id="quiz-submit-btn">提交测验</button>
+    <div id="quiz-result" style="display:none;text-align:center;padding:30px;"></div>
+  `;
+}
+
+function selectAnswer(qi, oi) {
+  if (quizState.submitted) return;
+  quizState.answers[qi] = oi;
+  for (let i = 0; i < 4; i++) {
+    const btn = document.getElementById(`q${qi}o${i}`);
+    if (btn) btn.classList.toggle('selected', i === oi);
+  }
+}
+
+function submitQuiz() {
+  if (Object.keys(quizState.answers).length < quizData.length) {
+    showToast('请回答所有题目后再提交');
+    return;
+  }
+  quizState.submitted = true;
+  quizState.score = 0;
+  quizData.forEach((q, qi) => {
+    const correct = q.answer;
+    const userAns = quizState.answers[qi];
+    if (userAns === correct) quizState.score++;
+    for (let i = 0; i < 4; i++) {
+      const btn = document.getElementById(`q${qi}o${i}`);
+      if (btn) {
+        btn.disabled = true;
+        if (i === correct) btn.classList.add('correct');
+        if (i === userAns && userAns !== correct) btn.classList.add('wrong');
+      }
+    }
+  });
+  document.getElementById('quiz-submit-btn').style.display = 'none';
+
+  const pct = Math.round(quizState.score / quizData.length * 100);
+  const comment = pct >= 90 ? '🏆 太棒了！你是美瞳专家！' : pct >= 70 ? '👍 不错，继续加油！' : pct >= 50 ? '📖 还需要复习哦' : '📚 要认真学习培训资料啦！';
+
+  const resultDiv = document.getElementById('quiz-result');
+  resultDiv.style.display = 'block';
+  resultDiv.innerHTML = `
+    <div class="quiz-score">${quizState.score}/${quizData.length}</div>
+    <div class="quiz-result">正确率 ${pct}%</div>
+    <p style="color:var(--text-secondary);">${comment}</p>
+    <button class="btn" onclick="renderQuiz()" style="margin-top:16px;">再来一次</button>
+  `;
+}
+
+// ==================== UTILS ====================
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// ==================== INIT ====================
+async function init() {
+  await loadConfig();
+  renderTrainingFilters();
+  renderPatternFilters();
+  renderSOPFilters();
+  switchPage('home');
+}
+
+init();
+</script>
+</body>
+</html>
