@@ -326,6 +326,9 @@ body {
 .schedule-table .shift-morning { background:#F0EEFF;color:var(--primary);font-weight:500;border-radius:4px;display:inline-block;padding:2px 8px;font-size:12px; }
 .schedule-table .shift-night { background:#FFF0ED;color:#E17055;font-weight:500;border-radius:4px;display:inline-block;padding:2px 8px;font-size:12px; }
 .schedule-table .shift-rest { background:#F1F3F4;color:#636E72;border-radius:4px;display:inline-block;padding:2px 8px;font-size:12px; }
+.schedule-table .shift-mid { background:#FFF8E1;color:#F9A825;font-weight:500;border-radius:4px;display:inline-block;padding:2px 8px;font-size:12px; }
+.schedule-table .shift-adjust { background:#E8F5E9;color:#2E7D32;border-radius:4px;display:inline-block;padding:2px 8px;font-size:12px; }
+.schedule-table .group-row td { background:#f5f0eb;font-weight:700;font-size:12px;color:#5d4037;padding:6px 8px;border-bottom:2px solid #e0d6cc; }
 .schedule-table .today-col { background:#FFF9E6 !important; }
 .schedule-table .today-col.name-cell { background:#FFF3D4 !important; }
 .highlight-row { background:#FFF9E6 !important; }
@@ -1607,16 +1610,24 @@ function renderSchedule() {
   }
   html += '</tr></thead><tbody>';
 
-  // Build rows
+  // Build rows with group headers
+  let lastGroup = '';
   monthData.staff.forEach(staff => {
+    if (staff.group && staff.group !== lastGroup) {
+      html += '<tr class="group-row"><td colspan="' + (days + 1) + '">' + staff.group + '</td></tr>';
+      lastGroup = staff.group;
+    }
     html += '<tr><td class="name-cell">' + staff.name + '</td>';
     for (let d = 1; d <= days; d++) {
       const shift = staff.schedule[String(d)] || '-';
       let shiftClass = '';
       let label = shift;
       if (shift.includes('早班')) { shiftClass = 'shift-morning'; label = '早'; }
+      else if (shift.includes('中班')) { shiftClass = 'shift-mid'; label = '中'; }
       else if (shift.includes('晚班')) { shiftClass = 'shift-night'; label = '晚'; }
       else if (shift === '休息') { shiftClass = 'shift-rest'; label = '休'; }
+      else if (shift === '调休') { shiftClass = 'shift-adjust'; label = '调'; }
+      else if (shift === '加班') { shiftClass = 'shift-adjust'; label = '班'; }
 
       const todayClass = (isCurrentMonth && d === todayDay) ? ' today-col' : '';
       html += '<td class="' + todayClass + '"><span class="' + shiftClass + '">' + label + '</span></td>';
