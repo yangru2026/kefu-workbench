@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>美瞳客服工作台</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%236C5CE7'/%3E%3Ccircle cx='50' cy='50' r='26' fill='none' stroke='%23fff' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='12' fill='%23fff'/%3E%3C/svg%3E">
 <script src="https://unpkg.com/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -80,6 +81,15 @@ body {
   padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.06);
   font-size: 12px; color: rgba(255,255,255,0.3);
 }
+.sidebar-user {
+  padding: 10px 20px; border-top: 1px solid rgba(255,255,255,0.06);
+  font-size: 12px; color: rgba(255,255,255,0.4);
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: color 0.15s;
+}
+.sidebar-user:hover { color: rgba(255,255,255,0.65); }
+.sidebar-user .user-dot { width: 6px; height: 6px; border-radius: 50%; background: #00b894; flex-shrink: 0; }
+.sidebar-user .user-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Main */
 .main {
@@ -316,21 +326,27 @@ body {
 .legend-item { display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary); }
 .legend-dot { width:12px;height:12px;border-radius:3px;display:inline-block; }
 .schedule-table { width:100%;border-collapse:collapse;background:#fff;font-size:13px;min-width:800px; }
-.schedule-table th { padding:10px 6px;background:var(--sidebar-bg);color:#fff;font-weight:600;text-align:center;position:sticky;top:0;z-index:2; }
+.schedule-table th { padding:10px 4px;background:var(--sidebar-bg);color:#fff;font-weight:600;text-align:center;position:sticky;top:0;z-index:2; }
 .schedule-table th:first-child { border-radius:12px 0 0 0;min-width:70px; }
 .schedule-table th:last-child { border-radius:0 12px 0 0; }
-.schedule-table td { padding:8px 6px;text-align:center;border-bottom:1px solid var(--border);white-space:nowrap; }
+.schedule-table th .d-num { display:block;font-size:17px;font-weight:700;letter-spacing:0.5px; }
+.schedule-table th .d-wk { display:block;font-size:11px;font-weight:400;opacity:0.8;margin-top:2px; }
+.schedule-table th.today-head { background:#E17055 !important; }
+.schedule-table td { padding:6px 4px;text-align:center;border-bottom:1px solid var(--border);white-space:nowrap; }
 .schedule-table tr:last-child td:first-child { border-radius:0 0 0 12px; }
 .schedule-table tr:last-child td:last-child { border-radius:0 0 12px 0; }
 .schedule-table .name-cell { font-weight:600;background:#fafafa;position:sticky;left:0;z-index:1; }
-.schedule-table .shift-morning { background:#F0EEFF;color:var(--primary);font-weight:500;border-radius:4px;display:inline-block;padding:2px 8px;font-size:12px; }
-.schedule-table .shift-night { background:#FFF0ED;color:#E17055;font-weight:500;border-radius:4px;display:inline-block;padding:2px 8px;font-size:12px; }
-.schedule-table .shift-rest { background:#F1F3F4;color:#636E72;border-radius:4px;display:inline-block;padding:2px 8px;font-size:12px; }
-.schedule-table .shift-mid { background:#FFF8E1;color:#F9A825;font-weight:500;border-radius:4px;display:inline-block;padding:2px 8px;font-size:12px; }
-.schedule-table .shift-adjust { background:#E8F5E9;color:#2E7D32;border-radius:4px;display:inline-block;padding:2px 8px;font-size:12px; }
+/* 简化班次标签：小色块+文字，去掉圆角背景填充 */
+.schedule-table .shift-tag { display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:600;line-height:1; }
+.schedule-table .shift-morning .shift-tag { background:#6C5CE7;color:#fff; }
+.schedule-table .shift-night .shift-tag { background:#E17055;color:#fff; }
+.schedule-table .shift-rest .shift-tag { background:#dfe6e9;color:#636e72; }
+.schedule-table .shift-mid .shift-tag { background:#fdcb6e;color:#5d4037; }
+.schedule-table .shift-adjust .shift-tag { background:#00b894;color:#fff; }
 .schedule-table .group-row td { background:#f5f0eb;font-weight:700;font-size:12px;color:#5d4037;padding:6px 8px;border-bottom:2px solid #e0d6cc; }
-.schedule-table .today-col { background:#FFF9E6 !important; }
-.schedule-table .today-col.name-cell { background:#FFF3D4 !important; }
+.schedule-table .today-col { background:#FFF3D4 !important; }
+.schedule-table .today-col .shift-tag { box-shadow:0 0 0 2px #fff,0 0 0 3px #fdcb6e; }
+.schedule-table .today-col.name-cell { background:#ffe8b8 !important; }
 .highlight-row { background:#FFF9E6 !important; }
 .highlight-row .name-cell { background:#FFF3D4 !important; font-weight:700; }
 
@@ -502,7 +518,7 @@ body {
 /* Responsive */
 @media (max-width: 768px) {
   .sidebar { width: 60px; }
-  .sidebar-header h2, .sidebar-header .sub, .nav-section, .nav-item span:not(.icon) { display: none; }
+  .sidebar-header h2, .sidebar-header .sub, .nav-section, .nav-item span:not(.icon), .sidebar-user { display: none; }
   .sidebar-header { padding: 16px 0; text-align: center; }
   .sidebar-header::after { content: '💜'; font-size: 20px; }
   .main { margin-left: 60px; }
@@ -533,6 +549,10 @@ body {
     <div class="nav-item" data-page="schedule"><span class="icon">📅</span><span>排班表</span></div>
     <div class="nav-item" data-page="tools"><span class="icon">🛠</span><span>快捷工具</span></div>
   </nav>
+  <div class="sidebar-user" id="sidebar-user" onclick="setVisitorName()">
+    <span class="user-dot"></span>
+    <span class="user-label" id="visitor-name">访客</span>
+  </div>
   <div class="sidebar-footer"><span id="config-version">加载中...</span> · 更新于 <span id="config-update">-</span> · 小布出品</div>
 </aside>
 
@@ -2032,8 +2052,9 @@ function renderSchedule() {
   // Build header
   let html = '<table class="schedule-table"><thead><tr><th>姓名</th>';
   for (let d = 1; d <= days; d++) {
-    const todayClass = (isCurrentMonth && d === todayDay) ? ' style="background:#E17055;"' : '';
-    html += '<th' + todayClass + '>' + d + '<br><span style="font-size:10px;font-weight:400;">' +
+    const isToday = isCurrentMonth && d === todayDay;
+    const todayClass = isToday ? ' today-head' : '';
+    html += '<th class="' + todayClass + '"><span class="d-num">' + d + '</span><span class="d-wk">' +
       ['日','一','二','三','四','五','六'][new Date(year, month - 1, d).getDay()] + '</span></th>';
   }
   html += '</tr></thead><tbody>';
@@ -2058,7 +2079,7 @@ function renderSchedule() {
       else if (shift === '加班') { shiftClass = 'shift-adjust'; label = '班'; }
 
       const todayClass = (isCurrentMonth && d === todayDay) ? ' today-col' : '';
-      html += '<td class="' + todayClass + '"><span class="' + shiftClass + '">' + label + '</span></td>';
+      html += '<td class="' + todayClass + '"><span class="' + shiftClass + '"><span class="shift-tag" title="' + shift + '">' + label + '</span></span></td>';
     }
     html += '</tr>';
   });
@@ -2153,6 +2174,25 @@ function showToast(msg) {
   setTimeout(() => toast.classList.remove('show'), 2000);
 }
 
+// ==================== VISITOR NAME ====================
+function initVisitorName() {
+  const name = localStorage.getItem('kefu_visitor_name') || '';
+  if (name) document.getElementById('visitor-name').textContent = name;
+}
+function setVisitorName() {
+  const current = localStorage.getItem('kefu_visitor_name') || '';
+  const name = prompt('设置你的显示名称（仅本地显示）：', current);
+  if (name === null) return;
+  const trimmed = name.trim();
+  if (trimmed) {
+    localStorage.setItem('kefu_visitor_name', trimmed);
+    document.getElementById('visitor-name').textContent = trimmed;
+  } else {
+    localStorage.removeItem('kefu_visitor_name');
+    document.getElementById('visitor-name').textContent = '访客';
+  }
+}
+
 // ==================== INIT ====================
 async function init() {
   await loadConfig();
@@ -2160,6 +2200,7 @@ async function init() {
   renderPatternFilters();
   renderSOPFilters();
   calculate();
+  initVisitorName();
   switchPage('home');
 }
 
