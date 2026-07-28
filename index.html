@@ -713,6 +713,7 @@ body {
     <div class="nav-item" data-page="presale"><span class="icon">📊</span><span>售前数据</span></div>
     <div class="nav-section">账号</div>
     <div class="nav-item admin-only-nav" data-page="members" style="display:none;"><span class="icon">👥</span><span>成员管理</span></div>
+    <div class="nav-item admin-only-nav" data-page="templates" style="display:none;"><span class="icon">⚙️</span><span>模板管理</span></div>
     <div class="nav-item" id="nav-login" data-page="login"><span class="icon">🔐</span><span>登录/注册</span></div>
   </nav>
   <div class="sidebar-user" id="sidebar-user" onclick="if(!currentUser)switchPage('login')">
@@ -878,6 +879,14 @@ body {
           </tbody>
         </table>
       </div>
+    </div>
+  </div>
+
+  <!-- ===== 模板管理 ===== -->
+  <div class="page" id="page-templates">
+    <div class="page-header"><h1>⚙️ 模板管理</h1><p>管理各组店铺列表和默认目标转化率</p></div>
+    <div class="card">
+      <div id="templates-content" style="text-align:center;padding:40px;color:var(--text-secondary);">加载中...</div>
     </div>
   </div>
 

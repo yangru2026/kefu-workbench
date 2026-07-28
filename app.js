@@ -3,6 +3,7 @@
 
 // Called when supabase is initialized
 window.onSupabaseReady = function() {
+  loadTemplates(); // 预加载模板数据
   if (currentPage === 'home') { loadAnnouncements(); subscribeAnnouncements(); }
   if (currentPage === 'daily') { loadDailyReports(); subscribeDaily(); }
   if (currentPage === 'presale') { loadPresaleData(); subscribePresale(); }
@@ -140,14 +141,118 @@ async function doRegister() {
 // ---------- 日报 ----------
 let dailyReports = [];
 let dailySub = null;
-// 各组预置店铺（可灵活增删）
-const GROUP_SHOPS = {
-  'A组': ['TM-弥生','KS-弥生','TM-极氧','DY弥生官方','TM-护眼','XHS-弥生','DY-YOUHOO','DY-极氧','JD-弥生','XHS-极氧','有赞-拼多多'],
-  'B组': ['PDD-1店','PDD-2店','PDD-3店','PDD-4店','PDD-5店','PDD-6店','PDD-YOUHOO','XHS-弥生','XHS-YOUHOO'],
-  'C组': ['DY官方-一店','DY旗舰-二店','DY眼镜-三店','DY电子-四店']
+// 各组预置店铺模板（含默认目标，admin可在模板管理中修改）
+const DEFAULT_TEMPLATES = {
+  'A组': { shops: ['TM-弥生','KS-弥生','TM-极氧','DY弥生官方','TM-护眼','XHS-弥生','DY-YOUHOO','DY-极氧','JD-弥生','XHS-极氧','有赞-拼多多'], target: 15 },
+  'B组': { shops: ['PDD-1店','PDD-2店','PDD-3店','PDD-4店','PDD-5店','PDD-6店','PDD-YOUHOO','XHS-弥生','XHS-YOUHOO'], target: 15 },
+  'C组': { shops: ['DY官方-一店','DY旗舰-二店','DY眼镜-三店','DY电子-四店'], target: 15 }
 };
-// 默认目标转化率（可手动修改）
+// 默认目标转化率
 const DEFAULT_TARGET = 15;
+let shopTemplates = null; // { 'A组': { shops: [...], target: 15 }, 'B组': {...}, 'C组': {...} }
+
+// ---------- 模板 ----------
+function getShopTemplate(group) {
+  // 优先用 Supabase 模板 → 默认模板
+  if (shopTemplates && shopTemplates[group]) return shopTemplates[group];
+  if (DEFAULT_TEMPLATES[group]) return DEFAULT_TEMPLATES[group];
+  return { shops: [], target: DEFAULT_TARGET };
+}
+
+async function loadTemplates() {
+  if (!supabase) return;
+  const { data, error } = await supabase.from('shop_templates').select('*');
+  if (error) {
+    console.error('模板加载失败', error);
+    shopTemplates = { ...DEFAULT_TEMPLATES };
+    return;
+  }
+  const map = { ...DEFAULT_TEMPLATES };
+  (data || []).forEach(t => {
+    map[t.group_name] = { shops: t.shops || [], target: t.default_target || DEFAULT_TARGET, id: t.id };
+  });
+  shopTemplates = map;
+}
+
+async function saveTemplate(groupName, shops, target) {
+  if (!supabase) return false;
+  const payload = { group_name: groupName, shops, default_target: target, updated_by: currentUser?.id };
+  const { error } = await supabase.from('shop_templates').upsert(payload, { onConflict: 'group_name' });
+  if (error) { showToast('保存失败：' + error.message); return false; }
+  showToast(groupName + ' 模板已保存');
+  return true;
+}
+
+function renderTemplates() {
+  const el = document.getElementById('templates-content');
+  const groups = ['A组', 'B组', 'C组'];
+  const editing = {}; // track edit state per group
+  groups.forEach(g => { editing[g] = false; });
+
+  function render() {
+    el.innerHTML = groups.map(g => {
+      const tpl = getShopTemplate(g);
+      const shops = tpl.shops;
+      return `<div style="margin-bottom:20px;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#f8f9ff;border-bottom:1px solid var(--border);">
+          <h3 style="margin:0;font-size:16px;">${g} · ${shops.length}个店铺</h3>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="font-size:13px;color:var(--text-secondary);">默认目标：</span>
+            <input type="number" id="tpl-target-${g}" value="${tpl.target}" style="width:60px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;text-align:center;font-size:14px;font-weight:600;" min="1" max="100">%
+            <button class="btn-sm primary" onclick="saveTemplatesFromUI()">💾 保存全部</button>
+          </div>
+        </div>
+        <div style="padding:12px 16px;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead><tr style="background:#f0f4ff;">
+              <th style="padding:8px;text-align:left;font-size:13px;">店铺名</th>
+              <th style="padding:8px;text-align:center;font-size:13px;width:100px;">操作</th>
+            </tr></thead>
+            <tbody id="tpl-tbody-${g}">
+              ${shops.map((s, i) => `
+                <tr>
+                  <td style="padding:6px 8px;"><input type="text" class="tpl-shop-name" data-group="${g}" data-idx="${i}" value="${escapeHtml(s)}" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);"></td>
+                  <td style="padding:6px 8px;text-align:center;"><button class="btn-sm outline" style="color:var(--danger);border-color:var(--danger);padding:2px 10px;font-size:12px;" onclick="deleteTplShop(this,'${g}',${i})">×</button></td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+          <button class="btn-sm outline" style="margin-top:8px;font-size:13px;" onclick="addTplShop('${g}')">+ 添加店铺</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  render();
+
+  // exposed global functions for template editing
+  window.addTplShop = function(group) {
+    const tbody = document.getElementById('tpl-tbody-' + group);
+    const idx = tbody.querySelectorAll('tr').length;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="padding:6px 8px;"><input type="text" class="tpl-shop-name" data-group="${group}" data-idx="${idx}" value="" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);" placeholder="新店铺名"></td>
+      <td style="padding:6px 8px;text-align:center;"><button class="btn-sm outline" style="color:var(--danger);border-color:var(--danger);padding:2px 10px;font-size:12px;" onclick="deleteTplShop(this,'${group}',${idx})">×</button></td>`;
+    tbody.appendChild(tr);
+  };
+
+  window.deleteTplShop = function(btn, group, idx) {
+    btn.closest('tr').remove();
+  };
+
+  window.saveTemplatesFromUI = async function() {
+    for (const g of groups) {
+      const target = parseInt(document.getElementById('tpl-target-' + g)?.value) || DEFAULT_TARGET;
+      const inputs = document.querySelectorAll('.tpl-shop-name[data-group="' + g + '"]');
+      const shops = [];
+      inputs.forEach(inp => {
+        const name = inp.value.trim();
+        if (name) shops.push(name);
+      });
+      await saveTemplate(g, shops, target);
+    }
+    await loadTemplates();
+    renderTemplates();
+  };
+}
 
 async function loadDailyReports() {
   if (!supabase || !currentUser) return;
@@ -221,22 +326,14 @@ function openDailyForm() {
   const existing = dailyReports.find(r => r.report_date === today);
   const savedShops = existing?.content?.shops;
 
-  // 用历史记录 → 或用该组的预置店铺 → 或空白行
+  // 用历史记录 → 或用该组的模板 → 或空白行
   let shops;
   if (savedShops && savedShops.length) {
     shops = savedShops;
   } else {
     const group = currentProfile?.group_name;
-    const presetNames = GROUP_SHOPS[group];
-    if (presetNames && presetNames.length) {
-      shops = presetNames.map(name => ({ name, visitors: '', inquiries: '', payments: '', target: DEFAULT_TARGET }));
-    } else {
-      shops = [
-        { name: '', visitors: '', inquiries: '', payments: '', target: DEFAULT_TARGET },
-        { name: '', visitors: '', inquiries: '', payments: '', target: DEFAULT_TARGET },
-        { name: '', visitors: '', inquiries: '', payments: '', target: DEFAULT_TARGET }
-      ];
-    }
+    const tpl = getShopTemplate(group);
+    shops = tpl.shops.map(name => ({ name, visitors: '', inquiries: '', payments: '', target: tpl.target }));
   }
 
   renderDailyShopInputs(shops);
@@ -657,6 +754,7 @@ switchPage = function(page) {
   if (page === 'daily' && supabase) { loadDailyReports(); subscribeDaily(); }
   if (page === 'presale' && supabase) { loadPresaleData(); subscribePresale(); }
   if (page === 'members' && supabase) { loadMembers(); }
+  if (page === 'templates' && supabase) { loadTemplates().then(() => renderTemplates()); }
 };
 
 // ---------- 成员管理 ----------
