@@ -400,4 +400,68 @@ switchPage = function(page) {
   if (page === 'home' && supabase) { loadAnnouncements(); subscribeAnnouncements(); }
   if (page === 'daily' && supabase) { loadDailyReports(); subscribeDaily(); }
   if (page === 'presale' && supabase) { loadPresaleData(); subscribePresale(); }
+  if (page === 'members' && supabase) { loadMembers(); }
 };
+
+// ---------- 成员管理 ----------
+async function loadMembers() {
+  if (!supabase) {
+    document.getElementById('members-tbody').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-secondary);">Supabase 未初始化</td></tr>';
+    return;
+  }
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) {
+      document.getElementById('members-tbody').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--danger);">加载失败：' + escapeHtml(error.message) + '</td></tr>';
+      return;
+    }
+    renderMembers(data || []);
+  } catch (e) {
+    document.getElementById('members-tbody').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--danger);">加载异常</td></tr>';
+  }
+}
+
+function renderMembers(members) {
+  const tbody = document.getElementById('members-tbody');
+  if (!members.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-secondary);">暂无成员</td></tr>';
+    return;
+  }
+  const roleMap = { admin: '管理员', leader: '组长', staff: '员工' };
+  const isAdmin = currentProfile?.role === 'admin';
+  tbody.innerHTML = members.map(m => {
+    const date = m.created_at ? new Date(m.created_at).toLocaleDateString('zh-CN') : '-';
+    const phone = m.phone || '-';
+    return `<tr>
+      <td>${escapeHtml(m.name || '未命名')}</td>
+      <td>${escapeHtml(phone)}</td>
+      <td><span class="badge" style="background:${m.role==='admin'?'var(--danger)':m.role==='leader'?'var(--warning)':'var(--success)'};color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;">${roleMap[m.role] || '员工'}</span></td>
+      <td>${date}</td>
+      <td>
+        ${isAdmin ? `<select onchange="updateMemberRole('${m.id}', this.value)" style="padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);font-size:13px;">
+          <option value="staff" ${m.role==='staff'?'selected':''}>员工</option>
+          <option value="leader" ${m.role==='leader'?'selected':''}>组长</option>
+          <option value="admin" ${m.role==='admin'?'selected':''}>管理员</option>
+        </select>` : '-'}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function updateMemberRole(userId, newRole) {
+  if (!supabase) return;
+  const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
+  if (error) { showToast('更新失败：' + error.message); return; }
+  showToast('角色已更新');
+  loadMembers();
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}

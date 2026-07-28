@@ -712,6 +712,7 @@ body {
     <div class="nav-item" data-page="daily"><span class="icon">📝</span><span>日报</span></div>
     <div class="nav-item" data-page="presale"><span class="icon">📊</span><span>售前数据</span></div>
     <div class="nav-section">账号</div>
+    <div class="nav-item admin-only-nav" data-page="members" style="display:none;"><span class="icon">👥</span><span>成员管理</span></div>
     <div class="nav-item" id="nav-login" data-page="login"><span class="icon">🔐</span><span>登录/注册</span></div>
   </nav>
   <div class="sidebar-user" id="sidebar-user" onclick="if(!currentUser)switchPage('login')">
@@ -846,6 +847,24 @@ body {
             <p>暂无数据，请录入</p>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 成员管理 ===== -->
+  <div class="page" id="page-members">
+    <div class="page-header"><h1>👥 成员管理</h1><p>查看和管理团队成员账号</p></div>
+    <div class="card">
+      <h3 style="margin-bottom:16px;">团队成员列表</h3>
+      <div id="members-table-wrap" style="overflow-x:auto;">
+        <table class="ranking-table" style="min-width:700px;">
+          <thead><tr>
+            <th>姓名</th><th>手机号</th><th>角色</th><th>注册时间</th><th>操作</th>
+          </tr></thead>
+          <tbody id="members-tbody">
+            <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-secondary);">加载中...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -1167,16 +1186,19 @@ function updateAuthUI() {
   const userEl = document.getElementById('sidebar-user');
   const nameEl = document.getElementById('visitor-name');
   const loginNav = document.getElementById('nav-login');
+  const isAdmin = currentProfile?.role === 'admin' || currentProfile?.role === 'leader';
   if (currentUser && currentProfile) {
     nameEl.textContent = currentProfile.name || '用户';
     userEl.style.cursor = 'default';
     if (loginNav) loginNav.style.display = 'none';
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
+    document.querySelectorAll('.admin-only-nav').forEach(el => el.style.display = isAdmin ? '' : 'none');
   } else {
     nameEl.textContent = '未登录';
     userEl.style.cursor = 'pointer';
     if (loginNav) loginNav.style.display = '';
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.admin-only-nav').forEach(el => el.style.display = 'none');
   }
 }
 
