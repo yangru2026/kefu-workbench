@@ -141,13 +141,13 @@ async function doRegister() {
 // ---------- 日报 ----------
 let dailyReports = [];
 let dailySub = null;
-// 各组预置店铺模板（含默认目标，admin可在模板管理中修改）
+// 各组预置店铺模板（每个店铺独立目标，admin可在模板管理中修改）
 const DEFAULT_TEMPLATES = {
-  'A组': { shops: ['TM-弥生','KS-弥生','TM-极氧','DY弥生官方','TM-护眼','XHS-弥生','DY-YOUHOO','DY-极氧','JD-弥生','XHS-极氧','有赞-拼多多'], target: 15 },
-  'B组': { shops: ['PDD-1店','PDD-2店','PDD-3店','PDD-4店','PDD-5店','PDD-6店','PDD-YOUHOO','XHS-弥生','XHS-YOUHOO'], target: 15 },
-  'C组': { shops: ['DY官方-一店','DY旗舰-二店','DY眼镜-三店','DY电子-四店'], target: 15 }
+  'A组': { shops: ['TM-弥生','KS-弥生','TM-极氧','DY弥生官方','TM-护眼','XHS-弥生','DY-YOUHOO','DY-极氧','JD-弥生','XHS-极氧','有赞-拼多多'].map(n => ({ name: n, target: 15 })) },
+  'B组': { shops: ['PDD-1店','PDD-2店','PDD-3店','PDD-4店','PDD-5店','PDD-6店','PDD-YOUHOO','XHS-弥生','XHS-YOUHOO'].map(n => ({ name: n, target: 15 })) },
+  'C组': { shops: ['DY官方-一店','DY旗舰-二店','DY眼镜-三店','DY电子-四店'].map(n => ({ name: n, target: 15 })) }
 };
-// 默认目标转化率
+// 默认目标转化率（新店铺默认值）
 const DEFAULT_TARGET = 15;
 let shopTemplates = null; // { 'A组': { shops: [...], target: 15 }, 'B组': {...}, 'C组': {...} }
 
@@ -164,19 +164,24 @@ async function loadTemplates() {
   const { data, error } = await supabase.from('shop_templates').select('*');
   if (error) {
     console.error('模板加载失败', error);
-    shopTemplates = { ...DEFAULT_TEMPLATES };
+    shopTemplates = JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
     return;
   }
-  const map = { ...DEFAULT_TEMPLATES };
+  const map = JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
   (data || []).forEach(t => {
-    map[t.group_name] = { shops: t.shops || [], target: t.default_target || DEFAULT_TARGET, id: t.id };
+    // 兼容旧格式：shops 可能是字符串数组或对象数组
+    const shops = (t.shops || []).map(s => {
+      if (typeof s === 'string') return { name: s, target: t.default_target || DEFAULT_TARGET };
+      return { name: s.name, target: s.target || t.default_target || DEFAULT_TARGET };
+    });
+    map[t.group_name] = { shops, id: t.id };
   });
   shopTemplates = map;
 }
 
-async function saveTemplate(groupName, shops, target) {
+async function saveTemplate(groupName, shops) {
   if (!supabase) return false;
-  const payload = { group_name: groupName, shops, default_target: target, updated_by: currentUser?.id };
+  const payload = { group_name: groupName, shops, updated_by: currentUser?.id };
   const { error } = await supabase.from('shop_templates').upsert(payload, { onConflict: 'group_name' });
   if (error) { showToast('保存失败：' + error.message); return false; }
   showToast(groupName + ' 模板已保存');
@@ -186,8 +191,6 @@ async function saveTemplate(groupName, shops, target) {
 function renderTemplates() {
   const el = document.getElementById('templates-content');
   const groups = ['A组', 'B组', 'C组'];
-  const editing = {}; // track edit state per group
-  groups.forEach(g => { editing[g] = false; });
 
   function render() {
     el.innerHTML = groups.map(g => {
@@ -196,22 +199,20 @@ function renderTemplates() {
       return `<div style="margin-bottom:20px;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#f8f9ff;border-bottom:1px solid var(--border);">
           <h3 style="margin:0;font-size:16px;">${g} · ${shops.length}个店铺</h3>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <span style="font-size:13px;color:var(--text-secondary);">默认目标：</span>
-            <input type="number" id="tpl-target-${g}" value="${tpl.target}" style="width:60px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;text-align:center;font-size:14px;font-weight:600;" min="1" max="100">%
-            <button class="btn-sm primary" onclick="saveTemplatesFromUI()">💾 保存全部</button>
-          </div>
+          <button class="btn-sm primary" onclick="saveTemplatesFromUI()">💾 保存全部</button>
         </div>
         <div style="padding:12px 16px;">
           <table style="width:100%;border-collapse:collapse;">
             <thead><tr style="background:#f0f4ff;">
               <th style="padding:8px;text-align:left;font-size:13px;">店铺名</th>
-              <th style="padding:8px;text-align:center;font-size:13px;width:100px;">操作</th>
+              <th style="padding:8px;text-align:center;font-size:13px;width:120px;">目标转化率</th>
+              <th style="padding:8px;text-align:center;font-size:13px;width:60px;">操作</th>
             </tr></thead>
             <tbody id="tpl-tbody-${g}">
               ${shops.map((s, i) => `
                 <tr>
-                  <td style="padding:6px 8px;"><input type="text" class="tpl-shop-name" data-group="${g}" data-idx="${i}" value="${escapeHtml(s)}" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);"></td>
+                  <td style="padding:6px 8px;"><input type="text" class="tpl-shop-name" data-group="${g}" data-idx="${i}" value="${escapeHtml(s.name || '')}" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);"></td>
+                  <td style="padding:6px 8px;text-align:center;"><input type="number" class="tpl-shop-target" data-group="${g}" data-idx="${i}" value="${s.target || DEFAULT_TARGET}" style="width:70px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);" min="1" max="100"> %</td>
                   <td style="padding:6px 8px;text-align:center;"><button class="btn-sm outline" style="color:var(--danger);border-color:var(--danger);padding:2px 10px;font-size:12px;" onclick="deleteTplShop(this,'${g}',${i})">×</button></td>
                 </tr>`).join('')}
             </tbody>
@@ -230,6 +231,7 @@ function renderTemplates() {
     const idx = tbody.querySelectorAll('tr').length;
     const tr = document.createElement('tr');
     tr.innerHTML = `<td style="padding:6px 8px;"><input type="text" class="tpl-shop-name" data-group="${group}" data-idx="${idx}" value="" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);" placeholder="新店铺名"></td>
+      <td style="padding:6px 8px;text-align:center;"><input type="number" class="tpl-shop-target" data-group="${group}" data-idx="${idx}" value="${DEFAULT_TARGET}" style="width:70px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);" min="1" max="100"> %</td>
       <td style="padding:6px 8px;text-align:center;"><button class="btn-sm outline" style="color:var(--danger);border-color:var(--danger);padding:2px 10px;font-size:12px;" onclick="deleteTplShop(this,'${group}',${idx})">×</button></td>`;
     tbody.appendChild(tr);
   };
@@ -240,14 +242,17 @@ function renderTemplates() {
 
   window.saveTemplatesFromUI = async function() {
     for (const g of groups) {
-      const target = parseInt(document.getElementById('tpl-target-' + g)?.value) || DEFAULT_TARGET;
-      const inputs = document.querySelectorAll('.tpl-shop-name[data-group="' + g + '"]');
+      const nameInputs = document.querySelectorAll('.tpl-shop-name[data-group="' + g + '"]');
+      const targetInputs = document.querySelectorAll('.tpl-shop-target[data-group="' + g + '"]');
       const shops = [];
-      inputs.forEach(inp => {
+      nameInputs.forEach((inp, i) => {
         const name = inp.value.trim();
-        if (name) shops.push(name);
+        if (name) {
+          const target = parseInt(targetInputs[i]?.value) || DEFAULT_TARGET;
+          shops.push({ name, target });
+        }
       });
-      await saveTemplate(g, shops, target);
+      await saveTemplate(g, shops);
     }
     await loadTemplates();
     renderTemplates();
@@ -329,11 +334,21 @@ function openDailyForm() {
   // 用历史记录 → 或用该组的模板 → 或空白行
   let shops;
   if (savedShops && savedShops.length) {
-    shops = savedShops;
+    shops = savedShops.map(s => ({
+      name: s.name || s, // 兼容旧格式（字符串）
+      visitors: s.visitors || '',
+      inquiries: s.inquiries || '',
+      payments: s.payments || '',
+      target: s.target || DEFAULT_TARGET
+    }));
   } else {
     const group = currentProfile?.group_name;
     const tpl = getShopTemplate(group);
-    shops = tpl.shops.map(name => ({ name, visitors: '', inquiries: '', payments: '', target: tpl.target }));
+    shops = tpl.shops.map(s => ({
+      name: s.name || s,
+      visitors: '', inquiries: '', payments: '',
+      target: s.target || DEFAULT_TARGET
+    }));
   }
 
   renderDailyShopInputs(shops);
@@ -510,7 +525,7 @@ function renderDailyResult(content) {
         <div><div style="font-size:11px;color:#888;">总询单</div><div style="font-size:20px;font-weight:700;color:#333;">${totalI}</div></div>
         <div><div style="font-size:11px;color:#888;">总支付</div><div style="font-size:20px;font-weight:700;color:#333;">${totalP}</div></div>
         <div><div style="font-size:11px;color:#888;">总转化率</div><div style="font-size:20px;font-weight:700;color:#2563eb;">${totalI>0 ? (totalP/totalI*100).toFixed(1) : '--'}%</div></div>
-        <div><div style="font-size:11px;color:#888;">总还差</div><div style="font-size:20px;font-weight:700;color:${shops.some(s => {const i=parseInt(s.inquiries)||0;p=parseInt(s.payments)||0;t=parseFloat(s.target)||0;return t>0&&i>0&&Math.ceil(i*t/100-p)>0;})?'#dc2626':'#16a34a'}">${shops.reduce((sum,s)=>{
+        <div><div style="font-size:11px;color:#888;">总还差</div><div style="font-size:20px;font-weight:700;color:${shops.some(s => {const i=parseInt(s.inquiries)||0;const p=parseInt(s.payments)||0;const t=parseFloat(s.target)||0;return t>0&&i>0&&Math.ceil(i*t/100-p)>0;})?'#dc2626':'#16a34a'}">${shops.reduce((sum,s)=>{
           const i=parseInt(s.inquiries)||0,p=parseInt(s.payments)||0,t=parseFloat(s.target)||0;
           return t>0&&i>0 ? sum+Math.max(0,Math.ceil(i*t/100-p)) : sum;
         },0)||'--'}</div></div>
