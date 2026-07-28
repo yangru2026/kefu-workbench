@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>美瞳客服工作台</title>
+<script src="https://unpkg.com/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -313,6 +314,80 @@ body {
 .highlight-row { background:#FFF9E6 !important; }
 .highlight-row .name-cell { background:#FFF3D4 !important; font-weight:700; }
 
+/* ===== DEGREE CONVERTER ===== */
+.brand-switch-cvt { display:flex; gap:6px; justify-content:center; margin-bottom:16px; background:#fff; padding:8px; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+.brand-btn-cvt { padding:6px 24px; border:1px solid var(--border); background:transparent; color:var(--text-secondary); border-radius:20px; font-size:14px; cursor:pointer; font-family:inherit; transition:all 0.2s; }
+.brand-btn-cvt.active { background:#7ba7a6; color:#fff; font-weight:600; border-color:#7ba7a6; }
+.brand-header-cvt { text-align:center; margin-bottom:12px; padding:12px; background:#7ba7a6; border-radius:12px; color:#fff; }
+.brand-header-cvt .brand-name-cvt { font-size:18px; font-weight:600; letter-spacing:2px; }
+.ocr-fold { background:#fff; border-radius:12px; margin-bottom:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+.ocr-fold-header { padding:12px 16px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none; }
+.ocr-fold-header:hover { background:#f5faf8; }
+.ocr-fold-title { font-size:14px; font-weight:600; color:#3d5a4d; }
+.ocr-fold-arrow { font-size:12px; color:var(--text-secondary); transition:transform 0.3s; }
+.ocr-fold.open .ocr-fold-arrow { transform:rotate(180deg); }
+.ocr-fold-body { max-height:0; overflow:hidden; transition:max-height 0.3s ease; }
+.ocr-fold.open .ocr-fold-body { max-height:500px; }
+.ocr-fold-inner { padding:0 16px 16px; }
+.ocr-upload { border:2px dashed var(--border); border-radius:8px; padding:20px 12px; text-align:center; cursor:pointer; }
+.ocr-upload:hover { border-color:#7ba7a6; background:#f1f5f4; }
+.ocr-icon { font-size:28px; margin-bottom:4px; }
+.ocr-text { color:var(--text-secondary); font-size:12px; line-height:1.5; }
+.ocr-text strong { color:#7ba7a6; }
+.ocr-input-hidden { display:none; }
+.ocr-preview { margin-top:8px; display:none; text-align:center; }
+.ocr-preview.show { display:block; }
+.ocr-preview img { max-width:100%; max-height:180px; border-radius:6px; border:1px solid var(--border); }
+.ocr-status { margin-top:8px; padding:8px 12px; border-radius:6px; font-size:12px; display:none; }
+.ocr-status.show { display:block; }
+.ocr-status.processing { background:#f1f5f4; color:#7ba7a6; }
+.ocr-status.success { background:#f0fdf4; color:#15803d; }
+.ocr-status.error { background:#fef2f2; color:#dc2626; }
+.ocr-status.localwarn { background:#fffbeb; color:#b45309; }
+.ocr-raw-text { margin-top:8px; padding:8px 12px; background:#f8f5f2; border:1px solid var(--border); border-radius:8px; font-size:11px; color:var(--text-secondary); white-space:pre-wrap; word-break:break-all; max-height:80px; overflow-y:auto; display:none; }
+.ocr-raw-text.show { display:block; }
+.ocr-filled-tag { display:inline-block; font-size:11px; padding:2px 8px; border-radius:10px; background:#f0fdf4; color:#15803d; margin-left:6px; font-weight:500; }
+.quick-input-row { margin:12px 0; }
+.quick-input-row input { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; font-family:inherit; }
+.quick-input-row input:focus { border-color:#7ba7a6; outline:none; }
+.eyes-row-cvt { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+.eye-card-cvt { background:#fff; border-radius:12px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+.eye-card-title-cvt { font-size:15px; font-weight:600; color:#3d5a4d; margin-bottom:12px; text-align:center; padding-bottom:8px; border-bottom:1px solid #f0e8e0; }
+.eye-input-row-cvt { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.eye-input-row-cvt label { font-size:12px; color:var(--text-secondary); width:50px; flex-shrink:0; }
+.btn-adjust { width:32px; height:32px; border:1px solid var(--border); background:#fff; color:#7ba7a6; font-size:16px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 4px rgba(0,0,0,0.06); flex-shrink:0; font-family:inherit; }
+.btn-adjust:active { background:#f1f5f4; }
+.degree-input-cvt { width:60px; height:32px; border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:15px; text-align:center; font-family:inherit; flex-shrink:0; }
+.degree-input-cvt:focus { outline:none; border-color:#7ba7a6; }
+.eye-result-cvt { text-align:center; font-size:13px; color:var(--text-secondary); margin-top:8px; }
+.eye-result-cvt span { color:#7ba7a6; font-weight:600; font-size:20px; }
+.eye-warning-cvt { display:none; color:#E17055; font-size:11px; text-align:center; margin-top:4px; }
+.final-result-box-cvt { background:#7ba7a6; border-radius:16px; padding:20px; color:#fff; text-align:center; margin-bottom:16px; }
+.final-result-box-cvt .label-cvt { font-size:13px; opacity:0.9; margin-bottom:4px; }
+.final-result-box-cvt .degree-cvt { font-size:36px; font-weight:700; line-height:1.2; }
+.final-result-box-cvt .eye-label-cvt { font-size:12px; opacity:0.8; margin-top:4px; }
+.final-result-row-cvt { display:flex; gap:12px; justify-content:center; }
+.final-result-row-cvt > div { flex:1; }
+.action-btns-cvt { display:flex; gap:10px; margin-bottom:16px; }
+.action-btns-cvt button { flex:1; padding:12px 0; border:none; border-radius:20px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; background:#7ba7a6; color:#fff; }
+.action-btns-cvt button:active { opacity:0.9; }
+.screenshot-preview-cvt { display:none; margin:0 auto 16px; text-align:center; }
+.screenshot-preview-cvt.show { display:block; }
+.screenshot-preview-cvt img { max-width:100%; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.1); }
+.screenshot-hint-cvt { margin-top:8px; font-size:12px; color:var(--text-secondary); }
+.modal-overlay-cvt { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center; }
+.modal-overlay-cvt.show { display:flex; }
+.modal-box-cvt { background:#fff; border-radius:16px; padding:28px 24px; max-width:320px; width:90%; text-align:center; box-shadow:0 8px 32px rgba(0,0,0,0.2); }
+.modal-box-cvt .modal-title-cvt { font-size:17px; font-weight:600; color:#3d5a4d; margin-bottom:10px; }
+.modal-box-cvt .modal-text-cvt { font-size:13px; color:var(--text-secondary); line-height:1.7; margin-bottom:20px; }
+.modal-btn-cvt { padding:10px 32px; background:#7ba7a6; color:#fff; border:none; border-radius:20px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; }
+.clear-row-cvt { display:flex; justify-content:flex-end; margin-bottom:8px; }
+.clear-btn-cvt { padding:4px 14px; background:#fff; border:1px solid var(--border); color:var(--text-secondary); border-radius:15px; font-size:12px; cursor:pointer; font-family:inherit; }
+.clear-btn-cvt:hover { background:#f1f5f4; color:#7ba7a6; border-color:#7ba7a6; }
+.notes-cvt { background:#fff; border-radius:12px; padding:14px; font-size:12px; color:var(--text-secondary); line-height:1.8; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+.notes-title-cvt { font-weight:600; color:#3d5a4d; margin-bottom:6px; font-size:13px; }
+@media (max-width:768px) { .eyes-row-cvt { grid-template-columns:1fr; } }
+
 /* Responsive */
 @media (max-width: 768px) {
   .sidebar { width: 60px; }
@@ -377,26 +452,113 @@ body {
   <!-- ===== 度数换算 ===== -->
   <div class="page" id="page-converter">
     <div class="page-header"><h1>🔢 美瞳度数换算</h1><p>输入框架眼镜度数，自动换算为美瞳/隐形眼镜度数</p></div>
-    <div class="card converter">
-      <div class="input-group"><label>框架眼镜度数（近视用负数，远视用正数）</label><input type="number" id="diopter-input" placeholder="例如：-3.50" step="0.25" value="-3.50"></div>
-      <div class="input-group"><label>是否有散光？</label>
-        <select id="astigmatism">
-          <option value="no">无散光</option>
-          <option value="low">低度散光（< 0.75）</option>
-          <option value="high">中高度散光（≥ 0.75）</option>
-        </select>
+    <div class="modal-overlay-cvt" id="astig-modal">
+      <div class="modal-box-cvt">
+        <div style="font-size:40px;margin-bottom:12px;">⚠️</div>
+        <div class="modal-title-cvt">散光度数过高</div>
+        <div class="modal-text-cvt" id="astig-modal-text">您输入的散光度数超过150度，本工具仅支持150度以下散光换算。<br><br>建议咨询专业眼科医生，或验配散光专用隐形眼镜。</div>
+        <button class="modal-btn-cvt" onclick="closeModal()">我知道了</button>
       </div>
-      <button class="btn" onclick="convertDiopter()">换算</button>
-      <div class="result-box" id="diopter-result" style="display:none;"></div>
     </div>
-    <div class="card">
-      <h3>📖 换算规则说明</h3>
-      <p>• 框架度数 < 4.00：无需换算，直接配同等度数<br>
-      • 框架度数 4.00 ~ 5.00：减 0.25<br>
-      • 框架度数 5.00 ~ 7.00：减 0.50<br>
-      • 框架度数 7.00 ~ 9.00：减 0.75<br>
-      • 框架度数 9.00 ~ 11.00：减 1.00<br>
-      • 有散光建议配散光定制片，低度散光可折半加入球镜</p>
+
+    <div class="brand-switch-cvt">
+      <button class="brand-btn-cvt active" onclick="switchBrand('弥生')">弥生</button>
+      <button class="brand-btn-cvt" onclick="switchBrand('极氧')">极氧</button>
+    </div>
+    <div class="brand-header-cvt"><div class="brand-name-cvt" id="brandName">弥生</div></div>
+    <div class="clear-row-cvt"><button class="clear-btn-cvt" onclick="clearAll()">🗑️ 清空</button></div>
+
+    <!-- OCR 截图识别 -->
+    <div class="ocr-fold" id="ocrFold">
+      <div class="ocr-fold-header" onclick="toggleOCR()">
+        <span class="ocr-fold-title">📷 截图识别度数 <span style="font-size:11px;color:var(--text-secondary);font-weight:normal;margin-left:4px;">验光单/聊天截图</span></span>
+        <span class="ocr-fold-arrow">▼</span>
+      </div>
+      <div class="ocr-fold-body">
+        <div class="ocr-fold-inner">
+          <div class="ocr-upload" id="ocrUpload">
+            <div class="ocr-icon">📸</div>
+            <div class="ocr-text"><strong>点击上传</strong> 或 <strong>Ctrl+V</strong> 粘贴截图</div>
+            <input type="file" class="ocr-input-hidden" id="ocrInput" accept="image/*">
+          </div>
+          <div class="ocr-preview" id="ocrPreview"><img id="ocrPreviewImg" alt="预览"></div>
+          <div class="ocr-status" id="ocrStatus"></div>
+          <div class="ocr-raw-text" id="ocr-raw-text"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 快速输入 -->
+    <div class="quick-input-row">
+      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">⚡ 快速输入（粘贴文字/数字自动填充）</div>
+      <input type="text" id="quickInput" placeholder="如：550 75 600 50 或 右眼250 散光100">
+    </div>
+
+    <!-- 左右眼 -->
+    <div class="eyes-row-cvt">
+      <div class="eye-card-cvt">
+        <div class="eye-card-title-cvt">👁️ 右眼</div>
+        <div class="eye-input-row-cvt">
+          <label>近视</label>
+          <button class="btn-adjust" onclick="adjustCvt('r-myopia', -25)">−</button>
+          <input type="number" class="degree-input-cvt" id="r-myopia" placeholder="0" onchange="calculate()" onblur="focusNextCvt(this)">
+          <button class="btn-adjust" onclick="adjustCvt('r-myopia', 25)">+</button>
+        </div>
+        <div class="eye-input-row-cvt">
+          <label>散光</label>
+          <button class="btn-adjust" onclick="adjustCvt('r-astigmatism', -25)">−</button>
+          <input type="number" class="degree-input-cvt" id="r-astigmatism" placeholder="0" onchange="calculate()">
+          <button class="btn-adjust" onclick="adjustCvt('r-astigmatism', 25)">+</button>
+        </div>
+        <div class="eye-result-cvt">建议 <span id="r-result">0</span> 度</div>
+        <div class="eye-warning-cvt" id="r-warning"></div>
+      </div>
+      <div class="eye-card-cvt">
+        <div class="eye-card-title-cvt">👁️ 左眼</div>
+        <div class="eye-input-row-cvt">
+          <label>近视</label>
+          <button class="btn-adjust" onclick="adjustCvt('l-myopia', -25)">−</button>
+          <input type="number" class="degree-input-cvt" id="l-myopia" placeholder="0" onchange="calculate()" onblur="focusNextCvt(this)">
+          <button class="btn-adjust" onclick="adjustCvt('l-myopia', 25)">+</button>
+        </div>
+        <div class="eye-input-row-cvt">
+          <label>散光</label>
+          <button class="btn-adjust" onclick="adjustCvt('l-astigmatism', -25)">−</button>
+          <input type="number" class="degree-input-cvt" id="l-astigmatism" placeholder="0" onchange="calculate()">
+          <button class="btn-adjust" onclick="adjustCvt('l-astigmatism', 25)">+</button>
+        </div>
+        <div class="eye-result-cvt">建议 <span id="l-result">0</span> 度</div>
+        <div class="eye-warning-cvt" id="l-warning"></div>
+      </div>
+    </div>
+
+    <!-- 最终结果 -->
+    <div class="final-result-box-cvt">
+      <div class="final-result-row-cvt">
+        <div><div class="label-cvt">右眼建议</div><div class="degree-cvt" id="final-r">0</div><div class="eye-label-cvt">度</div></div>
+        <div><div class="label-cvt">左眼建议</div><div class="degree-cvt" id="final-l">0</div><div class="eye-label-cvt">度</div></div>
+      </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="action-btns-cvt">
+      <button onclick="copyResult()">📋 复制文字</button>
+      <button onclick="generateScreenshot()">🖼️ 生成图片</button>
+    </div>
+    <div class="screenshot-preview-cvt" id="screenshot-preview">
+      <img id="screenshot-img" src="" alt="换算结果">
+      <div class="screenshot-hint-cvt" id="screenshot-hint"></div>
+    </div>
+
+    <!-- 换算说明 -->
+    <div class="notes-cvt">
+      <div class="notes-title-cvt">换算说明</div>
+      <div>1. 没有近视/平光选择0度</div>
+      <div>2. 双眼低于400近视无需换算</div>
+      <div>3. 散光度数若在150度以上，建议佩戴专业散光隐形</div>
+      <div>4. 此链接为近视/散光的测算参考，非远视</div>
+      <div>5. 测算前建议先去实体眼科机构进行专业验光检查</div>
+      <div style="margin-top:6px;color:#aaa;font-size:11px;">• 美瞳最高只有800度</div>
     </div>
   </div>
 
@@ -532,39 +694,407 @@ function switchPage(page) {
   if (page === 'schedule') renderSchedule();
 }
 
-// ==================== DIOPTER CONVERTER ====================
-function convertDiopter() {
-  const val = parseFloat(document.getElementById('diopter-input').value);
-  const astig = document.getElementById('astigmatism').value;
-  const resultBox = document.getElementById('diopter-result');
+// ==================== DIOPTER CONVERTER (Full) ====================
+let currentBrand = '弥生';
 
-  if (isNaN(val)) {
-    showToast('请输入有效的度数');
-    return;
+function switchBrand(brand) {
+  currentBrand = brand;
+  document.getElementById('brandName').textContent = brand;
+  document.querySelectorAll('.brand-btn-cvt').forEach(b => b.classList.toggle('active', b.textContent.trim() === brand));
+}
+
+function adjustCvt(id, delta) {
+  const input = document.getElementById(id);
+  let val = parseInt(input.value) || 0;
+  val += delta;
+  if (val < 0) val = 0;
+  input.value = val;
+  calculate();
+}
+
+document.querySelectorAll('.degree-input-cvt').forEach(input => {
+  input.addEventListener('focus', function() { this.select(); });
+});
+
+function focusNextCvt(input) {
+  if (input.id === 'r-myopia' && !document.getElementById('r-astigmatism').value) document.getElementById('r-astigmatism').focus();
+  else if (input.id === 'r-astigmatism' && !document.getElementById('l-myopia').value) document.getElementById('l-myopia').focus();
+  else if (input.id === 'l-myopia' && !document.getElementById('l-astigmatism').value) document.getElementById('l-astigmatism').focus();
+}
+
+function convertDegree(totalDegree) {
+  if (totalDegree <= 400) return totalDegree;
+  else if (totalDegree <= 500) return totalDegree - 25;
+  else if (totalDegree <= 700) return totalDegree - 50;
+  else return totalDegree - 70;
+}
+
+const STANDARD_DEGREES = [0, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 375, 400, 425, 450, 475, 500, 525, 550, 575, 600, 650, 700, 750, 800];
+
+function getStandardDegree(raw) {
+  if (raw <= 0) return 0;
+  if (raw >= 800) return 800;
+  const rounded = Math.round(raw);
+  if (STANDARD_DEGREES.includes(rounded)) return rounded;
+  for (let i = 0; i < STANDARD_DEGREES.length - 1; i++) {
+    if (raw > STANDARD_DEGREES[i] && raw < STANDARD_DEGREES[i + 1]) {
+      return (raw - STANDARD_DEGREES[i]) <= (STANDARD_DEGREES[i + 1] - STANDARD_DEGREES[i]) / 2 ? STANDARD_DEGREES[i] : STANDARD_DEGREES[i + 1];
+    }
+  }
+  return 800;
+}
+
+function calculate() {
+  const rMyopia = parseFloat(document.getElementById('r-myopia').value) || 0;
+  const lMyopia = parseFloat(document.getElementById('l-myopia').value) || 0;
+  const rAstig = parseFloat(document.getElementById('r-astigmatism').value) || 0;
+  const lAstig = parseFloat(document.getElementById('l-astigmatism').value) || 0;
+
+  const rWarn = document.getElementById('r-warning');
+  const lWarn = document.getElementById('l-warning');
+  rWarn.style.display = rAstig > 150 ? 'block' : 'none';
+  lWarn.style.display = lAstig > 150 ? 'block' : 'none';
+  if (rAstig > 150) rWarn.textContent = '⚠️ 右眼散光过高，按最高150换算';
+  if (lAstig > 150) lWarn.textContent = '⚠️ 左眼散光过高，按最高150换算';
+  if (rAstig > 150 || lAstig > 150) showModal();
+
+  let rTotal = rMyopia > 0 ? rMyopia + (rAstig > 0 && rAstig <= 150 ? rAstig / 2 : 0) : 0;
+  let lTotal = lMyopia > 0 ? lMyopia + (lAstig > 0 && lAstig <= 150 ? lAstig / 2 : 0) : 0;
+  const rResult = getStandardDegree(convertDegree(rTotal));
+  const lResult = getStandardDegree(convertDegree(lTotal));
+
+  document.getElementById('r-result').textContent = rResult;
+  document.getElementById('l-result').textContent = lResult;
+  document.getElementById('final-r').textContent = rResult;
+  document.getElementById('final-l').textContent = lResult;
+}
+
+function showModal() { document.getElementById('astig-modal').classList.add('show'); }
+function closeModal() { document.getElementById('astig-modal').classList.remove('show'); }
+
+function copyResult() {
+  const text = '宝宝 右眼选' + document.getElementById('final-r').textContent + '度，左眼选' + document.getElementById('final-l').textContent + '度';
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => showToast('已复制')).catch(() => fallbackCopyCvt(text));
+  } else {
+    fallbackCopyCvt(text);
+  }
+}
+
+function fallbackCopyCvt(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
+  document.body.appendChild(ta); ta.select();
+  const ok = document.execCommand('copy');
+  document.body.removeChild(ta);
+  showToast(ok ? '已复制' : '复制失败，请手动复制');
+}
+
+function generateScreenshot() {
+  const rResult = document.getElementById('final-r').textContent;
+  const lResult = document.getElementById('final-l').textContent;
+  const rMyopia = document.getElementById('r-myopia').value || '0';
+  const lMyopia = document.getElementById('l-myopia').value || '0';
+  const rAstig = document.getElementById('r-astigmatism').value || '0';
+  const lAstig = document.getElementById('l-astigmatism').value || '0';
+  const rAstigNum = parseFloat(rAstig) || 0;
+  const lAstigNum = parseFloat(lAstig) || 0;
+  const highAstig = rAstigNum > 150 || lAstigNum > 150;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 400; canvas.height = highAstig ? 520 : 480;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#f1f5f4'; ctx.fillRect(0, 0, 400, 480);
+  ctx.fillStyle = '#7ba7a6'; ctx.fillRect(0, 0, 400, 50);
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 17px sans-serif';
+  ctx.textAlign = 'center'; ctx.fillText(currentBrand, 200, 22);
+  ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = '10px sans-serif';
+  ctx.fillText('官方度数换算工具', 200, 42);
+
+  ctx.fillStyle = '#3d5a4d'; ctx.font = 'bold 16px sans-serif';
+  ctx.fillText('度数换算结果', 200, 75);
+  ctx.strokeStyle = '#d0ddd8'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(40, 90); ctx.lineTo(360, 90); ctx.stroke();
+
+  ctx.fillStyle = '#888'; ctx.font = '13px sans-serif';
+  ctx.fillText('左眼', 200, 115);
+  ctx.fillStyle = '#7ba7a6'; ctx.font = 'bold 34px sans-serif';
+  ctx.fillText(lResult + '°', 200, 155);
+  ctx.fillStyle = '#888'; ctx.font = '13px sans-serif';
+  ctx.fillText('右眼', 200, 195);
+  ctx.fillStyle = '#7ba7a6'; ctx.font = 'bold 34px sans-serif';
+  ctx.fillText(rResult + '°', 200, 235);
+
+  ctx.beginPath(); ctx.moveTo(40, 260); ctx.lineTo(360, 260); ctx.stroke();
+  ctx.fillStyle = '#888'; ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('左眼：近视 ' + lMyopia + '°' + (lAstig > 0 ? '  散光 ' + lAstig + '°' : ''), 40, 285);
+  ctx.fillText('右眼：近视 ' + rMyopia + '°' + (rAstig > 0 ? '  散光 ' + rAstig + '°' : ''), 40, 305);
+
+  if (highAstig) {
+    ctx.fillStyle = '#e74c3c'; ctx.fillRect(30, 330, 340, 36);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+    let warnText = rAstigNum > 150 && lAstigNum > 150 ? '⚠️ 双眼散光过高，按最高150换算' : rAstigNum > 150 ? '⚠️ 右眼散光过高，按最高150换算' : '⚠️ 左眼散光过高，按最高150换算';
+    ctx.fillText(warnText, 200, 352);
+    ctx.fillStyle = '#aaa'; ctx.font = '10px sans-serif';
+    ctx.fillText('测算结果仅供参考，建议前往专业眼科机构验光', 200, 450);
+    ctx.fillText(currentBrand + ' 官方工具', 200, 475);
+    ctx.fillText(new Date().toLocaleDateString('zh-CN'), 200, 495);
+  } else {
+    ctx.fillStyle = '#aaa'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('测算结果仅供参考，建议前往专业眼科机构验光', 200, 410);
+    ctx.fillText(currentBrand + ' 官方工具', 200, 435);
+    ctx.fillText(new Date().toLocaleDateString('zh-CN'), 200, 455);
   }
 
-  const abs = Math.abs(val);
-  let offset = 0;
-  if (abs < 4.00) offset = 0;
-  else if (abs < 5.00) offset = 0.25;
-  else if (abs < 7.00) offset = 0.50;
-  else if (abs < 9.00) offset = 0.75;
-  else offset = 1.00;
-
-  let result = val < 0 ? -(abs - offset) : (abs - offset);
-  result = Math.round(result * 4) / 4;
-
-  let note = '';
-  if (astig === 'low') note = '💡 低度散光可折半加入球镜度数中计算';
-  if (astig === 'high') note = '⚠️ 中高度散光建议配散光定制片，请联系供应商确认';
-
-  resultBox.style.display = 'block';
-  resultBox.innerHTML = `
-    <div class="desc">框架眼镜 ${val > 0 ? '+' : ''}${val.toFixed(2)} → 美瞳推荐度数</div>
-    <div class="big">${result > 0 ? '+' : ''}${result.toFixed(2)}</div>
-    <div class="desc">换算减免：${offset.toFixed(2)} | ${note}</div>
-  `;
+  canvas.toBlob(function(blob) {
+    const dataURL = canvas.toDataURL('image/png');
+    document.getElementById('screenshot-img').src = dataURL;
+    document.getElementById('screenshot-preview').classList.add('show');
+    document.getElementById('screenshot-preview').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (navigator.clipboard && navigator.clipboard.write && blob) {
+      navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => {
+        document.getElementById('screenshot-hint').textContent = '✅ 图片已复制，可直接粘贴';
+        showToast('图片已复制');
+      }).catch(() => {
+        document.getElementById('screenshot-hint').textContent = '⚠️ 请长按上方图片保存后发送';
+      });
+    } else {
+      document.getElementById('screenshot-hint').textContent = '⚠️ 请长按上方图片保存后发送';
+    }
+  }, 'image/png');
 }
+
+// ==================== OCR ====================
+function toggleOCR() { document.getElementById('ocrFold').classList.toggle('open'); }
+
+const isLocalFile = window.location.protocol === 'file:';
+const ocrUpload = document.getElementById('ocrUpload');
+const ocrInput = document.getElementById('ocrInput');
+const ocrPreview = document.getElementById('ocrPreview');
+const ocrPreviewImg = document.getElementById('ocrPreviewImg');
+const ocrStatus = document.getElementById('ocrStatus');
+
+if (ocrUpload) {
+  ocrUpload.addEventListener('click', () => ocrInput.click());
+  ocrUpload.addEventListener('dragover', e => { e.preventDefault(); });
+  ocrUpload.addEventListener('drop', e => {
+    e.preventDefault();
+    if (e.dataTransfer.files.length) handleOCRImage(e.dataTransfer.files[0]);
+  });
+}
+if (ocrInput) ocrInput.addEventListener('change', e => { if (e.target.files.length) handleOCRImage(e.target.files[0]); });
+
+document.addEventListener('paste', e => {
+  const converterPage = document.getElementById('page-converter');
+  if (!converterPage || !converterPage.classList.contains('active')) return;
+  const items = e.clipboardData.items;
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type.indexOf('image') !== -1) {
+      handleOCRImage(items[i].getAsFile());
+      e.preventDefault(); break;
+    }
+  }
+});
+
+function handleOCRImage(file) {
+  if (!file.type.startsWith('image/')) { showOCRStatus('请上传图片文件', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    ocrPreviewImg.src = e.target.result;
+    ocrPreview.classList.add('show');
+    performOCR(e.target.result);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function performOCR(imageData) {
+  if (isLocalFile) { showOCRStatus('⚠️ 本地打开不支持截图识别，请部署到网页后使用', 'localwarn'); return; }
+  showOCRStatus('🔍 正在识别图片中的度数...', 'processing');
+  try {
+    const result = await Tesseract.recognize(imageData, 'chi_sim+eng', {
+      logger: m => { if (m.status === 'recognizing text') showOCRStatus('🔍 正在识别... ' + (m.progress * 100).toFixed(0) + '%', 'processing'); }
+    });
+    const extracted = extractDegrees(result.data.text);
+    const rawPreview = document.getElementById('ocr-raw-text');
+    if (rawPreview) { rawPreview.textContent = extracted.rawText || '(无文字)'; rawPreview.classList.add('show'); }
+    if (extracted.hasData) {
+      const res = fillInputs(extracted);
+      if (res.hasInvalid) {
+        showOCRStatus('⚠️ 识别到异常度数，请核对原始文字后手动输入', 'error');
+      } else if (res.hasAstigCapped) {
+        const modalText = document.getElementById('astig-modal-text');
+        if (modalText) modalText.innerHTML = res.cappedEyes.join('、') + '散光度数超过150度，<strong style="color:#e74c3c;">已按150度封顶换算</strong>。<br><br>请告知客户';
+        showModal();
+        showOCRStatus('⚠️ ' + res.cappedEyes.join('、') + '散光超150度！已按150度封顶换算', 'success');
+      } else {
+        showOCRStatus('✅ 识别成功！已自动填入', 'success');
+      }
+      setTimeout(() => calculate(), 300);
+    } else {
+      showOCRStatus('⚠️ 未能识别到度数，请手动输入', 'error');
+    }
+  } catch (err) {
+    showOCRStatus('❌ 识别失败：' + err.message, 'error');
+  }
+}
+
+function extractDegrees(text) {
+  const result = { rMyopia: null, rAstig: null, lMyopia: null, lAstig: null, hasData: false, rawText: text };
+  const RIGHT_EYES = ['右眼', '右'], LEFT_EYES = ['左眼', '工眼', '左'];
+
+  function extractEyeData(eyeKeywords) {
+    for (const kw of eyeKeywords) {
+      const idx = text.indexOf(kw);
+      if (idx === -1) continue;
+      const start = idx + kw.length;
+      const allEyeKeywords = [...RIGHT_EYES, ...LEFT_EYES];
+      let end = text.length;
+      for (const ek of allEyeKeywords) { if (ek === kw) continue; const eIdx = text.indexOf(ek, start); if (eIdx !== -1 && eIdx < end) end = eIdx; }
+      const segment = text.substring(start, end).trim();
+      const nums = segment.match(/[-+]?\d+\.?\d*/g);
+      if (!nums) return null;
+      const values = nums.map(n => { let v = Math.abs(parseFloat(n)); if (v > 0 && v <= 10) v = Math.round(v * 100); return v; }).filter(n => n > 0 && n <= 1000);
+      if (values.length === 0) return null;
+      return { myopia: values[0], astig: values.length >= 2 ? values[1] : null };
+    }
+    return null;
+  }
+
+  function extractChatDegrees(rawText) {
+    const text = rawText.replace(/[\s\u3000]+/g, ' ').trim();
+    const r = { myopia: null, astig: null }, l = { myopia: null, astig: null };
+    const rData = extractEyeData(RIGHT_EYES); if (rData) { r.myopia = rData.myopia; r.astig = rData.astig; }
+    const lData = extractEyeData(LEFT_EYES); if (lData) { l.myopia = lData.myopia; l.astig = lData.astig; }
+    const astigMatch = text.match(/散光\D*(\d+\.?\d*)/);
+    if (astigMatch) {
+      let astigVal = Math.abs(parseFloat(astigMatch[1]));
+      if (astigVal > 0 && astigVal <= 10) astigVal = Math.round(astigVal * 100);
+      const ctxStart = Math.max(0, astigMatch.index - 8), ctxEnd = Math.min(text.length, astigMatch.index + astigMatch[0].length + 8);
+      const isBoth = /都|两边|双眼|两个|左右|各/.test(text.substring(ctxStart, ctxEnd));
+      if (r.astig === null && r.myopia !== null) r.astig = astigVal;
+      else if (l.astig === null && l.myopia !== null) l.astig = astigVal;
+      if (isBoth && l.astig === null && l.myopia !== null) l.astig = astigVal;
+    }
+    const isBothEye = /双|都|两|各|左右/.test(text);
+    if (isBothEye) {
+      if (r.myopia !== null && l.myopia === null) { l.myopia = r.myopia; l.astig = r.astig; }
+      else if (l.myopia !== null && r.myopia === null) { r.myopia = l.myopia; r.astig = l.astig; }
+      else if (r.myopia === null && l.myopia === null) {
+        const nums = text.match(/[-+]?\d+\.?\d*/g);
+        if (nums) {
+          const values = nums.map(n => { let v = Math.abs(parseFloat(n)); if (v > 0 && v <= 10) v = Math.round(v * 100); return v; }).filter(n => n > 0 && n <= 1000);
+          if (values.length >= 1) { r.myopia = values[0]; l.myopia = values[0]; }
+          if (values.length >= 2) { r.astig = values[1]; l.astig = values[1]; }
+        }
+      }
+    }
+    if (r.myopia !== null || l.myopia !== null) return { r, l, hasData: true };
+    const allNums = text.match(/[-+]?\d+\.?\d*/g);
+    if (allNums) {
+      const nums = allNums.map(n => { let v = Math.abs(parseFloat(n)); if (v > 0 && v <= 10) v = Math.round(v * 100); return v; }).filter(n => n > 0 && n <= 1000);
+      if (nums.length >= 4) { r.myopia = nums[0]; r.astig = nums[1]; l.myopia = nums[2]; l.astig = nums[3]; }
+      else if (nums.length === 3) { r.myopia = nums[0]; l.myopia = nums[1]; r.astig = nums[2]; l.astig = nums[2]; }
+      else if (nums.length >= 2) { r.myopia = nums[0]; l.myopia = nums[1]; }
+    }
+    return { r, l, hasData: r.myopia !== null || l.myopia !== null };
+  }
+
+  const chatData = extractChatDegrees(text);
+  if (chatData.hasData) { result.rMyopia = chatData.r.myopia; result.rAstig = chatData.r.astig; result.lMyopia = chatData.l.myopia; result.lAstig = chatData.l.astig; result.hasData = true; return result; }
+
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+  function isSkipLine(line) { return /S\.E\.|SE\s*[-–:]|PD:|瞳距|PD\s*[:：]|NO\.|SN:|NAME|日期|时间|VD:|CYL:/.test(line); }
+  function parseNums(line) { const m = line.match(/[-+]?\d+\.?\d*/g); if (!m) return []; return m.map(n => parseFloat(n)).filter(n => n > 0 && n <= 1000); }
+  const dataRows = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (isSkipLine(lines[i])) continue;
+    const nums = parseNums(lines[i]);
+    const degreeNums = nums.filter(n => n > 0 && n <= 10);
+    if (degreeNums.length >= 2) { dataRows.push({ myopia: degreeNums[0], astig: degreeNums[1] }); if (dataRows.length >= 2) break; }
+  }
+  if (dataRows.length >= 1) { result.rMyopia = dataRows[0].myopia; result.rAstig = dataRows[0].astig; }
+  if (dataRows.length >= 2) { result.lMyopia = dataRows[1].myopia; result.lAstig = dataRows[1].astig; }
+  result.hasData = result.rMyopia !== null || result.lMyopia !== null;
+  return result;
+}
+
+function fillInputs(data) {
+  let hasInvalid = false, cappedEyes = [];
+  function setVal(id, val) {
+    if (val === null) return;
+    if (val > 0 && val <= 10) val = Math.round(val * 100); else if (val > 10 && val < 1000) val = Math.round(val);
+    if (val > 1000) { hasInvalid = true; return; }
+    if (id.includes('astigmatism') && val > 150) {
+      val = 150;
+      const eye = id.startsWith('r') ? '右眼' : '左眼';
+      if (!cappedEyes.includes(eye)) cappedEyes.push(eye);
+    }
+    document.getElementById(id).value = val;
+    showFilledTag(id);
+  }
+  setVal('r-myopia', data.rMyopia); setVal('r-astigmatism', data.rAstig);
+  setVal('l-myopia', data.lMyopia); setVal('l-astigmatism', data.lAstig);
+  setTimeout(() => {
+    if (data.lMyopia === null && data.lAstig === null) document.getElementById('l-myopia').focus();
+    else if (data.lMyopia !== null && data.lAstig === null) document.getElementById('l-astigmatism').focus();
+  }, 100);
+  return { hasInvalid, hasAstigCapped: cappedEyes.length > 0, cappedEyes };
+}
+
+function showFilledTag(inputId) {
+  const input = document.getElementById(inputId);
+  const row = input.closest('.eye-input-row-cvt');
+  if (row) {
+    const label = row.querySelector('label');
+    if (label && !label.querySelector('.ocr-filled-tag')) {
+      const tag = document.createElement('span'); tag.className = 'ocr-filled-tag'; tag.textContent = '已识别';
+      label.appendChild(tag);
+    }
+  }
+}
+
+function showOCRStatus(msg, type) {
+  const status = document.getElementById('ocrStatus');
+  if (status) { status.textContent = msg; status.className = 'ocr-status show ' + type; }
+}
+
+function clearAll() {
+  ['r-myopia', 'r-astigmatism', 'l-myopia', 'l-astigmatism'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  ['r-result', 'l-result', 'final-r', 'final-l'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '0'; });
+  const preview = document.getElementById('ocrPreview'); if (preview) preview.classList.remove('show');
+  if (ocrPreviewImg) ocrPreviewImg.src = '';
+  const status = document.getElementById('ocrStatus'); if (status) { status.textContent = ''; status.className = 'ocr-status'; }
+  document.querySelectorAll('.ocr-filled-tag').forEach(tag => tag.remove());
+  const raw = document.getElementById('ocr-raw-text'); if (raw) raw.classList.remove('show');
+  const sp = document.getElementById('screenshot-preview'); if (sp) sp.classList.remove('show');
+  const qi = document.getElementById('quickInput'); if (qi) qi.value = '';
+  showToast('已清空');
+}
+
+// Quick paste handler
+document.addEventListener('DOMContentLoaded', function() {
+  const quickInput = document.getElementById('quickInput');
+  if (quickInput) {
+    quickInput.addEventListener('paste', function(e) {
+      setTimeout(() => {
+        const text = e.target.value.trim();
+        if (!text) return;
+        const extracted = extractDegrees(text);
+        if (extracted.hasData) {
+          const res = fillInputs(extracted);
+          if (res.hasInvalid) showToast('⚠️ 检测到异常度数，请核对');
+          else if (res.hasAstigCapped) {
+            const modalText = document.getElementById('astig-modal-text');
+            if (modalText) modalText.innerHTML = res.cappedEyes.join('、') + '散光度数超过150度，<strong style="color:#e74c3c;">已按150度封顶换算</strong>。<br><br>请告知客户';
+            showModal(); showToast('⚠️ ' + res.cappedEyes.join('、') + '散光超150度！已封顶');
+          } else showToast('✅ 已自动填充');
+          setTimeout(() => calculate(), 100);
+        } else showToast('⚠️ 未能识别，请检查格式');
+      }, 0);
+    });
+  }
+});
 
 // ==================== PATTERNS ====================
 let patternFilter = '全部';
@@ -881,6 +1411,7 @@ async function init() {
   renderTrainingFilters();
   renderPatternFilters();
   renderSOPFilters();
+  calculate();
   switchPage('home');
 }
 
