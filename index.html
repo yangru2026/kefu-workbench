@@ -494,6 +494,8 @@ body {
 .log-result-row .value { font-weight:600; color:var(--text); }
 .log-result-row .value.days { color:var(--primary); font-size:16px; }
 .log-result-row .value.date { color:#e17055; font-size:16px; }
+.log-result-row .value.fee { color:#e17055; font-size:16px; font-weight:700; }
+.log-result-row .value.fee.free { color:#27ae60; }
 .log-result-note { margin-top:10px; padding:10px 12px; background:#fff; border-radius:8px; font-size:12px; color:var(--text-secondary); line-height:1.6; }
 .log-result-note strong { color:var(--text); }
 .log-express-tag { display:inline-block; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:600; margin-left:6px; }
@@ -2097,23 +2099,38 @@ const logProvinces = [
   {name:'辽宁',region:'东北'},{name:'吉林',region:'东北'},{name:'黑龙江',region:'东北'}
 ];
 
-const logRegionAdj = {
-  '华东': ['华北','华中','华南'],
-  '华北': ['华东','华中','东北','西北'],
-  '华南': ['华东','华中','西南'],
-  '华中': ['华东','华北','华南','西南'],
-  '西南': ['华中','华南','西北'],
-  '西北': ['华北','西南'],
-  '东北': ['华北']
-};
-
-const logRemote = ['新疆','西藏','青海','内蒙古','海南'];
-
-const logTimeRules = {
-  '中通': { same:{min:1,max:2}, neighbor:{min:2,max:3}, cross:{min:3,max:4}, remote:{min:4,max:7} },
-  '圆通': { same:{min:1,max:2}, neighbor:{min:2,max:3}, cross:{min:3,max:4}, remote:{min:4,max:7} },
-  '顺丰陆运': { same:{min:1,max:2}, neighbor:{min:1,max:2}, cross:{min:2,max:3}, remote:{min:3,max:5} },
-  '顺丰空运': { same:{min:1,max:1}, neighbor:{min:1,max:2}, cross:{min:1,max:2}, remote:{min:2,max:3} }
+const logProvinceRules = {
+  '江苏': { zt:{min:1,max:2,txt:'1-2天'}, yt:{min:1,max:2,txt:'1-2天'}, sfLu:{min:1,max:1,txt:'次日达'}, sfKong:{min:1,max:1,txt:'无需空运'}, feeLu:8, feeKong:null },
+  '浙江': { zt:{min:1,max:2,txt:'1-2天'}, yt:{min:1,max:2,txt:'1-2天'}, sfLu:{min:1,max:1,txt:'次日达'}, sfKong:{min:1,max:1,txt:'无需空运'}, feeLu:8, feeKong:null },
+  '上海': { zt:{min:1,max:2,txt:'1-2天'}, yt:{min:1,max:2,txt:'1-2天'}, sfLu:{min:1,max:1,txt:'次日达'}, sfKong:{min:1,max:1,txt:'无需空运'}, feeLu:8, feeKong:null },
+  '安徽': { zt:{min:1,max:2,txt:'1-2天'}, yt:{min:1,max:2,txt:'1-2天'}, sfLu:{min:1,max:1,txt:'次日达'}, sfKong:{min:1,max:1,txt:'无需空运'}, feeLu:8, feeKong:null },
+  '江西': { zt:{min:2,max:3,txt:'2-3天'}, yt:{min:2,max:3,txt:'2-3天'}, sfLu:{min:1,max:1,txt:'次日达'}, sfKong:{min:1,max:1,txt:'次日达'}, feeLu:12, feeKong:20 },
+  '福建': { zt:{min:2,max:3,txt:'2-3天'}, yt:{min:2,max:3,txt:'2-3天'}, sfLu:{min:1,max:1,txt:'次日达'}, sfKong:{min:1,max:1,txt:'次日达'}, feeLu:12, feeKong:20 },
+  '山东': { zt:{min:3,max:4,txt:'3天左右'}, yt:{min:3,max:4,txt:'3天左右'}, sfLu:{min:1,max:2,txt:'1-2天'}, sfKong:{min:1,max:1,txt:'次日达'}, feeLu:12, feeKong:20 },
+  '河南': { zt:{min:3,max:4,txt:'3天左右'}, yt:{min:3,max:4,txt:'3天左右'}, sfLu:{min:1,max:2,txt:'1-2天'}, sfKong:{min:1,max:1,txt:'次日达'}, feeLu:12, feeKong:20 },
+  '湖北': { zt:{min:3,max:4,txt:'3天左右'}, yt:{min:3,max:4,txt:'3天左右'}, sfLu:{min:1,max:2,txt:'1-2天'}, sfKong:{min:1,max:1,txt:'次日达'}, feeLu:12, feeKong:20 },
+  '湖南': { zt:{min:3,max:4,txt:'3天左右'}, yt:{min:3,max:4,txt:'3天左右'}, sfLu:{min:1,max:2,txt:'1-2天'}, sfKong:{min:1,max:1,txt:'次日达'}, feeLu:12, feeKong:20 },
+  '广东': { zt:{min:3,max:4,txt:'3天左右'}, yt:{min:3,max:4,txt:'3天左右'}, sfLu:{min:1,max:2,txt:'1-2天'}, sfKong:{min:1,max:1,txt:'次日达'}, feeLu:12, feeKong:20 },
+  '河北': { zt:{min:3,max:4,txt:'3天左右'}, yt:{min:3,max:4,txt:'3天左右'}, sfLu:{min:2,max:2,txt:'2天'}, sfKong:{min:1,max:2,txt:'1-2天内'}, feeLu:12, feeKong:20 },
+  '山西': { zt:{min:3,max:4,txt:'3天左右'}, yt:{min:3,max:4,txt:'3天左右'}, sfLu:{min:2,max:2,txt:'2天'}, sfKong:{min:1,max:2,txt:'1-2天内'}, feeLu:12, feeKong:20 },
+  '陕西': { zt:{min:3,max:4,txt:'3天左右'}, yt:{min:3,max:4,txt:'3天左右'}, sfLu:{min:2,max:2,txt:'2天'}, sfKong:{min:1,max:2,txt:'1-2天内'}, feeLu:12, feeKong:20 },
+  '北京': { zt:{min:3,max:4,txt:'3天左右'}, yt:{min:3,max:4,txt:'3天左右'}, sfLu:{min:2,max:2,txt:'2天'}, sfKong:{min:1,max:2,txt:'1-2天内'}, feeLu:12, feeKong:20 },
+  '天津': { zt:{min:3,max:4,txt:'3天左右'}, yt:{min:3,max:4,txt:'3天左右'}, sfLu:{min:2,max:2,txt:'2天'}, sfKong:{min:1,max:2,txt:'1-2天内'}, feeLu:12, feeKong:20 },
+  '四川': { zt:{min:3,max:4,txt:'3-4天'}, yt:{min:3,max:4,txt:'3-4天'}, sfLu:{min:2,max:2,txt:'2天'}, sfKong:{min:1,max:2,txt:'1-2天内'}, feeLu:12, feeKong:20 },
+  '重庆': { zt:{min:3,max:4,txt:'3-4天'}, yt:{min:3,max:4,txt:'3-4天'}, sfLu:{min:2,max:2,txt:'2天'}, sfKong:{min:1,max:2,txt:'1-2天内'}, feeLu:12, feeKong:20 },
+  '贵州': { zt:{min:3,max:4,txt:'3-4天'}, yt:{min:3,max:4,txt:'3-4天'}, sfLu:{min:2,max:2,txt:'2天'}, sfKong:{min:1,max:2,txt:'1-2天内'}, feeLu:12, feeKong:20 },
+  '云南': { zt:{min:3,max:4,txt:'3-4天'}, yt:{min:3,max:4,txt:'3-4天'}, sfLu:{min:2,max:3,txt:'2-3天'}, sfKong:{min:1,max:2,txt:'1-2天内'}, feeLu:12, feeKong:20 },
+  '广西': { zt:{min:3,max:4,txt:'3-4天'}, yt:{min:3,max:4,txt:'3-4天'}, sfLu:{min:2,max:3,txt:'2-3天'}, sfKong:{min:1,max:2,txt:'1-2天内'}, feeLu:12, feeKong:20 },
+  '海南': { zt:{min:3,max:4,txt:'3-4天'}, yt:{min:3,max:4,txt:'3-4天'}, sfLu:{min:2,max:3,txt:'2-3天'}, sfKong:{min:1,max:2,txt:'1-2天内'}, feeLu:12, feeKong:20 },
+  '辽宁': { zt:{min:3,max:4,txt:'3-4天'}, yt:{min:3,max:4,txt:'3-4天'}, sfLu:{min:2,max:3,txt:'2-3天'}, sfKong:{min:1,max:2,txt:'1-2天内'}, feeLu:12, feeKong:20 },
+  '吉林': { zt:{min:3,max:4,txt:'3-4天'}, yt:{min:3,max:4,txt:'3-4天'}, sfLu:{min:2,max:3,txt:'2-3天'}, sfKong:{min:1,max:2,txt:'1-2天内'}, feeLu:12, feeKong:20 },
+  '黑龙江': { zt:{min:3,max:4,txt:'3-4天'}, yt:{min:3,max:4,txt:'3-4天'}, sfLu:{min:2,max:3,txt:'2-3天'}, sfKong:{min:1,max:2,txt:'1-2天内'}, feeLu:12, feeKong:20 },
+  '甘肃': { zt:{min:3,max:4,txt:'3-4天'}, yt:{min:3,max:4,txt:'3-4天'}, sfLu:{min:3,max:3,txt:'3天左右'}, sfKong:{min:2,max:2,txt:'2天左右'}, feeLu:12, feeKong:20 },
+  '宁夏': { zt:{min:3,max:4,txt:'3-4天'}, yt:{min:3,max:4,txt:'3-4天'}, sfLu:{min:3,max:3,txt:'3天左右'}, sfKong:{min:2,max:2,txt:'2天左右'}, feeLu:12, feeKong:20 },
+  '青海': { zt:{min:4,max:5,txt:'4-5天'}, yt:{min:4,max:5,txt:'4-5天'}, sfLu:{min:3,max:3,txt:'3天左右'}, sfKong:{min:2,max:2,txt:'2天左右'}, feeLu:16, feeKong:22 },
+  '内蒙古': { zt:{min:5,max:6,txt:'5天左右'}, yt:{min:5,max:6,txt:'5天左右'}, sfLu:{min:3,max:3,txt:'3天左右'}, sfKong:{min:2,max:2,txt:'2天左右'}, feeLu:16, feeKong:22 },
+  '新疆': { zt:{min:7,max:7,txt:'7天左右'}, yt:{min:7,max:7,txt:'7天左右'}, sfLu:{min:3,max:5,txt:'3-5天'}, sfKong:{min:2,max:3,txt:'2-3天'}, feeLu:16, feeKong:22 },
+  '西藏': { zt:{min:7,max:7,txt:'7天左右'}, yt:{min:7,max:7,txt:'7天左右'}, sfLu:{min:3,max:5,txt:'3-5天'}, sfKong:{min:2,max:3,txt:'2-3天'}, feeLu:16, feeKong:22 }
 };
 
 let logSelectedExpress = '中通';
@@ -2150,46 +2167,67 @@ function queryLogistics() {
   if (!from || !to) { showToast('请选择发货地和目的地'); return; }
   if (from === to) { showToast('发货地和目的地不能相同'); return; }
 
-  const fromP = logProvinces.find(p => p.name === from);
-  const toP = logProvinces.find(p => p.name === to);
-  const rules = logTimeRules[logSelectedExpress];
+  const toData = logProvinceRules[to];
+  if (!toData) { showToast('该目的地数据暂缺'); return; }
 
-  let type = 'cross';
-  if (fromP.region === toP.region) type = 'same';
-  else if ((logRegionAdj[fromP.region] || []).includes(toP.region)) type = 'neighbor';
-  if (logRemote.includes(to)) type = 'remote';
+  let rule;
+  if (logSelectedExpress === '中通') rule = toData.zt;
+  else if (logSelectedExpress === '圆通') rule = toData.yt;
+  else if (logSelectedExpress === '顺丰陆运') rule = toData.sfLu;
+  else if (logSelectedExpress === '顺丰空运') rule = toData.sfKong;
 
-  const r = rules[type];
   const now = new Date();
-  const minDate = new Date(now); minDate.setDate(minDate.getDate() + r.min);
-  const maxDate = new Date(now); maxDate.setDate(maxDate.getDate() + r.max);
+  const minDate = new Date(now); minDate.setDate(minDate.getDate() + rule.min);
+  const maxDate = new Date(now); maxDate.setDate(maxDate.getDate() + rule.max);
 
   const fmt = d => `${d.getMonth()+1}月${d.getDate()}日`;
-  const daysText = r.min === r.max ? `${r.min}天` : `${r.min}-${r.max}天`;
+  const daysText = rule.txt || (rule.min === rule.max ? `${rule.min}天` : `${rule.min}-${rule.max}天`);
 
   let expressClass = 'zt';
   if (logSelectedExpress === '圆通') expressClass = 'yt';
   else if (logSelectedExpress === '顺丰陆运') expressClass = 'sf-lu';
   else if (logSelectedExpress === '顺丰空运') expressClass = 'sf-kong';
 
-  let distText = fromP.region === toP.region ? `${fromP.region}内` : `${fromP.region} → ${toP.region}`;
-  if (logRemote.includes(to)) distText += '（偏远地区）';
+  let distText = from === to ? '同省' : `${from} → ${to}`;
+
+  // 运费计算
+  let feeText = '';
+  let feeNote = '';
+  if (logSelectedExpress === '中通' || logSelectedExpress === '圆通') {
+    feeText = '包邮';
+  } else if (logSelectedExpress === '顺丰陆运') {
+    if (toData.feeLu) feeText = `补${toData.feeLu}元`;
+    else feeText = '无需补费';
+  } else if (logSelectedExpress === '顺丰空运') {
+    if (rule.txt === '无需空运') {
+      feeText = '无需空运';
+      feeNote = '该目的地顺丰普快已次日达，无需发空运。';
+    } else if (toData.feeKong) {
+      feeText = `补${toData.feeKong}元`;
+    }
+  }
 
   let note = '';
   if (logSelectedExpress.includes('顺丰')) {
-    note = '顺丰时效为官方承诺参考时效，实际可能受天气、航班等因素影响。顺丰空运部分偏远地址可能转为陆运配送。';
+    note = '顺丰时效为内部参考时效，实际可能受天气、航班等因素影响。';
+    if (feeNote) note += ' ' + feeNote;
   } else {
-    note = '中通/圆通为普通快递时效参考，实际送达时间可能受天气、交通、节假日等因素影响。偏远地区时效可能延长。';
+    note = '中通/圆通为包邮快递，时效参考内部数据，实际可能受天气、交通、节假日等因素影响。';
+  }
+  if (from !== '浙江') {
+    note += '<br><strong>提示：</strong>当前时效数据基于浙江仓库发货，非浙江发货可能有所差异。';
   }
   if (now.getHours() >= 17) {
     note += '<br><strong>提示：</strong>当前已过17:00，今日揽件可能顺延至次日计算时效。';
   }
 
   document.getElementById('log-result-title').innerHTML = `${from} <span style="color:#999">→</span> ${to}`;
-  document.getElementById('log-res-express').innerHTML = `${logSelectedExpress}<span class="log-express-tag ${expressClass}">${logSelectedExpress.includes('顺丰') ? '顺丰' : '普通'}</span>`;
+  document.getElementById('log-res-express').innerHTML = `${logSelectedExpress}<span class="log-express-tag ${expressClass}">${logSelectedExpress.includes('顺丰') ? '顺丰' : '包邮'}</span>`;
   document.getElementById('log-res-distance').textContent = distText;
   document.getElementById('log-res-days').textContent = daysText;
-  document.getElementById('log-res-date').textContent = r.min === r.max ? fmt(minDate) : `${fmt(minDate)} - ${fmt(maxDate)}`;
+  document.getElementById('log-res-date').textContent = rule.min === rule.max ? fmt(minDate) : `${fmt(minDate)} - ${fmt(maxDate)}`;
+  document.getElementById('log-res-fee').textContent = feeText;
+  document.getElementById('log-res-fee').className = 'value fee' + (feeText === '包邮' || feeText === '无需补费' || feeText === '无需空运' ? ' free' : '');
   document.getElementById('log-res-note').innerHTML = note;
   document.getElementById('log-result').classList.add('show');
 }
@@ -2444,6 +2482,7 @@ init();
       <div class="log-result-row"><span class="label">运输距离</span><span class="value" id="log-res-distance"></span></div>
       <div class="log-result-row"><span class="label">预计时效</span><span class="value days" id="log-res-days"></span></div>
       <div class="log-result-row"><span class="label">预计送达</span><span class="value date" id="log-res-date"></span></div>
+      <div class="log-result-row"><span class="label">补运费</span><span class="value fee" id="log-res-fee"></span></div>
       <div class="log-result-note" id="log-res-note"></div>
     </div>
   </div>
