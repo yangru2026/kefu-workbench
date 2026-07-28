@@ -187,39 +187,43 @@ body {
 .filter-tag.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
 /* Pattern gallery - Brand tabs */
-.brand-tabs { display:flex; gap:0; margin-bottom:16px; border-radius:10px; overflow:hidden; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
-.brand-tab { flex:1; padding:12px 0; text-align:center; font-size:15px; font-weight:600; cursor:pointer; border:none; background:transparent; color:var(--text-secondary); font-family:inherit; transition:all 0.2s; position:relative; }
-.brand-tab.active { background:#7ba7a6; color:#fff; }
-.brand-tab:hover:not(.active) { background:#f5faf8; }
+.brand-tabs { display:flex; gap:0; margin-bottom:16px; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 2px 10px rgba(108,92,231,0.08); }
+.brand-tab { flex:1; padding:13px 0; text-align:center; font-size:15px; font-weight:600; cursor:pointer; border:none; background:transparent; color:var(--text-secondary); font-family:inherit; transition:all 0.25s; position:relative; }
+.brand-tab.active { background:var(--primary); color:#fff; }
+.brand-tab:hover:not(.active) { background:#f5f3fc; color:var(--primary); }
 .filter-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; align-items:center; }
-.filter-row .flabel { font-size:12px; color:var(--text-secondary); white-space:nowrap; min-width:36px; }
-.flink { font-size:12px; padding:4px 12px; border-radius:14px; border:1px solid var(--border); background:transparent; color:var(--text-secondary); cursor:pointer; font-family:inherit; white-space:nowrap; transition:all 0.15s; }
-.flink:hover { border-color:#7ba7a6; color:#7ba7a6; }
-.flink.active { background:#7ba7a6; color:#fff; border-color:#7ba7a6; }
-.pattern-stats { font-size:12px; color:var(--text-secondary); margin-bottom:12px; }
-.pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:14px; }
-.pattern-card { background:var(--card-bg); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.04); transition:all 0.2s; display:flex; flex-direction:column; }
-.pattern-card:hover { transform:translateY(-2px); box-shadow:0 4px 14px rgba(0,0,0,0.1); }
-.pcard-img { width:100%; height:180px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #f8f5f2, #f0e8e0); font-size:48px; color:#ccc; position:relative; overflow:hidden; cursor:pointer; }
-.pcard-img img { width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; transition:opacity 0.35s; }
+.filter-row .flabel { font-size:12px; color:var(--text-secondary); white-space:nowrap; min-width:36px; font-weight:500; }
+.flink { font-size:12px; padding:5px 14px; border-radius:16px; border:1.5px solid #e0daf0; background:transparent; color:var(--text-secondary); cursor:pointer; font-family:inherit; white-space:nowrap; transition:all 0.2s; font-weight:500; }
+.flink:hover { border-color:var(--primary); color:var(--primary); }
+.flink.active { background:var(--primary); color:#fff; border-color:var(--primary); font-weight:600; }
+.pattern-stats { font-size:12px; color:var(--text-secondary); margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+.pattern-stats .stat-num { font-weight:700; color:var(--primary); font-size:18px; }
+.pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap:16px; }
+.pattern-card { background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 2px 14px rgba(108,92,231,0.06); transition:all 0.25s cubic-bezier(0.25,0.46,0.45,0.94); display:flex; flex-direction:column; border:1px solid rgba(108,92,231,0.06); }
+.pattern-card:hover { transform:translateY(-3px); box-shadow:0 10px 32px rgba(108,92,231,0.13); border-color:rgba(108,92,231,0.14); }
+.pcard-img { width:100%; height:200px; display:flex; align-items:center; justify-content:center; background:linear-gradient(160deg, #f8f6fc 0%, #ede8f8 50%, #f5f2fa 100%); font-size:48px; color:#ccc; position:relative; overflow:hidden; cursor:pointer; }
+.pcard-img::after { content:''; position:absolute; bottom:0; left:0; right:0; height:40px; background:linear-gradient(transparent, rgba(108,92,231,0.04)); pointer-events:none; }
+.pcard-img img { width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; transition:opacity 0.4s ease; }
 .pcard-img img.img-lens { opacity:0; }
 .pcard-img:hover img.img-eye { opacity:0; }
 .pcard-img:hover img.img-lens { opacity:1; }
-.pcard-img .pcard-brand-tag { position:absolute; top:8px; left:8px; font-size:10px; padding:2px 8px; border-radius:8px; background:rgba(123,167,166,0.9); color:#fff; font-weight:600; z-index:3; }
-.pcard-img .img-placeholder { display:flex; flex-direction:column; align-items:center; gap:6px; color:#b0a8a0; font-size:13px; }
-.pcard-img .img-placeholder span { font-size:36px; }
-.pcard-body { padding:12px 14px; flex:1; display:flex; flex-direction:column; }
+.pcard-img .pcard-brand-tag { position:absolute; top:10px; left:10px; font-size:10px; padding:3px 10px; border-radius:10px; background:linear-gradient(135deg, var(--primary), var(--primary-light)); color:#fff; font-weight:700; z-index:3; box-shadow:0 2px 8px rgba(108,92,231,0.25); letter-spacing:0.5px; }
+.pcard-img .img-placeholder { display:flex; flex-direction:column; align-items:center; gap:8px; color:#c4b8d8; font-size:13px; }
+.pcard-img .img-placeholder span { font-size:42px; opacity:0.6; }
+.pcard-body { padding:14px 16px; flex:1; display:flex; flex-direction:column; }
 .pcard-title-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
 .pcard-name { font-size:15px; font-weight:700; color:var(--text); }
-.pcard-series { font-size:11px; color:#7ba7a6; font-weight:500; }
+.pcard-series { font-size:11px; color:var(--primary); font-weight:500; opacity:0.8; }
 .pcard-tags { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px; }
-.pcard-tags span { font-size:10px; padding:2px 7px; border-radius:8px; background:var(--tag-bg); color:var(--tag-text); }
-.pcard-specs { font-size:11px; color:var(--text-secondary); line-height:1.6; margin-bottom:8px; }
-.pcard-script { background:#f5faf8; border-radius:8px; padding:10px 12px; font-size:12px; color:#3d5a4d; line-height:1.6; position:relative; flex:1; }
-.pcard-script .script-label { font-size:10px; color:#7ba7a6; margin-bottom:2px; font-weight:600; }
-.pcard-copy { position:absolute; top:6px; right:6px; padding:3px 10px; font-size:11px; border:none; border-radius:12px; background:#7ba7a6; color:#fff; cursor:pointer; font-family:inherit; transition:all 0.15s; }
+.pcard-tags span { font-size:10px; padding:3px 8px; border-radius:10px; background:#f0edf7; color:var(--primary); font-weight:500; }
+.pcard-specs { font-size:11px; color:var(--text-secondary); line-height:1.7; margin-bottom:8px; display:flex; flex-wrap:wrap; gap:6px; }
+.pcard-specs .spec-item { background:#faf8fe; padding:2px 8px; border-radius:6px; }
+.pcard-script { background:linear-gradient(135deg, #faf8fe, #f5f2fb); border-radius:10px; padding:12px 14px 12px 14px; font-size:12px; color:#4a3f6b; line-height:1.7; position:relative; flex:1; border:1px solid #eae4f8; }
+.pcard-script .script-label { font-size:10px; color:var(--primary); margin-bottom:3px; font-weight:700; }
+.pcard-copy { position:absolute; top:8px; right:8px; padding:4px 12px; font-size:11px; border:none; border-radius:12px; background:var(--primary); color:#fff; cursor:pointer; font-family:inherit; transition:all 0.2s; font-weight:500; box-shadow:0 2px 6px rgba(108,92,231,0.2); }
+.pcard-copy:hover { transform:scale(1.05); }
 .pcard-copy:active { transform:scale(0.95); }
-.pcard-copy.copied { background:#15803d; }
+.pcard-copy.copied { background:#00b894; }
 .pattern-empty { text-align:center; padding:60px 20px; color:var(--text-secondary); }
 
 /* Link list */
@@ -465,13 +469,13 @@ body {
 
 /* ---- Management Panel ---- */
 .mgmt-toggle { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border:1px solid var(--primary); background:#fff; color:var(--primary); border-radius:18px; font-size:12px; cursor:pointer; font-family:inherit; font-weight:500; transition:all 0.15s; }
-.mgmt-toggle:hover { background:#f1f5f4; }
+.mgmt-toggle:hover { background:#f5f3fc; }
 .mgmt-toggle.active { background:var(--primary); color:#fff; }
-.mgmt-toggle.active:hover { background:#6b9695; }
+.mgmt-toggle.active:hover { background:#5b4bd5; }
 .pcard-mgmt { position:absolute; top:6px; right:6px; display:none; gap:4px; z-index:10; }
 .mgmt-mode .pcard-mgmt { display:flex; }
 .pcard-mgmt button { width:26px; height:26px; border:none; border-radius:50%; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.85); box-shadow:0 1px 4px rgba(0,0,0,0.12); }
-.pcard-mgmt .btn-edit { color:#7ba7a6; }
+.pcard-mgmt .btn-edit { color:var(--primary); }
 .pcard-mgmt .btn-del { color:#e17055; }
 .pcard-mgmt button:hover { transform:scale(1.1); }
 
@@ -488,7 +492,7 @@ body {
 .modal-field { margin-bottom:12px; }
 .modal-field label { display:block; font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:4px; }
 .modal-field input,.modal-field textarea,.modal-field select { width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px; font-family:inherit; }
-.modal-field input:focus,.modal-field textarea:focus,.modal-field select:focus { border-color:#7ba7a6; outline:none; }
+.modal-field input:focus,.modal-field textarea:focus,.modal-field select:focus { border-color:var(--primary); outline:none; }
 .modal-field textarea { min-height:60px; resize:vertical; }
 .modal-field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 /* Image manager */
@@ -510,7 +514,7 @@ body {
 .btn-sm.outline { background:#fff; color:var(--text); border:1px solid var(--border); }
 .btn-sm.outline:hover { background:#f5f5f5; }
 .empty-hint { color:var(--text-muted); font-size:12px; text-align:center; padding:10px; }
-.mgmt-add-btn { display:none; width:100%; padding:16px; border:2px dashed var(--primary); background:#f1f5f4; color:var(--primary); border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; margin-top:14px; }
+.mgmt-add-btn { display:none; width:100%; padding:16px; border:2px dashed var(--primary); background:#f5f3fc; color:var(--primary); border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; margin-top:14px; }
 .mgmt-mode .mgmt-add-btn { display:block; }
 .mgmt-export { display:none; margin-top:8px; text-align:center; }
 .mgmt-mode .mgmt-export { display:block; }
@@ -1488,12 +1492,13 @@ function renderPatterns() {
     window._patternRefs[pkey] = { brand: patternBrand, type: patternType, ...p };
 
     const specs = [];
-    if (p.material) specs.push('材质 ' + p.material);
-    if (p.diameter) specs.push('直径 ' + p.diameter);
-    if (p.colorDiameter) specs.push('着色 ' + p.colorDiameter);
-    if (p.oxygen) specs.push('透氧 ' + p.oxygen);
-    if (p.water) specs.push('含水 ' + p.water);
-    if (p.spec) specs.push(p.spec);
+    if (p.material) specs.push('<span class="spec-item">材质 ' + escapeHtml(p.material) + '</span>');
+    if (p.diameter) specs.push('<span class="spec-item">直径 ' + escapeHtml(p.diameter) + '</span>');
+    if (p.colorDiameter) specs.push('<span class="spec-item">着色 ' + escapeHtml(p.colorDiameter) + '</span>');
+    if (p.oxygen) specs.push('<span class="spec-item">透氧 ' + escapeHtml(p.oxygen) + '</span>');
+    if (p.water) specs.push('<span class="spec-item">含水 ' + escapeHtml(p.water) + '</span>');
+    if (p.spec) specs.push('<span class="spec-item">' + escapeHtml(p.spec) + '</span>');
+    const specsHtml = specs.length ? specs.join('') : '';
 
     return `<div class="pattern-card">
       <div class="pcard-img"${images.length ? ` onclick="openLightbox(window._lbImages['${lbKey}'])" style="cursor:pointer"` : ''}>
@@ -1513,7 +1518,7 @@ function renderPatterns() {
           <span>${escapeHtml(p.color)}</span>
           <span>${escapeHtml(p.diameter || '')}</span>
         </div>
-        <div class="pcard-specs">${specs.join(' · ')}</div>
+        <div class="pcard-specs">${specsHtml}</div>
         <div class="pcard-script">
           <div class="script-label">💬 推荐话术</div>
           ${escapeHtml(p.description || '暂无话术')}
