@@ -140,11 +140,7 @@ async function doRegister() {
 // ---------- 日报 ----------
 let dailyReports = [];
 let dailySub = null;
-
-// ---------- 日报 ----------
-let dailyReports = [];
-let dailySub = null;
-const DEFAULT_SHOPS = ['TM-弥生','KS-弥生','TM-极氧','DY弥生官方','TM-护眼','XHS-弥生','DY-YOUHOO','DY-极氧','JD-弥生','XHS-极氧','有赞-拼多多'];
+const SAMPLE_SHOPS = ['TM-弥生','KS-弥生','TM-极氧','DY弥生官方','TM-护眼','XHS-弥生','DY-YOUHOO','DY-极氧','JD-弥生','XHS-极氧','有赞-拼多多'];
 
 async function loadDailyReports() {
   if (!supabase || !currentUser) return;
@@ -217,7 +213,11 @@ function openDailyForm() {
   const today = new Date().toISOString().slice(0, 10);
   const existing = dailyReports.find(r => r.report_date === today);
   const savedShops = existing?.content?.shops;
-  const shops = savedShops && savedShops.length ? savedShops : DEFAULT_SHOPS.map(name => ({ name, visitors: '', inquiries: '', payments: '', target: '' }));
+  const shops = savedShops && savedShops.length ? savedShops : [
+    { name: '', visitors: '', inquiries: '', payments: '', target: '' },
+    { name: '', visitors: '', inquiries: '', payments: '', target: '' },
+    { name: '', visitors: '', inquiries: '', payments: '', target: '' }
+  ];
 
   renderDailyShopInputs(shops);
   document.getElementById('daily-analysis').value = existing?.content?.analysis || '';
@@ -230,19 +230,60 @@ function renderDailyShopInputs(shops) {
   const tbody = document.getElementById('daily-shop-tbody');
   tbody.innerHTML = shops.map((s, i) => `
     <tr data-idx="${i}">
-      <td><input type="text" class="daily-shop-name" value="${escapeHtml(s.name)}" style="width:100px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);" placeholder="店铺名"></td>
-      <td><input type="number" class="daily-shop-visitors" value="${s.visitors || ''}" style="width:80px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="0" oninput="updateDailyTotal()"></td>
-      <td><input type="number" class="daily-shop-inquiries" value="${s.inquiries || ''}" style="width:80px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="0" oninput="calculateDailyRow(this)"></td>
-      <td><input type="number" class="daily-shop-payments" value="${s.payments || ''}" style="width:80px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="0" oninput="calculateDailyRow(this)"></td>
-      <td class="daily-shop-conversion" style="text-align:center;font-weight:600;color:var(--primary);">-</td>
-      <td><input type="number" class="daily-shop-target" value="${s.target || ''}" style="width:70px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="%" oninput="calculateDailyRow(this)"></td>
-      <td class="daily-shop-need" style="text-align:center;font-weight:600;">-</td>
+      <td style="position:relative;">
+        <input type="text" class="daily-shop-name" value="${escapeHtml(s.name)}" style="width:110px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);" placeholder="店铺名">
+      </td>
+      <td><input type="number" class="daily-shop-visitors" value="${s.visitors || ''}" style="width:75px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="0" oninput="updateDailyTotal()"></td>
+      <td><input type="number" class="daily-shop-inquiries" value="${s.inquiries || ''}" style="width:75px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="0" oninput="calculateDailyRow(this)"></td>
+      <td><input type="number" class="daily-shop-payments" value="${s.payments || ''}" style="width:75px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="0" oninput="calculateDailyRow(this)"></td>
+      <td class="daily-shop-conversion" style="text-align:center;font-weight:600;color:var(--primary);font-size:13px;">-</td>
+      <td><input type="number" class="daily-shop-target" value="${s.target || ''}" style="width:65px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="%" oninput="calculateDailyRow(this)"></td>
+      <td class="daily-shop-need" style="text-align:center;font-weight:600;font-size:13px;">-</td>
+      <td style="padding:4px;"><button type="button" class="btn-sm outline" style="padding:2px 8px;font-size:12px;color:var(--danger);border-color:var(--danger);" onclick="removeDailyShopRow(this)" title="删除此行">×</button></td>
     </tr>
   `).join('');
+  // Add "add row" row at bottom
+  const addRow = document.createElement('tr');
+  addRow.innerHTML = `
+    <td colspan="8" style="text-align:center;padding:8px;">
+      <button type="button" class="btn-sm outline" style="font-size:13px;" onclick="addDailyShopRow()">+ 添加店铺</button>
+      <span style="font-size:12px;color:var(--text-secondary);margin-left:12px;">可手动输入店铺名，没有数据的店铺留空即可</span>
+    </td>
+  `;
+  tbody.appendChild(addRow);
   // Calculate all rows
   setTimeout(() => {
-    tbody.querySelectorAll('tr').forEach(row => calculateDailyRow(row.querySelector('.daily-shop-inquiries')));
+    tbody.querySelectorAll('tr[data-idx]').forEach(row => calculateDailyRow(row.querySelector('.daily-shop-inquiries')));
   }, 0);
+}
+
+function addDailyShopRow() {
+  const tbody = document.getElementById('daily-shop-tbody');
+  const addRow = tbody.lastElementChild;
+  const newRow = document.createElement('tr');
+  const idx = tbody.querySelectorAll('tr[data-idx]').length;
+  newRow.setAttribute('data-idx', idx);
+  newRow.innerHTML = `
+    <td style="position:relative;">
+      <input type="text" class="daily-shop-name" value="" style="width:110px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);" placeholder="店铺名">
+    </td>
+    <td><input type="number" class="daily-shop-visitors" value="" style="width:75px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="0" oninput="updateDailyTotal()"></td>
+    <td><input type="number" class="daily-shop-inquiries" value="" style="width:75px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="0" oninput="calculateDailyRow(this)"></td>
+    <td><input type="number" class="daily-shop-payments" value="" style="width:75px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="0" oninput="calculateDailyRow(this)"></td>
+    <td class="daily-shop-conversion" style="text-align:center;font-weight:600;color:var(--primary);font-size:13px;">-</td>
+    <td><input type="number" class="daily-shop-target" value="" style="width:65px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="%" oninput="calculateDailyRow(this)"></td>
+    <td class="daily-shop-need" style="text-align:center;font-weight:600;font-size:13px;">-</td>
+    <td style="padding:4px;"><button type="button" class="btn-sm outline" style="padding:2px 8px;font-size:12px;color:var(--danger);border-color:var(--danger);" onclick="removeDailyShopRow(this)" title="删除此行">×</button></td>
+  `;
+  tbody.insertBefore(newRow, addRow);
+}
+
+function removeDailyShopRow(btn) {
+  const row = btn.closest('tr');
+  if (row) {
+    row.remove();
+    updateDailyTotal();
+  }
 }
 
 function calculateDailyRow(el) {
@@ -286,7 +327,7 @@ async function submitDaily() {
   const today = new Date().toISOString().slice(0, 10);
   const tbody = document.getElementById('daily-shop-tbody');
   const shops = [];
-  tbody.querySelectorAll('tr').forEach(row => {
+  tbody.querySelectorAll('tr[data-idx]').forEach(row => {
     const name = row.querySelector('.daily-shop-name')?.value.trim();
     if (!name) return;
     shops.push({
