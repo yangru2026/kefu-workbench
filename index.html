@@ -507,6 +507,18 @@ body {
 @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 @media (max-width:560px) { .logistics-box { padding:20px; width:94%; } }
 
+/* ===== Freight Table ===== */
+.freight-table { width:100%; border-collapse:collapse; font-size:14px; }
+.freight-table thead { background:#faf8ff; }
+.freight-table th { padding:12px 10px; text-align:center; font-weight:700; color:var(--text); font-size:13px; border-bottom:2px solid var(--border); }
+.freight-table td { padding:10px; border-bottom:1px solid #f0edf5; color:var(--text); text-align:center; }
+.freight-table td.freight-region { font-weight:600; color:var(--text-secondary); font-size:12px; white-space:nowrap; }
+.freight-table td.freight-fee { font-weight:700; color:#e17055; font-size:16px; }
+.freight-table td.freight-fee.free { color:#999; font-size:13px; }
+.freight-tier-header td { background:#fdfcff; font-weight:700; font-size:15px; color:var(--primary); padding:14px 10px; border-bottom:2px solid #e0d8f0; }
+.freight-note-tag { display:inline-block; margin-left:8px; padding:2px 10px; border-radius:10px; font-size:11px; font-weight:600; background:#e8f5e9; color:#388e3c; }
+@media (max-width:560px) { .freight-table { font-size:12px; } .freight-table td { padding:8px 6px; } }
+
 /* ===== Ranking ===== */
 .ranking-toolbar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
 .ranking-groups { display:flex; gap:10px; }
@@ -636,6 +648,7 @@ body {
     <div class="nav-item active" data-page="home"><span class="icon">🏠</span><span>首页</span></div>
     <div class="nav-item" data-page="converter"><span class="icon">🔢</span><span>度数换算</span></div>
     <div class="nav-item" data-page="patterns"><span class="icon">🎨</span><span>花色素材</span></div>
+    <div class="nav-item" data-page="tools"><span class="icon">🛠</span><span>快捷工具</span></div>
     <div class="nav-section">培训</div>
     <div class="nav-item" data-page="training"><span class="icon">📚</span><span>培训资料</span></div>
     <div class="nav-item" data-page="sop"><span class="icon">📋</span><span>新人SOP</span></div>
@@ -643,7 +656,6 @@ body {
     <div class="nav-section">运营</div>
     <div class="nav-item" data-page="bulletin"><span class="icon">📢</span><span>每日速报</span></div>
     <div class="nav-item" data-page="schedule"><span class="icon">📅</span><span>排班表</span></div>
-    <div class="nav-item" data-page="tools"><span class="icon">🛠</span><span>快捷工具</span></div>
     <div class="nav-item" data-page="ranking"><span class="icon">🏆</span><span>客服排名</span></div>
   </nav>
   <div class="sidebar-user" id="sidebar-user" onclick="setVisitorName()">
@@ -2158,9 +2170,10 @@ function renderBulletin() {
 // ==================== TOOLS ====================
 function renderTools() {
   document.getElementById('tool-list').innerHTML = toolsData.map(t => {
-    const click = t.type === 'logistics'
-      ? `onclick="openLogistics()"`
-      : `onclick="showToolInfo('${t.title}', \`${t.content}\`)"`;
+    let click;
+    if (t.type === 'logistics') click = `onclick="openLogistics()"`;
+    else if (t.type === 'freight') click = `onclick="openFreightTable()"`;
+    else click = `onclick="showToolInfo('${t.title}', \`${t.content}\`)"`;
     return `
     <div class="tool-item" ${click}>
       <div class="tool-icon">${t.icon}</div>
@@ -2180,6 +2193,79 @@ function showToolInfo(title, content) {
         <button class="btn btn-outline" onclick="navigator.clipboard.writeText(\`${content.replace(/`/g,'\\`')}\`);showToast('已复制到剪贴板')">📋 复制</button>
         <button class="btn" style="margin-left:8px;" onclick="this.closest('[style*=fixed]').remove()">关闭</button>
       </div>
+    </div>
+  `;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+// ==================== FREIGHT TABLE ====================
+function openFreightTable() {
+  // Group provinces by fee tiers using logProvinceRules
+  const tierGroups = [
+    { label: '江浙沪皖', feeLu: 8, feeKong: '-', note: '无需空运，陆运已次日达', provinces: [] },
+    { label: '大部分省份', feeLu: 12, feeKong: 20, note: '', provinces: [] },
+    { label: '偏远地区', feeLu: 16, feeKong: 22, note: '', provinces: [] }
+  ];
+
+  logProvinces.forEach(p => {
+    const rule = logProvinceRules[p.name];
+    if (rule) {
+      if (rule.feeLu === 8) tierGroups[0].provinces.push(p.name);
+      else if (rule.feeLu === 16) tierGroups[2].provinces.push(p.name);
+      else tierGroups[1].provinces.push(p.name);
+    }
+  });
+
+  // Filter empty groups
+  const shown = tierGroups.filter(g => g.provinces.length > 0);
+
+  let rows = '';
+  shown.forEach((g, gi) => {
+    const noteTag = g.note ? `<span class="freight-note-tag">${g.note}</span>` : '';
+    rows += `<tr class="freight-tier-header"><td colspan="4"><strong>${g.label}</strong> ${noteTag}</td></tr>`;
+    // Group by region for visual clarity
+    const byRegion = {};
+    g.provinces.forEach(name => {
+      const r = logProvinces.find(p => p.name === name);
+      const region = r ? r.region : '其他';
+      if (!byRegion[region]) byRegion[region] = [];
+      byRegion[region].push(name);
+    });
+
+    Object.keys(byRegion).forEach(region => {
+      const provs = byRegion[region];
+      rows += `<tr>
+        <td class="freight-region">${region}</td>
+        <td>${provs.join('、')}</td>
+        <td class="freight-fee">¥${g.feeLu}</td>
+        <td class="freight-fee${g.feeKong === '-' ? ' free' : ''}">${g.feeKong === '-' ? '—' : '¥'+g.feeKong}</td>
+      </tr>`;
+    });
+  });
+
+  const overlay = document.createElement('div');
+  overlay.className = 'freight-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:999;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:28px;max-width:720px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h3 style="font-size:20px;">💰 顺丰补运费模板</h3>
+        <button style="width:32px;height:32px;border:none;background:none;font-size:18px;cursor:pointer;color:#999;border-radius:50%;display:flex;align-items:center;justify-content:center;" onclick="this.closest('[style*=fixed]').remove()">✕</button>
+      </div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">中通/圆通全国包邮。以下为客户要求补发顺丰时的费用标准（浙江仓库发货）</p>
+      <table class="freight-table">
+        <thead>
+          <tr>
+            <th style="width:80px;">区域</th>
+            <th>覆盖省份</th>
+            <th style="width:100px;">顺丰陆运<br><span style="font-size:11px;font-weight:400;">补费</span></th>
+            <th style="width:100px;">顺丰空运<br><span style="font-size:11px;font-weight:400;">补费</span></th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p style="font-size:11px;color:#999;margin-top:12px;">* 实际时效可能受天气、航班等因素影响，仅供参考。江浙沪皖顺丰陆运已可次日达，无需补差价升级空运。</p>
     </div>
   `;
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
