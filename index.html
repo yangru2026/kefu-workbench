@@ -3015,13 +3015,18 @@ function setVisitorName() {
 
 // ==================== INIT ====================
 async function init() {
-  await loadConfig();
-  renderTrainingFilters();
-  renderPatternFilters();
-  renderSOPFilters();
-  calculate();
-  initVisitorName();
-  switchPage('home');
+  try {
+    await loadConfig();
+  } catch(e) {
+    console.error('loadConfig 异常', e);
+    initSupabase();
+  }
+  try { renderTrainingFilters(); } catch(e) {}
+  try { renderPatternFilters(); } catch(e) {}
+  try { renderSOPFilters(); } catch(e) {}
+  try { calculate(); } catch(e) {}
+  try { initVisitorName(); } catch(e) {}
+  try { switchPage('home'); } catch(e) { console.error('switchPage failed', e); }
 }
 
 init();
