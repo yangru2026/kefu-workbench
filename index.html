@@ -1989,8 +1989,8 @@ function renderPatterns() {
         <div class="pcard-specs">${specsHtml}</div>
         <div class="pcard-script">
           <div class="script-label">💬 推荐话术</div>
-          ${escapeHtml(p.description || '暂无话术')}
-          <button class="pcard-copy" onclick="copyPatternScript(this, '${escapeAttr(p.description || '')}')">📋 复制</button>
+          ${escapeHtml(p.description || p.script || '暂无话术')}
+          <button class="pcard-copy" onclick="copyPatternScript(this, '${escapeAttr(p.description || p.script || '')}')">📋 复制</button>
         </div>
       </div>
     </div>`;
@@ -2182,7 +2182,7 @@ function renderEditorForm(pattern) {
     </div>
     <div class="modal-field">
       <label>推荐话术</label>
-      <textarea id="ef-desc">${escapeHtml(t.description || '')}</textarea>
+      <textarea id="ef-desc">${escapeHtml(t.description || t.script || '')}</textarea>
     </div>
     <!-- Image manager -->
     <div class="img-mgr">
