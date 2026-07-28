@@ -191,8 +191,13 @@ body {
 .pattern-card { background:var(--card-bg); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.04); transition:all 0.2s; display:flex; flex-direction:column; }
 .pattern-card:hover { transform:translateY(-2px); box-shadow:0 4px 14px rgba(0,0,0,0.1); }
 .pcard-img { width:100%; height:180px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #f8f5f2, #f0e8e0); font-size:48px; color:#ccc; position:relative; overflow:hidden; }
-.pcard-img img { width:100%; height:100%; object-fit:cover; }
-.pcard-img .pcard-brand-tag { position:absolute; top:8px; left:8px; font-size:10px; padding:2px 8px; border-radius:8px; background:rgba(123,167,166,0.9); color:#fff; font-weight:600; }
+.pcard-img img { width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; transition:opacity 0.35s; }
+.pcard-img img.img-lens { opacity:0; }
+.pcard-img:hover img.img-eye { opacity:0; }
+.pcard-img:hover img.img-lens { opacity:1; }
+.pcard-img .pcard-brand-tag { position:absolute; top:8px; left:8px; font-size:10px; padding:2px 8px; border-radius:8px; background:rgba(123,167,166,0.9); color:#fff; font-weight:600; z-index:3; }
+.pcard-img .img-placeholder { display:flex; flex-direction:column; align-items:center; gap:6px; color:#b0a8a0; font-size:13px; }
+.pcard-img .img-placeholder span { font-size:36px; }
 .pcard-body { padding:12px 14px; flex:1; display:flex; flex-direction:column; }
 .pcard-title-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
 .pcard-name { font-size:15px; font-weight:700; color:var(--text); }
@@ -1338,9 +1343,19 @@ function renderPatterns() {
   }
 
   grid.innerHTML = items.map(p => {
-    const imgHtml = p.lensImg
-      ? `<img src="${escapeHtml(p.lensImg)}" alt="${escapeHtml(p.name)}" loading="lazy">`
-      : `<span style="font-size:52px;">👁️</span>`;
+    let imgHtml = '';
+    const hasEye = p.eyeImg && p.eyeImg.trim() !== '';
+    const hasLens = p.lensImg && p.lensImg.trim() !== '';
+    if (hasEye && hasLens) {
+      imgHtml = `<img src="${escapeHtml(p.eyeImg)}" class="img-eye" alt="${escapeHtml(p.name)} 上眼图" loading="lazy">
+                 <img src="${escapeHtml(p.lensImg)}" class="img-lens" alt="${escapeHtml(p.name)} 镜片图" loading="lazy">`;
+    } else if (hasEye) {
+      imgHtml = `<img src="${escapeHtml(p.eyeImg)}" alt="${escapeHtml(p.name)} 上眼图" loading="lazy">`;
+    } else if (hasLens) {
+      imgHtml = `<img src="${escapeHtml(p.lensImg)}" alt="${escapeHtml(p.name)} 镜片图" loading="lazy">`;
+    } else {
+      imgHtml = `<div class="img-placeholder"><span>👁️</span>暂无图片</div>`;
+    }
 
     const specs = [];
     if (p.material) specs.push('材质 ' + p.material);
