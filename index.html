@@ -176,24 +176,36 @@ body {
 .filter-tag:hover { border-color: var(--primary); color: var(--primary); }
 .filter-tag.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
-/* Pattern gallery */
-.pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
-.pattern-card {
-  background: var(--card-bg); border-radius: 12px; overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: all 0.2s;
-}
-.pattern-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-.pattern-img {
-  height: 160px; display: flex; align-items: center; justify-content: center;
-  font-size: 48px; color: #fff;
-}
-.pattern-info { padding: 14px; }
-.pattern-info .name { font-size: 14px; font-weight: 600; }
-.pattern-info .tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-.pattern-info .tags span {
-  font-size: 11px; padding: 2px 8px; border-radius: 10px;
-  background: var(--tag-bg); color: var(--tag-text);
-}
+/* Pattern gallery - Brand tabs */
+.brand-tabs { display:flex; gap:0; margin-bottom:16px; border-radius:10px; overflow:hidden; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+.brand-tab { flex:1; padding:12px 0; text-align:center; font-size:15px; font-weight:600; cursor:pointer; border:none; background:transparent; color:var(--text-secondary); font-family:inherit; transition:all 0.2s; position:relative; }
+.brand-tab.active { background:#7ba7a6; color:#fff; }
+.brand-tab:hover:not(.active) { background:#f5faf8; }
+.filter-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; align-items:center; }
+.filter-row .flabel { font-size:12px; color:var(--text-secondary); white-space:nowrap; min-width:36px; }
+.flink { font-size:12px; padding:4px 12px; border-radius:14px; border:1px solid var(--border); background:transparent; color:var(--text-secondary); cursor:pointer; font-family:inherit; white-space:nowrap; transition:all 0.15s; }
+.flink:hover { border-color:#7ba7a6; color:#7ba7a6; }
+.flink.active { background:#7ba7a6; color:#fff; border-color:#7ba7a6; }
+.pattern-stats { font-size:12px; color:var(--text-secondary); margin-bottom:12px; }
+.pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:14px; }
+.pattern-card { background:var(--card-bg); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.04); transition:all 0.2s; display:flex; flex-direction:column; }
+.pattern-card:hover { transform:translateY(-2px); box-shadow:0 4px 14px rgba(0,0,0,0.1); }
+.pcard-img { width:100%; height:180px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #f8f5f2, #f0e8e0); font-size:48px; color:#ccc; position:relative; overflow:hidden; }
+.pcard-img img { width:100%; height:100%; object-fit:cover; }
+.pcard-img .pcard-brand-tag { position:absolute; top:8px; left:8px; font-size:10px; padding:2px 8px; border-radius:8px; background:rgba(123,167,166,0.9); color:#fff; font-weight:600; }
+.pcard-body { padding:12px 14px; flex:1; display:flex; flex-direction:column; }
+.pcard-title-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.pcard-name { font-size:15px; font-weight:700; color:var(--text); }
+.pcard-series { font-size:11px; color:#7ba7a6; font-weight:500; }
+.pcard-tags { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px; }
+.pcard-tags span { font-size:10px; padding:2px 7px; border-radius:8px; background:var(--tag-bg); color:var(--tag-text); }
+.pcard-specs { font-size:11px; color:var(--text-secondary); line-height:1.6; margin-bottom:8px; }
+.pcard-script { background:#f5faf8; border-radius:8px; padding:10px 12px; font-size:12px; color:#3d5a4d; line-height:1.6; position:relative; flex:1; }
+.pcard-script .script-label { font-size:10px; color:#7ba7a6; margin-bottom:2px; font-weight:600; }
+.pcard-copy { position:absolute; top:6px; right:6px; padding:3px 10px; font-size:11px; border:none; border-radius:12px; background:#7ba7a6; color:#fff; cursor:pointer; font-family:inherit; transition:all 0.15s; }
+.pcard-copy:active { transform:scale(0.95); }
+.pcard-copy.copied { background:#15803d; }
+.pattern-empty { text-align:center; padding:60px 20px; color:var(--text-secondary); }
 
 /* Link list */
 .link-list { list-style: none; }
@@ -625,9 +637,13 @@ body {
 
   <!-- ===== 花色素材 ===== -->
   <div class="page" id="page-patterns">
-    <div class="page-header"><h1>🎨 花色素材</h1><p>按颜色、直径、系列筛选查看</p></div>
-    <div class="filter-bar" id="pattern-filters"></div>
+    <div class="page-header"><h1>🎨 花色素材库</h1><p>按品牌、抛型、系列、色系筛选，一键复制推荐话术</p></div>
+    <div class="brand-tabs" id="pattern-brand-tabs"></div>
+    <div class="filter-row" id="pattern-filter-type"><span class="flabel">抛型</span></div>
+    <div class="filter-row" id="pattern-filter-series"><span class="flabel">系列</span></div>
+    <div class="filter-row" id="pattern-filter-color"><span class="flabel">色系</span></div>
     <div class="search-bar"><input type="text" id="pattern-search" placeholder="🔍 搜索花色名称..." oninput="renderPatterns()"></div>
+    <div class="pattern-stats" id="pattern-stats"></div>
     <div class="pattern-grid" id="pattern-grid"></div>
   </div>
 
@@ -706,7 +722,7 @@ async function loadConfig() {
     const cfg = await resp.json();
     configVersion = cfg.version || '1.0';
     trainingData = cfg.trainingData || [];
-    patternData = cfg.patternData || [];
+    patternData = cfg.patternData || { brands: {} };
     sopData = cfg.sopData || [];
     bulletinData = cfg.bulletinData || [];
     toolsData = cfg.toolsData || [];
@@ -724,7 +740,14 @@ async function loadConfig() {
 
 function updateStats() {
   document.getElementById('stat-training').textContent = trainingData.length;
-  document.getElementById('stat-patterns').textContent = patternData.length;
+  // Count total patterns across all brands
+  let totalPatterns = 0;
+  if (patternData.brands) {
+    Object.values(patternData.brands).forEach(brand => {
+      Object.values(brand).forEach(items => { totalPatterns += items.length; });
+    });
+  }
+  document.getElementById('stat-patterns').textContent = totalPatterns || 0;
   document.getElementById('stat-sop').textContent = sopData.length;
   document.getElementById('stat-tools').textContent = toolsData.length;
 }
@@ -747,7 +770,7 @@ function switchPage(page) {
 
   // Initialize page content
   if (page === 'training') renderTraining();
-  if (page === 'patterns') renderPatterns();
+  if (page === 'patterns') { renderPatternFilters(); renderPatterns(); }
   if (page === 'sop') renderSOP();
   if (page === 'bulletin') renderBulletin();
   if (page === 'tools') renderTools();
@@ -1180,59 +1203,195 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-// ==================== PATTERNS ====================
-let patternFilter = '全部';
-const patternColors = ['全部', '棕色', '灰色', '蓝色', '绿色', '粉色', '紫色', '黑色'];
-const patternSeries = ['全部', '自然系', '日系', '混血系'];
+// ==================== PATTERNS (全新双品牌架构) ====================
+let patternBrand = '极氧';
+let patternType = '全部';
+let patternSeries = '全部';
+let patternColor = '全部';
 
-function renderPatternFilters() {
-  const container = document.getElementById('pattern-filters');
-  const currentSet = patternFilter.startsWith('颜色') ? patternColors : patternSeries;
-  const prefix = patternFilter.startsWith('颜色') ? '颜色:' : '系列:';
-  
-  container.innerHTML = currentSet.map(c => {
-    const fval = c === '全部' ? '全部' : prefix + c;
-    const active = (patternFilter === fval) || (patternFilter === '全部' && c === '全部');
-    return `<button class="filter-tag${active ? ' active' : ''}" onclick="setPatternFilter('${fval}')">${c}</button>`;
-  }).join('');
+function getPatternBrands() {
+  return Object.keys(patternData.brands || {});
 }
 
-function setPatternFilter(f) {
-  patternFilter = f;
+function getPatternTypes(brand) {
+  const b = (patternData.brands || {})[brand] || {};
+  return Object.keys(b).filter(k => b[k].length > 0);
+}
+
+function getPatternSeries(brand, type) {
+  const b = (patternData.brands || {})[brand] || {};
+  let allItems = [];
+  if (type === '全部') {
+    Object.values(b).forEach(arr => { allItems = allItems.concat(arr); });
+  } else {
+    allItems = b[type] || [];
+  }
+  return [...new Set(allItems.map(p => p.series).filter(Boolean))];
+}
+
+function getPatternColors(brand, type, series) {
+  const items = getFilteredItems(brand, type, series);
+  return [...new Set(items.map(p => p.color).filter(Boolean))];
+}
+
+function getFilteredItems(brand, type, series) {
+  const b = (patternData.brands || {})[brand] || {};
+  let items = [];
+  if (type === '全部') {
+    Object.values(b).forEach(arr => { items = items.concat(arr); });
+  } else {
+    items = b[type] || [];
+  }
+  if (series !== '全部') {
+    items = items.filter(p => p.series === series);
+  }
+  return items;
+}
+
+function renderPatternFilters() {
+  // Brand tabs
+  const brands = getPatternBrands();
+  const brandTabs = document.getElementById('pattern-brand-tabs');
+  brandTabs.innerHTML = brands.map(b =>
+    `<button class="brand-tab${patternBrand === b ? ' active' : ''}" onclick="switchPatternBrand('${b}')">${b}</button>`
+  ).join('');
+
+  // 抛型 filter
+  const types = getPatternTypes(patternBrand);
+  const typeRow = document.getElementById('pattern-filter-type');
+  typeRow.innerHTML = '<span class="flabel">抛型</span>' +
+    '<button class="flink' + (patternType === '全部' ? ' active' : '') + '" onclick="setPatternType(\'全部\')">全部</button>' +
+    types.map(t => '<button class="flink' + (patternType === t ? ' active' : '') + '" onclick="setPatternType(\'' + t + '\')">' + t + '</button>').join('');
+
+  // 系列 filter
+  const seriesList = getPatternSeries(patternBrand, patternType);
+  const seriesRow = document.getElementById('pattern-filter-series');
+  seriesRow.innerHTML = '<span class="flabel">系列</span>' +
+    '<button class="flink' + (patternSeries === '全部' ? ' active' : '') + '" onclick="setPatternSeries(\'全部\')">全部</button>' +
+    seriesList.map(s => '<button class="flink' + (patternSeries === s ? ' active' : '') + '" onclick="setPatternSeries(\'' + s + '\')">' + s + '</button>').join('');
+
+  // 色系 filter
+  const colors = getPatternColors(patternBrand, patternType, patternSeries);
+  const colorRow = document.getElementById('pattern-filter-color');
+  colorRow.innerHTML = '<span class="flabel">色系</span>' +
+    '<button class="flink' + (patternColor === '全部' ? ' active' : '') + '" onclick="setPatternColor(\'全部\')">全部</button>' +
+    colors.map(c => '<button class="flink' + (patternColor === c ? ' active' : '') + '" onclick="setPatternColor(\'' + c + '\')">' + c + '</button>').join('');
+}
+
+function switchPatternBrand(b) {
+  patternBrand = b;
+  patternType = '全部';
+  patternSeries = '全部';
+  patternColor = '全部';
+  renderPatternFilters();
+  renderPatterns();
+}
+
+function setPatternType(t) {
+  patternType = t;
+  patternSeries = '全部';
+  patternColor = '全部';
+  renderPatternFilters();
+  renderPatterns();
+}
+
+function setPatternSeries(s) {
+  patternSeries = s;
+  patternColor = '全部';
+  renderPatternFilters();
+  renderPatterns();
+}
+
+function setPatternColor(c) {
+  patternColor = c;
   renderPatternFilters();
   renderPatterns();
 }
 
 function renderPatterns() {
+  let items = getFilteredItems(patternBrand, patternType, patternSeries);
+
+  // 色系筛选
+  if (patternColor !== '全部') {
+    items = items.filter(p => p.color === patternColor);
+  }
+
+  // 搜索
   const search = (document.getElementById('pattern-search')?.value || '').toLowerCase();
-  let filtered = patternData;
-
-  if (patternFilter !== '全部') {
-    if (patternFilter.startsWith('颜色:')) {
-      filtered = filtered.filter(p => p.color === patternFilter.replace('颜色:', ''));
-    } else if (patternFilter.startsWith('系列:')) {
-      filtered = filtered.filter(p => p.series === patternFilter.replace('系列:', ''));
-    }
-  }
-
   if (search) {
-    filtered = filtered.filter(p => p.name.toLowerCase().includes(search) || p.color.includes(search) || p.series.includes(search));
+    items = items.filter(p =>
+      p.name.toLowerCase().includes(search) ||
+      p.series.toLowerCase().includes(search) ||
+      p.color.toLowerCase().includes(search) ||
+      (p.description || '').toLowerCase().includes(search)
+    );
   }
 
+  // Stats
+  document.getElementById('pattern-stats').textContent = '共 ' + items.length + ' 款花色';
+
+  // Render
   const grid = document.getElementById('pattern-grid');
-  grid.innerHTML = filtered.map(p => `
-    <div class="pattern-card">
-      <div class="pattern-img" style="background: radial-gradient(circle, ${p.imgColor} 25%, #222 60%);">
-        <div style="width:60px;height:60px;border-radius:50%;border:3px solid rgba(255,255,255,0.6);background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.3), transparent 60%), ${p.imgColor};box-shadow: 0 0 20px rgba(255,255,255,0.15);"></div>
+  if (items.length === 0) {
+    grid.innerHTML = '<div class="pattern-empty">😕 没有找到匹配的花色，换个筛选条件试试</div>';
+    return;
+  }
+
+  grid.innerHTML = items.map(p => {
+    const imgHtml = p.lensImg
+      ? `<img src="${escapeHtml(p.lensImg)}" alt="${escapeHtml(p.name)}" loading="lazy">`
+      : `<span style="font-size:52px;">👁️</span>`;
+
+    const specs = [];
+    if (p.material) specs.push('材质 ' + p.material);
+    if (p.diameter) specs.push('直径 ' + p.diameter);
+    if (p.colorDiameter) specs.push('着色 ' + p.colorDiameter);
+    if (p.oxygen) specs.push('透氧 ' + p.oxygen);
+    if (p.water) specs.push('含水 ' + p.water);
+    if (p.spec) specs.push(p.spec);
+
+    return `<div class="pattern-card">
+      <div class="pcard-img">
+        ${imgHtml}
+        <div class="pcard-brand-tag">${escapeHtml(patternBrand)}</div>
       </div>
-      <div class="pattern-info">
-        <div class="name">${p.name}</div>
-        <div class="tags">
-          <span>${p.color}</span><span>${p.diameter}</span><span>${p.series}</span>
+      <div class="pcard-body">
+        <div class="pcard-title-row">
+          <span class="pcard-name">${escapeHtml(p.name)}</span>
+          <span class="pcard-series">${escapeHtml(p.series)}</span>
+        </div>
+        <div class="pcard-tags">
+          <span>${escapeHtml(p.color)}</span>
+          <span>${escapeHtml(p.diameter || '')}</span>
+        </div>
+        <div class="pcard-specs">${specs.join(' · ')}</div>
+        <div class="pcard-script">
+          <div class="script-label">💬 推荐话术</div>
+          ${escapeHtml(p.description || '暂无话术')}
+          <button class="pcard-copy" onclick="copyPatternScript(this, '${escapeAttr(p.description || '')}')">📋 复制</button>
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escapeAttr(s) {
+  return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function copyPatternScript(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✅ 已复制';
+    btn.classList.add('copied');
+    showToast('话术已复制，可直接粘贴发送给客户');
+    setTimeout(() => { btn.textContent = '📋 复制'; btn.classList.remove('copied'); }, 2000);
+  }).catch(() => {
+    showToast('复制失败，请手动选中文字复制');
+  });
 }
 
 // ==================== TRAINING ====================
