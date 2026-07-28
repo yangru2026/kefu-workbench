@@ -319,7 +319,7 @@ function renderDailyReportCard(r) {
   `;
 }
 
-function openDailyForm() {
+async function openDailyForm() {
   if (!currentUser) { showToast('请先登录'); switchPage('login'); return; }
   document.getElementById('daily-form-area').style.display = '';
   document.getElementById('daily-track-area').style.display = 'none';
@@ -342,6 +342,8 @@ function openDailyForm() {
       target: s.target || DEFAULT_TARGET
     }));
   } else {
+    // 实时拉取最新模板，确保管理员修改后客服能立即看到
+    await loadTemplates();
     const group = currentProfile?.group_name;
     const tpl = getShopTemplate(group);
     shops = tpl.shops.map(s => ({
