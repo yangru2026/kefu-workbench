@@ -1883,16 +1883,35 @@ function closeLightbox() {
 }
 
 async function copyLightboxImg() {
+  const img = document.getElementById('lightbox-img');
+  if (!img || !img.complete) { showToast('图片未加载完成，请稍等'); return; }
   try {
-    const resp = await fetch(lightboxImgSrc);
-    const blob = await resp.blob();
+    // Use canvas to convert loaded image to blob (more reliable than fetch)
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('canvas toBlob failed');
     await navigator.clipboard.write([
-      new ClipboardItem({ [blob.type]: blob })
+      new ClipboardItem({ 'image/png': blob })
     ]);
     showToast('✅ 图片已复制到剪贴板，可直接粘贴发送');
   } catch(e) {
-    window.open(lightboxImgSrc, '_blank');
-    showToast('已在新窗口打开图片，请右键复制');
+    // Fallback: try fetch approach
+    try {
+      const resp = await fetch(lightboxImgSrc);
+      const blob = await resp.blob();
+      await navigator.clipboard.write([
+        new ClipboardItem({ [blob.type]: blob })
+      ]);
+      showToast('✅ 图片已复制到剪贴板');
+    } catch(e2) {
+      // Last resort: open in new tab so user can right-click copy
+      window.open(lightboxImgSrc, '_blank');
+      showToast('已在新窗口打开图片，请右键复制');
+    }
   }
 }
 
