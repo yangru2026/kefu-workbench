@@ -1,6 +1,6 @@
 {
-  "version": "1.0",
-  "lastUpdate": "2026-07-28",
+  "version": "1.1",
+  "lastUpdate": "2026-07-28 13:55",
   "trainingData": [
     { "title": "美瞳材质分类详解", "url": "https://example.feishu.cn/doc/1", "category": "产品知识", "tags": ["材质", "入门"] },
     { "title": "硅水凝胶 vs 水凝胶对比", "url": "https://example.feishu.cn/doc/2", "category": "产品知识", "tags": ["材质", "进阶"] },
@@ -15,26 +15,57 @@
     { "title": "售后常见问题应对话术", "url": "https://example.feishu.cn/doc/11", "category": "话术库", "tags": ["售后", "高频"] },
     { "title": "新客首单引导话术", "url": "https://example.feishu.cn/doc/12", "category": "话术库", "tags": ["转化", "销售"] }
   ],
-  "patternData": [
-    { "name": "星空灰", "color": "灰色", "diameter": "14.2mm", "series": "自然系", "imgColor": "#8B8B9E" },
-    { "name": "巧克力棕", "color": "棕色", "diameter": "14.0mm", "series": "自然系", "imgColor": "#8B6914" },
-    { "name": "迷雾蓝", "color": "蓝色", "diameter": "14.5mm", "series": "混血系", "imgColor": "#5B7DB1" },
-    { "name": "蜜糖棕", "color": "棕色", "diameter": "14.2mm", "series": "日系", "imgColor": "#B8860B" },
-    { "name": "极光绿", "color": "绿色", "diameter": "14.5mm", "series": "混血系", "imgColor": "#4A7C59" },
-    { "name": "奶茶灰", "color": "灰色", "diameter": "14.0mm", "series": "日系", "imgColor": "#9E9E9E" },
-    { "name": "琥珀棕", "color": "棕色", "diameter": "14.2mm", "series": "日系", "imgColor": "#CD853F" },
-    { "name": "冰薄荷", "color": "绿色", "diameter": "14.0mm", "series": "自然系", "imgColor": "#98D8C8" },
-    { "name": "樱花粉", "color": "粉色", "diameter": "14.2mm", "series": "日系", "imgColor": "#FFB7C5" },
-    { "name": "暗夜黑", "color": "黑色", "diameter": "14.5mm", "series": "自然系", "imgColor": "#2C2C2C" },
-    { "name": "深海蓝", "color": "蓝色", "diameter": "14.2mm", "series": "自然系", "imgColor": "#1B3A5C" },
-    { "name": "琉璃紫", "color": "紫色", "diameter": "14.5mm", "series": "混血系", "imgColor": "#7B68AE" },
-    { "name": "燕麦棕", "color": "棕色", "diameter": "14.0mm", "series": "自然系", "imgColor": "#C4A882" },
-    { "name": "精灵绿", "color": "绿色", "diameter": "14.2mm", "series": "混血系", "imgColor": "#3CB371" },
-    { "name": "冷萃灰", "color": "灰色", "diameter": "14.5mm", "series": "混血系", "imgColor": "#A9A9B0" },
-    { "name": "焦糖棕", "color": "棕色", "diameter": "14.2mm", "series": "日系", "imgColor": "#A0522D" },
-    { "name": "雾紫", "color": "紫色", "diameter": "14.0mm", "series": "日系", "imgColor": "#9370DB" },
-    { "name": "月光灰", "color": "灰色", "diameter": "14.0mm", "series": "日系", "imgColor": "#D3D3DF" }
-  ],
+  "patternData": {
+    "_comment": "花色素材库：按品牌→抛型→花色组织。每个花色包含名称、系列、色系、直径、话术等，镜片图和上眼图后续补充URL",
+    "brands": {
+      "极氧": {
+        "日抛": [
+          { "name": "糖霜日落", "series": "晨露", "color": "棕色系", "diameter": "14.2mm", "colorDiameter": "13.47", "material": "硅水凝胶", "oxygen": "100dk", "water": "58%", "spec": "6片/盒", "description": "暖调琥珀蜜糖棕，外圈浅棕向内渐变融瞳，戴上像天生浅瞳，通勤、面试见家长都不出错，谁戴谁温柔", "lensImg": "", "eyeImg": "" },
+          { "name": "暮色回响", "series": "晨露", "color": "黑灰色系", "diameter": "14.2mm", "colorDiameter": "13.43", "material": "硅水凝胶", "oxygen": "100dk", "water": "58%", "spec": "6片/盒", "description": "清透黑灰底色+细微放射状纹理，融瞳度极高，戴上就是原生婴儿瞳的效果，日常通勤、证件照必备，自然到看不出戴了美瞳", "lensImg": "", "eyeImg": "" },
+          { "name": "梨漫花岛", "series": "晨露", "color": "棕色系", "diameter": "14.2mm", "colorDiameter": "13.7", "material": "硅水凝胶", "oxygen": "100dk", "water": "58%", "spec": "6片/盒", "description": "温柔亚麻棕调，边缘虚化设计，上眼自带日系滤镜感，甜美又自然，约会、逛街、拍照都很出片", "lensImg": "", "eyeImg": "" },
+          { "name": "梨花杏雨", "series": "晨露", "color": "棕色系", "diameter": "14.2mm", "colorDiameter": "13.6", "material": "硅水凝胶", "oxygen": "100dk", "water": "58%", "spec": "6片/盒", "description": "水润清透咖啡棕，内圈带细腻金粉高光，上眼有水光感，温柔不做作，约会通勤两相宜", "lensImg": "", "eyeImg": "" },
+          { "name": "樱落半夏", "series": "晨露", "color": "粉紫色系", "diameter": "14.2mm", "colorDiameter": "13.4", "material": "硅水凝胶", "oxygen": "100dk", "water": "58%", "spec": "6片/盒", "description": "低饱和粉紫调，梦幻渐变设计，上眼温柔又浪漫，约会、拍照、出游必备，少女心拉满，甜妹必入", "lensImg": "", "eyeImg": "" },
+          { "name": "琥珀柔光", "series": "晨露", "color": "棕色系", "diameter": "14.2mm", "colorDiameter": "13.6", "material": "硅水凝胶", "oxygen": "100dk", "water": "58%", "spec": "6片/盒", "description": "复古琥珀棕调，带细碎金闪，上眼显白又有高级感，黄皮救星，温柔与气场兼备", "lensImg": "", "eyeImg": "" },
+          { "name": "清欢水漾", "series": "晨露", "color": "绿色系", "diameter": "14.2mm", "colorDiameter": "13.52", "material": "硅水凝胶", "oxygen": "100dk", "water": "58%", "spec": "6片/盒", "description": "森系薄荷绿调，带自然高光设计，上眼清冷又灵动，显白效果一流，想要独特又不夸张的首选，日常佩戴也很自然", "lensImg": "", "eyeImg": "" },
+          { "name": "坠眼青花", "series": "晨露", "color": "灰色系", "diameter": "14.2mm", "colorDiameter": "13.4", "material": "硅水凝胶", "oxygen": "100dk", "water": "58%", "spec": "6片/盒", "description": "冷调高级灰，边缘虚化+微混血纹理，上眼韩系轻混血感，清冷气质拉满，日常佩戴也不突兀", "lensImg": "", "eyeImg": "" },
+          { "name": "扶光云梦", "series": "晨露", "color": "蓝色系", "diameter": "14.2mm", "colorDiameter": "13.15", "material": "硅水凝胶", "oxygen": "100dk", "water": "58%", "spec": "6片/盒", "description": "梦幻冰蓝调，融瞳设计不突兀，上眼微混血又通透，海边出游、音乐节、派对必备，小心机拉满", "lensImg": "", "eyeImg": "" },
+          { "name": "风摇南枝", "series": "森氧", "color": "灰色系", "diameter": "14.1mm", "colorDiameter": "13.8", "material": "硅水凝胶", "oxygen": "150dk", "water": "47%", "spec": "6片/盒", "description": "清冷银灰调，混血纹理清晰但不夸张，上眼高级贵气，个性又有辨识度，深瞳也能显色", "lensImg": "", "eyeImg": "" },
+          { "name": "春野鹿鸣", "series": "森氧", "color": "棕色系", "diameter": "14.1mm", "colorDiameter": "13.7", "material": "硅水凝胶", "oxygen": "150dk", "water": "47%", "spec": "6片/盒", "description": "日系亚麻棕调，带细微高光，上眼甜丧氛围感拉满，拍照超出片，喜欢日系、原宿风的姐妹必入", "lensImg": "", "eyeImg": "" },
+          { "name": "梦蝶晚窗", "series": "森氧", "color": "棕色系", "diameter": "14.1mm", "colorDiameter": "13.7", "material": "硅水凝胶", "oxygen": "150dk", "water": "47%", "spec": "6片/盒", "description": "暖调玫瑰粉棕，内圈带细腻高光，上眼温柔到心坎里，初恋感满满，复购率超高，约会必备", "lensImg": "", "eyeImg": "" },
+          { "name": "雪落松香", "series": "森氧", "color": "绿色系", "diameter": "14.1mm", "colorDiameter": "13.7", "material": "硅水凝胶", "oxygen": "150dk", "water": "47%", "spec": "6片/盒", "description": "复古松雾绿调，带微混血纹理，上眼像复古画报走出来的，黄黑皮闭眼入，独特又显白", "lensImg": "", "eyeImg": "" },
+          { "name": "晴空飞鸟", "series": "YOUHOO联名", "color": "棕色系", "diameter": "14.2mm", "colorDiameter": "13.5", "material": "水凝胶", "oxygen": "", "water": "40%-50%", "spec": "6片/盒", "description": "水光感扩瞳棕，自然放大不死板，上眼有神又温柔，日常通勤、上学、面试都能戴，百搭不出错", "lensImg": "", "eyeImg": "" },
+          { "name": "溪山晚风", "series": "YOUHOO联名", "color": "黑色系", "diameter": "14.2mm", "colorDiameter": "12.8", "material": "水凝胶", "oxygen": "", "water": "40%-50%", "spec": "6片/盒", "description": "纯黑妈生瞳设计，边缘自然虚化，上眼像天生黑瞳一样有神，自然有神，学生党、上班族日常首选", "lensImg": "", "eyeImg": "" },
+          { "name": "莫奈花园", "series": "YOUHOO联名", "color": "棕色系", "diameter": "14.2mm", "colorDiameter": "13.55", "material": "水凝胶", "oxygen": "", "water": "50%", "spec": "6片/盒", "description": "油画感渐变棕，内浅外深设计，温柔又有层次感，大小直径都有，约会、日常都能戴，显气质", "lensImg": "", "eyeImg": "" },
+          { "name": "枫糖戚风", "series": "YOUHOO联名", "color": "棕色系", "diameter": "14.2mm", "colorDiameter": "14.0", "material": "水凝胶", "oxygen": "", "water": "40%-50%", "spec": "6片/盒", "description": "枫糖棕，外圈粗黑边+内圈渐变，扩瞳效果明显，甜妹必备，上镜超显眼睛大，拍照出片", "lensImg": "", "eyeImg": "" },
+          { "name": "梨花慢慢", "series": "YOUHOO联名", "color": "黑色系", "diameter": "14.2mm", "colorDiameter": "13.8", "material": "水凝胶", "oxygen": "", "water": "50%", "spec": "6片/盒", "description": "清冷黑灰调，带细微高光，上眼高级疏离感，酷飒御姐风，个性十足超有辨识度", "lensImg": "", "eyeImg": "" },
+          { "name": "邂逅洱海", "series": "YOUHOO联名", "color": "蓝色系", "diameter": "14.4mm", "colorDiameter": "13.6", "material": "水凝胶", "oxygen": "", "water": "50%", "spec": "6片/盒", "description": "大直径洱海蓝，混血蓝调+粗黑边，上眼混血感拉满，辣妹出片神器，派对、音乐节必备", "lensImg": "", "eyeImg": "" }
+        ],
+        "季抛": [
+          { "name": "极光金棕", "series": "季抛系列", "color": "棕色系", "diameter": "14.1mm", "colorDiameter": "13.4", "material": "水凝胶", "oxygen": "", "water": "38%", "spec": "季抛", "description": "暖调金棕，带细腻金闪，上眼高级又温柔，像眼睛里装了小星星，约会、聚会都能戴，黄皮显白", "lensImg": "", "eyeImg": "" },
+          { "name": "极光黑灰", "series": "季抛系列", "color": "黑色系", "diameter": "14.1mm", "colorDiameter": "13.5", "material": "水凝胶", "oxygen": "", "water": "38%", "spec": "季抛", "description": "清冷黑灰调，边缘自然虚化，上眼像原生黑瞳一样有神，自然有神，日常通勤首选", "lensImg": "", "eyeImg": "" },
+          { "name": "酒心巧克力", "series": "季抛系列", "color": "棕色系", "diameter": "14.2mm", "colorDiameter": "13.6", "material": "水凝胶", "oxygen": "", "water": "38%", "spec": "季抛", "description": "浓郁巧克力棕，外圈深棕向内渐变，上眼深邃又有神，温柔气质拉满，约会、见家长都不出错", "lensImg": "", "eyeImg": "" },
+          { "name": "糖霜日落", "series": "季抛系列", "color": "棕色系", "diameter": "14.2mm", "colorDiameter": "13.6", "material": "水凝胶", "oxygen": "", "water": "38%", "spec": "季抛", "description": "蜜糖琥珀棕，带细微高光，上眼水润又有神，融瞳度超高，日常百搭款", "lensImg": "", "eyeImg": "" },
+          { "name": "月亮情诗", "series": "季抛系列", "color": "黑色系", "diameter": "14.5mm", "colorDiameter": "14.2", "material": "水凝胶", "oxygen": "", "water": "38%", "spec": "季抛", "description": "大直径纯黑设计，外圈粗黑边+内圈自然渐变，扩瞳效果明显，上眼无辜感拉满，甜妹、学生党必入", "lensImg": "", "eyeImg": "" },
+          { "name": "花漾甜梦", "series": "季抛系列", "color": "粉色系", "diameter": "14.5mm", "colorDiameter": "14.1", "material": "水凝胶", "oxygen": "", "water": "38%", "spec": "季抛", "description": "梦幻粉紫调，带细腻金粉，上眼温柔又甜美，少女心爆棚，约会、出游、拍照都很出片", "lensImg": "", "eyeImg": "" },
+          { "name": "松涧小鹿", "series": "季抛系列", "color": "棕色系", "diameter": "14.5mm", "colorDiameter": "14.0", "material": "水凝胶", "oxygen": "", "water": "38%", "spec": "季抛", "description": "自然棕调，带微扩瞳效果，上眼像小鹿一样灵动，日常、约会都能戴", "lensImg": "", "eyeImg": "" },
+          { "name": "月光拿铁", "series": "季抛系列", "color": "棕色系", "diameter": "14.5mm", "colorDiameter": "14.0", "material": "水凝胶", "oxygen": "", "water": "38%", "spec": "季抛", "description": "暖调拿铁棕，带自然高光，上眼温柔又有神，像眼睛里有光，温柔气质款", "lensImg": "", "eyeImg": "" },
+          { "name": "椰影摇光", "series": "季抛系列", "color": "棕色系", "diameter": "14.1mm", "colorDiameter": "13.1", "material": "水凝胶", "oxygen": "", "water": "38%", "spec": "季抛", "description": "浅棕调+细微高光，上眼清透又自然，像天生浅瞳，日常通勤必备", "lensImg": "", "eyeImg": "" },
+          { "name": "凌晨三点", "series": "季抛系列", "color": "蓝色系", "diameter": "14.5mm", "colorDiameter": "14.1", "material": "水凝胶", "oxygen": "", "water": "38%", "spec": "季抛", "description": "深海蓝调，带微混血纹理，上眼高级又独特，海边出游、派对必备，混血感不夸张", "lensImg": "", "eyeImg": "" },
+          { "name": "富士山雾", "series": "季抛系列", "color": "蓝色系", "diameter": "14.1mm", "colorDiameter": "13.4", "material": "水凝胶", "oxygen": "", "water": "38%", "spec": "季抛", "description": "雾霾蓝灰调，带清冷感纹理，上眼高级疏离，气质型姐妹首选", "lensImg": "", "eyeImg": "" },
+          { "name": "榛果灰棕", "series": "季抛系列", "color": "棕色系", "diameter": "14.5mm", "colorDiameter": "14.1", "material": "水凝胶", "oxygen": "", "water": "38%", "spec": "季抛", "description": "暖调榛果棕，带细微金闪，上眼温柔又有高级感，日常佩戴显气质", "lensImg": "", "eyeImg": "" }
+        ]
+      },
+      "弥生": {
+        "日抛": [],
+        "半年抛": []
+      }
+    },
+    "filters": {
+      "抛型": { "极氧": ["日抛", "季抛"], "弥生": ["日抛", "半年抛"] },
+      "色系": ["棕色系", "灰色系", "黑色系", "蓝色系", "绿色系", "粉紫色系"],
+      "系列_极氧": ["晨露", "森氧", "YOUHOO联名", "季抛系列"]
+    }
+  },
   "sopData": [
     {
       "platform": "通用",
