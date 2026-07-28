@@ -6,6 +6,7 @@
 <title>尤赫客服工作台</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%236C5CE7'/%3E%3Ccircle cx='50' cy='50' r='26' fill='none' stroke='%23fff' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='12' fill='%23fff'/%3E%3C/svg%3E">
 <script src="https://unpkg.com/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -630,6 +631,50 @@ body {
 .mgmt-export { display:none; margin-top:8px; text-align:center; }
 .mgmt-mode .mgmt-export { display:block; }
 
+/* ===== Login ===== */
+.login-box { max-width: 400px; margin: 0 auto; background: #fff; border-radius: 16px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+.login-tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 12px; }
+.login-tab { flex: 1; padding: 10px; border: none; background: none; font-size: 15px; font-weight: 600; color: var(--text-secondary); cursor: pointer; border-radius: 8px; font-family: inherit; }
+.login-tab.active { background: var(--primary); color: #fff; }
+.login-btn { width: 100%; padding: 14px; border: none; border-radius: 10px; background: var(--primary); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit; margin-top: 8px; }
+.login-btn:hover { background: #5a4bd4; }
+
+/* ===== Announcements ===== */
+.announcement-card { background: #fff; border-radius: 14px; padding: 20px 24px; border: 1px solid var(--border); position: relative; }
+.announcement-card.pinned { border-left: 4px solid var(--primary); background: linear-gradient(135deg, #fdfcff, #fff); }
+.announcement-card .ann-pin { position: absolute; top: 14px; right: 16px; font-size: 12px; color: var(--primary); background: var(--tag-bg); padding: 2px 10px; border-radius: 10px; font-weight: 600; }
+.announcement-card h4 { font-size: 16px; font-weight: 700; margin-bottom: 8px; color: var(--text); padding-right: 60px; }
+.announcement-card .ann-meta { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; }
+.announcement-card .ann-content { font-size: 14px; line-height: 1.7; color: var(--text); white-space: pre-wrap; }
+.announcement-card .ann-actions { margin-top: 12px; display: flex; gap: 8px; }
+.announcement-actions { display: flex; gap: 10px; }
+
+/* ===== Form ===== */
+.form-row { margin-bottom: 14px; }
+.form-row label { display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.form-row input, .form-row textarea, .form-row select {
+  width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px;
+  font-size: 14px; font-family: inherit; outline: none; transition: border 0.2s;
+}
+.form-row input:focus, .form-row textarea:focus, .form-row select:focus { border-color: var(--primary); }
+.form-row textarea { resize: vertical; }
+
+/* ===== Daily / Presale ===== */
+.daily-track-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.daily-track-item:last-child { border-bottom: none; }
+.daily-track-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-light); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+.daily-track-info { flex: 1; }
+.daily-track-name { font-weight: 600; font-size: 14px; }
+.daily-track-status { font-size: 12px; }
+.daily-track-status.done { color: var(--success); }
+.daily-track-status.pending { color: var(--text-secondary); }
+.daily-report-card { background: #fff; border-radius: 12px; padding: 16px 20px; border: 1px solid var(--border); margin-bottom: 12px; }
+.daily-report-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+.daily-report-card .dr-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f5f5f5; font-size: 13px; }
+.daily-report-card .dr-row:last-child { border-bottom: none; }
+.daily-report-card .dr-label { color: var(--text-secondary); }
+.daily-report-card .dr-val { font-weight: 600; }
+
 /* Responsive */
 @media (max-width: 768px) {
   .sidebar { width: 60px; }
@@ -664,8 +709,12 @@ body {
     <div class="nav-item" data-page="bulletin"><span class="icon">📢</span><span>每日速报</span></div>
     <div class="nav-item" data-page="schedule"><span class="icon">📅</span><span>排班表</span></div>
     <div class="nav-item" data-page="ranking"><span class="icon">🏆</span><span>客服排名</span></div>
+    <div class="nav-item" data-page="daily"><span class="icon">📝</span><span>日报</span></div>
+    <div class="nav-item" data-page="presale"><span class="icon">📊</span><span>售前数据</span></div>
+    <div class="nav-section">账号</div>
+    <div class="nav-item" id="nav-login" data-page="login"><span class="icon">🔐</span><span>登录/注册</span></div>
   </nav>
-  <div class="sidebar-user" id="sidebar-user" onclick="setVisitorName()">
+  <div class="sidebar-user" id="sidebar-user" onclick="if(!currentUser)switchPage('login')">
     <span class="user-dot"></span>
     <span class="user-label" id="visitor-name">访客</span>
   </div>
@@ -679,24 +728,125 @@ body {
 <!-- Main Content -->
 <main class="main">
 
-  <!-- ===== 首页 ===== -->
+  <!-- ===== 首页 - 公告栏 ===== -->
   <div class="page active" id="page-home">
-    <div class="page-header"><h1>👋 欢迎回来</h1><p>今天是 2026年7月28日 星期二 · 祝你工作顺利</p></div>
-    <div class="stats-row">
-      <div class="stat-card"><div class="num" id="stat-training">12</div><div class="label">培训资料</div></div>
-      <div class="stat-card"><div class="num" id="stat-patterns">18</div><div class="label">花色素材</div></div>
-      <div class="stat-card"><div class="num" id="stat-sop">5</div><div class="label">SOP流程</div></div>
-      <div class="stat-card"><div class="num" id="stat-tools">6</div><div class="label">快捷工具</div></div>
+    <div class="page-header"><h1>📢 重要通知</h1><p>实时公告 · 全员同步 · 置顶优先</p></div>
+    <div class="announcement-actions admin-only" style="margin-bottom:16px;">
+      <button class="btn-sm primary" onclick="openAnnounceForm()">➕ 发布公告</button>
     </div>
-    <h3 style="margin-bottom:14px;">快速入口</h3>
-    <div class="card-grid">
-      <div class="home-card" onclick="switchPage('converter')"><span class="emoji">🔢</span><h3>度数换算</h3><p>框架度数 → 美瞳度数，一键换算</p></div>
-      <div class="home-card" onclick="switchPage('patterns')"><span class="emoji">🎨</span><h3>花色素材</h3><p>按颜色直径快速查找花色</p></div>
-      <div class="home-card" onclick="switchPage('training')"><span class="emoji">📚</span><h3>培训资料</h3><p>产品知识、平台流程、话术库</p></div>
-      <div class="home-card" onclick="switchPage('sop')"><span class="emoji">📋</span><h3>新人SOP</h3><p>新人上岗标准操作流程</p></div>
-      <div class="home-card" onclick="switchPage('bulletin')"><span class="emoji">📢</span><h3>每日速报</h3><p>当天活动、新品、注意事项</p></div>
-      <div class="home-card" onclick="switchPage('schedule')"><span class="emoji">📅</span><h3>排班表</h3><p>每月排班，查看自己的班次</p></div>
-      <div class="home-card" onclick="switchPage('tools')"><span class="emoji">🛠</span><h3>快捷工具</h3><p>运费、发货、退换货规则速查</p></div>
+    <div id="announcement-list" style="display:flex;flex-direction:column;gap:14px;">
+      <div style="text-align:center;padding:40px;color:var(--text-secondary);">加载中...</div>
+    </div>
+  </div>
+
+  <!-- ===== 登录/注册 ===== -->
+  <div class="page" id="page-login">
+    <div class="page-header"><h1>🔐 登录 / 注册</h1><p>使用手机号和密码登录工作台</p></div>
+    <div class="login-box">
+      <div class="login-tabs">
+        <button class="login-tab active" onclick="switchLoginTab('login')">登录</button>
+        <button class="login-tab" onclick="switchLoginTab('register')">注册</button>
+      </div>
+      <div id="login-form">
+        <div class="form-row"><label>手机号</label><input type="tel" id="login-phone" placeholder="请输入手机号" maxlength="11"></div>
+        <div class="form-row"><label>密码</label><input type="password" id="login-password" placeholder="请输入密码"></div>
+        <button class="login-btn" onclick="doLogin()">登 录</button>
+      </div>
+      <div id="register-form" style="display:none;">
+        <div class="form-row"><label>姓名</label><input type="text" id="reg-name" placeholder="请输入真实姓名"></div>
+        <div class="form-row"><label>手机号</label><input type="tel" id="reg-phone" placeholder="请输入手机号" maxlength="11"></div>
+        <div class="form-row"><label>密码</label><input type="password" id="reg-password" placeholder="至少6位密码"></div>
+        <div class="form-row"><label>确认密码</label><input type="password" id="reg-password2" placeholder="再次输入密码"></div>
+        <button class="login-btn" onclick="doRegister()">注 册</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 日报 ===== -->
+  <div class="page" id="page-daily">
+    <div class="page-header"><h1>📝 日报</h1><p>每日工作记录 · 自动生成图片</p></div>
+    <div class="daily-actions" style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn-sm primary" onclick="openDailyForm()">✏️ 填写今日日报</button>
+      <button class="btn-sm outline" onclick="renderDailyTrack()">👀 查看提交情况</button>
+    </div>
+    <div id="daily-content">
+      <div id="daily-form-area" style="display:none;">
+        <div class="card" style="max-width:600px;">
+          <h3 style="margin-bottom:16px;">填写日报 <span id="daily-date-label" style="font-size:13px;color:var(--text-secondary);font-weight:normal;"></span></h3>
+          <div class="form-row"><label>今日接待量</label><input type="number" id="daily-visitors" placeholder="如：45"></div>
+          <div class="form-row"><label>成交订单数</label><input type="number" id="daily-orders" placeholder="如：12"></div>
+          <div class="form-row"><label>连带销售单数</label><input type="number" id="daily-cross" placeholder="如：5"></div>
+          <div class="form-row"><label>今日销售额 ¥</label><input type="number" id="daily-revenue" placeholder="如：3200"></div>
+          <div class="form-row"><label>平均响应时间(秒)</label><input type="number" id="daily-response" placeholder="如：25"></div>
+          <div class="form-row"><label>今日总结</label><textarea id="daily-summary" rows="3" placeholder="简要总结今天的工作情况、遇到的问题..."></textarea></div>
+          <div class="form-row"><label>明日计划</label><textarea id="daily-plan" rows="2" placeholder="明天的工作重点..."></textarea></div>
+          <div style="display:flex;gap:10px;margin-top:16px;">
+            <button class="btn-sm primary" onclick="submitDaily()">提交日报</button>
+            <button class="btn-sm outline" onclick="closeDailyForm()">取消</button>
+          </div>
+        </div>
+      </div>
+      <div id="daily-track-area" style="display:none;">
+        <div class="card">
+          <h3 style="margin-bottom:16px;">📊 日报提交情况 <span id="daily-track-date" style="font-size:13px;color:var(--text-secondary);"></span></h3>
+          <div id="daily-track-list"></div>
+        </div>
+      </div>
+      <div id="daily-my-area" style="display:none;">
+        <div class="card">
+          <h3 style="margin-bottom:16px;">📋 我的日报</h3>
+          <div id="daily-my-list"></div>
+        </div>
+      </div>
+      <div id="daily-empty" style="text-align:center;padding:60px 20px;color:var(--text-secondary);">
+        <div style="font-size:48px;margin-bottom:12px;">📝</div>
+        <p>今天还没有填写日报</p>
+        <button class="btn-sm primary" style="margin-top:16px;" onclick="openDailyForm()">立即填写</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 售前数据 ===== -->
+  <div class="page" id="page-presale">
+    <div class="page-header"><h1>📊 售前数据汇总</h1><p>每日售前指标 · 趋势分析</p></div>
+    <div class="presale-actions admin-only" style="margin-bottom:16px;">
+      <button class="btn-sm primary" onclick="openPresaleForm()">➕ 录入今日数据</button>
+    </div>
+    <div id="presale-content">
+      <div id="presale-form-area" style="display:none;">
+        <div class="card" style="max-width:600px;">
+          <h3 style="margin-bottom:16px;">录入售前数据 <span id="presale-date-label" style="font-size:13px;color:var(--text-secondary);font-weight:normal;"></span></h3>
+          <div class="form-row"><label>日期</label><input type="date" id="presale-date-input"></div>
+          <div class="form-row"><label>总接待量</label><input type="number" id="presale-total-visitors" placeholder="如：520"></div>
+          <div class="form-row"><label>总成交单数</label><input type="number" id="presale-total-orders" placeholder="如：186"></div>
+          <div class="form-row"><label>总销售额 ¥</label><input type="number" id="presale-total-revenue" placeholder="如：45800"></div>
+          <div class="form-row"><label>平均转化率 %</label><input type="number" id="presale-conversion" placeholder="如：35.8" step="0.1"></div>
+          <div class="form-row"><label>平均响应时间(秒)</label><input type="number" id="presale-avg-response" placeholder="如：28"></div>
+          <div class="form-row"><label>平均满意度 %</label><input type="number" id="presale-satisfaction" placeholder="如：98.5" step="0.1"></div>
+          <div style="display:flex;gap:10px;margin-top:16px;">
+            <button class="btn-sm primary" onclick="submitPresale()">保存数据</button>
+            <button class="btn-sm outline" onclick="closePresaleForm()">取消</button>
+          </div>
+        </div>
+      </div>
+      <div id="presale-list-area">
+        <div id="presale-stats-row" class="stats-row" style="margin-bottom:20px;"></div>
+        <div class="card">
+          <h3 style="margin-bottom:16px;">📈 历史数据</h3>
+          <div id="presale-table-wrap" style="overflow-x:auto;">
+            <table class="ranking-table" style="min-width:600px;">
+              <thead><tr>
+                <th>日期</th><th>接待量</th><th>成交单</th><th>销售额</th><th>转化率</th><th>响应(秒)</th><th>满意度</th>
+              </tr></thead>
+              <tbody id="presale-tbody"></tbody>
+            </table>
+          </div>
+          <div id="presale-empty" style="text-align:center;padding:40px;color:var(--text-secondary);display:none;">
+            <div style="font-size:40px;margin-bottom:8px;">📊</div>
+            <p>暂无数据，请录入</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -964,6 +1114,88 @@ body {
 <div class="toast" id="toast"></div>
 
 <script>
+// ==================== SUPABASE CONFIG ====================
+const SUPABASE_URL = 'https://ienmejlxukhrxjjxvfqf.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_emFn7uMsZYdIk0lmLCxP3A_2V4gL68s';
+let supabase = null;
+let currentUser = null;
+let currentProfile = null;
+
+// ==================== AUTH ====================
+async function initSupabase() {
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // Check existing session
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+    currentProfile = profile;
+    updateAuthUI();
+  }
+  // Listen for auth changes
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session) {
+      currentUser = session.user;
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      currentProfile = profile;
+      updateAuthUI();
+      if (document.getElementById('page-login').classList.contains('active')) {
+        switchPage('home');
+      }
+    } else if (event === 'SIGNED_OUT') {
+      currentUser = null;
+      currentProfile = null;
+      updateAuthUI();
+      switchPage('login');
+    }
+  });
+  // Notify app.js that supabase is ready
+  if (window.onSupabaseReady) window.onSupabaseReady();
+}
+
+function updateAuthUI() {
+  const userEl = document.getElementById('sidebar-user');
+  const nameEl = document.getElementById('visitor-name');
+  const loginNav = document.getElementById('nav-login');
+  if (currentUser && currentProfile) {
+    nameEl.textContent = currentProfile.name || '用户';
+    userEl.style.cursor = 'default';
+    if (loginNav) loginNav.style.display = 'none';
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
+  } else {
+    nameEl.textContent = '未登录';
+    userEl.style.cursor = 'pointer';
+    if (loginNav) loginNav.style.display = '';
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+  }
+}
+
+async function signUp(name, phone, password) {
+  const { data, error } = await supabase.auth.signUp({
+    email: phone + '@youhu.local',
+    password: password,
+    options: { data: { name: name, phone: phone } }
+  });
+  if (error) { showToast('注册失败：' + error.message); return false; }
+  showToast('注册成功！请登录');
+  return true;
+}
+
+async function signIn(phone, password) {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: phone + '@youhu.local',
+    password: password
+  });
+  if (error) { showToast('登录失败：' + error.message); return false; }
+  showToast('欢迎回来，' + (currentProfile?.name || ''));
+  return true;
+}
+
+async function signOut() {
+  await supabase.auth.signOut();
+  showToast('已退出登录');
+}
+
 // ==================== DYNAMIC CONFIG LOADING ====================
 // 数据存储在独立的 config.json 文件中
 // 杨茹修改 config.json 后重新部署，所有客服刷新页面即可看到最新内容
@@ -1006,6 +1238,7 @@ async function loadConfig() {
     document.getElementById('config-update').textContent = cfg.lastUpdate || '';
     updateStats();
     loadVisitorStats();
+    initSupabase();
     console.log('配置加载成功 v' + configVersion + ' | 更新于 ' + (cfg.lastUpdate || ''));
   } catch (e) {
     console.error('配置加载失败，使用默认数据', e);
@@ -2780,6 +3013,7 @@ async function init() {
 
 init();
 </script>
+<script src="app.js"></script>
 
 <!-- Pattern Editor Modal -->
 <div class="modal-overlay" id="mod-pattern" onclick="closeModal('mod-pattern')">
