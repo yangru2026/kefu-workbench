@@ -1226,7 +1226,11 @@ let rankEditMode = false;
 async function loadConfig() {
   try {
     const ts = Date.now();
-    const resp = await fetch('config.json?t=' + ts);
+    // 5秒超时，防止 fetch 卡住阻塞整个页面
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const resp = await fetch('config.json?t=' + ts, { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (!resp.ok) throw new Error('Config load failed');
     const cfg = await resp.json();
     configVersion = cfg.version || '1.0';
