@@ -390,14 +390,18 @@ function renderDailyResult(content) {
       </div>
       <!-- 表格 -->
       <div style="overflow-x:auto;">
+        <div style="display:flex;justify-content:center;gap:20px;margin-bottom:10px;font-size:12px;">
+          <span style="padding:2px 8px;border-radius:10px;background:#dcfce7;color:#16a34a;">✅ 接待量 = 当日数据</span>
+          <span style="padding:2px 8px;border-radius:10px;background:#fef3c7;color:#d97706;">⏳ 询单·支付·转化率 = 3天前数据</span>
+        </div>
         <table style="width:100%;border-collapse:collapse;min-width:500px;">
           <thead>
             <tr style="background:#f0f4ff;">
               <th style="padding:8px;font-size:13px;text-align:left;border-bottom:2px solid #d0d7ff;">店铺</th>
-              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">接待</th>
-              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">询单</th>
-              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">支付</th>
-              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">达成 / 目标</th>
+              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;color:#16a34a;">接待</th>
+              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">询单<span style="font-size:10px;color:#999;display:block;">延3天</span></th>
+              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">支付<span style="font-size:10px;color:#999;display:block;">延3天</span></th>
+              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">达成 / 目标<span style="font-size:10px;color:#999;display:block;">延3天</span></th>
               <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">还差</th>
             </tr>
           </thead>
