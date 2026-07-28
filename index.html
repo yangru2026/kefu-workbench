@@ -429,15 +429,75 @@ body {
 @media (max-width:768px) { .eyes-row-cvt { grid-template-columns:1fr; } }
 
 /* Lightbox */
-.lightbox { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.88); z-index:3000; align-items:center; justify-content:center; cursor:zoom-out; }
+.lightbox { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.88); z-index:3000; align-items:center; justify-content:center; }
 .lightbox.show { display:flex; }
-.lightbox img { max-width:92vw; max-height:84vh; object-fit:contain; border-radius:6px; box-shadow:0 8px 40px rgba(0,0,0,0.5); }
+.lightbox-img-wrap { position:relative; display:flex; align-items:center; justify-content:center; max-width:92vw; max-height:82vh; }
+.lightbox-img-wrap img { max-width:92vw; max-height:80vh; object-fit:contain; border-radius:6px; box-shadow:0 8px 40px rgba(0,0,0,0.5); cursor:default; }
+.lightbox-nav { position:absolute; top:50%; transform:translateY(-50%); width:44px; height:44px; border:none; background:rgba(255,255,255,0.18); color:#fff; font-size:24px; border-radius:50%; cursor:pointer; z-index:3002; display:flex; align-items:center; justify-content:center; transition:background 0.15s; -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
+.lightbox-nav:hover { background:rgba(255,255,255,0.35); }
+.lightbox-nav:disabled { opacity:0.25; cursor:default; }
+.lightbox-prev { left:-56px; }
+.lightbox-next { right:-56px; }
+.lightbox-counter { position:fixed; top:20px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.7); font-size:13px; z-index:3001; font-weight:500; letter-spacing:1px; }
+.lightbox-type-tag { position:fixed; top:46px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.4); font-size:11px; z-index:3001; }
 .lightbox-actions { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); display:flex; gap:10px; z-index:3001; }
 .lightbox-btn { padding:8px 22px; border:none; border-radius:20px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; background:#fff; color:#333; transition:opacity 0.15s; }
 .lightbox-btn:active { opacity:0.8; }
 .lightbox-close { position:fixed; top:16px; right:20px; width:40px; height:40px; border:none; background:rgba(255,255,255,0.15); color:#fff; font-size:22px; border-radius:50%; cursor:pointer; z-index:3001; display:flex; align-items:center; justify-content:center; }
 .lightbox-close:hover { background:rgba(255,255,255,0.3); }
-.lightbox-hint { position:fixed; top:20px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.45); font-size:12px; z-index:3001; }
+@media (max-width:768px) { .lightbox-prev { left:4px; } .lightbox-next { right:4px; } .lightbox-nav { width:36px; height:36px; font-size:18px; } }
+
+/* ---- Management Panel ---- */
+.mgmt-toggle { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border:1px solid var(--primary); background:#fff; color:var(--primary); border-radius:18px; font-size:12px; cursor:pointer; font-family:inherit; font-weight:500; transition:all 0.15s; }
+.mgmt-toggle:hover { background:#f1f5f4; }
+.mgmt-toggle.active { background:var(--primary); color:#fff; }
+.mgmt-toggle.active:hover { background:#6b9695; }
+.pcard-mgmt { position:absolute; top:6px; right:6px; display:none; gap:4px; z-index:10; }
+.mgmt-mode .pcard-mgmt { display:flex; }
+.pcard-mgmt button { width:26px; height:26px; border:none; border-radius:50%; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.85); box-shadow:0 1px 4px rgba(0,0,0,0.12); }
+.pcard-mgmt .btn-edit { color:#7ba7a6; }
+.pcard-mgmt .btn-del { color:#e17055; }
+.pcard-mgmt button:hover { transform:scale(1.1); }
+
+/* Modal */
+.modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.45); z-index:4000; justify-content:center; align-items:flex-start; padding:40px 16px; overflow-y:auto; }
+.modal-overlay.show { display:flex; }
+.modal-box { background:#fff; border-radius:14px; width:100%; max-width:620px; box-shadow:0 12px 48px rgba(0,0,0,0.18); overflow:hidden; }
+.modal-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.modal-header h3 { font-size:16px; color:var(--text); margin:0; }
+.modal-close { width:32px; height:32px; border:none; background:none; font-size:18px; cursor:pointer; color:var(--text-secondary); border-radius:50%; display:flex; align-items:center; justify-content:center; }
+.modal-close:hover { background:#f5f5f5; }
+.modal-body { padding:20px; max-height:60vh; overflow-y:auto; }
+.modal-footer { padding:14px 20px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; }
+.modal-field { margin-bottom:12px; }
+.modal-field label { display:block; font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:4px; }
+.modal-field input,.modal-field textarea,.modal-field select { width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px; font-family:inherit; }
+.modal-field input:focus,.modal-field textarea:focus,.modal-field select:focus { border-color:#7ba7a6; outline:none; }
+.modal-field textarea { min-height:60px; resize:vertical; }
+.modal-field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+/* Image manager */
+.img-mgr { margin-top:16px; border-top:1px solid var(--border); padding-top:14px; }
+.img-mgr h4 { font-size:13px; color:var(--text); margin:0 0 10px; }
+.img-mgr-grid { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; }
+.img-mgr-item { position:relative; width:100px; border-radius:8px; overflow:hidden; border:1px solid var(--border); background:#f8f5f2; }
+.img-mgr-item img { width:100%; height:72px; object-fit:cover; display:block; }
+.img-mgr-item-badge { position:absolute; top:4px; left:4px; font-size:10px; padding:2px 6px; border-radius:6px; background:rgba(0,0,0,0.55); color:#fff; }
+.img-mgr-item-del { position:absolute; top:2px; right:2px; width:20px; height:20px; border:none; border-radius:50%; background:rgba(220,53,69,0.85); color:#fff; font-size:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.img-add-row { display:flex; gap:8px; align-items:flex-end; }
+.img-add-row input { flex:1; }
+.img-add-row select { width:90px; }
+.btn-sm { padding:6px 14px; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+.btn-sm.primary { background:var(--primary); color:#fff; }
+.btn-sm.primary:hover { background:#6b9695; }
+.btn-sm.danger { background:#e17055; color:#fff; }
+.btn-sm.danger:hover { background:#d35a40; }
+.btn-sm.outline { background:#fff; color:var(--text); border:1px solid var(--border); }
+.btn-sm.outline:hover { background:#f5f5f5; }
+.empty-hint { color:var(--text-muted); font-size:12px; text-align:center; padding:10px; }
+.mgmt-add-btn { display:none; width:100%; padding:16px; border:2px dashed var(--primary); background:#f1f5f4; color:var(--primary); border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; margin-top:14px; }
+.mgmt-mode .mgmt-add-btn { display:block; }
+.mgmt-export { display:none; margin-top:8px; text-align:center; }
+.mgmt-mode .mgmt-export { display:block; }
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -656,7 +716,10 @@ body {
 
   <!-- ===== 花色素材 ===== -->
   <div class="page" id="page-patterns">
-    <div class="page-header"><h1>🎨 花色素材库</h1><p>按品牌、抛型、系列、色系筛选，一键复制推荐话术</p></div>
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div><h1>🎨 花色素材库</h1><p>按品牌、抛型、系列、色系筛选，一键复制推荐话术</p></div>
+      <button class="mgmt-toggle" id="mgmt-toggle" onclick="toggleMgmtMode()">📝 管理素材</button>
+    </div>
     <div class="brand-tabs" id="pattern-brand-tabs"></div>
     <div class="filter-row" id="pattern-filter-type"><span class="flabel">抛型</span></div>
     <div class="filter-row" id="pattern-filter-series"><span class="flabel">系列</span></div>
@@ -664,6 +727,11 @@ body {
     <div class="search-bar"><input type="text" id="pattern-search" placeholder="🔍 搜索花色名称..." oninput="renderPatterns()"></div>
     <div class="pattern-stats" id="pattern-stats"></div>
     <div class="pattern-grid" id="pattern-grid"></div>
+    <button class="mgmt-add-btn" id="mgmt-add-btn" onclick="openPatternEditor(null)">＋ 新增花色</button>
+    <div class="mgmt-export" id="mgmt-export">
+      <button class="btn-sm outline" onclick="exportPatternConfig()">💾 导出更新配置</button>
+      <span style="font-size:11px;color:var(--text-secondary);margin-left:8px;">本地修改保存后，导出文件发给小布部署</span>
+    </div>
   </div>
 
   <!-- ===== 培训资料 ===== -->
@@ -742,11 +810,15 @@ async function loadConfig() {
     configVersion = cfg.version || '1.0';
     trainingData = cfg.trainingData || [];
     patternData = cfg.patternData || { brands: {} };
+    // Store base data for management merge
+    window._basePatternData = JSON.parse(JSON.stringify(patternData));
+    patternData = getMergedPatternData(); // apply localStorage edits
     sopData = cfg.sopData || [];
     bulletinData = cfg.bulletinData || [];
     toolsData = cfg.toolsData || [];
     quizData = cfg.quizData || [];
     scheduleData = cfg.scheduleData || {};
+    window._fullConfig = cfg; // for export
     document.getElementById('config-version').textContent = 'v' + configVersion;
     document.getElementById('config-update').textContent = cfg.lastUpdate || '';
     updateStats();
@@ -759,10 +831,11 @@ async function loadConfig() {
 
 function updateStats() {
   document.getElementById('stat-training').textContent = trainingData.length;
-  // Count total patterns across all brands
+  // Count total patterns (use merged data for management edits)
+  const pd = getMergedPatternData();
   let totalPatterns = 0;
-  if (patternData.brands) {
-    Object.values(patternData.brands).forEach(brand => {
+  if (pd.brands) {
+    Object.values(pd.brands).forEach(brand => {
       Object.values(brand).forEach(items => { totalPatterns += items.length; });
     });
   }
@@ -1328,6 +1401,9 @@ function setPatternColor(c) {
 }
 
 function renderPatterns() {
+  // Apply management edits
+  patternData = getMergedPatternData();
+
   let items = getFilteredItems(patternBrand, patternType, patternSeries);
 
   // 色系筛选
@@ -1356,10 +1432,22 @@ function renderPatterns() {
     return;
   }
 
-  grid.innerHTML = items.map(p => {
+  // Build image data for lightbox
+  window._lbImages = {};
+
+  grid.innerHTML = items.map((p, idx) => {
     let imgHtml = '';
+    const images = [];  // [{src, type, hint}]
     const hasEye = p.eyeImg && p.eyeImg.trim() !== '';
     const hasLens = p.lensImg && p.lensImg.trim() !== '';
+    
+    if (hasEye) {
+      images.push({ src: p.eyeImg, type: 'eye', hint: '上眼效果' });
+    }
+    if (hasLens) {
+      images.push({ src: p.lensImg, type: 'lens', hint: '镜片图' });
+    }
+
     if (hasEye && hasLens) {
       imgHtml = `<img src="${escapeHtml(p.eyeImg)}" class="img-eye" alt="${escapeHtml(p.name)} 上眼图" loading="lazy">
                  <img src="${escapeHtml(p.lensImg)}" class="img-lens" alt="${escapeHtml(p.name)} 镜片图" loading="lazy">`;
@@ -1371,8 +1459,13 @@ function renderPatterns() {
       imgHtml = `<div class="img-placeholder"><span>👁️</span>暂无图片</div>`;
     }
 
-    let clickSrc = hasEye ? p.eyeImg : (hasLens ? p.lensImg : '');
-    let clickHint = hasEye && hasLens ? '上眼效果' : (hasEye ? '上眼效果' : (hasLens ? '镜片图' : ''));
+    const lbKey = 'pi' + idx;
+    window._lbImages[lbKey] = images;
+
+    // Store full pattern data for management
+    const pkey = patternBrand + '::' + patternType + '::' + p.name;
+    window._patternRefs = window._patternRefs || {};
+    window._patternRefs[pkey] = { brand: patternBrand, type: patternType, ...p };
 
     const specs = [];
     if (p.material) specs.push('材质 ' + p.material);
@@ -1383,9 +1476,13 @@ function renderPatterns() {
     if (p.spec) specs.push(p.spec);
 
     return `<div class="pattern-card">
-      <div class="pcard-img"${clickSrc ? ` onclick="openLightbox('${escapeAttr(clickSrc)}','${escapeAttr(clickHint)}')" style="cursor:pointer"` : ''}>
+      <div class="pcard-img"${images.length ? ` onclick="openLightbox(window._lbImages['${lbKey}'])" style="cursor:pointer"` : ''}>
         ${imgHtml}
         <div class="pcard-brand-tag">${escapeHtml(patternBrand)}</div>
+      </div>
+      <div class="pcard-mgmt">
+        <button class="btn-edit" title="编辑" onclick="event.stopPropagation();openPatternEditor(window._patternRefs['${escapeAttr(pkey)}'])">✏️</button>
+        <button class="btn-del" title="删除" onclick="event.stopPropagation();deletePattern('${escapeAttr(patternBrand)}','${escapeAttr(patternType)}','${escapeAttr(p.name)}')">🗑️</button>
       </div>
       <div class="pcard-body">
         <div class="pcard-title-row">
@@ -1426,15 +1523,338 @@ function copyPatternScript(btn, text) {
   });
 }
 
+// ==================== PATTERN MANAGEMENT ====================
+let mgmtMode = false;
+const MGMT_KEY = 'kf_pattern_edits';  // localStorage key
+
+function toggleMgmtMode() {
+  mgmtMode = !mgmtMode;
+  const btn = document.getElementById('mgmt-toggle');
+  btn.textContent = mgmtMode ? '✅ 管理模式' : '📝 管理素材';
+  btn.classList.toggle('active', mgmtMode);
+  document.getElementById('page-patterns').classList.toggle('mgmt-mode', mgmtMode);
+  renderPatterns();
+}
+
+// Load saved edits from localStorage
+function loadPatternEdits() {
+  try {
+    return JSON.parse(localStorage.getItem(MGMT_KEY) || '{}');
+  } catch(e) { return {}; }
+}
+
+function savePatternEdits(edits) {
+  localStorage.setItem(MGMT_KEY, JSON.stringify(edits));
+}
+
+// Merge edits onto base config data
+function getMergedPatternData() {
+  const edits = loadPatternEdits();
+  const base = JSON.parse(JSON.stringify(window._basePatternData || patternData));
+  // Apply adds
+  const added = edits._added || [];
+  added.forEach(add => {
+    const b = add.brand, t = add.type;
+    if (!base.brands[b]) base.brands[b] = {};
+    if (!base.brands[b][t]) base.brands[b][t] = [];
+    base.brands[b][t].push(add.data);
+  });
+  // Apply edits
+  const modified = edits._modified || {};
+  Object.keys(modified).forEach(key => {
+    const [brand, type, name] = key.split('::');
+    const arr = base.brands[brand] && base.brands[brand][type];
+    if (!arr) return;
+    const idx = arr.findIndex(p => p.name === name);
+    if (idx >= 0) Object.assign(arr[idx], modified[key]);
+  });
+  // Apply deletes
+  const deleted = edits._deleted || [];
+  deleted.forEach(key => {
+    const [brand, type, name] = key.split('::');
+    const arr = base.brands[brand] && base.brands[brand][type];
+    if (!arr) return;
+    const idx = arr.findIndex(p => p.name === name);
+    if (idx >= 0) arr.splice(idx, 1);
+  });
+  return base;
+}
+
+// Open editor: pattern is null for new, or the full pattern object with brand/type
+function openPatternEditor(pattern) {
+  const isNew = !pattern;
+  document.getElementById('mod-pattern-title').textContent = isNew ? '＋ 新增花色' : '✏️ 编辑花色';
+  
+  // Store editing state
+  window._editPattern = pattern ? {
+    brand: pattern.brand,
+    type: pattern.type,
+    name: pattern.name,
+    isNew: false
+  } : { brand: '', type: '', name: '', isNew: true };
+  
+  // Build image list
+  window._editImages = [];
+  if (!isNew) {
+    if (pattern.eyeImg && pattern.eyeImg.trim()) {
+      window._editImages.push({ type: 'eye', url: pattern.eyeImg, hint: '上眼效果' });
+    }
+    if (pattern.lensImg && pattern.lensImg.trim()) {
+      window._editImages.push({ type: 'lens', url: pattern.lensImg, hint: '镜片图' });
+    }
+  }
+
+  renderEditorForm(pattern);
+  document.getElementById('mod-pattern').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function renderEditorForm(pattern) {
+  const t = pattern || {};
+  const b = window._editPattern || {};
+  const brands = Object.keys((window._basePatternData || patternData).brands);
+  const types = ['日抛', '月抛', '季抛', '半年抛', '年抛'];
+  
+  // Image manager HTML
+  let imgsHtml = '';
+  window._editImages.forEach((img, i) => {
+    imgsHtml += `<div class="img-mgr-item">
+      ${img.url ? `<img src="${escapeHtml(img.url)}" alt="" onerror="this.style.display='none'">` : '<div style="height:72px;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:20px;">🖼️</div>'}
+      <span class="img-mgr-item-badge">${img.hint}</span>
+      <button class="img-mgr-item-del" title="删除" onclick="removeEditImage(${i})">✕</button>
+    </div>`;
+  });
+  if (!imgsHtml) imgsHtml = '<div class="empty-hint">暂无图片，下方添加</div>';
+
+  let html = '';
+  // For new: show brand/type selectors
+  if (b.isNew) {
+    html += `<div class="modal-field-row">
+      <div class="modal-field">
+        <label>品牌</label>
+        <select id="ef-brand">${brands.map(br => `<option value="${br}">${br}</option>`).join('')}</select>
+      </div>
+      <div class="modal-field">
+        <label>抛型</label>
+        <select id="ef-type">${types.map(ty => `<option value="${ty}">${ty}</option>`).join('')}</select>
+      </div>
+    </div>`;
+  }
+  html += `
+    <div class="modal-field">
+      <label>花色名称 ${b.isNew ? '' : '<span style="color:#e17055;">(只读)</span>'}</label>
+      <input id="ef-name" value="${escapeHtml(t.name || '')}" ${b.isNew ? '' : 'readonly'}>
+    </div>
+    <div class="modal-field-row">
+      <div class="modal-field">
+        <label>系列</label>
+        <input id="ef-series" value="${escapeHtml(t.series || '')}">
+      </div>
+      <div class="modal-field">
+        <label>色系</label>
+        <select id="ef-color">
+          ${['棕色系','黑灰色系','蓝色系','绿色系','粉色系','紫色系','灰色系','混血色'].map(c => `<option value="${c}"${(t.color||'')===c?' selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="modal-field-row">
+      <div class="modal-field">
+        <label>直径</label>
+        <input id="ef-diameter" value="${escapeHtml(t.diameter || '')}" placeholder="14.2mm">
+      </div>
+      <div class="modal-field">
+        <label>着色直径</label>
+        <input id="ef-cdiam" value="${escapeHtml(t.colorDiameter || '')}" placeholder="13.5">
+      </div>
+    </div>
+    <div class="modal-field-row">
+      <div class="modal-field">
+        <label>材质</label>
+        <input id="ef-material" value="${escapeHtml(t.material || '')}" placeholder="硅水凝胶">
+      </div>
+      <div class="modal-field">
+        <label>透氧量</label>
+        <input id="ef-oxygen" value="${escapeHtml(t.oxygen || '')}" placeholder="100dk">
+      </div>
+    </div>
+    <div class="modal-field-row">
+      <div class="modal-field">
+        <label>含水量</label>
+        <input id="ef-water" value="${escapeHtml(t.water || '')}" placeholder="58%">
+      </div>
+      <div class="modal-field">
+        <label>规格</label>
+        <input id="ef-spec" value="${escapeHtml(t.spec || '')}" placeholder="6片/盒">
+      </div>
+    </div>
+    <div class="modal-field">
+      <label>推荐话术</label>
+      <textarea id="ef-desc">${escapeHtml(t.description || '')}</textarea>
+    </div>
+    <!-- Image manager -->
+    <div class="img-mgr">
+      <h4>🖼️ 图片管理</h4>
+      <div class="img-mgr-grid" id="img-mgr-grid">${imgsHtml}</div>
+      <div class="img-add-row">
+        <input id="img-add-url" placeholder="图片URL..." style="flex:1;">
+        <select id="img-add-type" style="width:100px;">
+          <option value="eye">上眼图</option>
+          <option value="lens">镜片图</option>
+        </select>
+        <button class="btn-sm primary" onclick="addEditImage()">＋ 添加</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('mod-pattern-body').innerHTML = html;
+}
+
+function addEditImage() {
+  const url = document.getElementById('img-add-url').value.trim();
+  if (!url) { alert('请输入图片URL'); return; }
+  const type = document.getElementById('img-add-type').value;
+  const hint = type === 'eye' ? '上眼效果' : '镜片图';
+  window._editImages.push({ type, url, hint });
+  document.getElementById('img-add-url').value = '';
+  // Re-render image grid
+  renderEditorForm(window._editPattern);
+}
+
+function removeEditImage(idx) {
+  window._editImages.splice(idx, 1);
+  renderEditorForm(window._editPattern);
+}
+
+function savePattern() {
+  const b = window._editPattern;
+  const data = {
+    name: document.getElementById('ef-name').value.trim(),
+    series: document.getElementById('ef-series').value.trim(),
+    color: document.getElementById('ef-color').value,
+    diameter: document.getElementById('ef-diameter').value.trim(),
+    colorDiameter: document.getElementById('ef-cdiam').value.trim(),
+    material: document.getElementById('ef-material').value.trim(),
+    oxygen: document.getElementById('ef-oxygen').value.trim(),
+    water: document.getElementById('ef-water').value.trim(),
+    spec: document.getElementById('ef-spec').value.trim(),
+    description: document.getElementById('ef-desc').value.trim(),
+    // eyeImg / lensImg from images array
+    eyeImg: window._editImages.filter(i => i.type === 'eye').map(i => i.url)[0] || '',
+    lensImg: window._editImages.filter(i => i.type === 'lens').map(i => i.url)[0] || '',
+  };
+  
+  if (!data.name) { alert('请输入花色名称'); return; }
+
+  const edits = loadPatternEdits();
+  
+  if (b.isNew) {
+    // New pattern
+    const brand = document.getElementById('ef-brand').value;
+    const type = document.getElementById('ef-type').value;
+    data.brand = brand; data.type = type;
+    const added = edits._added || [];
+    // Check duplicate
+    if (added.some(a => a.brand === brand && a.type === type && a.data.name === data.name)) {
+      alert('该花色已存在'); return;
+    }
+    // Also check base data
+    const base = window._basePatternData || patternData;
+    const baseArr = base.brands[brand] && base.brands[brand][type];
+    if (baseArr && baseArr.some(p => p.name === data.name)) {
+      alert('该花色在基础数据中已存在，请使用编辑功能'); return;
+    }
+    added.push({ brand, type, data });
+    edits._added = added;
+  } else {
+    // Edit existing - store in _modified
+    const key = b.brand + '::' + b.type + '::' + b.name;
+    const modified = edits._modified || {};
+    modified[key] = data;
+    edits._modified = modified;
+  }
+
+  savePatternEdits(edits);
+  
+  closeModal('mod-pattern');
+  renderPatterns();
+  showToast('✅ 已保存到本地，记得导出配置发给小布部署');
+}
+
+function deletePattern(brand, type, name) {
+  if (!confirm('确定要删除「' + name + '」吗？\n此操作仅存储在本地，导出部署后生效。')) return;
+  
+  const edits = loadPatternEdits();
+  const key = brand + '::' + type + '::' + name;
+  
+  // Check if it was a previously added item
+  const added = edits._added || [];
+  const addIdx = added.findIndex(a => a.brand === brand && a.type === type && a.data.name === name);
+  if (addIdx >= 0) {
+    added.splice(addIdx, 1);
+    edits._added = added;
+  } else {
+    const deleted = edits._deleted || [];
+    if (!deleted.includes(key)) deleted.push(key);
+    edits._deleted = deleted;
+    // Also remove from modified if present
+    if (edits._modified) delete edits._modified[key];
+  }
+
+  savePatternEdits(edits);
+  
+  renderPatterns();
+  showToast('🗑️ 已标记删除（本地），导出部署后生效');
+}
+
+function exportPatternConfig() {
+  const merged = getMergedPatternData();
+  // Build full config for download
+  const fullCfg = JSON.parse(JSON.stringify(window._fullConfig || {}));
+  fullCfg.patternData = merged;
+  fullCfg.lastUpdate = new Date().toISOString().split('T')[0];
+  
+  const blob = new Blob([JSON.stringify(fullCfg, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'config-更新_' + new Date().toISOString().split('T')[0] + '.json';
+  a.click();
+  showToast('💾 config.json 已下载，发给小布部署即可');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+  document.body.style.overflow = '';
+}
+
 // ==================== LIGHTBOX ====================
+let lightboxImages = [];  // [{src, type:'eye'|'lens', hint}]
+let lightboxIdx = 0;
 let lightboxImgSrc = '';
 
-function openLightbox(src, hint) {
-  lightboxImgSrc = src;
-  document.getElementById('lightbox-img').src = src;
-  document.getElementById('lightbox-hint').textContent = hint || '';
+function openLightbox(images) {
+  if (!Array.isArray(images) || images.length === 0) return;
+  lightboxImages = images;
+  lightboxIdx = 0;
+  showLightboxImage();
   document.getElementById('lightbox').classList.add('show');
   document.body.style.overflow = 'hidden';
+}
+
+function showLightboxImage() {
+  const img = lightboxImages[lightboxIdx];
+  document.getElementById('lightbox-img').src = img.src;
+  document.getElementById('lightbox-counter').textContent =
+    lightboxImages.length > 1 ? (lightboxIdx + 1) + ' / ' + lightboxImages.length : '';
+  document.getElementById('lightbox-type-tag').textContent = img.hint || '';
+  document.getElementById('lightbox-prev').disabled = lightboxIdx === 0;
+  document.getElementById('lightbox-next').disabled = lightboxIdx === lightboxImages.length - 1;
+  lightboxImgSrc = img.src;
+}
+
+function navLightbox(dir) {
+  const newIdx = lightboxIdx + dir;
+  if (newIdx < 0 || newIdx >= lightboxImages.length) return;
+  lightboxIdx = newIdx;
+  showLightboxImage();
 }
 
 function closeLightbox() {
@@ -1462,6 +1882,14 @@ function downloadLightboxImg() {
   a.download = lightboxImgSrc.split('/').pop() || 'image.jpg';
   a.click();
 }
+
+// Keyboard support for lightbox
+document.addEventListener('keydown', function(e) {
+  if (!document.getElementById('lightbox').classList.contains('show')) return;
+  if (e.key === 'ArrowLeft') { e.preventDefault(); navLightbox(-1); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); navLightbox(1); }
+  else if (e.key === 'Escape') { closeLightbox(); }
+});
 
 // ==================== TRAINING ====================
 let trainingFilter = '全部';
@@ -1738,10 +2166,30 @@ async function init() {
 init();
 </script>
 
+<!-- Pattern Editor Modal -->
+<div class="modal-overlay" id="mod-pattern" onclick="closeModal('mod-pattern')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="mod-pattern-title">✏️ 编辑花色</h3>
+      <button class="modal-close" onclick="closeModal('mod-pattern')">✕</button>
+    </div>
+    <div class="modal-body" id="mod-pattern-body"></div>
+    <div class="modal-footer">
+      <button class="btn-sm outline" onclick="closeModal('mod-pattern')">取消</button>
+      <button class="btn-sm primary" id="mod-pattern-save" onclick="savePattern()">💾 保存到本地</button>
+    </div>
+  </div>
+</div>
+
 <!-- Lightbox -->
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
-  <img id="lightbox-img" src="" alt="" />
-  <div class="lightbox-hint" id="lightbox-hint"></div>
+  <div class="lightbox-counter" id="lightbox-counter"></div>
+  <div class="lightbox-type-tag" id="lightbox-type-tag"></div>
+  <div class="lightbox-img-wrap" onclick="event.stopPropagation()">
+    <button class="lightbox-nav lightbox-prev" id="lightbox-prev" onclick="event.stopPropagation();navLightbox(-1)">‹</button>
+    <img id="lightbox-img" src="" alt="" />
+    <button class="lightbox-nav lightbox-next" id="lightbox-next" onclick="event.stopPropagation();navLightbox(1)">›</button>
+  </div>
   <button class="lightbox-close" onclick="closeLightbox()">✕</button>
   <div class="lightbox-actions">
     <button class="lightbox-btn" onclick="event.stopPropagation();copyLightboxImg()">📋 复制图片</button>
