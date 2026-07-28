@@ -350,17 +350,17 @@ body {
 .quick-input-row { margin:10px 0; }
 .quick-input-row input { width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px; font-family:inherit; }
 .quick-input-row input:focus { border-color:#7ba7a6; outline:none; }
-.eyes-row-cvt { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
-.eye-card-cvt { background:#fff; border-radius:10px; padding:10px 12px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
-.eye-card-title-cvt { font-size:13px; font-weight:600; color:#3d5a4d; margin-bottom:6px; text-align:center; padding-bottom:4px; border-bottom:1px solid #f0e8e0; }
-.eye-input-row-cvt { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
-.eye-input-row-cvt label { font-size:11px; color:var(--text-secondary); width:38px; flex-shrink:0; }
-.btn-adjust { width:26px; height:26px; border:1px solid var(--border); background:#fff; color:#7ba7a6; font-size:14px; border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.06); flex-shrink:0; font-family:inherit; }
+.eyes-row-cvt { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+.eye-card-cvt { background:#fff; border-radius:10px; padding:8px 10px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+.eye-card-title-cvt { font-size:12px; font-weight:600; color:#3d5a4d; margin-bottom:4px; text-align:center; padding-bottom:3px; border-bottom:1px solid #f0e8e0; }
+.eye-input-row-cvt { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+.eye-input-row-cvt label { font-size:11px; color:var(--text-secondary); width:36px; flex-shrink:0; }
+.btn-adjust { width:24px; height:24px; border:1px solid var(--border); background:#fff; color:#7ba7a6; font-size:13px; border-radius:4px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.06); flex-shrink:0; font-family:inherit; }
 .btn-adjust:active { background:#f1f5f4; }
-.degree-input-cvt { width:54px; height:26px; border:1px solid var(--border); border-radius:5px; color:var(--text); font-size:13px; text-align:center; font-family:inherit; flex-shrink:0; }
+.degree-input-cvt { width:52px; height:24px; border:1px solid var(--border); border-radius:4px; color:var(--text); font-size:13px; text-align:center; font-family:inherit; flex-shrink:0; }
 .degree-input-cvt:focus { outline:none; border-color:#7ba7a6; }
-.eye-result-cvt { text-align:center; font-size:11px; color:var(--text-secondary); margin-top:4px; }
-.eye-result-cvt span { color:#7ba7a6; font-weight:600; font-size:16px; }
+.eye-result-cvt { text-align:center; font-size:11px; color:var(--text-secondary); margin-top:2px; }
+.eye-result-cvt span { color:#7ba7a6; font-weight:600; font-size:15px; }
 .eye-warning-cvt { display:none; color:#E17055; font-size:10px; text-align:center; margin-top:2px; }
 .final-result-box-cvt { background:#7ba7a6; border-radius:12px; padding:12px; color:#fff; text-align:center; margin-bottom:12px; }
 .final-result-box-cvt .label-cvt { font-size:11px; opacity:0.9; margin-bottom:2px; }
@@ -385,6 +385,26 @@ body {
 .clear-btn-cvt { padding:3px 10px; background:#fff; border:1px solid var(--border); color:var(--text-secondary); border-radius:12px; font-size:11px; cursor:pointer; font-family:inherit; }
 .clear-btn-cvt:hover { background:#f1f5f4; color:#7ba7a6; border-color:#7ba7a6; }
 .notes-cvt { background:#fff; border-radius:10px; padding:10px; font-size:11px; color:var(--text-secondary); line-height:1.7; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+
+/* 三栏布局 */
+.cvt-layout { display:flex; gap:14px; align-items:flex-start; max-width:960px; margin:0 auto; }
+.cvt-side { width:200px; flex-shrink:0; display:flex; flex-direction:column; gap:10px; }
+.cvt-main { flex:1; min-width:300px; max-width:440px; }
+.cvt-side-card { background:#fff; border-radius:10px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+.cvt-side-card h4 { font-size:13px; font-weight:600; color:#3d5a4d; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+.cvt-side-card p, .cvt-side-card li { font-size:11px; color:var(--text-secondary); line-height:1.7; }
+.cvt-side-card ul { padding-left:14px; margin:0; }
+.cvt-side-card .highlight { background:#f0fdf4; border-left:3px solid #7ba7a6; padding:6px 8px; border-radius:0 6px 6px 0; margin:6px 0; font-size:11px; color:#3d5a4d; }
+.cvt-deco { text-align:center; padding:20px 8px; font-size:40px; opacity:0.15; user-select:none; pointer-events:none; }
+.cvt-deco-sm { text-align:center; padding:8px; font-size:28px; opacity:0.1; user-select:none; pointer-events:none; }
+
+@media (max-width:860px) {
+  .cvt-layout { flex-direction:column; }
+  .cvt-side { width:100%; flex-direction:row; flex-wrap:wrap; gap:8px; }
+  .cvt-side-card { flex:1; min-width:150px; }
+  .cvt-main { max-width:100%; }
+  .cvt-deco, .cvt-deco-sm { display:none; }
+}
 .notes-title-cvt { font-weight:600; color:#3d5a4d; margin-bottom:6px; font-size:13px; }
 @media (max-width:768px) { .eyes-row-cvt { grid-template-columns:1fr; } }
 
@@ -461,6 +481,32 @@ body {
       </div>
     </div>
 
+    <div class="cvt-layout">
+      <!-- 左侧装饰 -->
+      <div class="cvt-side">
+        <div class="cvt-deco">👁️</div>
+        <div class="cvt-side-card">
+          <h4>📖 换算规则</h4>
+          <ul>
+            <li>低于400度无需换算</li>
+            <li>400~500度 减25</li>
+            <li>500~700度 减50</li>
+            <li>700度以上 减70</li>
+          </ul>
+          <div class="highlight">美瞳最高800度</div>
+        </div>
+        <div class="cvt-side-card">
+          <h4>💡 小贴士</h4>
+          <p>• 散光超150度建议配散光定制片</p>
+          <p>• 低度散光可折半加入球镜</p>
+          <p>• 测算前建议先专业验光</p>
+        </div>
+        <div class="cvt-deco-sm">🔄</div>
+      </div>
+
+      <!-- 中间主体 -->
+      <div class="cvt-main">
+
     <div class="brand-switch-cvt">
       <button class="brand-btn-cvt active" onclick="switchBrand('弥生')">弥生</button>
       <button class="brand-btn-cvt" onclick="switchBrand('极氧')">极氧</button>
@@ -494,7 +540,7 @@ body {
       <input type="text" id="quickInput" placeholder="如：550 75 600 50 或 右眼250 散光100">
     </div>
 
-    <!-- 左右眼 -->
+    <!-- 左右眼（竖版） -->
     <div class="eyes-row-cvt">
       <div class="eye-card-cvt">
         <div class="eye-card-title-cvt">👁️ 右眼</div>
@@ -550,8 +596,23 @@ body {
       <div class="screenshot-hint-cvt" id="screenshot-hint"></div>
     </div>
 
-    <!-- 换算说明 -->
-    <div class="notes-cvt">
+      </div><!-- /cvt-main -->
+
+      <!-- 右侧装饰 -->
+      <div class="cvt-side">
+        <div class="cvt-deco-sm">✨</div>
+        <div class="cvt-side-card">
+          <h4>🔢 标准度数表</h4>
+          <p style="font-size:10px;line-height:2;columns:2;">
+            0 · 100 · 125 · 150 · 175 · 200 · 225 · 250 · 275 · 300 · 325 · 350 · 375 · 400 · 425 · 450 · 475 · 500 · 525 · 550 · 575 · 600 · 650 · 700 · 750 · 800
+          </p>
+        </div>
+        <div class="cvt-deco">💜</div>
+      </div>
+    </div><!-- /cvt-layout -->
+
+    <!-- 换算说明（底部保留一份，小屏时显示） -->
+    <div class="notes-cvt" style="margin-top:14px;">
       <div class="notes-title-cvt">换算说明</div>
       <div>1. 没有近视/平光选择0度</div>
       <div>2. 双眼低于400近视无需换算</div>
