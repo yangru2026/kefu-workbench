@@ -496,6 +496,7 @@ body {
 .log-result-row .value.date { color:#e17055; font-size:16px; }
 .log-result-row .value.fee { color:#e17055; font-size:16px; font-weight:700; }
 .log-result-row .value.fee.free { color:#27ae60; }
+.log-ref-note { font-size:11px; color:#999; margin-left:8px; white-space:nowrap; }
 .log-result-note { margin-top:10px; padding:10px 12px; background:#fff; border-radius:8px; font-size:12px; color:var(--text-secondary); line-height:1.6; }
 .log-result-note strong { color:var(--text); }
 .log-express-tag { display:inline-block; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:600; margin-left:6px; }
@@ -2637,8 +2638,8 @@ init();
       <div class="log-result-title" id="log-result-title"></div>
       <div class="log-result-row"><span class="label">快递方式</span><span class="value" id="log-res-express"></span></div>
       <div class="log-result-row"><span class="label">运输距离</span><span class="value" id="log-res-distance"></span></div>
-      <div class="log-result-row"><span class="label">预计时效</span><span class="value days" id="log-res-days"></span></div>
-      <div class="log-result-row"><span class="label">预计送达</span><span class="value date" id="log-res-date"></span></div>
+      <div class="log-result-row"><span class="label">预计时效</span><span class="value days" id="log-res-days"></span><span class="log-ref-note">仅供参考，不作承诺</span></div>
+      <div class="log-result-row"><span class="label">预计送达</span><span class="value date" id="log-res-date"></span><span class="log-ref-note">仅供参考，不作承诺</span></div>
       <div class="log-result-row"><span class="label">补运费</span><span class="value fee" id="log-res-fee"></span></div>
       <div class="log-result-note" id="log-res-note"></div>
     </div>
