@@ -106,14 +106,21 @@ function switchLoginTab(tab) {
 }
 
 async function doLogin() {
+  if (!supabase) { showToast('系统初始化中，请稍后再试'); return; }
   const phone = document.getElementById('login-phone').value.trim();
   const password = document.getElementById('login-password').value;
   if (!phone || !password) { showToast('请填写手机号和密码'); return; }
-  const ok = await signIn(phone, password);
-  if (ok) switchPage('home');
+  try {
+    const ok = await signIn(phone, password);
+    if (ok) switchPage('home');
+  } catch(e) {
+    showToast('登录失败：' + (e.message || '网络错误'));
+    console.error(e);
+  }
 }
 
 async function doRegister() {
+  if (!supabase) { showToast('系统初始化中，请稍后再试'); return; }
   const name = document.getElementById('reg-name').value.trim();
   const phone = document.getElementById('reg-phone').value.trim();
   const password = document.getElementById('reg-password').value;
@@ -121,8 +128,13 @@ async function doRegister() {
   if (!name || !phone || !password) { showToast('请填写完整信息'); return; }
   if (password !== password2) { showToast('两次密码不一致'); return; }
   if (password.length < 6) { showToast('密码至少6位'); return; }
-  const ok = await signUp(name, phone, password);
-  if (ok) switchLoginTab('login');
+  try {
+    const ok = await signUp(name, phone, password);
+    if (ok) switchLoginTab('login');
+  } catch(e) {
+    showToast('注册失败：' + (e.message || '网络错误'));
+    console.error(e);
+  }
 }
 
 // ---------- 日报 ----------
