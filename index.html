@@ -91,6 +91,13 @@ body {
 .sidebar-user .user-dot { width: 6px; height: 6px; border-radius: 50%; background: #00b894; flex-shrink: 0; }
 .sidebar-user .user-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+.visitor-stats { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+.vs-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
+.vs-row:last-child { margin-bottom: 0; }
+.vs-icon { width: 18px; text-align: center; }
+.vs-label { flex: 1; }
+.vs-num { font-weight: 700; color: rgba(255,255,255,0.65); font-variant-numeric: tabular-nums; }
+
 /* Main */
 .main {
   margin-left: 220px;
@@ -626,7 +633,7 @@ body {
 /* Responsive */
 @media (max-width: 768px) {
   .sidebar { width: 60px; }
-  .sidebar-header h2, .sidebar-header .sub, .nav-section, .nav-item span:not(.icon), .sidebar-user { display: none; }
+  .sidebar-header h2, .sidebar-header .sub, .nav-section, .nav-item span:not(.icon), .sidebar-user, .visitor-stats { display: none; }
   .sidebar-header { padding: 16px 0; text-align: center; }
   .sidebar-header::after { content: '💜'; font-size: 20px; }
   .main { margin-left: 60px; }
@@ -661,6 +668,10 @@ body {
   <div class="sidebar-user" id="sidebar-user" onclick="setVisitorName()">
     <span class="user-dot"></span>
     <span class="user-label" id="visitor-name">访客</span>
+  </div>
+  <div class="visitor-stats" id="visitor-stats">
+    <div class="vs-row"><span class="vs-icon">👁</span><span class="vs-label">总访问</span><span class="vs-num" id="vs-total">-</span></div>
+    <div class="vs-row"><span class="vs-icon">📅</span><span class="vs-label">今日</span><span class="vs-num" id="vs-today">-</span></div>
   </div>
   <div class="sidebar-footer"><span id="config-version">加载中...</span> · 更新于 <span id="config-update">-</span> · 小布出品</div>
 </aside>
@@ -994,6 +1005,7 @@ async function loadConfig() {
     document.getElementById('config-version').textContent = 'v' + configVersion;
     document.getElementById('config-update').textContent = cfg.lastUpdate || '';
     updateStats();
+    loadVisitorStats();
     console.log('配置加载成功 v' + configVersion + ' | 更新于 ' + (cfg.lastUpdate || ''));
   } catch (e) {
     console.error('配置加载失败，使用默认数据', e);
@@ -1014,6 +1026,22 @@ function updateStats() {
   document.getElementById('stat-patterns').textContent = totalPatterns || 0;
   document.getElementById('stat-sop').textContent = sopData.length;
   document.getElementById('stat-tools').textContent = toolsData.length;
+}
+
+// ==================== VISITOR STATS ====================
+async function loadVisitorStats() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const [totalRes, todayRes] = await Promise.all([
+      fetch('https://api.countapi.xyz/hit/yangru-kefu/workbench').then(r => r.json()),
+      fetch('https://api.countapi.xyz/hit/yangru-kefu/workbench-' + today).then(r => r.json())
+    ]);
+    document.getElementById('vs-total').textContent = (totalRes.value || 0).toLocaleString();
+    document.getElementById('vs-today').textContent = (todayRes.value || 0).toLocaleString();
+  } catch (e) {
+    document.getElementById('vs-total').textContent = '-';
+    document.getElementById('vs-today').textContent = '-';
+  }
 }
 
 // ==================== NAVIGATION ====================
