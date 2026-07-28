@@ -2188,6 +2188,43 @@
       "type": "logistics"
     }
   ],
+  "rankingData": {
+    "groups": [
+      {
+        "name": "A组",
+        "members": [
+          { "name": "林小梅", "conversion": 38.2, "crossSales": 18600, "satisfaction": 4.9, "response": 22 },
+          { "name": "张雨晴", "conversion": 35.7, "crossSales": 17200, "satisfaction": 4.8, "response": 26 },
+          { "name": "陈思思", "conversion": 33.1, "crossSales": 14900, "satisfaction": 4.7, "response": 31 },
+          { "name": "王丽丽", "conversion": 30.5, "crossSales": 13500, "satisfaction": 4.6, "response": 35 },
+          { "name": "赵小雪", "conversion": 28.8, "crossSales": 12100, "satisfaction": 4.5, "response": 40 },
+          { "name": "周婷", "conversion": 26.3, "crossSales": 10800, "satisfaction": 4.4, "response": 45 }
+        ]
+      },
+      {
+        "name": "B组",
+        "members": [
+          { "name": "黄莉莉", "conversion": 37.5, "crossSales": 19500, "satisfaction": 4.9, "response": 20 },
+          { "name": "吴芳", "conversion": 34.2, "crossSales": 16300, "satisfaction": 4.8, "response": 28 },
+          { "name": "孙燕", "conversion": 31.8, "crossSales": 14200, "satisfaction": 4.6, "response": 33 },
+          { "name": "马晓敏", "conversion": 29.1, "crossSales": 12500, "satisfaction": 4.5, "response": 38 },
+          { "name": "朱文文", "conversion": 25.6, "crossSales": 10200, "satisfaction": 4.3, "response": 48 }
+        ]
+      },
+      {
+        "name": "C组",
+        "members": [
+          { "name": "李佳佳", "conversion": 36.8, "crossSales": 17800, "satisfaction": 4.8, "response": 25 },
+          { "name": "郑小雅", "conversion": 33.9, "crossSales": 15600, "satisfaction": 4.7, "response": 29 },
+          { "name": "何欣", "conversion": 32.2, "crossSales": 13800, "satisfaction": 4.6, "response": 34 },
+          { "name": "刘梦", "conversion": 29.7, "crossSales": 11800, "satisfaction": 4.5, "response": 37 },
+          { "name": "许倩", "conversion": 27.4, "crossSales": 10400, "satisfaction": 4.4, "response": 42 },
+          { "name": "沈丽", "conversion": 24.8, "crossSales": 9100, "satisfaction": 4.2, "response": 52 }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-07-28"
+  },
   "quizData": [
     {
       "question": "框架眼镜度数 -5.00，换算成美瞳度数应为？",

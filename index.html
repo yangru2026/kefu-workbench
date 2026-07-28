@@ -506,6 +506,42 @@ body {
 @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 @media (max-width:560px) { .logistics-box { padding:20px; width:94%; } }
 
+/* ===== Ranking ===== */
+.ranking-groups { display:flex; gap:10px; margin-bottom:20px; }
+.rank-group-btn { padding:8px 28px; border:2px solid var(--border); border-radius:22px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; background:#fff; color:var(--text-secondary); transition:all 0.15s; }
+.rank-group-btn:hover { border-color:var(--primary); color:var(--primary); }
+.rank-group-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.ranking-meta { font-size:12px; color:var(--text-secondary); margin-bottom:16px; }
+.ranking-table-wrap { background:#fff; border-radius:14px; border:1px solid var(--border); overflow:hidden; }
+.ranking-table { width:100%; border-collapse:collapse; font-size:14px; }
+.ranking-table thead { background:#faf8ff; }
+.ranking-table th { padding:12px 10px; text-align:left; font-weight:600; color:var(--text); font-size:13px; border-bottom:2px solid var(--border); white-space:nowrap; }
+.ranking-table th.sortable { cursor:pointer; user-select:none; }
+.ranking-table th.sortable:hover { color:var(--primary); }
+.ranking-table th.sortable.active { color:var(--primary); }
+.ranking-table th.col-rank { width:60px; text-align:center; }
+.ranking-table th.col-name { width:90px; }
+.ranking-table .sort-arrow { font-size:10px; margin-left:2px; color:#ccc; }
+.ranking-table th.sortable.active .sort-arrow { color:var(--primary); }
+.ranking-table td { padding:11px 10px; border-bottom:1px solid #f0edf5; color:var(--text); }
+.ranking-table td.col-rank { text-align:center; font-weight:700; }
+.ranking-table tr:hover td { background:#faf8ff; }
+.ranking-table .rank-badge { display:inline-flex; width:26px; height:26px; border-radius:50%; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; background:#999; }
+.ranking-table .rank-badge.top1 { background:linear-gradient(135deg,#f9ca24,#f0932b); }
+.ranking-table .rank-badge.top2 { background:linear-gradient(135deg,#b2bec3,#636e72); }
+.ranking-table .rank-badge.top3 { background:linear-gradient(135deg,#e17055,#d63031); }
+.ranking-table .col-crossSales { text-align:right; }
+.ranking-table .col-response { color:var(--text); }
+.ranking-table .col-response.fast { color:#27ae60; }
+.ranking-table tr.top-row td { background:#fdfcff; }
+.ranking-table tr.top-row td:first-child { border-left:3px solid var(--primary); }
+.ranking-table .highlight { font-weight:700; color:var(--primary); }
+@media (max-width:640px) {
+  .ranking-table { font-size:13px; }
+  .ranking-table th, .ranking-table td { padding:10px 6px; }
+  .rank-group-btn { padding:6px 18px; font-size:13px; }
+}
+
 /* ---- Management Panel ---- */
 .mgmt-toggle { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border:1px solid var(--primary); background:#fff; color:var(--primary); border-radius:18px; font-size:12px; cursor:pointer; font-family:inherit; font-weight:500; transition:all 0.15s; }
 .mgmt-toggle:hover { background:#f5f3fc; }
@@ -591,6 +627,7 @@ body {
     <div class="nav-item" data-page="bulletin"><span class="icon">📢</span><span>每日速报</span></div>
     <div class="nav-item" data-page="schedule"><span class="icon">📅</span><span>排班表</span></div>
     <div class="nav-item" data-page="tools"><span class="icon">🛠</span><span>快捷工具</span></div>
+    <div class="nav-item" data-page="ranking"><span class="icon">🏆</span><span>客服排名</span></div>
   </nav>
   <div class="sidebar-user" id="sidebar-user" onclick="setVisitorName()">
     <span class="user-dot"></span>
@@ -845,6 +882,32 @@ body {
     <div class="tool-list" id="tool-list"></div>
   </div>
 
+  <!-- ===== 客服排名 ===== -->
+  <div class="page" id="page-ranking">
+    <div class="page-header"><h1>🏆 客服排名</h1><p>A/B/C三组，按转化率/连带销售额/满意度/响应时效排名</p></div>
+    <div class="ranking-groups">
+      <button class="rank-group-btn active" data-group="0">A组</button>
+      <button class="rank-group-btn" data-group="1">B组</button>
+      <button class="rank-group-btn" data-group="2">C组</button>
+    </div>
+    <div class="ranking-meta" id="ranking-meta"></div>
+    <div class="ranking-table-wrap">
+      <table class="ranking-table">
+        <thead>
+          <tr>
+            <th class="col-rank">排名</th>
+            <th class="col-name">姓名</th>
+            <th class="sortable" data-key="conversion">转化率 <span class="sort-arrow"></span></th>
+            <th class="sortable" data-key="crossSales">连带销售额 <span class="sort-arrow"></span></th>
+            <th class="sortable" data-key="satisfaction">满意度 <span class="sort-arrow"></span></th>
+            <th class="sortable active asc" data-key="response">响应(秒) <span class="sort-arrow">▲</span></th>
+          </tr>
+        </thead>
+        <tbody id="ranking-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
 </main>
 
 <div class="toast" id="toast"></div>
@@ -863,6 +926,10 @@ let toolsData = [];
 let quizData = [];
 let scheduleData = {};
 let scheduleMonth = '';  // current viewing month 'YYYY-MM'
+let rankingData = { groups: [] };
+let rankGroupIdx = 0;
+let rankSortKey = 'response';
+let rankSortAsc = true;
 
 async function loadConfig() {
   try {
@@ -881,6 +948,7 @@ async function loadConfig() {
     toolsData = cfg.toolsData || [];
     quizData = cfg.quizData || [];
     scheduleData = cfg.scheduleData || {};
+    rankingData = cfg.rankingData || { groups: [] };
     window._fullConfig = cfg; // for export
     document.getElementById('config-version').textContent = 'v' + configVersion;
     document.getElementById('config-update').textContent = cfg.lastUpdate || '';
@@ -931,6 +999,7 @@ function switchPage(page) {
   if (page === 'tools') renderTools();
   if (page === 'quiz') renderQuiz();
   if (page === 'schedule') renderSchedule();
+  if (page === 'ranking') renderRanking();
 }
 
 // ==================== DIOPTER CONVERTER (Full) ====================
@@ -2230,6 +2299,94 @@ function queryLogistics() {
   document.getElementById('log-res-fee').className = 'value fee' + (feeText === '包邮' || feeText === '无需补费' || feeText === '无需空运' ? ' free' : '');
   document.getElementById('log-res-note').innerHTML = note;
   document.getElementById('log-result').classList.add('show');
+}
+
+// ==================== RANKING ====================
+function renderRanking() {
+  if (!rankingData.groups || rankingData.groups.length === 0) {
+    document.getElementById('ranking-tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-secondary);">暂未配置排名数据，杨茹快来添加吧！</td></tr>';
+    document.getElementById('ranking-meta').textContent = '';
+    return;
+  }
+
+  // Group tab listeners
+  document.querySelectorAll('.rank-group-btn').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.dataset.group) === rankGroupIdx);
+    btn.onclick = () => {
+      rankGroupIdx = parseInt(btn.dataset.group);
+      rankSortKey = 'response';
+      rankSortAsc = true;
+      renderRanking();
+    };
+  });
+
+  const group = rankingData.groups[rankGroupIdx];
+  if (!group) return;
+
+  // Sort members
+  const sorted = [...group.members].sort((a, b) => {
+    const va = a[rankSortKey];
+    const vb = b[rankSortKey];
+    if (rankSortKey === 'response') return rankSortAsc ? va - vb : vb - va; // asc = faster is better
+    return rankSortAsc ? vb - va : va - vb; // higher is better for others
+  });
+
+  // Update table header sort indicators
+  document.querySelectorAll('.ranking-table th.sortable').forEach(th => {
+    th.classList.remove('active', 'asc', 'desc');
+    const key = th.dataset.key;
+    if (key === rankSortKey) {
+      th.classList.add('active', rankSortAsc ? 'asc' : 'desc');
+      th.querySelector('.sort-arrow').textContent = rankSortAsc ? '▲' : '▼';
+    } else {
+      th.querySelector('.sort-arrow').textContent = '';
+    }
+  });
+
+  // Column sort click handlers
+  document.querySelectorAll('.ranking-table th.sortable').forEach(th => {
+    th.onclick = () => {
+      const key = th.dataset.key;
+      if (rankSortKey === key) {
+        rankSortAsc = !rankSortAsc;
+      } else {
+        rankSortKey = key;
+        rankSortAsc = key === 'response'; // response defaults to asc (fastest first)
+      }
+      renderRanking();
+    };
+  });
+
+  // Render metadata
+  const avgConv = (sorted.reduce((s, m) => s + m.conversion, 0) / sorted.length).toFixed(1);
+  const avgSat = (sorted.reduce((s, m) => s + m.satisfaction, 0) / sorted.length).toFixed(1);
+  const avgResp = Math.round(sorted.reduce((s, m) => s + m.response, 0) / sorted.length);
+  document.getElementById('ranking-meta').innerHTML =
+    `共<b>${sorted.length}人</b> · 组均转化率 <b>${avgConv}%</b> · 组均满意度 <b>${avgSat}</b> · 组均响应 <b>${avgResp}秒</b>`;
+
+  // Render table rows
+  document.getElementById('ranking-tbody').innerHTML = sorted.map((m, i) => {
+    const rank = i + 1;
+    let rankClass = '';
+    if (rank === 1) rankClass = 'top1';
+    else if (rank === 2) rankClass = 'top2';
+    else if (rank === 3) rankClass = 'top3';
+
+    const isTop3 = rank <= 3 ? ' top-row' : '';
+    const convHighlight = rankSortKey === 'conversion' && rank <= 1 ? ' highlight' : '';
+    const salesHighlight = rankSortKey === 'crossSales' && rank <= 1 ? ' highlight' : '';
+    const satHighlight = rankSortKey === 'satisfaction' && rank <= 1 ? ' highlight' : '';
+    const respClass = m.response <= 30 ? ' fast' : '';
+
+    return `<tr class="${isTop3}">
+      <td class="col-rank"><span class="rank-badge ${rankClass}">${rank}</span></td>
+      <td class="col-name">${m.name}</td>
+      <td class="${convHighlight}">${m.conversion}%</td>
+      <td class="col-crossSales${salesHighlight}">¥${m.crossSales.toLocaleString()}</td>
+      <td class="${satHighlight}">${m.satisfaction}</td>
+      <td class="col-response${respClass}">${m.response}秒</td>
+    </tr>`;
+  }).join('');
 }
 
 // ==================== SCHEDULE ====================
