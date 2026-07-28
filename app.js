@@ -251,13 +251,13 @@ function renderDailyShopInputs(shops) {
   tbody.innerHTML = shops.map((s, i) => `
     <tr data-idx="${i}">
       <td style="position:relative;">
-        <input type="text" class="daily-shop-name" value="${escapeHtml(s.name)}" style="width:110px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:600;background:var(--card-bg);color:var(--text);" placeholder="店铺名">
+        <input type="text" class="daily-shop-name" value="${escapeHtml(s.name)}" style="width:110px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:600;text-align:center;background:var(--card-bg);color:var(--text);" placeholder="店铺名">
       </td>
-      <td><input type="number" class="daily-shop-visitors" value="${s.visitors || ''}" style="width:75px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="0" oninput="updateDailyTotal()"></td>
-      <td><input type="number" class="daily-shop-inquiries" value="${s.inquiries || ''}" style="width:75px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="0" oninput="calculateDailyRow(this)"></td>
-      <td><input type="number" class="daily-shop-payments" value="${s.payments || ''}" style="width:75px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="0" oninput="calculateDailyRow(this)"></td>
+      <td><input type="number" class="daily-shop-visitors" value="${s.visitors || ''}" style="width:75px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;" placeholder="0" oninput="updateDailyTotal()"></td>
+      <td><input type="number" class="daily-shop-inquiries" value="${s.inquiries || ''}" style="width:75px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;" placeholder="0" oninput="calculateDailyRow(this)"></td>
+      <td><input type="number" class="daily-shop-payments" value="${s.payments || ''}" style="width:75px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;" placeholder="0" oninput="calculateDailyRow(this)"></td>
       <td class="daily-shop-conversion" style="text-align:center;font-weight:600;color:var(--primary);font-size:13px;">-</td>
-      <td><input type="number" class="daily-shop-target" value="${s.target || ''}" style="width:65px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="%" oninput="calculateDailyRow(this)"></td>
+      <td><input type="number" class="daily-shop-target" value="${s.target || ''}" style="width:65px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;" placeholder="%" oninput="calculateDailyRow(this)"></td>
       <td class="daily-shop-need" style="text-align:center;font-weight:600;font-size:13px;">-</td>
       <td style="padding:4px;"><button type="button" class="btn-sm outline" style="padding:2px 8px;font-size:12px;color:var(--danger);border-color:var(--danger);" onclick="removeDailyShopRow(this)" title="删除此行">×</button></td>
     </tr>
@@ -719,3 +719,20 @@ async function updateMemberGroup(userId, groupName) {
   showToast('组别已更新');
   loadMembers();
 }
+
+// ---------- 扫码注册：URL参数自动切换 ----------
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('tab') === 'register') {
+    // Wait for DOM & supabase init
+    const trySwitch = setInterval(() => {
+      if (document.getElementById('register-form') && supabase) {
+        switchPage('login');
+        switchLoginTab('register');
+        clearInterval(trySwitch);
+      }
+    }, 300);
+    // Stop trying after 10 seconds
+    setTimeout(() => clearInterval(trySwitch), 10000);
+  }
+})();
