@@ -1123,34 +1123,42 @@ let currentProfile = null;
 
 // ==================== AUTH ====================
 async function initSupabase() {
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  // Check existing session
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session) {
-    currentUser = session.user;
-    const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-    currentProfile = profile;
-    updateAuthUI();
-  }
-  // Listen for auth changes
-  supabase.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN' && session) {
+  try {
+    if (!window.supabase || !window.supabase.createClient) {
+      console.error('Supabase CDN 未加载');
+      return;
+    }
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // Check existing session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
       currentUser = session.user;
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
       currentProfile = profile;
       updateAuthUI();
-      if (document.getElementById('page-login').classList.contains('active')) {
-        switchPage('home');
-      }
-    } else if (event === 'SIGNED_OUT') {
-      currentUser = null;
-      currentProfile = null;
-      updateAuthUI();
-      switchPage('login');
     }
-  });
-  // Notify app.js that supabase is ready
-  if (window.onSupabaseReady) window.onSupabaseReady();
+    // Listen for auth changes
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        currentUser = session.user;
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+        currentProfile = profile;
+        updateAuthUI();
+        if (document.getElementById('page-login').classList.contains('active')) {
+          switchPage('home');
+        }
+      } else if (event === 'SIGNED_OUT') {
+        currentUser = null;
+        currentProfile = null;
+        updateAuthUI();
+        switchPage('login');
+      }
+    });
+    // Notify app.js that supabase is ready
+    if (window.onSupabaseReady) window.onSupabaseReady();
+  } catch (e) {
+    console.error('Supabase 初始化失败', e);
+  }
 }
 
 function updateAuthUI() {
@@ -1243,6 +1251,7 @@ async function loadConfig() {
   } catch (e) {
     console.error('配置加载失败，使用默认数据', e);
     document.getElementById('config-version').textContent = '离线模式';
+    initSupabase();
   }
 }
 

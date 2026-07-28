@@ -13,15 +13,27 @@ let announcements = [];
 let annSub = null;
 
 async function loadAnnouncements() {
-  if (!supabase) return;
-  const { data, error } = await supabase
-    .from('announcements')
-    .select('*, profiles(name)')
-    .order('is_pinned', { ascending: false })
-    .order('created_at', { ascending: false });
-  if (error) { console.error('公告加载失败', error); return; }
-  announcements = data || [];
-  renderAnnouncements();
+  if (!supabase) {
+    document.getElementById('announcement-list').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary);">Supabase 未初始化，请刷新页面</div>';
+    return;
+  }
+  try {
+    const { data, error } = await supabase
+      .from('announcements')
+      .select('*, profiles(name)')
+      .order('is_pinned', { ascending: false })
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error('公告加载失败', error);
+      document.getElementById('announcement-list').innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger);">加载失败：' + escapeHtml(error.message) + '<br><button class="btn-sm primary" style="margin-top:12px;" onclick="loadAnnouncements()">重试</button></div>';
+      return;
+    }
+    announcements = data || [];
+    renderAnnouncements();
+  } catch (e) {
+    console.error('公告加载异常', e);
+    document.getElementById('announcement-list').innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger);">加载异常，请刷新页面重试</div>';
+  }
 }
 
 function renderAnnouncements() {
