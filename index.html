@@ -467,6 +467,43 @@ body {
 .lightbox-close:hover { background:rgba(255,255,255,0.3); }
 @media (max-width:768px) { .lightbox-prev { left:4px; } .lightbox-next { right:4px; } .lightbox-nav { width:36px; height:36px; font-size:18px; } }
 
+/* ===== Logistics Query ===== */
+.logistics-modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.45); z-index:2000; align-items:center; justify-content:center; }
+.logistics-modal.show { display:flex; }
+.logistics-box { background:#fff; border-radius:16px; padding:28px; max-width:520px; width:92%; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.2); position:relative; }
+.logistics-box h3 { margin-bottom:20px; font-size:18px; color:var(--text); }
+.logistics-close { position:absolute; top:14px; right:16px; width:32px; height:32px; border:none; background:#f1f5f4; color:var(--text-secondary); font-size:18px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.logistics-close:hover { background:var(--primary-light); color:#fff; }
+.log-form-row { margin-bottom:16px; }
+.log-form-row label { display:block; font-size:13px; font-weight:600; color:var(--text); margin-bottom:6px; }
+.log-form-row select, .log-form-row input { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:14px; font-family:inherit; background:#fff; color:var(--text); }
+.log-form-row select:focus { border-color:var(--primary); outline:none; }
+.log-express-btns { display:flex; gap:8px; flex-wrap:wrap; }
+.log-express-btn { padding:8px 16px; border:1px solid var(--border); border-radius:20px; font-size:13px; cursor:pointer; font-family:inherit; background:#fff; color:var(--text-secondary); transition:all 0.15s; }
+.log-express-btn:hover { border-color:var(--primary); color:var(--primary); }
+.log-express-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.log-query-btn { width:100%; padding:12px; background:var(--primary); color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:600; cursor:pointer; font-family:inherit; margin-top:8px; }
+.log-query-btn:hover { background:#7b68c0; }
+.log-query-btn:active { transform:scale(0.98); }
+.log-result { margin-top:20px; padding:18px; background:linear-gradient(135deg, #faf8ff, #f5f2ff); border-radius:12px; border:1px solid var(--primary-light); display:none; }
+.log-result.show { display:block; animation:fadeIn 0.3s; }
+.log-result-title { font-size:15px; font-weight:700; color:var(--primary); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.log-result-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px dashed #e0d8f0; font-size:13px; }
+.log-result-row:last-child { border-bottom:none; }
+.log-result-row .label { color:var(--text-secondary); }
+.log-result-row .value { font-weight:600; color:var(--text); }
+.log-result-row .value.days { color:var(--primary); font-size:16px; }
+.log-result-row .value.date { color:#e17055; font-size:16px; }
+.log-result-note { margin-top:10px; padding:10px 12px; background:#fff; border-radius:8px; font-size:12px; color:var(--text-secondary); line-height:1.6; }
+.log-result-note strong { color:var(--text); }
+.log-express-tag { display:inline-block; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:600; margin-left:6px; }
+.log-express-tag.zt { background:#e3f2fd; color:#1976d2; }
+.log-express-tag.yt { background:#fff3e0; color:#f57c00; }
+.log-express-tag.sf-lu { background:#e8f5e9; color:#388e3c; }
+.log-express-tag.sf-kong { background:#fce4ec; color:#c2185b; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+@media (max-width:560px) { .logistics-box { padding:20px; width:94%; } }
+
 /* ---- Management Panel ---- */
 .mgmt-toggle { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border:1px solid var(--primary); background:#fff; color:var(--primary); border-radius:18px; font-size:12px; cursor:pointer; font-family:inherit; font-weight:500; transition:all 0.15s; }
 .mgmt-toggle:hover { background:#f5f3fc; }
@@ -2020,12 +2057,16 @@ function renderBulletin() {
 
 // ==================== TOOLS ====================
 function renderTools() {
-  document.getElementById('tool-list').innerHTML = toolsData.map(t => `
-    <div class="tool-item" onclick="showToolInfo('${t.title}', \`${t.content}\`)">
+  document.getElementById('tool-list').innerHTML = toolsData.map(t => {
+    const click = t.type === 'logistics'
+      ? `onclick="openLogistics()"`
+      : `onclick="showToolInfo('${t.title}', \`${t.content}\`)"`;
+    return `
+    <div class="tool-item" ${click}>
       <div class="tool-icon">${t.icon}</div>
       <div class="tool-info"><h4>${t.title}</h4><p>${t.desc}</p></div>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 function showToolInfo(title, content) {
@@ -2043,6 +2084,114 @@ function showToolInfo(title, content) {
   `;
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
   document.body.appendChild(overlay);
+}
+
+// ==================== LOGISTICS ====================
+const logProvinces = [
+  {name:'北京',region:'华北'},{name:'天津',region:'华北'},{name:'河北',region:'华北'},{name:'山西',region:'华北'},{name:'内蒙古',region:'华北'},
+  {name:'上海',region:'华东'},{name:'江苏',region:'华东'},{name:'浙江',region:'华东'},{name:'安徽',region:'华东'},{name:'福建',region:'华东'},{name:'江西',region:'华东'},{name:'山东',region:'华东'},
+  {name:'河南',region:'华中'},{name:'湖北',region:'华中'},{name:'湖南',region:'华中'},
+  {name:'广东',region:'华南'},{name:'广西',region:'华南'},{name:'海南',region:'华南'},
+  {name:'重庆',region:'西南'},{name:'四川',region:'西南'},{name:'贵州',region:'西南'},{name:'云南',region:'西南'},{name:'西藏',region:'西南'},
+  {name:'陕西',region:'西北'},{name:'甘肃',region:'西北'},{name:'青海',region:'西北'},{name:'宁夏',region:'西北'},{name:'新疆',region:'西北'},
+  {name:'辽宁',region:'东北'},{name:'吉林',region:'东北'},{name:'黑龙江',region:'东北'}
+];
+
+const logRegionAdj = {
+  '华东': ['华北','华中','华南'],
+  '华北': ['华东','华中','东北','西北'],
+  '华南': ['华东','华中','西南'],
+  '华中': ['华东','华北','华南','西南'],
+  '西南': ['华中','华南','西北'],
+  '西北': ['华北','西南'],
+  '东北': ['华北']
+};
+
+const logRemote = ['新疆','西藏','青海','内蒙古','海南'];
+
+const logTimeRules = {
+  '中通': { same:{min:1,max:2}, neighbor:{min:2,max:3}, cross:{min:3,max:4}, remote:{min:4,max:7} },
+  '圆通': { same:{min:1,max:2}, neighbor:{min:2,max:3}, cross:{min:3,max:4}, remote:{min:4,max:7} },
+  '顺丰陆运': { same:{min:1,max:2}, neighbor:{min:1,max:2}, cross:{min:2,max:3}, remote:{min:3,max:5} },
+  '顺丰空运': { same:{min:1,max:1}, neighbor:{min:1,max:2}, cross:{min:1,max:2}, remote:{min:2,max:3} }
+};
+
+let logSelectedExpress = '中通';
+
+function openLogistics() {
+  const fromSel = document.getElementById('log-from');
+  const toSel = document.getElementById('log-to');
+  if (!fromSel.options.length || fromSel.options[1]?.value !== '北京') {
+    const opts = logProvinces.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+    fromSel.innerHTML = '<option value="">请选择发货省份</option>' + opts;
+    toSel.innerHTML = '<option value="">请选择目的省份</option>' + opts;
+  }
+  // Default to Zhejiang (Hangzhou)
+  if (!fromSel.value) fromSel.value = '浙江';
+  document.getElementById('log-result').classList.remove('show');
+  document.getElementById('logistics-modal').classList.add('show');
+}
+
+function closeLogistics(e) {
+  if (e.target === document.getElementById('logistics-modal')) {
+    document.getElementById('logistics-modal').classList.remove('show');
+  }
+}
+
+function selExpress(btn) {
+  document.querySelectorAll('#log-express-btns .log-express-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  logSelectedExpress = btn.dataset.express;
+}
+
+function queryLogistics() {
+  const from = document.getElementById('log-from').value;
+  const to = document.getElementById('log-to').value;
+  if (!from || !to) { showToast('请选择发货地和目的地'); return; }
+  if (from === to) { showToast('发货地和目的地不能相同'); return; }
+
+  const fromP = logProvinces.find(p => p.name === from);
+  const toP = logProvinces.find(p => p.name === to);
+  const rules = logTimeRules[logSelectedExpress];
+
+  let type = 'cross';
+  if (fromP.region === toP.region) type = 'same';
+  else if ((logRegionAdj[fromP.region] || []).includes(toP.region)) type = 'neighbor';
+  if (logRemote.includes(to)) type = 'remote';
+
+  const r = rules[type];
+  const now = new Date();
+  const minDate = new Date(now); minDate.setDate(minDate.getDate() + r.min);
+  const maxDate = new Date(now); maxDate.setDate(maxDate.getDate() + r.max);
+
+  const fmt = d => `${d.getMonth()+1}月${d.getDate()}日`;
+  const daysText = r.min === r.max ? `${r.min}天` : `${r.min}-${r.max}天`;
+
+  let expressClass = 'zt';
+  if (logSelectedExpress === '圆通') expressClass = 'yt';
+  else if (logSelectedExpress === '顺丰陆运') expressClass = 'sf-lu';
+  else if (logSelectedExpress === '顺丰空运') expressClass = 'sf-kong';
+
+  let distText = fromP.region === toP.region ? `${fromP.region}内` : `${fromP.region} → ${toP.region}`;
+  if (logRemote.includes(to)) distText += '（偏远地区）';
+
+  let note = '';
+  if (logSelectedExpress.includes('顺丰')) {
+    note = '顺丰时效为官方承诺参考时效，实际可能受天气、航班等因素影响。顺丰空运部分偏远地址可能转为陆运配送。';
+  } else {
+    note = '中通/圆通为普通快递时效参考，实际送达时间可能受天气、交通、节假日等因素影响。偏远地区时效可能延长。';
+  }
+  if (now.getHours() >= 17) {
+    note += '<br><strong>提示：</strong>当前已过17:00，今日揽件可能顺延至次日计算时效。';
+  }
+
+  document.getElementById('log-result-title').innerHTML = `${from} <span style="color:#999">→</span> ${to}`;
+  document.getElementById('log-res-express').innerHTML = `${logSelectedExpress}<span class="log-express-tag ${expressClass}">${logSelectedExpress.includes('顺丰') ? '顺丰' : '普通'}</span>`;
+  document.getElementById('log-res-distance').textContent = distText;
+  document.getElementById('log-res-days').textContent = daysText;
+  document.getElementById('log-res-date').textContent = r.min === r.max ? fmt(minDate) : `${fmt(minDate)} - ${fmt(maxDate)}`;
+  document.getElementById('log-res-note').innerHTML = note;
+  document.getElementById('log-result').classList.add('show');
 }
 
 // ==================== SCHEDULE ====================
@@ -2259,6 +2408,44 @@ init();
   <div class="lightbox-actions">
     <button class="lightbox-btn" onclick="event.stopPropagation();copyLightboxImg()">📋 复制图片</button>
     <button class="lightbox-btn" onclick="event.stopPropagation();downloadLightboxImg()">💾 保存图片</button>
+  </div>
+</div>
+
+<!-- Logistics Query Modal -->
+<div class="logistics-modal" id="logistics-modal" onclick="closeLogistics(event)">
+  <div class="logistics-box" onclick="event.stopPropagation()">
+    <button class="logistics-close" onclick="document.getElementById('logistics-modal').classList.remove('show')">✕</button>
+    <h3>🚛 物流时效查询</h3>
+    <div class="log-form-row">
+      <label>发货地（仓库所在地）</label>
+      <select id="log-from">
+        <option value="">请选择发货省份</option>
+      </select>
+    </div>
+    <div class="log-form-row">
+      <label>目的地（客户地址）</label>
+      <select id="log-to">
+        <option value="">请选择目的省份</option>
+      </select>
+    </div>
+    <div class="log-form-row">
+      <label>快递方式</label>
+      <div class="log-express-btns" id="log-express-btns">
+        <button class="log-express-btn active" data-express="中通" onclick="selExpress(this)">中通</button>
+        <button class="log-express-btn" data-express="圆通" onclick="selExpress(this)">圆通</button>
+        <button class="log-express-btn" data-express="顺丰陆运" onclick="selExpress(this)">顺丰陆运</button>
+        <button class="log-express-btn" data-express="顺丰空运" onclick="selExpress(this)">顺丰空运</button>
+      </div>
+    </div>
+    <button class="log-query-btn" onclick="queryLogistics()">🔍 查询时效</button>
+    <div class="log-result" id="log-result">
+      <div class="log-result-title" id="log-result-title"></div>
+      <div class="log-result-row"><span class="label">快递方式</span><span class="value" id="log-res-express"></span></div>
+      <div class="log-result-row"><span class="label">运输距离</span><span class="value" id="log-res-distance"></span></div>
+      <div class="log-result-row"><span class="label">预计时效</span><span class="value days" id="log-res-days"></span></div>
+      <div class="log-result-row"><span class="label">预计送达</span><span class="value date" id="log-res-date"></span></div>
+      <div class="log-result-note" id="log-res-note"></div>
+    </div>
   </div>
 </div>
 
