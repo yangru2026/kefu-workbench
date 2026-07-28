@@ -141,13 +141,19 @@ async function doRegister() {
 let dailyReports = [];
 let dailySub = null;
 
+// ---------- 日报 ----------
+let dailyReports = [];
+let dailySub = null;
+const DEFAULT_SHOPS = ['TM-弥生','KS-弥生','TM-极氧','DY弥生官方','TM-护眼','XHS-弥生','DY-YOUHOO','DY-极氧','JD-弥生','XHS-极氧','有赞-拼多多'];
+
 async function loadDailyReports() {
   if (!supabase || !currentUser) return;
   const { data, error } = await supabase
     .from('daily_reports')
     .select('*')
     .eq('user_id', currentUser.id)
-    .order('report_date', { ascending: false });
+    .order('report_date', { ascending: false })
+    .limit(30);
   if (!error) dailyReports = data || [];
   renderDailyList();
 }
@@ -164,21 +170,40 @@ function renderDailyList() {
   }
   emptyEl.style.display = 'none';
   myArea.style.display = '';
-  myList.innerHTML = dailyReports.map(r => {
-    const c = r.content || {};
-    return `
-      <div class="daily-report-card">
-        <h4>📅 ${r.report_date} <span style="font-size:12px;color:var(--text-secondary);font-weight:normal;">${r.status === 'submitted' ? '✅ 已提交' : '📝 草稿'}</span></h4>
-        <div class="dr-row"><span class="dr-label">接待量</span><span class="dr-val">${c.visitors || 0}人</span></div>
-        <div class="dr-row"><span class="dr-label">成交单</span><span class="dr-val">${c.orders || 0}单</span></div>
-        <div class="dr-row"><span class="dr-label">连带销售</span><span class="dr-val">${c.cross || 0}单</span></div>
-        <div class="dr-row"><span class="dr-label">销售额</span><span class="dr-val">¥${c.revenue || 0}</span></div>
-        <div class="dr-row"><span class="dr-label">响应时间</span><span class="dr-val">${c.response || 0}秒</span></div>
-        ${c.summary ? `<div style="margin-top:8px;font-size:13px;color:var(--text-secondary);padding:8px;background:#f9f9ff;border-radius:8px;">${escapeHtml(c.summary)}</div>` : ''}
-        ${c.plan ? `<div style="margin-top:6px;font-size:13px;color:var(--text-secondary);padding:8px;background:#f0fff4;border-radius:8px;">📌 ${escapeHtml(c.plan)}</div>` : ''}
-      </div>
-    `;
+  myList.innerHTML = dailyReports.map(r => renderDailyReportCard(r)).join('');
+}
+
+function renderDailyReportCard(r) {
+  const c = r.content || {};
+  const shops = c.shops || [];
+  const totalVisitors = shops.reduce((s, shop) => s + (parseInt(shop.visitors) || 0), 0);
+  const totalInquiries = shops.reduce((s, shop) => s + (parseInt(shop.inquiries) || 0), 0);
+  const totalPayments = shops.reduce((s, shop) => s + (parseInt(shop.payments) || 0), 0);
+  const avgConversion = totalInquiries > 0 ? (totalPayments / totalInquiries * 100).toFixed(2) : '0.00';
+
+  const shopRows = shops.map(s => {
+    const conv = s.inquiries > 0 ? (s.payments / s.inquiries * 100).toFixed(2) : '0.00';
+    const need = s.target ? Math.max(0, Math.ceil(s.inquiries * s.target / 100 - s.payments)) : '-';
+    return `<tr><td>${escapeHtml(s.name)}</td><td>${s.visitors || 0}</td><td>${s.inquiries || 0}</td><td>${s.payments || 0}</td><td>${conv}%</td><td>${s.target || '-'}%</td><td>${need}</td></tr>`;
   }).join('');
+
+  return `
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <h4 style="margin:0;">📅 ${r.report_date} <span style="font-size:12px;color:var(--text-secondary);font-weight:normal;">${r.status === 'submitted' ? '✅ 已提交' : '📝 草稿'}</span></h4>
+        <div style="font-size:13px;color:var(--primary);">总接待：<strong>${totalVisitors}</strong> · 转化率：<strong>${avgConversion}%</strong></div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="ranking-table" style="min-width:600px;font-size:13px;">
+          <thead><tr><th>店铺</th><th>接待量</th><th>询单</th><th>支付</th><th>转化率</th><th>目标</th><th>还需</th></tr></thead>
+          <tbody>${shopRows}</tbody>
+        </table>
+      </div>
+      ${c.analysis ? `<div style="margin-top:10px;font-size:13px;color:var(--text-secondary);padding:8px;background:#f9f9ff;border-radius:8px;"><strong>未成交分析：</strong>${escapeHtml(c.analysis)}</div>` : ''}
+      ${c.followUp ? `<div style="margin-top:6px;font-size:13px;color:var(--text-secondary);padding:8px;background:#f0fff4;border-radius:8px;"><strong>催付情况：</strong>${escapeHtml(c.followUp)}</div>` : ''}
+      ${c.feedback ? `<div style="margin-top:6px;font-size:13px;color:var(--text-secondary);padding:8px;background:#fff8f0;border-radius:8px;"><strong>客户反馈：</strong>${escapeHtml(c.feedback)}</div>` : ''}
+    </div>
+  `;
 }
 
 function openDailyForm() {
@@ -188,19 +213,67 @@ function openDailyForm() {
   document.getElementById('daily-empty').style.display = 'none';
   document.getElementById('daily-my-area').style.display = 'none';
   document.getElementById('daily-date-label').textContent = new Date().toLocaleDateString('zh-CN');
-  // Check if already submitted today
+
   const today = new Date().toISOString().slice(0, 10);
   const existing = dailyReports.find(r => r.report_date === today);
-  if (existing) {
-    const c = existing.content || {};
-    document.getElementById('daily-visitors').value = c.visitors || '';
-    document.getElementById('daily-orders').value = c.orders || '';
-    document.getElementById('daily-cross').value = c.cross || '';
-    document.getElementById('daily-revenue').value = c.revenue || '';
-    document.getElementById('daily-response').value = c.response || '';
-    document.getElementById('daily-summary').value = c.summary || '';
-    document.getElementById('daily-plan').value = c.plan || '';
+  const savedShops = existing?.content?.shops;
+  const shops = savedShops && savedShops.length ? savedShops : DEFAULT_SHOPS.map(name => ({ name, visitors: '', inquiries: '', payments: '', target: '' }));
+
+  renderDailyShopInputs(shops);
+  document.getElementById('daily-analysis').value = existing?.content?.analysis || '';
+  document.getElementById('daily-followup').value = existing?.content?.followUp || '';
+  document.getElementById('daily-feedback').value = existing?.content?.feedback || '';
+  updateDailyTotal();
+}
+
+function renderDailyShopInputs(shops) {
+  const tbody = document.getElementById('daily-shop-tbody');
+  tbody.innerHTML = shops.map((s, i) => `
+    <tr data-idx="${i}">
+      <td><input type="text" class="daily-shop-name" value="${escapeHtml(s.name)}" style="width:100px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);" placeholder="店铺名"></td>
+      <td><input type="number" class="daily-shop-visitors" value="${s.visitors || ''}" style="width:80px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="0" oninput="updateDailyTotal()"></td>
+      <td><input type="number" class="daily-shop-inquiries" value="${s.inquiries || ''}" style="width:80px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="0" oninput="calculateDailyRow(this)"></td>
+      <td><input type="number" class="daily-shop-payments" value="${s.payments || ''}" style="width:80px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="0" oninput="calculateDailyRow(this)"></td>
+      <td class="daily-shop-conversion" style="text-align:center;font-weight:600;color:var(--primary);">-</td>
+      <td><input type="number" class="daily-shop-target" value="${s.target || ''}" style="width:70px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="%" oninput="calculateDailyRow(this)"></td>
+      <td class="daily-shop-need" style="text-align:center;font-weight:600;">-</td>
+    </tr>
+  `).join('');
+  // Calculate all rows
+  setTimeout(() => {
+    tbody.querySelectorAll('tr').forEach(row => calculateDailyRow(row.querySelector('.daily-shop-inquiries')));
+  }, 0);
+}
+
+function calculateDailyRow(el) {
+  if (!el) return;
+  const row = el.closest('tr');
+  if (!row) return;
+  const inquiries = parseFloat(row.querySelector('.daily-shop-inquiries')?.value) || 0;
+  const payments = parseFloat(row.querySelector('.daily-shop-payments')?.value) || 0;
+  const target = parseFloat(row.querySelector('.daily-shop-target')?.value) || 0;
+  const convEl = row.querySelector('.daily-shop-conversion');
+  const needEl = row.querySelector('.daily-shop-need');
+  if (convEl) convEl.textContent = inquiries > 0 ? (payments / inquiries * 100).toFixed(2) + '%' : '-';
+  if (needEl) {
+    if (target > 0 && inquiries > 0) {
+      const need = Math.ceil(inquiries * target / 100 - payments);
+      needEl.textContent = need > 0 ? need : '0';
+      needEl.style.color = need > 0 ? 'var(--danger)' : 'var(--success)';
+    } else {
+      needEl.textContent = '-';
+      needEl.style.color = '';
+    }
   }
+}
+
+function updateDailyTotal() {
+  const tbody = document.getElementById('daily-shop-tbody');
+  if (!tbody) return;
+  let total = 0;
+  tbody.querySelectorAll('.daily-shop-visitors').forEach(inp => { total += parseInt(inp.value) || 0; });
+  const el = document.getElementById('daily-total-visitors');
+  if (el) el.textContent = total;
 }
 
 function closeDailyForm() {
@@ -211,14 +284,24 @@ function closeDailyForm() {
 async function submitDaily() {
   if (!currentUser) return;
   const today = new Date().toISOString().slice(0, 10);
+  const tbody = document.getElementById('daily-shop-tbody');
+  const shops = [];
+  tbody.querySelectorAll('tr').forEach(row => {
+    const name = row.querySelector('.daily-shop-name')?.value.trim();
+    if (!name) return;
+    shops.push({
+      name,
+      visitors: parseInt(row.querySelector('.daily-shop-visitors')?.value) || 0,
+      inquiries: parseInt(row.querySelector('.daily-shop-inquiries')?.value) || 0,
+      payments: parseInt(row.querySelector('.daily-shop-payments')?.value) || 0,
+      target: parseFloat(row.querySelector('.daily-shop-target')?.value) || 0
+    });
+  });
   const content = {
-    visitors: parseInt(document.getElementById('daily-visitors').value) || 0,
-    orders: parseInt(document.getElementById('daily-orders').value) || 0,
-    cross: parseInt(document.getElementById('daily-cross').value) || 0,
-    revenue: parseInt(document.getElementById('daily-revenue').value) || 0,
-    response: parseInt(document.getElementById('daily-response').value) || 0,
-    summary: document.getElementById('daily-summary').value.trim(),
-    plan: document.getElementById('daily-plan').value.trim()
+    shops,
+    analysis: document.getElementById('daily-analysis').value.trim(),
+    followUp: document.getElementById('daily-followup').value.trim(),
+    feedback: document.getElementById('daily-feedback').value.trim()
   };
   const { error } = await supabase.from('daily_reports').upsert({
     user_id: currentUser.id,
@@ -243,7 +326,6 @@ async function renderDailyTrack() {
   const today = new Date().toISOString().slice(0, 10);
   document.getElementById('daily-track-date').textContent = today;
 
-  // Get all profiles and today's reports
   const [{ data: profiles }, { data: reports }] = await Promise.all([
     supabase.from('profiles').select('id,name,group_name').order('name'),
     supabase.from('daily_reports').select('*').eq('report_date', today)
@@ -269,7 +351,7 @@ async function renderDailyTrack() {
     const statusClass = hasReport ? 'done' : 'pending';
     const statusText = hasReport ? '✅ 已提交' : '⏳ 未提交';
     return `
-      <div class="daily-track-item">
+      <div class="daily-track-item" style="cursor:pointer;" onclick="showDailyDetail('${p.id}', '${escapeHtml(p.name || '')}')">
         <div class="daily-track-avatar">${(p.name || '?').charAt(0)}</div>
         <div class="daily-track-info">
           <div class="daily-track-name">${p.name || '未命名'} ${p.group_name ? `<span style="font-size:11px;color:var(--text-secondary);">(${p.group_name})</span>` : ''}</div>
@@ -278,6 +360,18 @@ async function renderDailyTrack() {
       </div>
     `;
   }).join('');
+}
+
+async function showDailyDetail(userId, userName) {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data } = await supabase.from('daily_reports').select('*').eq('user_id', userId).eq('report_date', today).single();
+  if (!data) { showToast(userName + ' 今日未提交日报'); return; }
+  // Show in a simple alert or modal - for now use a card in the track area
+  const list = document.getElementById('daily-track-list');
+  const detailCard = document.createElement('div');
+  detailCard.innerHTML = renderDailyReportCard(data);
+  detailCard.style.marginTop = '16px';
+  list.appendChild(detailCard);
 }
 
 function subscribeDaily() {
@@ -457,11 +551,4 @@ async function updateMemberRole(userId, newRole) {
   if (error) { showToast('更新失败：' + error.message); return; }
   showToast('角色已更新');
   loadMembers();
-}
-
-function escapeHtml(text) {
-  if (!text) return '';
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
 }
