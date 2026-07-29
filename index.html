@@ -788,6 +788,11 @@ body {
               <tbody id="daily-shop-tbody"></tbody>
             </table>
           </div>
+          <div style="margin-top:20px;display:flex;flex-direction:column;gap:14px;">
+            <div class="form-row"><label>未成交分析</label><textarea id="daily-analysis" rows="2" placeholder="分析今日未成交原因..."></textarea></div>
+            <div class="form-row"><label>后台催付情况</label><textarea id="daily-followup" rows="2" placeholder="如：已全部催付 / 剩余XX单未催..."></textarea></div>
+            <div class="form-row"><label>客户反馈/建议</label><textarea id="daily-feedback" rows="2" placeholder="客户提出的产品/服务建议..."></textarea></div>
+          </div>
           <div style="display:flex;gap:10px;margin-top:20px;">
             <button class="btn-sm primary" onclick="submitDaily()">提交日报</button>
             <button class="btn-sm outline" onclick="closeDailyForm()">取消</button>
@@ -804,51 +809,8 @@ body {
           <div id="daily-track-list"></div>
         </div>
       </div>
-      <!-- 我的日报列表 -->
-      <div id="daily-my-area" style="display:none;">
-        <div id="daily-my-list"></div>
-      </div>
-      <!-- 空状态 -->
-      <div id="daily-empty" style="text-align:center;padding:60px 20px;color:var(--text-secondary);">
-        <div style="font-size:48px;margin-bottom:12px;">📝</div>
-        <p>今天还没有填写日报</p>
-        <button class="btn-sm primary" style="margin-top:16px;" onclick="openDailyForm()">立即填写</button>
-      </div>
       <!-- 提交结果卡片（截图发群用） -->
       <div id="daily-result-area" style="display:none;"></div>
-      <!-- 接待压力统计（可折叠）仅管理员/组长可见 -->
-      <div id="daily-stats-panel" class="admin-only" style="margin-top:20px;display:none;">
-        <div onclick="toggleDailyStats()" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f8f9ff;border:1px solid var(--border);border-radius:10px;cursor:pointer;">
-          <span style="font-size:14px;font-weight:600;">📊 接待压力统计（点击展开）</span>
-          <span id="daily-stats-toggle" style="font-size:16px;color:var(--text-secondary);">▼</span>
-        </div>
-        <div id="daily-stats-content" style="display:none;padding:12px;border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;background:var(--card-bg);">
-          <div id="daily-stats-body">加载中...</div>
-        </div>
-      </div>
-      <!-- 店铺分组编辑（仅管理员） -->
-      <div id="daily-group-editor" class="admin-only" style="margin-bottom:16px;display:none;">
-        <div onclick="toggleGroupEditor()" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#fff7ed;border:1px solid #fdba74;border-radius:8px;cursor:pointer;">
-          <span style="font-size:13px;font-weight:600;">⚙️ 店铺分组管理（点击展开）</span>
-          <span id="daily-group-toggle" style="font-size:14px;">▼</span>
-        </div>
-        <div id="daily-group-content" style="display:none;padding:12px;border:1px solid #fdba74;border-top:none;border-radius:0 0 8px 8px;background:#fff;">
-          <div id="daily-group-body" style="font-size:12px;">加载中...</div>
-        </div>
-      </div>
-      <!-- 历史存档日历 仅管理员/组长可见 -->
-      <div id="daily-archive-area" class="admin-only" style="margin-top:20px;display:none;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <h3 style="margin:0;font-size:16px;">📅 日报存档</h3>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <button class="btn-sm outline" onclick="changeArchiveMonth(-1)">◀</button>
-            <span id="daily-archive-month" style="font-size:14px;font-weight:600;"></span>
-            <button class="btn-sm outline" onclick="changeArchiveMonth(1)">▶</button>
-          </div>
-        </div>
-        <div id="daily-archive-calendar"></div>
-        <div id="daily-archive-detail" style="margin-top:16px;display:none;"></div>
-      </div>
     </div>
   </div>
 

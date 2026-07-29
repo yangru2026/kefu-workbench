@@ -351,29 +351,8 @@ async function loadDailyReports() {
 }
 
 function renderDailyList() {
-  const emptyEl = document.getElementById('daily-empty');
-  const myArea = document.getElementById('daily-my-area');
-  const myList = document.getElementById('daily-my-list');
-  if (!emptyEl) return;
-  if (dailyReports.length === 0) {
-    emptyEl.style.display = '';
-    myArea.style.display = 'none';
-  } else {
-    emptyEl.style.display = 'none';
-    myArea.style.display = '';
-    myList.innerHTML = dailyReports.map(r => renderDailyReportCard(r)).join('');
-  }
-  // Always render archive calendar and show admin panels
-  renderArchiveCalendar();
-  const isAdmin = currentProfile?.role === 'admin' || currentProfile?.role === 'leader';
-  const statsPanel = document.getElementById('daily-stats-panel');
-  const archiveArea = document.getElementById('daily-archive-area');
-  const groupEditor = document.getElementById('daily-group-editor');
-  if (isAdmin) {
-    if (statsPanel) statsPanel.style.display = '';
-    if (archiveArea) archiveArea.style.display = '';
-    if (groupEditor) groupEditor.style.display = '';
-  }
+  // 日报页面已精简：普通客服只看到填写/提交入口 + 结果卡片
+  // 不展示历史列表、存档、统计等
 }
 
 function renderDailyReportCard(r) {
@@ -402,7 +381,9 @@ function renderDailyReportCard(r) {
           <tbody>${shopRows}</tbody>
         </table>
       </div>
-      ${c.analysis ? `<div style="margin-top:10px;font-size:13px;color:var(--text-secondary);padding:8px;background:#f9f9ff;border-radius:8px;"><strong>备注：</strong>${escapeHtml(c.analysis)}</div>` : ''}
+      ${c.analysis ? `<div style="margin-top:10px;font-size:13px;color:var(--text-secondary);padding:8px;background:#fff7ed;border-radius:8px;"><strong>未成交分析：</strong>${escapeHtml(c.analysis)}</div>` : ''}
+      ${c.followUp ? `<div style="margin-top:6px;font-size:13px;color:var(--text-secondary);padding:8px;background:#f0fdf4;border-radius:8px;"><strong>催付：</strong>${escapeHtml(c.followUp)}</div>` : ''}
+      ${c.feedback ? `<div style="margin-top:6px;font-size:13px;color:var(--text-secondary);padding:8px;background:#eff6ff;border-radius:8px;"><strong>反馈：</strong>${escapeHtml(c.feedback)}</div>` : ''}
     </div>
   `;
 }
@@ -411,13 +392,15 @@ async function openDailyForm() {
   if (!currentUser) { showToast('请先登录'); switchPage('login'); return; }
   document.getElementById('daily-form-area').style.display = '';
   document.getElementById('daily-track-area').style.display = 'none';
-  document.getElementById('daily-empty').style.display = 'none';
-  document.getElementById('daily-my-area').style.display = 'none';
+  document.getElementById('daily-result-area').style.display = 'none';
   document.getElementById('daily-date-label').textContent = new Date().toLocaleDateString('zh-CN');
 
   const today = new Date().toISOString().slice(0, 10);
   const existing = dailyReports.find(r => r.report_date === today);
   const savedShops = existing?.content?.shops;
+  document.getElementById('daily-analysis').value = existing?.content?.analysis || '';
+  document.getElementById('daily-followup').value = existing?.content?.followUp || '';
+  document.getElementById('daily-feedback').value = existing?.content?.feedback || '';
 
   // 实时拉取最新模板（管理员可能已修改目标）
   await loadTemplates();
@@ -547,7 +530,6 @@ function updateDailyTotal() {
 function closeDailyForm() {
   document.getElementById('daily-form-area').style.display = 'none';
   document.getElementById('daily-result-area').style.display = 'none';
-  renderDailyList();
 }
 
 function getShopDelayDays(shopName) {
@@ -652,7 +634,9 @@ function renderDailyResult(content) {
           return t>0&&i>0 ? sum+Math.max(0,Math.ceil(i*t/100-p)) : sum;
         },0)||'--'}</div></div>
       </div>
-      ${content.analysis ? `<div style="margin-top:12px;font-size:12px;color:#666;background:#fff7ed;padding:8px 10px;border-radius:8px;border-left:3px solid #f59e0b;"><strong style="color:#d97706;">备注：</strong>${escapeHtml(content.analysis)}</div>` : ''}
+      ${content.analysis ? `<div style="margin-top:12px;font-size:12px;color:#666;background:#fff7ed;padding:8px 10px;border-radius:8px;border-left:3px solid #f59e0b;"><strong style="color:#d97706;">未成交分析：</strong>${escapeHtml(content.analysis)}</div>` : ''}
+      ${content.followUp ? `<div style="margin-top:8px;font-size:12px;color:#666;background:#f0fdf4;padding:8px 10px;border-radius:8px;border-left:3px solid #22c55e;"><strong style="color:#16a34a;">催付：</strong>${escapeHtml(content.followUp)}</div>` : ''}
+      ${content.feedback ? `<div style="margin-top:8px;font-size:12px;color:#666;background:#eff6ff;padding:8px 10px;border-radius:8px;border-left:3px solid #3b82f6;"><strong style="color:#2563eb;">反馈：</strong>${escapeHtml(content.feedback)}</div>` : ''}
       <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;">
         <button onclick="closeDailyForm()" style="padding:8px 20px;border-radius:8px;border:1px solid #d0d7ff;background:#fff;color:#666;font-size:14px;cursor:pointer;">返回</button>
         <button onclick="copyDailyResult()" style="padding:8px 20px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:14px;cursor:pointer;">📋 复制文本</button>
@@ -677,7 +661,12 @@ async function submitDaily() {
       target: parseFloat(row.querySelector('.daily-shop-target')?.value) || 0
     });
   });
-  const content = { shops };
+  const content = {
+    shops,
+    analysis: document.getElementById('daily-analysis').value.trim(),
+    followUp: document.getElementById('daily-followup').value.trim(),
+    feedback: document.getElementById('daily-feedback').value.trim()
+  };
   const { error } = await supabase.from('daily_reports').upsert({
     user_id: currentUser.id,
     report_date: today,
@@ -881,8 +870,6 @@ async function saveGroupEdits() {
   }
   await loadTemplates();
   showToast('店铺分组已保存，汇总和存档已同步');
-  // Refresh archive if visible
-  if (document.getElementById('daily-archive-calendar').innerHTML) renderArchiveCalendar();
 }
 
 function changeArchiveMonth(delta) {
@@ -1109,8 +1096,6 @@ async function renderDailyTrack() {
   document.getElementById('daily-form-area').style.display = 'none';
   document.getElementById('daily-result-area').style.display = 'none';
   document.getElementById('daily-track-area').style.display = '';
-  document.getElementById('daily-empty').style.display = 'none';
-  document.getElementById('daily-my-area').style.display = 'none';
   const today = new Date();
   const todayDateStr = today.toISOString().slice(0, 10);
   document.getElementById('daily-track-date').textContent = todayDateStr;
