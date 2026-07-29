@@ -102,6 +102,41 @@ function editMemberName(spanEl, userId, currentName) {
   });
 }
 
+function editMemberRealName(spanEl, userId, currentName) {
+  const oldHtml = spanEl.innerHTML;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = currentName;
+  input.style.cssText = 'padding:4px 8px;border:1px solid var(--primary);border-radius:6px;font-size:13px;width:100px;background:var(--card-bg);color:var(--text);';
+  spanEl.replaceWith(input);
+  input.focus();
+  input.select();
+
+  const save = async () => {
+    const newName = input.value.trim();
+    if (newName && newName !== currentName) {
+      await updateMemberRealName(userId, newName);
+    } else {
+      input.replaceWith(spanEl);
+    }
+  };
+
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { input.blur(); }
+    if (e.key === 'Escape') { input.value = currentName; input.blur(); }
+  });
+}
+
+async function updateMemberRealName(userId, newName) {
+  if (!supabase) return;
+  const { error } = await supabase.from('profiles').update({ real_name: newName.trim() || null }).eq('id', userId);
+  if (error) { showToast('更新失败：' + error.message); return; }
+  showToast('真实姓名已更新');
+  loadMembers();
+}
+}
+
 async function openAnnounceForm() {
   if (!currentUser) { showToast('请先登录'); switchPage('login'); return; }
   const title = prompt('公告标题：');
@@ -510,6 +545,13 @@ function closeDailyForm() {
   renderDailyList();
 }
 
+function getShopDelayDays(shopName) {
+  const name = (shopName || '').toLowerCase();
+  if (name.includes('dy') || name.includes('抖音')) return 1;
+  if (name.includes('tm') || name.includes('天猫') || name.includes('pdd') || name.includes('拼多多') || name.includes('ks') || name.includes('快手')) return 3;
+  return 3; // 默认3天
+}
+
 function renderDailyResult(content) {
   const shops = content.shops || [];
   const totalV = shops.reduce((s, r) => s + (parseInt(r.visitors) || 0), 0);
@@ -541,37 +583,54 @@ function renderDailyResult(content) {
   const weekDay = ['周日','周一','周二','周三','周四','周五','周六'][today.getDay()];
   const dateStr = today.getFullYear() + '.' + (today.getMonth()+1) + '.' + today.getDate();
 
+  // 计算涉及的数据延迟类型
+  const delaySet = new Set();
+  shops.forEach(s => { delaySet.add(getShopDelayDays(s.name)); });
+  const delays = Array.from(delaySet).sort((a,b) => a-b);
+  const delayLabels = delays.map(d => {
+    const shopNames = shops.filter(s => getShopDelayDays(s.name) === d).map(s => s.name);
+    // 提取平台简称
+    const platforms = [];
+    if (shopNames.some(n => /tm|天猫/i.test(n))) platforms.push('天猫');
+    if (shopNames.some(n => /pdd|拼多多/i.test(n))) platforms.push('拼多多');
+    if (shopNames.some(n => /ks|快手/i.test(n))) platforms.push('快手');
+    if (shopNames.some(n => /dy|抖音/i.test(n))) platforms.push('抖音');
+    const prefix = platforms.length > 0 ? platforms.join('/') + ' ' : '';
+    return `<span style="padding:2px 8px;border-radius:10px;background:#fef3c7;color:#d97706;">⏳ ${prefix}数据 = ${d}天前</span>`;
+  }).join('');
+
   const resultDiv = document.getElementById('daily-result-area');
   resultDiv.innerHTML = `
     <div style="max-width:680px;margin:0 auto;background:#fff;border-radius:16px;padding:24px 20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#333;line-height:1.5;">
       <!-- 头部 -->
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div style="font-size:13px;color:#888;">${dateStr} ${weekDay}</div>
-            <span style="font-size:12px;background:#6C5CE7;color:#fff;padding:2px 8px;border-radius:10px;font-weight:600;">售前</span>
-          </div>
+      <div style="margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <div style="font-size:13px;color:#888;">${dateStr} ${weekDay}</div>
+          <span style="font-size:11px;background:#6C5CE7;color:#fff;padding:2px 10px;border-radius:10px;font-weight:600;letter-spacing:1px;">售前</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
           <div style="font-size:15px;font-weight:600;color:#333;">${escapeHtml(currentProfile?.name || '')} · ${escapeHtml(currentProfile?.group_name || '')}</div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:#888;margin-bottom:2px;">总接待量</div>
+            <div style="font-size:28px;font-weight:800;color:#2563eb;line-height:1;">${totalV}</div>
+          </div>
         </div>
-        <div style="text-align:right;">
-          <div style="font-size:12px;color:#888;">总接待量</div>
-          <div style="font-size:32px;font-weight:800;color:#2563eb;line-height:1;">${totalV}</div>
-        </div>
+      </div>
+      <!-- 数据新鲜度标签 -->
+      <div style="display:flex;justify-content:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;font-size:12px;">
+        <span style="padding:2px 8px;border-radius:10px;background:#dcfce7;color:#16a34a;">✅ 接待量 = 当日数据</span>
+        ${delayLabels}
       </div>
       <!-- 表格 -->
       <div style="overflow-x:auto;">
-        <div style="display:flex;justify-content:center;gap:20px;margin-bottom:10px;font-size:12px;">
-          <span style="padding:2px 8px;border-radius:10px;background:#dcfce7;color:#16a34a;">✅ 接待量 = 当日数据</span>
-          <span style="padding:2px 8px;border-radius:10px;background:#fef3c7;color:#d97706;">⏳ 询单·支付·转化率 = 3天前数据</span>
-        </div>
         <table style="width:100%;border-collapse:collapse;min-width:500px;">
           <thead>
             <tr style="background:#f0f4ff;">
               <th style="padding:8px;font-size:13px;text-align:left;border-bottom:2px solid #d0d7ff;">店铺</th>
               <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;color:#16a34a;">接待</th>
-              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">询单<span style="font-size:10px;color:#999;display:block;">延3天</span></th>
-              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">支付<span style="font-size:10px;color:#999;display:block;">延3天</span></th>
-              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">达成 / 目标<span style="font-size:10px;color:#999;display:block;">延3天</span></th>
+              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">询单</th>
+              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">支付</th>
+              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">达成 / 目标</th>
               <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">还差</th>
             </tr>
           </thead>
@@ -702,16 +761,23 @@ async function renderDailyTrack() {
 
   profiles.forEach(p => {
     const pname = p.name || '';
-    // 优先精确匹配
+    const rname = p.real_name || '';
+    // 优先精确匹配花名
     if (shiftMap[pname]) {
       onShiftProfiles.push({ ...p, shift: shiftMap[pname] });
       matchedScheduleNames.add(pname);
       return;
     }
-    // 模糊匹配：排班表中的名字包含 profile 名字或反之
+    // 精确匹配真实姓名
+    if (rname && shiftMap[rname]) {
+      onShiftProfiles.push({ ...p, shift: shiftMap[rname] });
+      matchedScheduleNames.add(rname);
+      return;
+    }
+    // 模糊匹配：排班表中的名字包含 profile 名字或反之（同时检查花名和真名）
     for (const sname of Object.keys(shiftMap)) {
       if (!matchedScheduleNames.has(sname)) {
-        if (sname.includes(pname) || pname.includes(sname)) {
+        if (sname.includes(pname) || pname.includes(sname) || (rname && (sname.includes(rname) || rname.includes(sname)))) {
           onShiftProfiles.push({ ...p, shift: shiftMap[sname] });
           matchedScheduleNames.add(sname);
           return;
@@ -1029,7 +1095,7 @@ switchPage = function(page) {
 // ---------- 成员管理 ----------
 async function loadMembers() {
   if (!supabase) {
-    document.getElementById('members-tbody').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-secondary);">Supabase 未初始化</td></tr>';
+    document.getElementById('members-tbody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-secondary);">Supabase 未初始化</td></tr>';
     return;
   }
   try {
@@ -1038,19 +1104,19 @@ async function loadMembers() {
       .select('*')
       .order('created_at', { ascending: false });
     if (error) {
-      document.getElementById('members-tbody').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--danger);">加载失败：' + escapeHtml(error.message) + '</td></tr>';
+      document.getElementById('members-tbody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--danger);">加载失败：' + escapeHtml(error.message) + '</td></tr>';
       return;
     }
     renderMembers(data || []);
   } catch (e) {
-    document.getElementById('members-tbody').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--danger);">加载异常</td></tr>';
+    document.getElementById('members-tbody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--danger);">加载异常</td></tr>';
   }
 }
 
 function renderMembers(members) {
   const tbody = document.getElementById('members-tbody');
   if (!members.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-secondary);">暂无成员</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-secondary);">暂无成员</td></tr>';
     return;
   }
   const roleMap = { admin: '管理员', leader: '组长', staff: '员工' };
@@ -1061,7 +1127,10 @@ function renderMembers(members) {
     const phone = m.phone || '-';
     return `<tr>
       <td>
-        ${isAdmin ? `<span class="member-name-editable" onclick="editMemberName(this, '${m.id}', '${escapeAttr(m.name || '')}')" title="点击修改姓名" style="cursor:pointer;border-bottom:1px dashed var(--primary-light);">${escapeHtml(m.name || '未命名')}</span>` : escapeHtml(m.name || '未命名')}
+        ${isAdmin ? `<span class="member-name-editable" onclick="editMemberName(this, '${m.id}', '${escapeAttr(m.name || '')}')" title="点击修改花名" style="cursor:pointer;border-bottom:1px dashed var(--primary-light);">${escapeHtml(m.name || '未命名')}</span>` : escapeHtml(m.name || '未命名')}
+      </td>
+      <td>
+        ${isAdmin ? `<span class="member-name-editable" onclick="editMemberRealName(this, '${m.id}', '${escapeAttr(m.real_name || '')}')" title="点击修改真实姓名" style="cursor:pointer;border-bottom:1px dashed var(--primary-light);color:var(--text-secondary);">${escapeHtml(m.real_name || '-')}</span>` : escapeHtml(m.real_name || '-')}
       </td>
       <td>${escapeHtml(phone)}</td>
       <td>
