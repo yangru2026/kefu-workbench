@@ -818,6 +818,29 @@ body {
       </div>
       <!-- 提交结果卡片（截图发群用） -->
       <div id="daily-result-area" style="display:none;"></div>
+      <!-- 接待压力统计（可折叠） -->
+      <div id="daily-stats-panel" style="margin-top:20px;">
+        <div onclick="toggleDailyStats()" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f8f9ff;border:1px solid var(--border);border-radius:10px;cursor:pointer;">
+          <span style="font-size:14px;font-weight:600;">📊 接待压力统计（点击展开）</span>
+          <span id="daily-stats-toggle" style="font-size:16px;color:var(--text-secondary);">▼</span>
+        </div>
+        <div id="daily-stats-content" style="display:none;padding:12px;border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;background:var(--card-bg);">
+          <div id="daily-stats-body">加载中...</div>
+        </div>
+      </div>
+      <!-- 历史存档日历 -->
+      <div id="daily-archive-area" style="margin-top:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h3 style="margin:0;font-size:16px;">📅 日报存档</h3>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn-sm outline" onclick="changeArchiveMonth(-1)">◀</button>
+            <span id="daily-archive-month" style="font-size:14px;font-weight:600;"></span>
+            <button class="btn-sm outline" onclick="changeArchiveMonth(1)">▶</button>
+          </div>
+        </div>
+        <div id="daily-archive-calendar"></div>
+        <div id="daily-archive-detail" style="margin-top:16px;display:none;"></div>
+      </div>
     </div>
   </div>
 
@@ -2491,7 +2514,8 @@ function renderBulletin() {
 function renderTools() {
   document.getElementById('tool-list').innerHTML = toolsData.map(t => {
     let click;
-    if (t.type === 'logistics') click = `onclick="openLogistics()"`;
+    if (t.type === 'logistics-freight') click = `onclick="openLogisticsFreight()"`;
+    else if (t.type === 'logistics') click = `onclick="openLogistics()"`;
     else if (t.type === 'freight') click = `onclick="openFreightTable()"`;
     else click = `onclick="showToolInfo('${t.title}', \`${t.content}\`)"`;
     return `
@@ -2517,6 +2541,118 @@ function showToolInfo(title, content) {
   `;
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
   document.body.appendChild(overlay);
+}
+
+// ==================== LOGISTICS + FREIGHT COMBINED ====================
+function openLogisticsFreight() {
+  const overlay = document.createElement('div');
+  overlay.className = 'logistics-freight-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:999;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:28px;max-width:800px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.2);max-height:90vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h3 style="font-size:20px;">🚛 物流运费查询</h3>
+        <button style="width:32px;height:32px;border:none;background:none;font-size:18px;cursor:pointer;color:#999;border-radius:50%;display:flex;align-items:center;justify-content:center;" onclick="this.closest('.logistics-freight-overlay').remove()">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <!-- 左侧：物流时效查询 -->
+        <div style="border:1px solid #eee;border-radius:12px;padding:16px;">
+          <h4 style="margin-bottom:12px;font-size:15px;">📦 物流时效查询</h4>
+          <div class="log-form-row" style="margin-bottom:10px;">
+            <label style="font-size:12px;color:#666;display:block;margin-bottom:4px;">发货地</label>
+            <select id="lf-from" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
+              <option value="">请选择发货省份</option>
+              ${logProvinces.map(p => `<option value="${p.name}">${p.name}</option>`).join('')}
+            </select>
+          </div>
+          <div class="log-form-row" style="margin-bottom:10px;">
+            <label style="font-size:12px;color:#666;display:block;margin-bottom:4px;">目的地</label>
+            <select id="lf-to" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
+              <option value="">请选择目的省份</option>
+              ${logProvinces.map(p => `<option value="${p.name}">${p.name}</option>`).join('')}
+            </select>
+          </div>
+          <div class="log-form-row" style="margin-bottom:10px;">
+            <label style="font-size:12px;color:#666;display:block;margin-bottom:4px;">快递方式</label>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="lf-express-btn active" data-express="中通" onclick="selLFExpress(this)" style="padding:4px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;">中通</button>
+              <button class="lf-express-btn" data-express="圆通" onclick="selLFExpress(this)" style="padding:4px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;">圆通</button>
+              <button class="lf-express-btn" data-express="顺丰陆运" onclick="selLFExpress(this)" style="padding:4px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;">顺丰陆运</button>
+              <button class="lf-express-btn" data-express="顺丰空运" onclick="selLFExpress(this)" style="padding:4px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;">顺丰空运</button>
+            </div>
+          </div>
+          <button onclick="queryLF()" style="width:100%;padding:8px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">🔍 查询时效</button>
+          <div id="lf-result" style="margin-top:12px;padding:12px;background:#f8f9ff;border-radius:8px;display:none;">
+            <div id="lf-result-content"></div>
+          </div>
+        </div>
+        <!-- 右侧：顺丰运费表 -->
+        <div style="border:1px solid #eee;border-radius:12px;padding:16px;">
+          <h4 style="margin-bottom:12px;font-size:15px;">💰 顺丰补运费标准</h4>
+          <p style="font-size:12px;color:#888;margin-bottom:10px;">中通/圆通全国包邮。以下为客户要求补发顺丰时的费用标准（浙江仓库发货）</p>
+          <table style="width:100%;font-size:12px;border-collapse:collapse;">
+            <thead><tr style="background:#f0f4ff;">
+              <th style="padding:6px;border-bottom:1px solid #ddd;">区域</th>
+              <th style="padding:6px;border-bottom:1px solid #ddd;">覆盖省份</th>
+              <th style="padding:6px;border-bottom:1px solid #ddd;">陆运补费</th>
+              <th style="padding:6px;border-bottom:1px solid #ddd;">空运补费</th>
+            </tr></thead>
+            <tbody>
+              <tr><td style="padding:6px;border-bottom:1px solid #eee;">江浙沪皖</td><td style="padding:6px;border-bottom:1px solid #eee;">江苏、浙江、上海、安徽</td><td style="padding:6px;border-bottom:1px solid #eee;color:#16a34a;font-weight:700;">¥8</td><td style="padding:6px;border-bottom:1px solid #eee;color:#888;">—</td></tr>
+              <tr><td style="padding:6px;border-bottom:1px solid #eee;">大部分省份</td><td style="padding:6px;border-bottom:1px solid #eee;">北京、天津、河北、山西、山东、河南、湖北、湖南、江西、福建、广东、广西、海南、四川、重庆、贵州、云南、陕西</td><td style="padding:6px;border-bottom:1px solid #eee;color:#d97706;font-weight:700;">¥12</td><td style="padding:6px;border-bottom:1px solid #eee;color:#d97706;font-weight:700;">¥20</td></tr>
+              <tr><td style="padding:6px;border-bottom:1px solid #eee;">偏远地区</td><td style="padding:6px;border-bottom:1px solid #eee;">内蒙古、辽宁、吉林、黑龙江、甘肃、青海、宁夏、新疆、西藏</td><td style="padding:6px;border-bottom:1px solid #eee;color:#dc2626;font-weight:700;">¥16</td><td style="padding:6px;border-bottom:1px solid #eee;color:#dc2626;font-weight:700;">¥22</td></tr>
+            </tbody>
+          </table>
+          <p style="font-size:11px;color:#999;margin-top:8px;">* 江浙沪皖顺丰陆运已可次日达，无需补差价升级空运。实际时效可能受天气、航班等因素影响。</p>
+        </div>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+  window._lfExpress = '中通';
+}
+
+let _lfExpress = '中通';
+function selLFExpress(btn) {
+  document.querySelectorAll('.lf-express-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _lfExpress = btn.dataset.express;
+}
+
+function queryLF() {
+  const from = document.getElementById('lf-from').value;
+  const to = document.getElementById('lf-to').value;
+  if (!from || !to) { showToast('请选择发货地和目的地'); return; }
+  if (from === to) { showToast('发货地和目的地不能相同'); return; }
+  const toData = logProvinceRules[to];
+  if (!toData) { showToast('该目的地数据暂缺'); return; }
+  let rule;
+  if (_lfExpress === '中通') rule = toData.zt;
+  else if (_lfExpress === '圆通') rule = toData.yt;
+  else if (_lfExpress === '顺丰陆运') rule = toData.sfLu;
+  else if (_lfExpress === '顺丰空运') rule = toData.sfKong;
+  const now = new Date();
+  const minDate = new Date(now); minDate.setDate(minDate.getDate() + rule.min);
+  const maxDate = new Date(now); maxDate.setDate(maxDate.getDate() + rule.max);
+  const fmt = d => `${d.getMonth()+1}月${d.getDate()}日`;
+  const daysText = rule.txt || (rule.min === rule.max ? `${rule.min}天` : `${rule.min}-${rule.max}天`);
+  let feeText = '包邮';
+  if (_lfExpress.includes('顺丰')) {
+    if (_lfExpress === '顺丰陆运') feeText = toData.feeLu ? `补${toData.feeLu}元` : '无需补费';
+    else if (rule.txt === '无需空运') feeText = '无需空运';
+    else if (toData.feeKong) feeText = `补${toData.feeKong}元`;
+  }
+  document.getElementById('lf-result').style.display = '';
+  document.getElementById('lf-result-content').innerHTML = `
+    <div style="font-size:13px;font-weight:700;margin-bottom:8px;">${from} → ${to} · ${_lfExpress}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+      <div style="background:#fff;padding:8px;border-radius:6px;"><span style="color:#888;">预计时效</span><div style="font-weight:700;color:#2563eb;">${daysText}</div></div>
+      <div style="background:#fff;padding:8px;border-radius:6px;"><span style="color:#888;">预计送达</span><div style="font-weight:700;">${rule.min === rule.max ? fmt(minDate) : fmt(minDate)+' - '+fmt(maxDate)}</div></div>
+      <div style="background:#fff;padding:8px;border-radius:6px;"><span style="color:#888;">补运费</span><div style="font-weight:700;color:${feeText==='包邮'?'#16a34a':'#d97706'}">${feeText}</div></div>
+      <div style="background:#fff;padding:8px;border-radius:6px;"><span style="color:#888;">距离</span><div style="font-weight:700;">${from === '浙江' ? '同省/邻省' : '跨省'}</div></div>
+    </div>
+  `;
 }
 
 // ==================== FREIGHT TABLE ====================

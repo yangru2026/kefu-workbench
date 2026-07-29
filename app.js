@@ -359,11 +359,13 @@ function renderDailyList() {
   if (dailyReports.length === 0) {
     emptyEl.style.display = '';
     myArea.style.display = 'none';
-    return;
+  } else {
+    emptyEl.style.display = 'none';
+    myArea.style.display = '';
+    myList.innerHTML = dailyReports.map(r => renderDailyReportCard(r)).join('');
   }
-  emptyEl.style.display = 'none';
-  myArea.style.display = '';
-  myList.innerHTML = dailyReports.map(r => renderDailyReportCard(r)).join('');
+  // Always render archive calendar
+  renderArchiveCalendar();
 }
 
 function renderDailyReportCard(r) {
@@ -706,6 +708,227 @@ function copyDailyResult() {
   }).catch(() => {
     showToast('复制失败，请手动截图');
   });
+}
+
+// ==================== DAILY STATS PANEL ====================
+let dailyStatsExpanded = false;
+function toggleDailyStats() {
+  dailyStatsExpanded = !dailyStatsExpanded;
+  document.getElementById('daily-stats-content').style.display = dailyStatsExpanded ? '' : 'none';
+  document.getElementById('daily-stats-toggle').textContent = dailyStatsExpanded ? '▲' : '▼';
+  if (dailyStatsExpanded) renderDailyStats();
+}
+
+async function renderDailyStats() {
+  if (!supabase) return;
+  const body = document.getElementById('daily-stats-body');
+  body.innerHTML = '计算中...';
+
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth() + 1;
+  const monthKey = `${year}-${String(month).padStart(2,'0')}`;
+
+  // 1. Get schedule data for current month
+  const monthSchedule = scheduleData[monthKey];
+  if (!monthSchedule || !monthSchedule.staff) {
+    body.innerHTML = '<p style="text-align:center;color:var(--text-secondary);font-size:13px;">本月暂无排班数据，无法统计出勤天数</p>';
+    return;
+  }
+
+  // 2. Get all daily reports for current month
+  const start = `${monthKey}-01`;
+  const end = `${monthKey}-31`;
+  const { data: reports } = await supabase
+    .from('daily_reports')
+    .select('*, profiles(name, group_name)')
+    .gte('report_date', start)
+    .lte('report_date', end);
+
+  const allReports = reports || [];
+
+  // 3. Calculate attendance days from schedule (non-rest days)
+  const staffAttendance = {};
+  monthSchedule.staff.forEach(s => {
+    const name = s.name;
+    const shifts = s.shifts || [];
+    const workDays = shifts.filter(day => day && day.trim() && day !== '休').length;
+    staffAttendance[name] = workDays;
+  });
+
+  // 4. Calculate total visitors per staff from reports
+  const staffVisitors = {};
+  allReports.forEach(r => {
+    const name = r.profiles?.name || '未知';
+    const v = (r.content?.shops || []).reduce((s, sh) => s + (parseInt(sh.visitors) || 0), 0);
+    if (!staffVisitors[name]) staffVisitors[name] = 0;
+    staffVisitors[name] += v;
+  });
+
+  // 5. Group by group
+  const groupStats = {};
+  monthSchedule.staff.forEach(s => {
+    const name = s.name;
+    const group = s.group || '未分组';
+    const attendance = staffAttendance[name] || 0;
+    const visitors = staffVisitors[name] || 0;
+    const avg = attendance > 0 ? (visitors / attendance).toFixed(1) : '0.0';
+
+    if (!groupStats[group]) groupStats[group] = { staff: [], totalVisitors: 0, totalAttendance: 0 };
+    groupStats[group].staff.push({ name, attendance, visitors, avg });
+    groupStats[group].totalVisitors += visitors;
+    groupStats[group].totalAttendance += attendance;
+  });
+
+  // 6. Render
+  let html = '';
+  Object.keys(groupStats).forEach(g => {
+    const gs = groupStats[g];
+    const groupAvg = gs.totalAttendance > 0 ? (gs.totalVisitors / gs.totalAttendance).toFixed(1) : '0.0';
+    html += `<div style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-weight:700;font-size:14px;">${g}</span>
+        <span style="font-size:12px;color:var(--text-secondary);">组日均接待 <strong style="color:var(--primary);">${groupAvg}</strong></span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:8px;">
+        ${gs.staff.map(s => `
+          <div style="padding:8px;background:#f8f9ff;border-radius:8px;font-size:12px;">
+            <div style="font-weight:600;margin-bottom:4px;">${s.name}</div>
+            <div style="display:flex;justify-content:space-between;color:#888;">
+              <span>出勤 ${s.attendance}天</span>
+              <span>总接 ${s.visitors}</span>
+            </div>
+            <div style="margin-top:4px;color:var(--primary);font-weight:700;">日均 ${s.avg}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+  });
+
+  body.innerHTML = html;
+}
+
+// ==================== DAILY ARCHIVE CALENDAR ====================
+let archiveMonth = new Date();
+let archiveReports = [];
+
+function changeArchiveMonth(delta) {
+  archiveMonth.setMonth(archiveMonth.getMonth() + delta);
+  renderArchiveCalendar();
+}
+
+async function loadArchiveReports(year, month) {
+  if (!supabase) return;
+  const start = `${year}-${String(month).padStart(2,'0')}-01`;
+  const end = `${year}-${String(month).padStart(2,'0')}-31`;
+  const { data, error } = await supabase
+    .from('daily_reports')
+    .select('*, profiles(name, group_name)')
+    .gte('report_date', start)
+    .lte('report_date', end)
+    .order('report_date', { ascending: false });
+  if (!error) archiveReports = data || [];
+}
+
+async function renderArchiveCalendar() {
+  const year = archiveMonth.getFullYear();
+  const month = archiveMonth.getMonth() + 1;
+  document.getElementById('daily-archive-month').textContent = `${year}年${month}月`;
+  await loadArchiveReports(year, month);
+
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const firstDay = new Date(year, month - 1, 1).getDay();
+
+  // Group reports by date
+  const reportsByDate = {};
+  archiveReports.forEach(r => {
+    const d = r.report_date;
+    if (!reportsByDate[d]) reportsByDate[d] = [];
+    reportsByDate[d].push(r);
+  });
+
+  let html = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:12px;">';
+  const wk = ['日','一','二','三','四','五','六'];
+  wk.forEach(d => { html += `<div style="text-align:center;padding:6px;font-weight:700;color:var(--text-secondary);">${d}</div>`; });
+
+  for (let i = 0; i < firstDay; i++) html += '<div></div>';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const hasData = reportsByDate[dateStr];
+    const isToday = dateStr === new Date().toISOString().slice(0,10);
+    const totalV = hasData ? hasData.reduce((s, r) => s + (r.content?.shops || []).reduce((ss, sh) => ss + (parseInt(sh.visitors)||0), 0), 0) : 0;
+    html += `
+      <div onclick="showArchiveDate('${dateStr}')" style="
+        aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+        border-radius:8px;cursor:pointer;transition:all 0.2s;
+        background:${hasData ? '#e8f4ff' : 'var(--card-bg)'};
+        border:${isToday ? '2px solid var(--primary)' : '1px solid var(--border)'};
+        color:${hasData ? 'var(--primary)' : 'var(--text)'};
+        font-weight:${hasData ? '700' : '400'};
+      " onmouseover="this.style.background='${hasData ? '#d0e8ff' : '#f0f4ff'}'" onmouseout="this.style.background='${hasData ? '#e8f4ff' : 'var(--card-bg)'}'">
+        <span style="font-size:13px;">${d}</span>
+        ${hasData ? `<span style="font-size:10px;margin-top:2px;">${hasData.length}人</span>` : ''}
+        ${hasData && totalV > 0 ? `<span style="font-size:9px;color:#888;">接${totalV}</span>` : ''}
+      </div>`;
+  }
+  html += '</div>';
+
+  // Monthly summary
+  const monthTotalV = archiveReports.reduce((s, r) => s + (r.content?.shops || []).reduce((ss, sh) => ss + (parseInt(sh.visitors)||0), 0), 0);
+  const uniqueDates = Object.keys(reportsByDate).length;
+  const uniqueStaff = new Set(archiveReports.map(r => r.user_id)).size;
+  html += `
+    <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;font-size:12px;">
+      <span style="padding:4px 10px;background:#f0f4ff;border-radius:8px;">📅 有日报 ${uniqueDates} 天</span>
+      <span style="padding:4px 10px;background:#f0f4ff;border-radius:8px;">👥 参与 ${uniqueStaff} 人</span>
+      <span style="padding:4px 10px;background:#f0f4ff;border-radius:8px;">📊 月总接待 ${monthTotalV}</span>
+    </div>
+  `;
+
+  document.getElementById('daily-archive-calendar').innerHTML = html;
+  document.getElementById('daily-archive-detail').style.display = 'none';
+}
+
+function showArchiveDate(dateStr) {
+  const reports = archiveReports.filter(r => r.report_date === dateStr);
+  if (!reports.length) return;
+
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <h4 style="margin:0;">${dateStr} 日报详情</h4>
+    <button class="btn-sm outline" onclick="document.getElementById('daily-archive-detail').style.display='none'">收起</button>
+  </div>`;
+
+  // Group by staff group
+  const byGroup = {};
+  reports.forEach(r => {
+    const g = r.profiles?.group_name || '未分组';
+    if (!byGroup[g]) byGroup[g] = [];
+    byGroup[g].push(r);
+  });
+
+  Object.keys(byGroup).forEach(g => {
+    html += `<div style="margin-bottom:12px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+      <div style="padding:8px 12px;background:#f8f9ff;font-weight:700;font-size:13px;">${g}</div>`;
+    byGroup[g].forEach(r => {
+      const shops = r.content?.shops || [];
+      const totalV = shops.reduce((s, sh) => s + (parseInt(sh.visitors)||0), 0);
+      html += `<div style="padding:10px 12px;border-top:1px solid #eee;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-weight:600;font-size:13px;">${r.profiles?.name || '未知'}</span>
+          <span style="font-size:12px;color:var(--primary);font-weight:700;">总接待 ${totalV}</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${shops.map(s => `<span style="font-size:11px;padding:2px 6px;background:#f0f4ff;border-radius:4px;">${s.name}: ${s.visitors || 0}接 / ${s.inquiries || 0}询 / ${s.payments || 0}付</span>`).join('')}
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+
+  const detail = document.getElementById('daily-archive-detail');
+  detail.innerHTML = html;
+  detail.style.display = '';
 }
 
 async function renderDailyTrack() {
