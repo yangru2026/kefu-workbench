@@ -363,8 +363,17 @@ function renderDailyList() {
     myArea.style.display = '';
     myList.innerHTML = dailyReports.map(r => renderDailyReportCard(r)).join('');
   }
-  // Always render archive calendar
+  // Always render archive calendar and show admin panels
   renderArchiveCalendar();
+  const isAdmin = currentProfile?.role === 'admin' || currentProfile?.role === 'leader';
+  const statsPanel = document.getElementById('daily-stats-panel');
+  const archiveArea = document.getElementById('daily-archive-area');
+  const groupEditor = document.getElementById('daily-group-editor');
+  if (isAdmin) {
+    if (statsPanel) statsPanel.style.display = '';
+    if (archiveArea) archiveArea.style.display = '';
+    if (groupEditor) groupEditor.style.display = '';
+  }
 }
 
 function renderDailyReportCard(r) {
@@ -393,9 +402,7 @@ function renderDailyReportCard(r) {
           <tbody>${shopRows}</tbody>
         </table>
       </div>
-      ${c.analysis ? `<div style="margin-top:10px;font-size:13px;color:var(--text-secondary);padding:8px;background:#f9f9ff;border-radius:8px;"><strong>未成交分析：</strong>${escapeHtml(c.analysis)}</div>` : ''}
-      ${c.followUp ? `<div style="margin-top:6px;font-size:13px;color:var(--text-secondary);padding:8px;background:#f0fff4;border-radius:8px;"><strong>催付情况：</strong>${escapeHtml(c.followUp)}</div>` : ''}
-      ${c.feedback ? `<div style="margin-top:6px;font-size:13px;color:var(--text-secondary);padding:8px;background:#fff8f0;border-radius:8px;"><strong>客户反馈：</strong>${escapeHtml(c.feedback)}</div>` : ''}
+      ${c.analysis ? `<div style="margin-top:10px;font-size:13px;color:var(--text-secondary);padding:8px;background:#f9f9ff;border-radius:8px;"><strong>备注：</strong>${escapeHtml(c.analysis)}</div>` : ''}
     </div>
   `;
 }
@@ -443,9 +450,6 @@ async function openDailyForm() {
   }
 
   renderDailyShopInputs(shops);
-  document.getElementById('daily-analysis').value = existing?.content?.analysis || '';
-  document.getElementById('daily-followup').value = existing?.content?.followUp || '';
-  document.getElementById('daily-feedback').value = existing?.content?.feedback || '';
   updateDailyTotal();
 }
 
@@ -648,9 +652,7 @@ function renderDailyResult(content) {
           return t>0&&i>0 ? sum+Math.max(0,Math.ceil(i*t/100-p)) : sum;
         },0)||'--'}</div></div>
       </div>
-      ${content.analysis ? `<div style="margin-top:12px;font-size:12px;color:#666;background:#fff7ed;padding:8px 10px;border-radius:8px;border-left:3px solid #f59e0b;"><strong style="color:#d97706;">未成交分析：</strong>${escapeHtml(content.analysis)}</div>` : ''}
-      ${content.followUp ? `<div style="margin-top:8px;font-size:12px;color:#666;background:#f0fdf4;padding:8px 10px;border-radius:8px;border-left:3px solid #22c55e;"><strong style="color:#16a34a;">催付：</strong>${escapeHtml(content.followUp)}</div>` : ''}
-      ${content.feedback ? `<div style="margin-top:8px;font-size:12px;color:#666;background:#eff6ff;padding:8px 10px;border-radius:8px;border-left:3px solid #3b82f6;"><strong style="color:#2563eb;">反馈：</strong>${escapeHtml(content.feedback)}</div>` : ''}
+      ${content.analysis ? `<div style="margin-top:12px;font-size:12px;color:#666;background:#fff7ed;padding:8px 10px;border-radius:8px;border-left:3px solid #f59e0b;"><strong style="color:#d97706;">备注：</strong>${escapeHtml(content.analysis)}</div>` : ''}
       <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;">
         <button onclick="closeDailyForm()" style="padding:8px 20px;border-radius:8px;border:1px solid #d0d7ff;background:#fff;color:#666;font-size:14px;cursor:pointer;">返回</button>
         <button onclick="copyDailyResult()" style="padding:8px 20px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:14px;cursor:pointer;">📋 复制文本</button>
@@ -675,12 +677,7 @@ async function submitDaily() {
       target: parseFloat(row.querySelector('.daily-shop-target')?.value) || 0
     });
   });
-  const content = {
-    shops,
-    analysis: document.getElementById('daily-analysis').value.trim(),
-    followUp: document.getElementById('daily-followup').value.trim(),
-    feedback: document.getElementById('daily-feedback').value.trim()
-  };
+  const content = { shops };
   const { error } = await supabase.from('daily_reports').upsert({
     user_id: currentUser.id,
     report_date: today,
@@ -811,6 +808,83 @@ async function renderDailyStats() {
 let archiveMonth = new Date();
 let archiveReports = [];
 
+// ==================== SHOP GROUP EDITOR (admin-only) ====================
+function toggleGroupEditor() {
+  const content = document.getElementById('daily-group-content');
+  const toggle = document.getElementById('daily-group-toggle');
+  const isOpen = content.style.display !== 'none';
+  content.style.display = isOpen ? 'none' : '';
+  toggle.textContent = isOpen ? '▼' : '▲';
+  if (!isOpen) renderGroupEditor();
+}
+
+function renderGroupEditor() {
+  const body = document.getElementById('daily-group-body');
+  const groups = ['A组', 'B组', 'C组'];
+  // Build flat list of all shops with their current group
+  const allShops = [];
+  groups.forEach(g => {
+    const tpl = getShopTemplate(g);
+    (tpl.shops || []).forEach(s => {
+      allShops.push({ name: s.name, target: s.target || DEFAULT_TARGET, group: g });
+    });
+  });
+  // Also add any shops from DEFAULT_TEMPLATES not in current templates
+  const existingNames = new Set(allShops.map(s => s.name));
+  groups.forEach(g => {
+    const def = DEFAULT_TEMPLATES[g];
+    if (def) {
+      def.shops.forEach(s => {
+        if (!existingNames.has(s.name)) {
+          allShops.push({ name: s.name, target: s.target || DEFAULT_TARGET, group: g });
+          existingNames.add(s.name);
+        }
+      });
+    }
+  });
+
+  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:6px;margin-bottom:10px;">';
+  allShops.forEach(s => {
+    html += `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:#f8f9ff;border-radius:6px;">
+      <span style="flex:1;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(s.name)}">${escapeHtml(s.name)}</span>
+      <select class="group-editor-select" data-shop="${escapeAttr(s.name)}" style="padding:2px 6px;border-radius:4px;border:1px solid var(--border);font-size:11px;background:var(--card-bg);color:var(--text);">
+        ${groups.map(g => `<option value="${g}" ${s.group===g?'selected':''}>${g}</option>`).join('')}
+      </select>
+    </div>`;
+  });
+  html += '</div>';
+  html += '<button class="btn-sm primary" onclick="saveGroupEdits()" style="font-size:12px;">💾 保存分组修改（同步到模板和存档）</button>';
+  html += '<span style="font-size:11px;color:var(--text-secondary);margin-left:8px;">修改后日报汇总和存档将按新分组展示</span>';
+  body.innerHTML = html;
+}
+
+async function saveGroupEdits() {
+  if (!supabase) { showToast('系统未初始化'); return; }
+  const selects = document.querySelectorAll('.group-editor-select');
+  const groupMap = { 'A组': [], 'B组': [], 'C组': [] };
+  selects.forEach(sel => {
+    const name = sel.getAttribute('data-shop');
+    const group = sel.value;
+    if (name && groupMap[group]) {
+      // Preserve target from current template
+      const tpl = getShopTemplate(group);
+      const existing = (tpl.shops || []).find(s => s.name === name);
+      groupMap[group].push({ name, target: existing?.target || DEFAULT_TARGET });
+    }
+  });
+
+  // Save each group
+  for (const g of Object.keys(groupMap)) {
+    if (groupMap[g].length > 0) {
+      await saveTemplate(g, groupMap[g]);
+    }
+  }
+  await loadTemplates();
+  showToast('店铺分组已保存，汇总和存档已同步');
+  // Refresh archive if visible
+  if (document.getElementById('daily-archive-calendar').innerHTML) renderArchiveCalendar();
+}
+
 function changeArchiveMonth(delta) {
   archiveMonth.setMonth(archiveMonth.getMonth() + delta);
   renderArchiveCalendar();
@@ -846,9 +920,9 @@ async function renderArchiveCalendar() {
     reportsByDate[d].push(r);
   });
 
-  let html = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:12px;">';
+  let html = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-size:11px;max-width:380px;">';
   const wk = ['日','一','二','三','四','五','六'];
-  wk.forEach(d => { html += `<div style="text-align:center;padding:6px;font-weight:700;color:var(--text-secondary);">${d}</div>`; });
+  wk.forEach(d => { html += `<div style="text-align:center;padding:4px;font-weight:700;color:var(--text-secondary);font-size:10px;">${d}</div>`; });
 
   for (let i = 0; i < firstDay; i++) html += '<div></div>';
 
@@ -859,16 +933,15 @@ async function renderArchiveCalendar() {
     const totalV = hasData ? hasData.reduce((s, r) => s + (r.content?.shops || []).reduce((ss, sh) => ss + (parseInt(sh.visitors)||0), 0), 0) : 0;
     html += `
       <div data-date="${dateStr}" class="archive-day${hasData ? ' has-data' : ''}${isToday ? ' is-today' : ''}" style="
-        aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-        border-radius:8px;cursor:pointer;transition:all 0.2s;
+        aspect-ratio:0.85;display:flex;flex-direction:column;align-items:center;justify-content:center;
+        border-radius:6px;cursor:pointer;transition:all 0.2s;
         background:${hasData ? '#e8f4ff' : 'var(--card-bg)'};
         border:${isToday ? '2px solid var(--primary)' : '1px solid var(--border)'};
         color:${hasData ? 'var(--primary)' : 'var(--text)'};
-        font-weight:${hasData ? '700' : '400'};
+        font-weight:${hasData ? '600' : '400'};font-size:11px;
       ">
-        <span style="font-size:13px;">${d}</span>
-        ${hasData ? `<span style="font-size:10px;margin-top:2px;">${hasData.length}人</span>` : ''}
-        ${hasData && totalV > 0 ? `<span style="font-size:9px;color:#888;">接${totalV}</span>` : ''}
+        <span style="font-size:12px;">${d}</span>
+        ${hasData ? `<span style="font-size:9px;margin-top:1px;color:#888;">${hasData.length}人</span>` : ''}
       </div>`;
   }
   html += '</div>';
@@ -878,10 +951,10 @@ async function renderArchiveCalendar() {
   const uniqueDates = Object.keys(reportsByDate).length;
   const uniqueStaff = new Set(archiveReports.map(r => r.user_id)).size;
   html += `
-    <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;font-size:12px;">
-      <span style="padding:4px 10px;background:#f0f4ff;border-radius:8px;">📅 有日报 ${uniqueDates} 天</span>
-      <span style="padding:4px 10px;background:#f0f4ff;border-radius:8px;">👥 参与 ${uniqueStaff} 人</span>
-      <span style="padding:4px 10px;background:#f0f4ff;border-radius:8px;">📊 月总接待 ${monthTotalV}</span>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px;">
+      <span style="padding:3px 8px;background:#f0f4ff;border-radius:6px;">📅 有日报 ${uniqueDates} 天</span>
+      <span style="padding:3px 8px;background:#f0f4ff;border-radius:6px;">👥 参与 ${uniqueStaff} 人</span>
+      <span style="padding:3px 8px;background:#f0f4ff;border-radius:6px;">📊 月总接待 ${monthTotalV}</span>
     </div>
   `;
 
@@ -912,15 +985,17 @@ function showArchiveDate(dateStr) {
     <button class="btn-sm outline" onclick="document.getElementById('daily-archive-detail').style.display='none'">收起</button>
   </div>`;
 
-  // 1. 收集所有店铺的数据（店铺名 -> 客服数据数组）
+  // 1. 收集所有店铺数据，按提交人所属组 + 店铺名组织
   const shopData = {};
   reports.forEach(r => {
     const name = r.profiles?.name || '未知';
+    const group = r.profiles?.group_name || '未分组';
     const shops = r.content?.shops || [];
     shops.forEach(s => {
       const sn = s.name || '未知店铺';
-      if (!shopData[sn]) shopData[sn] = [];
-      shopData[sn].push({
+      const key = group + '|||' + sn;
+      if (!shopData[key]) shopData[key] = [];
+      shopData[key].push({
         name,
         inquiries: parseInt(s.inquiries) || 0,
         payments: parseInt(s.payments) || 0,
@@ -929,23 +1004,12 @@ function showArchiveDate(dateStr) {
     });
   });
 
-  // 2. 建立店铺 -> 所属模板组 的映射
-  const shopToGroup = {};
-  Object.keys(shopTemplates).forEach(g => {
-    const tpl = shopTemplates[g];
-    const shops = tpl.shops || [];
-    shops.forEach(s => {
-      const sn = s.name || s;
-      if (!shopToGroup[sn]) shopToGroup[sn] = g;
-    });
-  });
-
-  // 3. 按组模板重组数据
+  // 2. 按组重组
   const groupData = {};
-  Object.keys(shopData).forEach(sn => {
-    const g = shopToGroup[sn] || '未分组';
+  Object.keys(shopData).forEach(key => {
+    const [g, sn] = key.split('|||');
     if (!groupData[g]) groupData[g] = {};
-    groupData[g][sn] = shopData[sn];
+    groupData[g][sn] = shopData[key];
   });
 
   // 转化率颜色辅助
@@ -976,9 +1040,9 @@ function showArchiveDate(dateStr) {
   });
 
   allGroups.forEach(g => {
-    html += `<div style="margin-bottom:16px;">
-      <div style="padding:8px 12px;background:#f0f4ff;font-weight:700;font-size:14px;border-radius:8px 8px 0 0;border:1px solid var(--border);border-bottom:none;">${escapeHtml(g)}</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:12px;padding:12px;border:1px solid var(--border);border-radius:0 0 8px 8px;background:var(--card-bg);">`;
+    html += `<div style="margin-bottom:10px;">
+      <div style="padding:6px 10px;background:#f0f4ff;font-weight:700;font-size:12px;border-radius:6px 6px 0 0;border:1px solid var(--border);border-bottom:none;">${escapeHtml(g)}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));gap:8px;padding:8px;border:1px solid var(--border);border-radius:0 0 6px 6px;background:var(--card-bg);">`;
 
     const shops = Object.keys(groupData[g]).sort();
     shops.forEach(shopName => {
@@ -993,15 +1057,15 @@ function showArchiveDate(dateStr) {
       const tRateColor = rateColor(totalRate, totalTarget);
       const tRateBg = rateBg(totalRate, totalTarget);
 
-      html += `<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-        <div style="padding:7px 10px;background:#f8f9ff;font-weight:700;font-size:13px;text-align:center;border-bottom:1px solid #e5e7eb;">${escapeHtml(shopName)}</div>
-        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      html += `<div style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.03);">
+        <div style="padding:5px 8px;background:#f8f9ff;font-weight:700;font-size:11px;text-align:center;border-bottom:1px solid #e5e7eb;">${escapeHtml(shopName)}</div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;">
           <thead>
             <tr style="background:#f0f4ff;">
-              <th style="padding:6px 4px;text-align:center;border-bottom:1px solid #e5e7eb;font-weight:600;width:28%;">客服</th>
-              <th style="padding:6px 4px;text-align:center;border-bottom:1px solid #e5e7eb;font-weight:600;width:24%;">询单</th>
-              <th style="padding:6px 4px;text-align:center;border-bottom:1px solid #e5e7eb;font-weight:600;width:24%;">付款</th>
-              <th style="padding:6px 4px;text-align:center;border-bottom:1px solid #e5e7eb;font-weight:600;width:24%;">转化</th>
+              <th style="padding:4px 3px;text-align:center;border-bottom:1px solid #e5e7eb;font-weight:600;width:28%;">客服</th>
+              <th style="padding:4px 3px;text-align:center;border-bottom:1px solid #e5e7eb;font-weight:600;width:24%;">询单</th>
+              <th style="padding:4px 3px;text-align:center;border-bottom:1px solid #e5e7eb;font-weight:600;width:24%;">付款</th>
+              <th style="padding:4px 3px;text-align:center;border-bottom:1px solid #e5e7eb;font-weight:600;width:24%;">转化</th>
             </tr>
           </thead>
           <tbody>`;
@@ -1010,18 +1074,18 @@ function showArchiveDate(dateStr) {
         const rate = row.inquiries > 0 ? (row.payments / row.inquiries * 100).toFixed(2) : '0.00';
         const rc = rateColor(rate, row.target);
         html += `<tr>
-          <td style="padding:6px 4px;text-align:center;border-bottom:1px solid #f3f4f6;font-weight:500;">${escapeHtml(row.name)}</td>
-          <td style="padding:6px 4px;text-align:center;border-bottom:1px solid #f3f4f6;">${row.inquiries}</td>
-          <td style="padding:6px 4px;text-align:center;border-bottom:1px solid #f3f4f6;">${row.payments}</td>
-          <td style="padding:6px 4px;text-align:center;border-bottom:1px solid #f3f4f6;font-weight:600;color:${rc};">${rate}%</td>
+          <td style="padding:4px 3px;text-align:center;border-bottom:1px solid #f3f4f6;font-weight:500;">${escapeHtml(row.name)}</td>
+          <td style="padding:4px 3px;text-align:center;border-bottom:1px solid #f3f4f6;">${row.inquiries}</td>
+          <td style="padding:4px 3px;text-align:center;border-bottom:1px solid #f3f4f6;">${row.payments}</td>
+          <td style="padding:4px 3px;text-align:center;border-bottom:1px solid #f3f4f6;font-weight:600;color:${rc};">${rate}%</td>
         </tr>`;
       });
 
       html += `<tr style="background:#f8f9ff;font-weight:700;">
-        <td style="padding:6px 4px;text-align:center;">合计</td>
-        <td style="padding:6px 4px;text-align:center;">${totalInq}</td>
-        <td style="padding:6px 4px;text-align:center;">${totalPay}</td>
-        <td style="padding:6px 4px;text-align:center;color:${tRateColor};background:${tRateBg};">${totalRate}%</td>
+        <td style="padding:4px 3px;text-align:center;">合计</td>
+        <td style="padding:4px 3px;text-align:center;">${totalInq}</td>
+        <td style="padding:4px 3px;text-align:center;">${totalPay}</td>
+        <td style="padding:4px 3px;text-align:center;color:${tRateColor};background:${tRateBg};">${totalRate}%</td>
       </tr>`;
 
       html += `</tbody></table></div>`;
@@ -1033,6 +1097,11 @@ function showArchiveDate(dateStr) {
   const detail = document.getElementById('daily-archive-detail');
   detail.innerHTML = html;
   detail.style.display = '';
+}
+
+function closeDailyTrack() {
+  document.getElementById('daily-track-area').style.display = 'none';
+  renderDailyList();
 }
 
 async function renderDailyTrack() {
@@ -1150,18 +1219,18 @@ async function renderDailyTrack() {
   // 统计卡片
   const totalOnShift = onShiftProfiles.length;
   const submitted = onShiftProfiles.filter(p => !p.noProfile && reportMap[p.id]).length;
-  html += `<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
-    <div style="flex:1;min-width:100px;background:#eff6ff;border-radius:10px;padding:12px;text-align:center;">
-      <div style="font-size:22px;font-weight:700;color:#2563eb;">${totalOnShift}</div>
-      <div style="font-size:12px;color:#666;">今日当班</div>
+  html += `<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:80px;background:#eff6ff;border-radius:8px;padding:8px;text-align:center;">
+      <div style="font-size:18px;font-weight:700;color:#2563eb;">${totalOnShift}</div>
+      <div style="font-size:11px;color:#666;">今日当班</div>
     </div>
-    <div style="flex:1;min-width:100px;background:#dcfce7;border-radius:10px;padding:12px;text-align:center;">
-      <div style="font-size:22px;font-weight:700;color:#16a34a;">${submitted}</div>
-      <div style="font-size:12px;color:#666;">已提交</div>
+    <div style="flex:1;min-width:80px;background:#dcfce7;border-radius:8px;padding:8px;text-align:center;">
+      <div style="font-size:18px;font-weight:700;color:#16a34a;">${submitted}</div>
+      <div style="font-size:11px;color:#666;">已提交</div>
     </div>
-    <div style="flex:1;min-width:100px;background:#fff3d4;border-radius:10px;padding:12px;text-align:center;">
-      <div style="font-size:22px;font-weight:700;color:#d97706;">${totalOnShift - submitted}</div>
-      <div style="font-size:12px;color:#666;">未提交</div>
+    <div style="flex:1;min-width:80px;background:#fff3d4;border-radius:8px;padding:8px;text-align:center;">
+      <div style="font-size:18px;font-weight:700;color:#d97706;">${totalOnShift - submitted}</div>
+      <div style="font-size:11px;color:#666;">未提交</div>
     </div>
   </div>`;
 
@@ -1172,9 +1241,9 @@ async function renderDailyTrack() {
 
   sortedGroups.forEach(g => {
     const members = grouped[g];
-    html += `<div style="margin-bottom:16px;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-      <div style="padding:10px 16px;background:#f8f9ff;border-bottom:1px solid var(--border);font-size:15px;font-weight:700;">${escapeHtml(g)} · ${members.length}人当班</div>
-      <div style="padding:8px 16px;">`;
+    html += `<div style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+      <div style="padding:6px 14px;background:#f8f9ff;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;">${escapeHtml(g)} · ${members.length}人当班</div>
+      <div style="padding:4px 14px;">`;
 
     members.forEach(m => {
       const hasReport = m.noProfile ? false : !!reportMap[m.id];
@@ -1224,10 +1293,14 @@ async function renderDailyTrack() {
     });
   });
 
-  // 渲染汇总表格
+  // 渲染汇总表格：先移除旧的
+  const oldAgg = document.getElementById('daily-track-agg');
+  if (oldAgg) oldAgg.remove();
+
   const aggContainer = document.createElement('div');
-  aggContainer.style.marginTop = '24px';
-  aggContainer.innerHTML = '<h3 style="margin-bottom:16px;font-size:18px;">📊 今日已提交数据汇总（按组）</h3>';
+  aggContainer.id = 'daily-track-agg';
+  aggContainer.style.marginTop = '18px';
+  aggContainer.innerHTML = '<h4 style="margin-bottom:10px;font-size:15px;">📊 今日已提交数据汇总（按组）</h4>';
 
   const aggGroupOrder = ['A组','B组','C组'];
   const aggRemaining = Object.keys(groupAgg).filter(g => !aggGroupOrder.includes(g));
@@ -1245,28 +1318,28 @@ async function renderDailyTrack() {
       const conv = d.inquiries > 0 ? (d.payments / d.inquiries * 100).toFixed(1) : '--';
       const avgTarget = d.targets.length > 0 ? (d.targets.reduce((a,b)=>a+b,0)/d.targets.length).toFixed(0) : '-';
       return `<tr>
-        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:13px;font-weight:600;">${escapeHtml(sn)}</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:13px;text-align:center;">${d.visitors}</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:13px;text-align:center;">${d.inquiries}</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:13px;text-align:center;">${d.payments}</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:13px;text-align:center;font-weight:700;color:var(--primary);">${conv}%</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:13px;text-align:center;color:var(--text-secondary);">${avgTarget !== '-' ? avgTarget+'%' : '-'}</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:13px;text-align:center;color:var(--text-secondary);">${d.count}人</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;font-size:12px;font-weight:600;">${escapeHtml(sn)}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;font-size:12px;text-align:center;">${d.visitors}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;font-size:12px;text-align:center;">${d.inquiries}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;font-size:12px;text-align:center;">${d.payments}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;font-size:12px;text-align:center;font-weight:700;color:var(--primary);">${conv}%</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;font-size:12px;text-align:center;color:var(--text-secondary);">${avgTarget !== '-' ? avgTarget+'%' : '-'}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;font-size:12px;text-align:center;color:var(--text-secondary);">${d.count}人</td>
       </tr>`;
     }).join('');
 
     const gConv = totalI > 0 ? (totalP / totalI * 100).toFixed(1) : '--';
 
     aggContainer.innerHTML += `
-      <div style="margin-bottom:20px;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-        <div style="padding:10px 16px;background:#f0f4ff;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-weight:700;font-size:15px;">${escapeHtml(g)} · ${Object.values(groupAgg[g]).reduce((s, d) => s + d.count, 0) / (shopNames.length || 1)}人次填报</span>
-          <span style="font-size:13px;color:var(--text-secondary);">总接待 <strong>${totalV}</strong> · 总询单 <strong>${totalI}</strong> · 总支付 <strong>${totalP}</strong> · 转化率 <strong style="color:var(--primary);">${gConv}%</strong></span>
+      <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+        <div style="padding:7px 14px;background:#f0f4ff;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-weight:700;font-size:13px;">${escapeHtml(g)} · ${Object.values(groupAgg[g]).reduce((s, d) => s + d.count, 0) / (shopNames.length || 1)}人次填报</span>
+          <span style="font-size:11px;color:var(--text-secondary);">总接待 <strong>${totalV}</strong> · 总询单 <strong>${totalI}</strong> · 总支付 <strong>${totalP}</strong> · 转化率 <strong style="color:var(--primary);">${gConv}%</strong></span>
         </div>
-        <div style="overflow-x:auto;padding:8px 16px;">
-          <table class="ranking-table" style="min-width:500px;font-size:13px;">
+        <div style="overflow-x:auto;padding:4px 14px;">
+          <table class="ranking-table" style="min-width:450px;font-size:12px;">
             <thead><tr>
-              <th style="text-align:left;">店铺</th><th>接待量</th><th>询单</th><th>支付</th><th>转化率</th><th>平均目标</th><th>填报人数</th>
+              <th style="text-align:left;padding:4px 8px;">店铺</th><th style="padding:4px 8px;">接待量</th><th style="padding:4px 8px;">询单</th><th style="padding:4px 8px;">支付</th><th style="padding:4px 8px;">转化率</th><th style="padding:4px 8px;">平均目标</th><th style="padding:4px 8px;">填报人数</th>
             </tr></thead>
             <tbody>${rows}</tbody>
           </table>
