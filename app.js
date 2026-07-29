@@ -912,33 +912,40 @@ function showArchiveDate(dateStr) {
     <button class="btn-sm outline" onclick="document.getElementById('daily-archive-detail').style.display='none'">收起</button>
   </div>`;
 
-  // 按组 → 客服 → 店铺 组织数据
-  const byGroup = {};
+  // 1. 收集所有店铺的数据（店铺名 -> 客服数据数组）
+  const shopData = {};
   reports.forEach(r => {
-    const g = r.profiles?.group_name || '未分组';
     const name = r.profiles?.name || '未知';
-    if (!byGroup[g]) byGroup[g] = {};
-    if (!byGroup[g][name]) byGroup[g][name] = {};
     const shops = r.content?.shops || [];
     shops.forEach(s => {
       const sn = s.name || '未知店铺';
-      byGroup[g][name][sn] = {
+      if (!shopData[sn]) shopData[sn] = [];
+      shopData[sn].push({
+        name,
         inquiries: parseInt(s.inquiries) || 0,
         payments: parseInt(s.payments) || 0,
-        visitors: parseInt(s.visitors) || 0,
         target: parseFloat(s.target) || 15
-      };
+      });
     });
   });
 
-  // 收集每个组涉及的所有店铺
-  const groupShops = {};
-  Object.keys(byGroup).forEach(g => {
-    const shopSet = new Set();
-    Object.values(byGroup[g]).forEach(staffShops => {
-      Object.keys(staffShops).forEach(s => shopSet.add(s));
+  // 2. 建立店铺 -> 所属模板组 的映射
+  const shopToGroup = {};
+  Object.keys(shopTemplates).forEach(g => {
+    const tpl = shopTemplates[g];
+    const shops = tpl.shops || [];
+    shops.forEach(s => {
+      const sn = s.name || s;
+      if (!shopToGroup[sn]) shopToGroup[sn] = g;
     });
-    groupShops[g] = Array.from(shopSet);
+  });
+
+  // 3. 按组模板重组数据
+  const groupData = {};
+  Object.keys(shopData).forEach(sn => {
+    const g = shopToGroup[sn] || '未分组';
+    if (!groupData[g]) groupData[g] = {};
+    groupData[g][sn] = shopData[sn];
   });
 
   // 转化率颜色辅助
@@ -957,28 +964,31 @@ function showArchiveDate(dateStr) {
     return '#fee2e2';
   }
 
-  Object.keys(byGroup).forEach(g => {
+  // 4. 渲染：每组一个区域
+  const groupOrder = ['A组', 'B组', 'C组'];
+  const allGroups = Object.keys(groupData).sort((a, b) => {
+    const ia = groupOrder.indexOf(a);
+    const ib = groupOrder.indexOf(b);
+    if (ia !== -1 && ib !== -1) return ia - ib;
+    if (ia !== -1) return -1;
+    if (ib !== -1) return 1;
+    return a.localeCompare(b);
+  });
+
+  allGroups.forEach(g => {
     html += `<div style="margin-bottom:16px;">
       <div style="padding:8px 12px;background:#f0f4ff;font-weight:700;font-size:14px;border-radius:8px 8px 0 0;border:1px solid var(--border);border-bottom:none;">${escapeHtml(g)}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:12px;padding:12px;border:1px solid var(--border);border-radius:0 0 8px 8px;background:var(--card-bg);">`;
 
-    const shops = groupShops[g];
+    const shops = Object.keys(groupData[g]).sort();
     shops.forEach(shopName => {
-      // 收集该店铺所有客服的数据
-      const rows = [];
+      const rows = groupData[g][shopName];
       let totalInq = 0, totalPay = 0, totalTarget = 15;
-      Object.keys(byGroup[g]).forEach(name => {
-        const d = byGroup[g][name][shopName];
-        if (d) {
-          rows.push({ name, ...d });
-          totalInq += d.inquiries;
-          totalPay += d.payments;
-          totalTarget = d.target || totalTarget;
-        }
+      rows.forEach(r => {
+        totalInq += r.inquiries;
+        totalPay += r.payments;
+        totalTarget = r.target || totalTarget;
       });
-
-      if (rows.length === 0) return;
-
       const totalRate = totalInq > 0 ? (totalPay / totalInq * 100).toFixed(2) : '0.00';
       const tRateColor = rateColor(totalRate, totalTarget);
       const tRateBg = rateBg(totalRate, totalTarget);
@@ -1037,7 +1047,7 @@ async function renderDailyTrack() {
   document.getElementById('daily-track-date').textContent = todayDateStr;
 
   const [{ data: profiles }, { data: reports }] = await Promise.all([
-    supabase.from('profiles').select('id,name,group_name').order('name'),
+    supabase.from('profiles').select('id,name,group_name,real_name').order('name'),
     supabase.from('daily_reports').select('*').eq('report_date', todayDateStr)
   ]);
 

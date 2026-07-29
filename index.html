@@ -818,8 +818,8 @@ body {
       </div>
       <!-- 提交结果卡片（截图发群用） -->
       <div id="daily-result-area" style="display:none;"></div>
-      <!-- 接待压力统计（可折叠） -->
-      <div id="daily-stats-panel" style="margin-top:20px;">
+      <!-- 接待压力统计（可折叠）仅管理员/组长可见 -->
+      <div id="daily-stats-panel" class="admin-only" style="margin-top:20px;display:none;">
         <div onclick="toggleDailyStats()" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f8f9ff;border:1px solid var(--border);border-radius:10px;cursor:pointer;">
           <span style="font-size:14px;font-weight:600;">📊 接待压力统计（点击展开）</span>
           <span id="daily-stats-toggle" style="font-size:16px;color:var(--text-secondary);">▼</span>
@@ -828,8 +828,8 @@ body {
           <div id="daily-stats-body">加载中...</div>
         </div>
       </div>
-      <!-- 历史存档日历 -->
-      <div id="daily-archive-area" style="margin-top:20px;">
+      <!-- 历史存档日历 仅管理员/组长可见 -->
+      <div id="daily-archive-area" class="admin-only" style="margin-top:20px;display:none;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
           <h3 style="margin:0;font-size:16px;">📅 日报存档</h3>
           <div style="display:flex;gap:8px;align-items:center;">
