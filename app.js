@@ -561,8 +561,8 @@ function renderDailyResult(content) {
         <td style="padding:6px 8px;border-bottom:1px solid #f0eeeb;font-size:13px;text-align:center;">${visitors || '-'}</td>
         <td style="padding:6px 8px;border-bottom:1px solid #f0eeeb;font-size:13px;text-align:center;">${inquiries || '-'}</td>
         <td style="padding:6px 8px;border-bottom:1px solid #f0eeeb;font-size:13px;text-align:center;">${payments || '-'}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #f0eeeb;font-size:13px;text-align:center;font-weight:700;${hit ? 'color:#4a7c4e' : 'color:#b85c5c'}">${conv}%${target>0 ? ' <span style="font-size:11px;font-weight:400;color:#999;">/ '+target+'%</span>' : ''}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #f0eeeb;font-size:13px;text-align:center;font-weight:700;${need !== null && need > 0 ? 'color:#b85c5c' : 'color:#4a7c4e'}">${need !== null ? (need > 0 ? '差'+need : '✓') : '-'}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f0eeeb;font-size:13px;text-align:center;font-weight:700;${hit ? 'color:#16a34a' : 'color:#ef4444'}">${conv}%${target>0 ? ' <span style="font-size:11px;font-weight:400;color:#999;">/ '+target+'%</span>' : ''}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f0eeeb;font-size:13px;text-align:center;font-weight:700;${need !== null && need > 0 ? 'color:#ef4444' : 'color:#16a34a'}">${need !== null ? (need > 0 ? '差'+need : '✓') : '-'}</td>
       </tr>`;
   }).join('');
 
@@ -606,7 +606,7 @@ function renderDailyResult(content) {
         </div>
         <!-- 数据新鲜度标签 -->
         <div style="display:flex;justify-content:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;font-size:12px;">
-          <span style="padding:3px 10px;border-radius:10px;background:#eaf3e8;color:#4a7c4e;">接待量 = 当日数据</span>
+          <span style="padding:3px 10px;border-radius:10px;background:#dcfce7;color:#16a34a;">接待量 = 当日数据</span>
           ${delayLabels}
         </div>
         <!-- 表格 -->
@@ -630,7 +630,7 @@ function renderDailyResult(content) {
           <div><div style="font-size:11px;color:#8a8a8a;margin-bottom:2px;">总询单</div><div style="font-size:20px;font-weight:700;color:#2d2d2d;">${totalI}</div></div>
           <div><div style="font-size:11px;color:#8a8a8a;margin-bottom:2px;">总支付</div><div style="font-size:20px;font-weight:700;color:#2d2d2d;">${totalP}</div></div>
           <div><div style="font-size:11px;color:#8a8a8a;margin-bottom:2px;">总转化率</div><div style="font-size:20px;font-weight:700;color:#3a5a8a;">${totalI>0 ? (totalP/totalI*100).toFixed(1) : '--'}%</div></div>
-          <div><div style="font-size:11px;color:#8a8a8a;margin-bottom:2px;">总还差</div><div style="font-size:20px;font-weight:700;color:${shops.some(s => {const i=parseInt(s.inquiries)||0;const p=parseInt(s.payments)||0;const t=parseFloat(s.target)||0;return t>0&&i>0&&Math.ceil(i*t/100-p)>0;})?'#b85c5c':'#4a7c4e'}">${shops.reduce((sum,s)=>{
+          <div><div style="font-size:11px;color:#8a8a8a;margin-bottom:2px;">总还差</div><div style="font-size:20px;font-weight:700;color:${shops.some(s => {const i=parseInt(s.inquiries)||0;const p=parseInt(s.payments)||0;const t=parseFloat(s.target)||0;return t>0&&i>0&&Math.ceil(i*t/100-p)>0;})?'#ef4444':'#16a34a'}">${shops.reduce((sum,s)=>{
           const i=parseInt(s.inquiries)||0,p=parseInt(s.payments)||0,t=parseFloat(s.target)||0;
           return t>0&&i>0 ? sum+Math.max(0,Math.ceil(i*t/100-p)) : sum;
         },0)||'--'}</div></div>
@@ -640,7 +640,7 @@ function renderDailyResult(content) {
         ${content.feedback ? `<div style="margin-top:8px;font-size:12px;color:#5a5a5a;background:#eef2f7;padding:10px 12px;border-radius:8px;border-left:3px solid #7a9dc9;"><strong style="color:#3a5a8a;">反馈：</strong>${escapeHtml(content.feedback)}</div>` : ''}
         <div style="margin-top:18px;display:flex;gap:10px;justify-content:center;">
           <button onclick="closeDailyForm()" style="padding:8px 22px;border-radius:8px;border:1px solid #d5d3d0;background:#f9f8f7;color:#666;font-size:14px;cursor:pointer;">返回</button>
-          <button onclick="copyDailyResult()" style="padding:8px 22px;border-radius:8px;border:none;background:#5a6d8a;color:#fff;font-size:14px;cursor:pointer;">📋 复制文本</button>
+          <button onclick="copyDailyResult()" style="padding:8px 22px;border-radius:8px;border:none;background:#5a6d8a;color:#fff;font-size:14px;cursor:pointer;">📷 复制截图</button>
         </div>
       </div>
     </div>
@@ -689,11 +689,51 @@ async function submitDaily() {
 function copyDailyResult() {
   const area = document.getElementById('daily-result-area');
   if (!area) return;
-  const text = area.innerText;
-  navigator.clipboard.writeText(text).then(() => {
-    showToast('已复制到剪贴板');
+  const card = area.querySelector('div');
+  if (!card) return;
+  if (typeof html2canvas === 'undefined') {
+    showToast('截图库加载中，请稍后重试');
+    return;
+  }
+  showToast('正在生成截图...');
+  html2canvas(card, {
+    scale: 2,
+    backgroundColor: '#f4f2ef',
+    useCORS: true,
+    logging: false
+  }).then(canvas => {
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        showToast('生成图片失败');
+        return;
+      }
+      try {
+        if (navigator.clipboard && navigator.clipboard.write) {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+          showToast('✅ 截图已复制到剪贴板');
+        } else {
+          // Fallback: 下载图片
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `日报-${new Date().toISOString().slice(0,10)}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+          showToast('截图已下载（浏览器不支持直接复制图片）');
+        }
+      } catch (err) {
+        // Fallback: 下载图片
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `日报-${new Date().toISOString().slice(0,10)}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('截图已下载（请手动复制）');
+      }
+    }, 'image/png');
   }).catch(() => {
-    showToast('复制失败，请手动截图');
+    showToast('截图生成失败，请手动截图');
   });
 }
 
