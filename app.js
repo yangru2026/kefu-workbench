@@ -135,7 +135,6 @@ async function updateMemberRealName(userId, newName) {
   showToast('真实姓名已更新');
   loadMembers();
 }
-}
 
 async function openAnnounceForm() {
   if (!currentUser) { showToast('请先登录'); switchPage('login'); return; }
