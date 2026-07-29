@@ -858,14 +858,14 @@ async function renderArchiveCalendar() {
     const isToday = dateStr === new Date().toISOString().slice(0,10);
     const totalV = hasData ? hasData.reduce((s, r) => s + (r.content?.shops || []).reduce((ss, sh) => ss + (parseInt(sh.visitors)||0), 0), 0) : 0;
     html += `
-      <div onclick="showArchiveDate('${dateStr}')" style="
+      <div data-date="${dateStr}" class="archive-day${hasData ? ' has-data' : ''}${isToday ? ' is-today' : ''}" style="
         aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
         border-radius:8px;cursor:pointer;transition:all 0.2s;
         background:${hasData ? '#e8f4ff' : 'var(--card-bg)'};
         border:${isToday ? '2px solid var(--primary)' : '1px solid var(--border)'};
         color:${hasData ? 'var(--primary)' : 'var(--text)'};
         font-weight:${hasData ? '700' : '400'};
-      " onmouseover="this.style.background='${hasData ? '#d0e8ff' : '#f0f4ff'}'" onmouseout="this.style.background='${hasData ? '#e8f4ff' : 'var(--card-bg)'}'">
+      ">
         <span style="font-size:13px;">${d}</span>
         ${hasData ? `<span style="font-size:10px;margin-top:2px;">${hasData.length}人</span>` : ''}
         ${hasData && totalV > 0 ? `<span style="font-size:9px;color:#888;">接${totalV}</span>` : ''}
@@ -887,6 +887,20 @@ async function renderArchiveCalendar() {
 
   document.getElementById('daily-archive-calendar').innerHTML = html;
   document.getElementById('daily-archive-detail').style.display = 'none';
+
+  // Bind click events after rendering
+  document.querySelectorAll('#daily-archive-calendar .archive-day').forEach(el => {
+    el.addEventListener('click', () => {
+      const ds = el.getAttribute('data-date');
+      if (ds) showArchiveDate(ds);
+    });
+    el.addEventListener('mouseenter', () => {
+      el.style.background = el.classList.contains('has-data') ? '#d0e8ff' : '#f0f4ff';
+    });
+    el.addEventListener('mouseleave', () => {
+      el.style.background = el.classList.contains('has-data') ? '#e8f4ff' : 'var(--card-bg)';
+    });
+  });
 }
 
 function showArchiveDate(dateStr) {
@@ -898,31 +912,112 @@ function showArchiveDate(dateStr) {
     <button class="btn-sm outline" onclick="document.getElementById('daily-archive-detail').style.display='none'">收起</button>
   </div>`;
 
-  // Group by staff group
+  // 按组 → 客服 → 店铺 组织数据
   const byGroup = {};
   reports.forEach(r => {
     const g = r.profiles?.group_name || '未分组';
-    if (!byGroup[g]) byGroup[g] = [];
-    byGroup[g].push(r);
+    const name = r.profiles?.name || '未知';
+    if (!byGroup[g]) byGroup[g] = {};
+    if (!byGroup[g][name]) byGroup[g][name] = {};
+    const shops = r.content?.shops || [];
+    shops.forEach(s => {
+      const sn = s.name || '未知店铺';
+      byGroup[g][name][sn] = {
+        inquiries: parseInt(s.inquiries) || 0,
+        payments: parseInt(s.payments) || 0,
+        visitors: parseInt(s.visitors) || 0,
+        target: parseFloat(s.target) || 15
+      };
+    });
   });
 
+  // 收集每个组涉及的所有店铺
+  const groupShops = {};
   Object.keys(byGroup).forEach(g => {
-    html += `<div style="margin-bottom:12px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
-      <div style="padding:8px 12px;background:#f8f9ff;font-weight:700;font-size:13px;">${g}</div>`;
-    byGroup[g].forEach(r => {
-      const shops = r.content?.shops || [];
-      const totalV = shops.reduce((s, sh) => s + (parseInt(sh.visitors)||0), 0);
-      html += `<div style="padding:10px 12px;border-top:1px solid #eee;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <span style="font-weight:600;font-size:13px;">${r.profiles?.name || '未知'}</span>
-          <span style="font-size:12px;color:var(--primary);font-weight:700;">总接待 ${totalV}</span>
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;">
-          ${shops.map(s => `<span style="font-size:11px;padding:2px 6px;background:#f0f4ff;border-radius:4px;">${s.name}: ${s.visitors || 0}接 / ${s.inquiries || 0}询 / ${s.payments || 0}付</span>`).join('')}
-        </div>
-      </div>`;
+    const shopSet = new Set();
+    Object.values(byGroup[g]).forEach(staffShops => {
+      Object.keys(staffShops).forEach(s => shopSet.add(s));
     });
-    html += '</div>';
+    groupShops[g] = Array.from(shopSet);
+  });
+
+  // 转化率颜色辅助
+  function rateColor(rate, target) {
+    const r = parseFloat(rate);
+    const t = parseFloat(target) || 15;
+    if (r >= t) return '#16a34a';
+    if (r >= t * 0.8) return '#d97706';
+    return '#dc2626';
+  }
+  function rateBg(rate, target) {
+    const r = parseFloat(rate);
+    const t = parseFloat(target) || 15;
+    if (r >= t) return '#dcfce7';
+    if (r >= t * 0.8) return '#fef3c7';
+    return '#fee2e2';
+  }
+
+  Object.keys(byGroup).forEach(g => {
+    html += `<div style="margin-bottom:16px;">
+      <div style="padding:8px 12px;background:#f0f4ff;font-weight:700;font-size:14px;border-radius:8px 8px 0 0;border:1px solid var(--border);border-bottom:none;">${escapeHtml(g)}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:12px;padding:12px;border:1px solid var(--border);border-radius:0 0 8px 8px;background:var(--card-bg);">`;
+
+    const shops = groupShops[g];
+    shops.forEach(shopName => {
+      // 收集该店铺所有客服的数据
+      const rows = [];
+      let totalInq = 0, totalPay = 0, totalTarget = 15;
+      Object.keys(byGroup[g]).forEach(name => {
+        const d = byGroup[g][name][shopName];
+        if (d) {
+          rows.push({ name, ...d });
+          totalInq += d.inquiries;
+          totalPay += d.payments;
+          totalTarget = d.target || totalTarget;
+        }
+      });
+
+      if (rows.length === 0) return;
+
+      const totalRate = totalInq > 0 ? (totalPay / totalInq * 100).toFixed(2) : '0.00';
+      const tRateColor = rateColor(totalRate, totalTarget);
+      const tRateBg = rateBg(totalRate, totalTarget);
+
+      html += `<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="padding:7px 10px;background:#f8f9ff;font-weight:700;font-size:13px;text-align:center;border-bottom:1px solid #e5e7eb;">${escapeHtml(shopName)}</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:#f0f4ff;">
+              <th style="padding:6px 4px;text-align:center;border-bottom:1px solid #e5e7eb;font-weight:600;width:28%;">客服</th>
+              <th style="padding:6px 4px;text-align:center;border-bottom:1px solid #e5e7eb;font-weight:600;width:24%;">询单</th>
+              <th style="padding:6px 4px;text-align:center;border-bottom:1px solid #e5e7eb;font-weight:600;width:24%;">付款</th>
+              <th style="padding:6px 4px;text-align:center;border-bottom:1px solid #e5e7eb;font-weight:600;width:24%;">转化</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+      rows.forEach(row => {
+        const rate = row.inquiries > 0 ? (row.payments / row.inquiries * 100).toFixed(2) : '0.00';
+        const rc = rateColor(rate, row.target);
+        html += `<tr>
+          <td style="padding:6px 4px;text-align:center;border-bottom:1px solid #f3f4f6;font-weight:500;">${escapeHtml(row.name)}</td>
+          <td style="padding:6px 4px;text-align:center;border-bottom:1px solid #f3f4f6;">${row.inquiries}</td>
+          <td style="padding:6px 4px;text-align:center;border-bottom:1px solid #f3f4f6;">${row.payments}</td>
+          <td style="padding:6px 4px;text-align:center;border-bottom:1px solid #f3f4f6;font-weight:600;color:${rc};">${rate}%</td>
+        </tr>`;
+      });
+
+      html += `<tr style="background:#f8f9ff;font-weight:700;">
+        <td style="padding:6px 4px;text-align:center;">合计</td>
+        <td style="padding:6px 4px;text-align:center;">${totalInq}</td>
+        <td style="padding:6px 4px;text-align:center;">${totalPay}</td>
+        <td style="padding:6px 4px;text-align:center;color:${tRateColor};background:${tRateBg};">${totalRate}%</td>
+      </tr>`;
+
+      html += `</tbody></table></div>`;
+    });
+
+    html += `</div></div>`;
   });
 
   const detail = document.getElementById('daily-archive-detail');
