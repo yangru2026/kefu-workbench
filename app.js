@@ -68,6 +68,38 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+function escapeAttr(text) {
+  return String(text || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+// 成员管理 - 点击编辑姓名
+function editMemberName(spanEl, userId, currentName) {
+  const oldHtml = spanEl.innerHTML;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = currentName;
+  input.style.cssText = 'padding:4px 8px;border:1px solid var(--primary);border-radius:6px;font-size:13px;width:100px;background:var(--card-bg);color:var(--text);';
+  spanEl.replaceWith(input);
+  input.focus();
+  input.select();
+
+  const save = async () => {
+    const newName = input.value.trim();
+    if (newName && newName !== currentName) {
+      await updateMemberName(userId, newName);
+    } else {
+      // Restore original display
+      input.replaceWith(spanEl);
+    }
+  };
+
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { input.blur(); }
+    if (e.key === 'Escape') { input.value = currentName; input.blur(); }
+  });
+}
+
 async function openAnnounceForm() {
   if (!currentUser) { showToast('请先登录'); switchPage('login'); return; }
   const title = prompt('公告标题：');
@@ -331,21 +363,29 @@ async function openDailyForm() {
   const existing = dailyReports.find(r => r.report_date === today);
   const savedShops = existing?.content?.shops;
 
+  // 实时拉取最新模板（管理员可能已修改目标）
+  await loadTemplates();
+  const group = currentProfile?.group_name;
+  const tpl = getShopTemplate(group);
+  // 构建店铺名→目标的映射
+  const tplTargetMap = {};
+  (tpl.shops || []).forEach(s => { if (s.name) tplTargetMap[s.name] = s.target; });
+
   // 用历史记录 → 或用该组的模板 → 或空白行
   let shops;
   if (savedShops && savedShops.length) {
-    shops = savedShops.map(s => ({
-      name: s.name || s, // 兼容旧格式（字符串）
-      visitors: s.visitors || '',
-      inquiries: s.inquiries || '',
-      payments: s.payments || '',
-      target: s.target || DEFAULT_TARGET
-    }));
+    // 已有草稿：保留已填数据，但用最新模板更新目标
+    shops = savedShops.map(s => {
+      const shopName = s.name || s;
+      return {
+        name: shopName,
+        visitors: s.visitors || '',
+        inquiries: s.inquiries || '',
+        payments: s.payments || '',
+        target: tplTargetMap[shopName] || s.target || DEFAULT_TARGET
+      };
+    });
   } else {
-    // 实时拉取最新模板，确保管理员修改后客服能立即看到
-    await loadTemplates();
-    const group = currentProfile?.group_name;
-    const tpl = getShopTemplate(group);
     shops = tpl.shops.map(s => ({
       name: s.name || s,
       visitors: '', inquiries: '', payments: '',
@@ -494,7 +534,10 @@ function renderDailyResult(content) {
       <!-- 头部 -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <div>
-          <div style="font-size:13px;color:#888;">${dateStr} ${weekDay}</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="font-size:13px;color:#888;">${dateStr} ${weekDay}</div>
+            <span style="font-size:12px;background:#6C5CE7;color:#fff;padding:2px 8px;border-radius:10px;font-weight:600;">售前</span>
+          </div>
           <div style="font-size:15px;font-weight:600;color:#333;">${escapeHtml(currentProfile?.name || '')} · ${escapeHtml(currentProfile?.group_name || '')}</div>
         </div>
         <div style="text-align:right;">
@@ -596,15 +639,17 @@ function copyDailyResult() {
 async function renderDailyTrack() {
   if (!supabase) return;
   document.getElementById('daily-form-area').style.display = 'none';
+  document.getElementById('daily-result-area').style.display = 'none';
   document.getElementById('daily-track-area').style.display = '';
   document.getElementById('daily-empty').style.display = 'none';
   document.getElementById('daily-my-area').style.display = 'none';
-  const today = new Date().toISOString().slice(0, 10);
-  document.getElementById('daily-track-date').textContent = today;
+  const today = new Date();
+  const todayDateStr = today.toISOString().slice(0, 10);
+  document.getElementById('daily-track-date').textContent = todayDateStr;
 
   const [{ data: profiles }, { data: reports }] = await Promise.all([
     supabase.from('profiles').select('id,name,group_name').order('name'),
-    supabase.from('daily_reports').select('*').eq('report_date', today)
+    supabase.from('daily_reports').select('*').eq('report_date', todayDateStr)
   ]);
 
   const reportMap = {};
@@ -622,20 +667,208 @@ async function renderDailyTrack() {
     return;
   }
 
-  list.innerHTML = profiles.map(p => {
-    const hasReport = !!reportMap[p.id];
-    const statusClass = hasReport ? 'done' : 'pending';
-    const statusText = hasReport ? '✅ 已提交' : '⏳ 未提交';
-    return `
-      <div class="daily-track-item" style="cursor:pointer;" onclick="showDailyDetail('${p.id}', '${escapeHtml(p.name || '')}')">
-        <div class="daily-track-avatar">${(p.name || '?').charAt(0)}</div>
-        <div class="daily-track-info">
-          <div class="daily-track-name">${p.name || '未命名'} ${p.group_name ? `<span style="font-size:11px;color:var(--text-secondary);">(${p.group_name})</span>` : ''}</div>
-          <div class="daily-track-status ${statusClass}">${statusText}</div>
+  // 读取当日排班表，找出当班人员
+  const monthKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+  const todayDay = String(today.getDate());
+  const monthSchedule = scheduleData[monthKey];
+  // 构建排班映射：名字 → 今日班次
+  const shiftMap = {};
+  if (monthSchedule && monthSchedule.staff) {
+    monthSchedule.staff.forEach(s => {
+      const shift = s.schedule[todayDay];
+      if (shift && !shift.includes('休息') && !shift.includes('休')) {
+        shiftMap[s.name] = shift;
+      }
+    });
+  }
+
+  // 用排班映射中的花名匹配 profiles 中的 name
+  // 同时检查：如果 profile 的 name 在排班中找不到，也试试用排班名去 match
+  const onShiftProfiles = [];
+  const matchedScheduleNames = new Set();
+
+  profiles.forEach(p => {
+    const pname = p.name || '';
+    // 优先精确匹配
+    if (shiftMap[pname]) {
+      onShiftProfiles.push({ ...p, shift: shiftMap[pname] });
+      matchedScheduleNames.add(pname);
+      return;
+    }
+    // 模糊匹配：排班表中的名字包含 profile 名字或反之
+    for (const sname of Object.keys(shiftMap)) {
+      if (!matchedScheduleNames.has(sname)) {
+        if (sname.includes(pname) || pname.includes(sname)) {
+          onShiftProfiles.push({ ...p, shift: shiftMap[sname] });
+          matchedScheduleNames.add(sname);
+          return;
+        }
+      }
+    }
+  });
+
+  // 排班表中当班但未找到对应 profile 的人
+  for (const sname of Object.keys(shiftMap)) {
+    if (!matchedScheduleNames.has(sname)) {
+      onShiftProfiles.push({ id: '__unknown__', name: sname, group_name: '', shift: shiftMap[sname], noProfile: true });
+    }
+  }
+
+  // 未提交人员列表（用于顶部提醒）
+  const notSubmitted = onShiftProfiles.filter(p => !reportMap[p.id] && !p.noProfile);
+  const hasAllSubmitted = notSubmitted.length === 0 && onShiftProfiles.every(p => p.noProfile || reportMap[p.id]);
+
+  // 按组分组
+  const grouped = {};
+  onShiftProfiles.forEach(p => {
+    const g = p.group_name || '未分组';
+    if (!grouped[g]) grouped[g] = [];
+    grouped[g].push(p);
+  });
+
+  // 渲染
+  let html = '';
+
+  // 顶部提醒横幅
+  if (onShiftProfiles.length === 0) {
+    html += '<div style="text-align:center;padding:20px;color:var(--text-secondary);background:#fff7ed;border-radius:10px;margin-bottom:16px;">⚠️ 今日排班表中未找到当班人员，或排班数据为空</div>';
+  } else if (notSubmitted.length > 0) {
+    html += `<div style="padding:12px 16px;background:#FFF3D4;border-radius:10px;margin-bottom:16px;border-left:4px solid #f59e0b;">
+      <div style="font-size:14px;font-weight:700;color:#b45309;margin-bottom:4px;">⏳ 以下当班人员尚未提交日报：</div>
+      <div style="font-size:13px;color:#92400e;">${notSubmitted.map(p => '<strong>' + escapeHtml(p.name) + '</strong>（' + (p.group_name || '未分组') + ' · ' + (p.shift || '当班') + '）').join('、')}</div>
+    </div>`;
+  } else {
+    html += '<div style="padding:12px 16px;background:#dcfce7;border-radius:10px;margin-bottom:16px;border-left:4px solid #22c55e;"><div style="font-size:14px;font-weight:700;color:#16a34a;">✅ 今日当班人员已全部提交日报</div></div>';
+  }
+
+  // 统计卡片
+  const totalOnShift = onShiftProfiles.length;
+  const submitted = onShiftProfiles.filter(p => !p.noProfile && reportMap[p.id]).length;
+  html += `<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:100px;background:#eff6ff;border-radius:10px;padding:12px;text-align:center;">
+      <div style="font-size:22px;font-weight:700;color:#2563eb;">${totalOnShift}</div>
+      <div style="font-size:12px;color:#666;">今日当班</div>
+    </div>
+    <div style="flex:1;min-width:100px;background:#dcfce7;border-radius:10px;padding:12px;text-align:center;">
+      <div style="font-size:22px;font-weight:700;color:#16a34a;">${submitted}</div>
+      <div style="font-size:12px;color:#666;">已提交</div>
+    </div>
+    <div style="flex:1;min-width:100px;background:#fff3d4;border-radius:10px;padding:12px;text-align:center;">
+      <div style="font-size:22px;font-weight:700;color:#d97706;">${totalOnShift - submitted}</div>
+      <div style="font-size:12px;color:#666;">未提交</div>
+    </div>
+  </div>`;
+
+  // 按组展示
+  const groupOrder = ['A组','B组','C组'];
+  const remaining = Object.keys(grouped).filter(g => !groupOrder.includes(g));
+  const sortedGroups = [...groupOrder.filter(g => grouped[g]), ...remaining.sort()];
+
+  sortedGroups.forEach(g => {
+    const members = grouped[g];
+    html += `<div style="margin-bottom:16px;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+      <div style="padding:10px 16px;background:#f8f9ff;border-bottom:1px solid var(--border);font-size:15px;font-weight:700;">${escapeHtml(g)} · ${members.length}人当班</div>
+      <div style="padding:8px 16px;">`;
+
+    members.forEach(m => {
+      const hasReport = m.noProfile ? false : !!reportMap[m.id];
+      const statusClass = hasReport ? 'done' : 'pending';
+      const statusText = hasReport ? '✅ 已提交' : (m.noProfile ? '⚠️ 未注册' : '⏳ 未提交');
+      const statusColor = hasReport ? 'var(--success)' : (m.noProfile ? 'var(--warning)' : 'var(--danger)');
+      html += `
+        <div class="daily-track-item" style="cursor:${m.noProfile ? 'default' : 'pointer'};" onclick="${m.noProfile ? '' : "showDailyDetail('" + m.id + "', '" + escapeAttr(m.name || '') + "')"}">
+          <div class="daily-track-avatar" style="background:${hasReport ? 'var(--success)' : 'var(--primary-light)'};">${(m.name || '?').charAt(0)}</div>
+          <div class="daily-track-info">
+            <div class="daily-track-name">${escapeHtml(m.name || '未命名')} <span style="font-size:11px;color:var(--text-secondary);">${m.shift ? '(' + escapeHtml(m.shift) + ')' : ''}</span></div>
+            <div class="daily-track-status" style="color:${statusColor};">${statusText}</div>
+          </div>
+        </div>`;
+    });
+
+    html += '</div></div>';
+  });
+
+  list.innerHTML = html;
+
+  // ===== 已提交日报按组汇总 =====
+  const submittedReports = (reports || []).filter(r => r.status === 'submitted' && r.content?.shops?.length);
+  if (submittedReports.length === 0) return;
+
+  // 建立 userId → profile 映射
+  const profileMap = {};
+  (profiles || []).forEach(p => { profileMap[p.id] = p; });
+
+  // 按组聚合店铺数据
+  const groupAgg = {}; // { 'A组': { 'TM-弥生': { visitors, inquiries, payments, targets, count } } }
+  submittedReports.forEach(r => {
+    const p = profileMap[r.user_id];
+    if (!p) return;
+    const g = p.group_name || '未分组';
+    if (!groupAgg[g]) groupAgg[g] = {};
+    const shops = r.content.shops || [];
+    shops.forEach(s => {
+      const sn = s.name || s;
+      if (!sn) return;
+      if (!groupAgg[g][sn]) groupAgg[g][sn] = { visitors: 0, inquiries: 0, payments: 0, targets: [], count: 0 };
+      groupAgg[g][sn].visitors += parseInt(s.visitors) || 0;
+      groupAgg[g][sn].inquiries += parseInt(s.inquiries) || 0;
+      groupAgg[g][sn].payments += parseInt(s.payments) || 0;
+      if (s.target) groupAgg[g][sn].targets.push(parseFloat(s.target));
+      groupAgg[g][sn].count++;
+    });
+  });
+
+  // 渲染汇总表格
+  const aggContainer = document.createElement('div');
+  aggContainer.style.marginTop = '24px';
+  aggContainer.innerHTML = '<h3 style="margin-bottom:16px;font-size:18px;">📊 今日已提交数据汇总（按组）</h3>';
+
+  const aggGroupOrder = ['A组','B组','C组'];
+  const aggRemaining = Object.keys(groupAgg).filter(g => !aggGroupOrder.includes(g));
+  const aggSorted = [...aggGroupOrder.filter(g => groupAgg[g]), ...aggRemaining.sort()];
+
+  aggSorted.forEach(g => {
+    const shops = groupAgg[g];
+    const shopNames = Object.keys(shops).sort();
+    if (shopNames.length === 0) return;
+
+    let totalV = 0, totalI = 0, totalP = 0;
+    const rows = shopNames.map(sn => {
+      const d = shops[sn];
+      totalV += d.visitors; totalI += d.inquiries; totalP += d.payments;
+      const conv = d.inquiries > 0 ? (d.payments / d.inquiries * 100).toFixed(1) : '--';
+      const avgTarget = d.targets.length > 0 ? (d.targets.reduce((a,b)=>a+b,0)/d.targets.length).toFixed(0) : '-';
+      return `<tr>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:13px;font-weight:600;">${escapeHtml(sn)}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:13px;text-align:center;">${d.visitors}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:13px;text-align:center;">${d.inquiries}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:13px;text-align:center;">${d.payments}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:13px;text-align:center;font-weight:700;color:var(--primary);">${conv}%</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:13px;text-align:center;color:var(--text-secondary);">${avgTarget !== '-' ? avgTarget+'%' : '-'}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:13px;text-align:center;color:var(--text-secondary);">${d.count}人</td>
+      </tr>`;
+    }).join('');
+
+    const gConv = totalI > 0 ? (totalP / totalI * 100).toFixed(1) : '--';
+
+    aggContainer.innerHTML += `
+      <div style="margin-bottom:20px;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+        <div style="padding:10px 16px;background:#f0f4ff;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-weight:700;font-size:15px;">${escapeHtml(g)} · ${Object.values(groupAgg[g]).reduce((s, d) => s + d.count, 0) / (shopNames.length || 1)}人次填报</span>
+          <span style="font-size:13px;color:var(--text-secondary);">总接待 <strong>${totalV}</strong> · 总询单 <strong>${totalI}</strong> · 总支付 <strong>${totalP}</strong> · 转化率 <strong style="color:var(--primary);">${gConv}%</strong></span>
         </div>
-      </div>
-    `;
-  }).join('');
+        <div style="overflow-x:auto;padding:8px 16px;">
+          <table class="ranking-table" style="min-width:500px;font-size:13px;">
+            <thead><tr>
+              <th style="text-align:left;">店铺</th><th>接待量</th><th>询单</th><th>支付</th><th>转化率</th><th>平均目标</th><th>填报人数</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  });
+
+  list.parentElement.appendChild(aggContainer);
 }
 
 async function showDailyDetail(userId, userName) {
@@ -808,7 +1041,9 @@ function renderMembers(members) {
     const date = m.created_at ? new Date(m.created_at).toLocaleDateString('zh-CN') : '-';
     const phone = m.phone || '-';
     return `<tr>
-      <td>${escapeHtml(m.name || '未命名')}</td>
+      <td>
+        ${isAdmin ? `<span class="member-name-editable" onclick="editMemberName(this, '${m.id}', '${escapeAttr(m.name || '')}')" title="点击修改姓名" style="cursor:pointer;border-bottom:1px dashed var(--primary-light);">${escapeHtml(m.name || '未命名')}</span>` : escapeHtml(m.name || '未命名')}
+      </td>
       <td>${escapeHtml(phone)}</td>
       <td>
         ${isAdmin ? `<select onchange="updateMemberGroup('${m.id}', this.value)" style="padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);font-size:13px;">
@@ -836,6 +1071,15 @@ async function updateMemberGroup(userId, groupName) {
   const { error } = await supabase.from('profiles').update({ group_name: groupName }).eq('id', userId);
   if (error) { showToast('更新失败：' + error.message); return; }
   showToast('组别已更新');
+  loadMembers();
+}
+
+async function updateMemberName(userId, newName) {
+  if (!supabase) return;
+  if (!newName || !newName.trim()) { showToast('姓名不能为空'); return; }
+  const { error } = await supabase.from('profiles').update({ name: newName.trim() }).eq('id', userId);
+  if (error) { showToast('更新失败：' + error.message); return; }
+  showToast('姓名已更新为 ' + newName.trim());
   loadMembers();
 }
 
