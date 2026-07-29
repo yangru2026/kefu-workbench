@@ -557,12 +557,12 @@ function renderDailyResult(content) {
 
     return `
       <tr>
-        <td style="padding:6px 8px;border-bottom:1px solid #eee;font-size:14px;text-align:left;">${escapeHtml(s.name)}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #eee;font-size:14px;text-align:center;">${visitors || '-'}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #eee;font-size:14px;text-align:center;">${inquiries || '-'}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #eee;font-size:14px;text-align:center;">${payments || '-'}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #eee;font-size:14px;text-align:center;font-weight:700;${hit ? 'color:#16a34a' : 'color:#dc2626'}">${conv}%${target>0 ? ' <span style="font-size:11px;font-weight:400;color:#999;">/ '+target+'%</span>' : ''}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #eee;font-size:14px;text-align:center;font-weight:700;${need !== null && need > 0 ? 'color:#dc2626' : 'color:#16a34a'}">${need !== null ? (need > 0 ? '差'+need : '✓') : '-'}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f0eeeb;font-size:13px;text-align:left;font-weight:500;">${escapeHtml(s.name)}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f0eeeb;font-size:13px;text-align:center;">${visitors || '-'}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f0eeeb;font-size:13px;text-align:center;">${inquiries || '-'}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f0eeeb;font-size:13px;text-align:center;">${payments || '-'}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f0eeeb;font-size:13px;text-align:center;font-weight:700;${hit ? 'color:#4a7c4e' : 'color:#b85c5c'}">${conv}%${target>0 ? ' <span style="font-size:11px;font-weight:400;color:#999;">/ '+target+'%</span>' : ''}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f0eeeb;font-size:13px;text-align:center;font-weight:700;${need !== null && need > 0 ? 'color:#b85c5c' : 'color:#4a7c4e'}">${need !== null ? (need > 0 ? '差'+need : '✓') : '-'}</td>
       </tr>`;
   }).join('');
 
@@ -588,58 +588,60 @@ function renderDailyResult(content) {
 
   const resultDiv = document.getElementById('daily-result-area');
   resultDiv.innerHTML = `
-    <div style="max-width:680px;margin:0 auto;background:#fff;border-radius:16px;padding:24px 20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#333;line-height:1.5;">
-      <!-- 头部 -->
-      <div style="margin-bottom:16px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <div style="font-size:13px;color:#888;">${dateStr} ${weekDay}</div>
-          <span style="font-size:11px;background:#6C5CE7;color:#fff;padding:2px 10px;border-radius:10px;font-weight:600;letter-spacing:1px;">售前</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div style="font-size:15px;font-weight:600;color:#333;">${escapeHtml(currentProfile?.name || '')} · ${escapeHtml(currentProfile?.group_name || '')}</div>
-          <div style="text-align:right;">
-            <div style="font-size:11px;color:#888;margin-bottom:2px;">总接待量</div>
-            <div style="font-size:28px;font-weight:800;color:#2563eb;line-height:1;">${totalV}</div>
+    <div style="max-width:680px;margin:0 auto;background:#f4f2ef;border-radius:16px;padding:20px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#2d2d2d;line-height:1.5;">
+      <div style="background:#fff;border-radius:12px;padding:20px 18px;border:1px solid #e2e0dc;">
+        <!-- 头部 -->
+        <div style="margin-bottom:16px;border-bottom:1px solid #f0eeeb;padding-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-size:13px;color:#7a7a7a;font-weight:500;">${dateStr} ${weekDay}</div>
+            <span style="font-size:11px;background:#7c6fae;color:#fff;padding:3px 12px;border-radius:10px;font-weight:600;letter-spacing:1px;">售前</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+            <div style="font-size:16px;font-weight:700;color:#2d2d2d;">${escapeHtml(currentProfile?.name || '')} · ${escapeHtml(currentProfile?.group_name || '')}</div>
+            <div style="text-align:right;">
+              <div style="font-size:11px;color:#8a8a8a;margin-bottom:3px;">总接待量</div>
+              <div style="font-size:30px;font-weight:800;color:#3a5a8a;line-height:1;">${totalV}</div>
+            </div>
           </div>
         </div>
-      </div>
-      <!-- 数据新鲜度标签 -->
-      <div style="display:flex;justify-content:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;font-size:12px;">
-        <span style="padding:2px 8px;border-radius:10px;background:#dcfce7;color:#16a34a;">✅ 接待量 = 当日数据</span>
-        ${delayLabels}
-      </div>
-      <!-- 表格 -->
-      <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;min-width:500px;">
-          <thead>
-            <tr style="background:#f0f4ff;">
-              <th style="padding:8px;font-size:13px;text-align:left;border-bottom:2px solid #d0d7ff;">店铺</th>
-              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;color:#16a34a;">接待</th>
-              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">询单</th>
-              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">支付</th>
-              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">达成 / 目标</th>
-              <th style="padding:8px;font-size:13px;text-align:center;border-bottom:2px solid #d0d7ff;">还差</th>
-            </tr>
-          </thead>
-          <tbody>${shopRows}</tbody>
-        </table>
-      </div>
-      <!-- 汇总 -->
-      <div style="display:flex;justify-content:space-around;margin-top:14px;padding:10px 0;border-top:1px solid #eee;border-bottom:1px solid #eee;text-align:center;">
-        <div><div style="font-size:11px;color:#888;">总询单</div><div style="font-size:20px;font-weight:700;color:#333;">${totalI}</div></div>
-        <div><div style="font-size:11px;color:#888;">总支付</div><div style="font-size:20px;font-weight:700;color:#333;">${totalP}</div></div>
-        <div><div style="font-size:11px;color:#888;">总转化率</div><div style="font-size:20px;font-weight:700;color:#2563eb;">${totalI>0 ? (totalP/totalI*100).toFixed(1) : '--'}%</div></div>
-        <div><div style="font-size:11px;color:#888;">总还差</div><div style="font-size:20px;font-weight:700;color:${shops.some(s => {const i=parseInt(s.inquiries)||0;const p=parseInt(s.payments)||0;const t=parseFloat(s.target)||0;return t>0&&i>0&&Math.ceil(i*t/100-p)>0;})?'#dc2626':'#16a34a'}">${shops.reduce((sum,s)=>{
+        <!-- 数据新鲜度标签 -->
+        <div style="display:flex;justify-content:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;font-size:12px;">
+          <span style="padding:3px 10px;border-radius:10px;background:#eaf3e8;color:#4a7c4e;">接待量 = 当日数据</span>
+          ${delayLabels}
+        </div>
+        <!-- 表格 -->
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;min-width:500px;">
+            <thead>
+              <tr style="background:#f5f6f8;">
+                <th style="padding:9px 8px;font-size:12px;text-align:left;border-bottom:1.5px solid #ddd;color:#555;font-weight:600;">店铺</th>
+                <th style="padding:9px 8px;font-size:12px;text-align:center;border-bottom:1.5px solid #ddd;color:#555;font-weight:600;">接待</th>
+                <th style="padding:9px 8px;font-size:12px;text-align:center;border-bottom:1.5px solid #ddd;color:#555;font-weight:600;">询单</th>
+                <th style="padding:9px 8px;font-size:12px;text-align:center;border-bottom:1.5px solid #ddd;color:#555;font-weight:600;">支付</th>
+                <th style="padding:9px 8px;font-size:12px;text-align:center;border-bottom:1.5px solid #ddd;color:#555;font-weight:600;">达成 / 目标</th>
+                <th style="padding:9px 8px;font-size:12px;text-align:center;border-bottom:1.5px solid #ddd;color:#555;font-weight:600;">还差</th>
+              </tr>
+            </thead>
+            <tbody>${shopRows}</tbody>
+          </table>
+        </div>
+        <!-- 汇总 -->
+        <div style="display:flex;justify-content:space-around;margin-top:14px;padding:12px 0;border-top:1px solid #eee;border-bottom:1px solid #eee;text-align:center;background:#fafaf9;border-radius:8px;">
+          <div><div style="font-size:11px;color:#8a8a8a;margin-bottom:2px;">总询单</div><div style="font-size:20px;font-weight:700;color:#2d2d2d;">${totalI}</div></div>
+          <div><div style="font-size:11px;color:#8a8a8a;margin-bottom:2px;">总支付</div><div style="font-size:20px;font-weight:700;color:#2d2d2d;">${totalP}</div></div>
+          <div><div style="font-size:11px;color:#8a8a8a;margin-bottom:2px;">总转化率</div><div style="font-size:20px;font-weight:700;color:#3a5a8a;">${totalI>0 ? (totalP/totalI*100).toFixed(1) : '--'}%</div></div>
+          <div><div style="font-size:11px;color:#8a8a8a;margin-bottom:2px;">总还差</div><div style="font-size:20px;font-weight:700;color:${shops.some(s => {const i=parseInt(s.inquiries)||0;const p=parseInt(s.payments)||0;const t=parseFloat(s.target)||0;return t>0&&i>0&&Math.ceil(i*t/100-p)>0;})?'#b85c5c':'#4a7c4e'}">${shops.reduce((sum,s)=>{
           const i=parseInt(s.inquiries)||0,p=parseInt(s.payments)||0,t=parseFloat(s.target)||0;
           return t>0&&i>0 ? sum+Math.max(0,Math.ceil(i*t/100-p)) : sum;
         },0)||'--'}</div></div>
-      </div>
-      ${content.analysis ? `<div style="margin-top:12px;font-size:12px;color:#666;background:#fff7ed;padding:8px 10px;border-radius:8px;border-left:3px solid #f59e0b;"><strong style="color:#d97706;">未成交分析：</strong>${escapeHtml(content.analysis)}</div>` : ''}
-      ${content.followUp ? `<div style="margin-top:8px;font-size:12px;color:#666;background:#f0fdf4;padding:8px 10px;border-radius:8px;border-left:3px solid #22c55e;"><strong style="color:#16a34a;">催付：</strong>${escapeHtml(content.followUp)}</div>` : ''}
-      ${content.feedback ? `<div style="margin-top:8px;font-size:12px;color:#666;background:#eff6ff;padding:8px 10px;border-radius:8px;border-left:3px solid #3b82f6;"><strong style="color:#2563eb;">反馈：</strong>${escapeHtml(content.feedback)}</div>` : ''}
-      <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;">
-        <button onclick="closeDailyForm()" style="padding:8px 20px;border-radius:8px;border:1px solid #d0d7ff;background:#fff;color:#666;font-size:14px;cursor:pointer;">返回</button>
-        <button onclick="copyDailyResult()" style="padding:8px 20px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:14px;cursor:pointer;">📋 复制文本</button>
+        </div>
+        ${content.analysis ? `<div style="margin-top:14px;font-size:12px;color:#5a5a5a;background:#fcf7ef;padding:10px 12px;border-radius:8px;border-left:3px solid #c9a66b;"><strong style="color:#8a6d3b;">未成交分析：</strong>${escapeHtml(content.analysis)}</div>` : ''}
+        ${content.followUp ? `<div style="margin-top:8px;font-size:12px;color:#5a5a5a;background:#f1f7f1;padding:10px 12px;border-radius:8px;border-left:3px solid #7ab87a;"><strong style="color:#4a7c4e;">催付：</strong>${escapeHtml(content.followUp)}</div>` : ''}
+        ${content.feedback ? `<div style="margin-top:8px;font-size:12px;color:#5a5a5a;background:#eef2f7;padding:10px 12px;border-radius:8px;border-left:3px solid #7a9dc9;"><strong style="color:#3a5a8a;">反馈：</strong>${escapeHtml(content.feedback)}</div>` : ''}
+        <div style="margin-top:18px;display:flex;gap:10px;justify-content:center;">
+          <button onclick="closeDailyForm()" style="padding:8px 22px;border-radius:8px;border:1px solid #d5d3d0;background:#f9f8f7;color:#666;font-size:14px;cursor:pointer;">返回</button>
+          <button onclick="copyDailyResult()" style="padding:8px 22px;border-radius:8px;border:none;background:#5a6d8a;color:#fff;font-size:14px;cursor:pointer;">📋 复制文本</button>
+        </div>
       </div>
     </div>
   `;
