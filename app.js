@@ -7,6 +7,8 @@ window.onSupabaseReady = function() {
   if (currentPage === 'home') { loadAnnouncements(); subscribeAnnouncements(); }
   if (currentPage === 'daily') { loadDailyReports(); subscribeDaily(); }
   if (currentPage === 'presale') { loadPresaleData(); subscribePresale(); }
+  if (currentPage === 'members') { loadMembers(); subscribeProfiles(); }
+  if (currentPage === 'templates') { loadTemplates().then(() => renderTemplates()); subscribeTemplates(); }
 };
 
 // ---------- 公告栏 ----------
@@ -218,6 +220,17 @@ async function saveTemplate(groupName, shops) {
   if (error) { showToast('保存失败：' + error.message); return false; }
   showToast(groupName + ' 模板已保存');
   return true;
+}
+
+let templatesSub = null;
+function subscribeTemplates() {
+  if (!supabase || templatesSub) return;
+  templatesSub = supabase.channel('shop_templates')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'shop_templates' }, async () => {
+      await loadTemplates();
+      if (currentPage === 'templates') renderTemplates();
+    })
+    .subscribe();
 }
 
 function renderTemplates() {
@@ -887,7 +900,13 @@ function subscribeDaily() {
   if (!supabase || dailySub) return;
   dailySub = supabase.channel('daily_reports')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_reports' }, () => {
-      if (currentPage === 'daily') loadDailyReports();
+      if (currentPage === 'daily') {
+        loadDailyReports();
+        // 如果正在查看跟踪视图，自动刷新
+        if (document.getElementById('daily-track-area')?.style.display !== 'none') {
+          renderDailyTrack();
+        }
+      }
     })
     .subscribe();
 }
@@ -1003,8 +1022,8 @@ switchPage = function(page) {
   if (page === 'home' && supabase) { loadAnnouncements(); subscribeAnnouncements(); }
   if (page === 'daily' && supabase) { loadDailyReports(); subscribeDaily(); }
   if (page === 'presale' && supabase) { loadPresaleData(); subscribePresale(); }
-  if (page === 'members' && supabase) { loadMembers(); }
-  if (page === 'templates' && supabase) { loadTemplates().then(() => renderTemplates()); }
+  if (page === 'members' && supabase) { loadMembers(); subscribeProfiles(); }
+  if (page === 'templates' && supabase) { loadTemplates().then(() => renderTemplates()); subscribeTemplates(); }
 };
 
 // ---------- 成员管理 ----------
@@ -1081,6 +1100,16 @@ async function updateMemberName(userId, newName) {
   if (error) { showToast('更新失败：' + error.message); return; }
   showToast('姓名已更新为 ' + newName.trim());
   loadMembers();
+}
+
+let profilesSub = null;
+function subscribeProfiles() {
+  if (!supabase || profilesSub) return;
+  profilesSub = supabase.channel('profiles')
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, () => {
+      if (currentPage === 'members') loadMembers();
+    })
+    .subscribe();
 }
 
 // ---------- 扫码注册：URL参数自动切换 ----------
