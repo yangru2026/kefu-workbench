@@ -216,16 +216,21 @@ body {
 .train-empty { text-align:center; padding:60px 20px; color:var(--text-secondary); }
 
 /* Pattern gallery - Brand tabs */
-.brand-tabs { display:flex; gap:0; margin-bottom:12px; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 2px 10px rgba(108,92,231,0.08); }
+.brand-tabs { display:flex; gap:0; margin-bottom:0; border-radius:12px 12px 0 0; overflow:hidden; background:#fff; box-shadow:0 2px 10px rgba(108,92,231,0.08); }
 .brand-tab { flex:1; padding:12px 0; text-align:center; font-size:14px; font-weight:600; cursor:pointer; border:none; background:transparent; color:var(--text-secondary); font-family:inherit; transition:all 0.25s; position:relative; }
 .brand-tab.active { background:var(--primary); color:#fff; }
 .brand-tab:hover:not(.active) { background:#f5f3fc; color:var(--primary); }
+.pattern-filters-card { background:#fff; border-radius:0 0 12px 12px; padding:12px 16px 10px; margin-bottom:14px; box-shadow:0 2px 10px rgba(108,92,231,0.06); border:1px solid rgba(108,92,231,0.06); border-top:none; }
 .filter-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; align-items:center; }
+.filter-row:last-child { margin-bottom:0; }
 .filter-row .flabel { font-size:11px; color:var(--text-muted); white-space:nowrap; min-width:32px; font-weight:500; }
 .flink { font-size:11px; padding:4px 12px; border-radius:14px; border:1.5px solid #e8e4f0; background:transparent; color:var(--text-secondary); cursor:pointer; font-family:inherit; white-space:nowrap; transition:all 0.2s; font-weight:500; }
 .flink:hover { border-color:var(--primary); color:var(--primary); }
 .flink.active { background:var(--primary); color:#fff; border-color:var(--primary); font-weight:600; }
-.pattern-stats { font-size:12px; color:var(--text-secondary); margin-bottom:10px; }
+.pattern-search-row { display:flex; align-items:center; gap:10px; margin-top:8px; padding-top:8px; border-top:1px solid #f0edf7; }
+.pattern-search-row input { flex:1; padding:8px 12px; border:1px solid #e8e4f0; border-radius:10px; font-size:13px; font-family:inherit; background:#faf8fe; }
+.pattern-search-row input:focus { outline:none; border-color:var(--primary-light); background:#fff; }
+.pattern-stats { font-size:12px; color:var(--text-secondary); white-space:nowrap; }
 .pattern-stats .stat-num { font-weight:700; color:var(--primary); font-size:16px; }
 .pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:14px; }
 .pattern-card { background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 2px 12px rgba(108,92,231,0.05); transition:all 0.25s cubic-bezier(0.25,0.46,0.45,0.94); display:flex; flex-direction:column; border:1px solid rgba(108,92,231,0.06); position:relative; }
@@ -1249,11 +1254,17 @@ body {
       </div>
     </div>
     <div class="brand-tabs" id="pattern-brand-tabs"></div>
-    <div class="filter-row" id="pattern-filter-type"><span class="flabel">抛型</span></div>
-    <div class="filter-row" id="pattern-filter-series"><span class="flabel">系列</span></div>
-    <div class="filter-row" id="pattern-filter-color"><span class="flabel">色系</span></div>
-    <div class="search-bar"><input type="text" id="pattern-search" placeholder="🔍 搜索花色名称..." oninput="renderPatterns()"></div>
-    <div class="pattern-stats" id="pattern-stats"></div>
+    <div class="pattern-filters-card">
+      <div class="filter-row" id="pattern-filter-type"></div>
+      <div class="filter-row" id="pattern-filter-series"></div>
+      <div class="filter-row" id="pattern-filter-color"></div>
+      <div class="pattern-search-row">
+        <input type="text" id="pattern-search" placeholder="🔍 搜索花色名称..." oninput="renderPatterns()">
+        <span class="pattern-stats" id="pattern-stats"></span>
+      </div>
+    </div>
+    <div class="pattern-grid" id="pattern-grid"></div>
+  </div>
     <div class="pattern-grid" id="pattern-grid"></div>
   </div>
 
@@ -1584,12 +1595,20 @@ async function loadPatternsFromDB() {
       .order('brand', { ascending: true })
       .order('type', { ascending: true })
       .order('name', { ascending: true });
-    if (error) { console.error('花色素材加载失败:', error); return; }
+    if (error) {
+      console.error('花色素材加载失败:', error);
+      showToast('花色素材加载失败: ' + error.message);
+      return;
+    }
     patternData = buildPatternTree(data || []);
     updateStats();
-    if (currentPage === 'patterns') { renderPatternFilters(); renderPatterns(); }
+    renderPatternFilters();
+    renderPatterns();
     subscribePatterns();
-  } catch(e) { console.error('花色素材加载异常:', e); }
+  } catch(e) {
+    console.error('花色素材加载异常:', e);
+    showToast('花色素材加载异常: ' + e.message);
+  }
 }
 
 function subscribePatterns() {
@@ -1661,7 +1680,19 @@ function switchPage(page) {
 
   // Initialize page content
   if (page === 'training') { renderTraining(); }
-  if (page === 'patterns') { renderPatternFilters(); renderPatterns(); }
+  if (page === 'patterns') {
+    // Ensure pattern data is loaded before rendering
+    const brands = getPatternBrands();
+    if (brands.length === 0) {
+      loadPatternsFromDB().then(() => {
+        renderPatternFilters();
+        renderPatterns();
+      });
+    } else {
+      renderPatternFilters();
+      renderPatterns();
+    }
+  }
   if (page === 'sop') renderSOP();
   if (page === 'bulletin') renderBulletin();
   refreshAdminUI();
@@ -2160,16 +2191,26 @@ function renderPatternFilters() {
   // 系列 filter
   const seriesList = getPatternSeries(patternBrand, patternType);
   const seriesRow = document.getElementById('pattern-filter-series');
-  seriesRow.innerHTML = '<span class="flabel">系列</span>' +
-    '<button class="flink' + (patternSeries === '全部' ? ' active' : '') + '" onclick="setPatternSeries(\'全部\')">全部</button>' +
-    seriesList.map(s => '<button class="flink' + (patternSeries === s ? ' active' : '') + '" onclick="setPatternSeries(\'' + s + '\')">' + s + '</button>').join('');
+  if (seriesList.length > 0) {
+    seriesRow.innerHTML = '<span class="flabel">系列</span>' +
+      '<button class="flink' + (patternSeries === '全部' ? ' active' : '') + '" onclick="setPatternSeries(\'全部\')">全部</button>' +
+      seriesList.map(s => '<button class="flink' + (patternSeries === s ? ' active' : '') + '" onclick="setPatternSeries(\'' + s + '\')">' + s + '</button>').join('');
+    seriesRow.style.display = 'flex';
+  } else {
+    seriesRow.style.display = 'none';
+  }
 
   // 色系 filter
   const colors = getPatternColors(patternBrand, patternType, patternSeries);
   const colorRow = document.getElementById('pattern-filter-color');
-  colorRow.innerHTML = '<span class="flabel">色系</span>' +
-    '<button class="flink' + (patternColor === '全部' ? ' active' : '') + '" onclick="setPatternColor(\'全部\')">全部</button>' +
-    colors.map(c => '<button class="flink' + (patternColor === c ? ' active' : '') + '" onclick="setPatternColor(\'' + c + '\')">' + c + '</button>').join('');
+  if (colors.length > 0) {
+    colorRow.innerHTML = '<span class="flabel">色系</span>' +
+      '<button class="flink' + (patternColor === '全部' ? ' active' : '') + '" onclick="setPatternColor(\'全部\')">全部</button>' +
+      colors.map(c => '<button class="flink' + (patternColor === c ? ' active' : '') + '" onclick="setPatternColor(\'' + c + '\')">' + c + '</button>').join('');
+    colorRow.style.display = 'flex';
+  } else {
+    colorRow.style.display = 'none';
+  }
 }
 
 function switchPatternBrand(b) {
@@ -2223,7 +2264,8 @@ function renderPatterns() {
   }
 
   // Stats
-  document.getElementById('pattern-stats').textContent = '共 ' + items.length + ' 款花色';
+  const statsEl = document.getElementById('pattern-stats');
+  if (statsEl) statsEl.innerHTML = '共 <b>' + items.length + '</b> 款花色';
 
   // Render
   const grid = document.getElementById('pattern-grid');
