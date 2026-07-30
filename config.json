@@ -2,110 +2,30 @@
   "version": "1.1",
   "lastUpdate": "2026-07-28",
   "trainingData": [
-    {
-      "title": "美瞳材质分类详解",
-      "url": "https://example.feishu.cn/doc/1",
-      "category": "产品知识",
-      "tags": [
-        "材质",
-        "入门"
-      ]
-    },
-    {
-      "title": "硅水凝胶 vs 水凝胶对比",
-      "url": "https://example.feishu.cn/doc/2",
-      "category": "产品知识",
-      "tags": [
-        "材质",
-        "进阶"
-      ]
-    },
-    {
-      "title": "美瞳直径与着色直径说明",
-      "url": "https://example.feishu.cn/doc/3",
-      "category": "产品知识",
-      "tags": [
-        "参数",
-        "基础"
-      ]
-    },
-    {
-      "title": "含水量与透氧率关系",
-      "url": "https://example.feishu.cn/doc/4",
-      "category": "产品知识",
-      "tags": [
-        "参数",
-        "进阶"
-      ]
-    },
-    {
-      "title": "淘宝接待流程",
-      "url": "https://example.feishu.cn/doc/5",
-      "category": "平台流程",
-      "tags": [
-        "淘宝"
-      ]
-    },
-    {
-      "title": "抖音小店接待规范",
-      "url": "https://example.feishu.cn/doc/6",
-      "category": "平台流程",
-      "tags": [
-        "抖音"
-      ]
-    },
-    {
-      "title": "拼多多客服操作指南",
-      "url": "https://example.feishu.cn/doc/7",
-      "category": "平台流程",
-      "tags": [
-        "拼多多"
-      ]
-    },
-    {
-      "title": "小红书私信接待流程",
-      "url": "https://example.feishu.cn/doc/8",
-      "category": "平台流程",
-      "tags": [
-        "小红书"
-      ]
-    },
-    {
-      "title": "度数咨询标准话术",
-      "url": "https://example.feishu.cn/doc/9",
-      "category": "话术库",
-      "tags": [
-        "度数",
-        "高频"
-      ]
-    },
-    {
-      "title": "佩戴方法指导话术",
-      "url": "https://example.feishu.cn/doc/10",
-      "category": "话术库",
-      "tags": [
-        "佩戴",
-        "新人必看"
-      ]
-    },
-    {
-      "title": "售后常见问题应对话术",
-      "url": "https://example.feishu.cn/doc/11",
-      "category": "话术库",
-      "tags": [
-        "售后",
-        "高频"
-      ]
-    },
-    {
-      "title": "新客首单引导话术",
-      "url": "https://example.feishu.cn/doc/12",
-      "category": "话术库",
-      "tags": [
-        "转化",
-        "销售"
-      ]
-    }
+    { "brand": "弥生", "category": "产品知识", "title": "弥生品牌介绍与产品线概览", "url": "https://example.feishu.cn/doc/1", "tags": ["品牌", "入门"] },
+    { "brand": "弥生", "category": "产品知识", "title": "弥生美瞳材质分类详解", "url": "https://example.feishu.cn/doc/2", "tags": ["材质", "基础"] },
+    { "brand": "弥生", "category": "产品知识", "title": "弥生硅水凝胶 vs 水凝胶对比", "url": "https://example.feishu.cn/doc/3", "tags": ["材质", "进阶"] },
+    { "brand": "弥生", "category": "产品知识", "title": "弥生直径与着色直径说明", "url": "https://example.feishu.cn/doc/4", "tags": ["参数", "基础"] },
+    { "brand": "弥生", "category": "产品知识", "title": "弥生含水量与透氧率关系", "url": "https://example.feishu.cn/doc/5", "tags": ["参数", "进阶"] },
+    { "brand": "弥生", "category": "接待流程", "title": "弥生标准接待流程（全平台通用）", "url": "https://example.feishu.cn/doc/6", "tags": ["流程", "必读"] },
+    { "brand": "弥生", "category": "接待流程", "title": "弥生新客首单引导流程", "url": "https://example.feishu.cn/doc/7", "tags": ["转化", "销售"] },
+    { "brand": "弥生", "category": "平台工作台", "title": "弥生-千牛工作台操作指南", "url": "https://example.feishu.cn/doc/8", "tags": ["淘宝", "千牛"] },
+    { "brand": "弥生", "category": "平台工作台", "title": "弥生-抖店工作台操作指南", "url": "https://example.feishu.cn/doc/9", "tags": ["抖音", "抖店"] },
+    { "brand": "弥生", "category": "平台工作台", "title": "弥生-拼多多商家后台操作", "url": "https://example.feishu.cn/doc/10", "tags": ["拼多多"] },
+    { "brand": "弥生", "category": "话术库", "title": "弥生度数咨询标准话术", "url": "https://example.feishu.cn/doc/11", "tags": ["度数", "高频"] },
+    { "brand": "弥生", "category": "话术库", "title": "弥生佩戴方法指导话术", "url": "https://example.feishu.cn/doc/12", "tags": ["佩戴", "新人"] },
+    { "brand": "弥生", "category": "售后处理", "title": "弥生售后常见问题应对话术", "url": "https://example.feishu.cn/doc/13", "tags": ["售后", "高频"] },
+    { "brand": "极氧", "category": "产品知识", "title": "极氧品牌介绍与产品线概览", "url": "https://example.feishu.cn/doc/14", "tags": ["品牌", "入门"] },
+    { "brand": "极氧", "category": "产品知识", "title": "极氧透氧技术详解", "url": "https://example.feishu.cn/doc/15", "tags": ["技术", "核心卖点"] },
+    { "brand": "极氧", "category": "产品知识", "title": "极氧系列产品对比一览", "url": "https://example.feishu.cn/doc/16", "tags": ["系列", "对比"] },
+    { "brand": "极氧", "category": "接待流程", "title": "极氧标准接待流程（全平台通用）", "url": "https://example.feishu.cn/doc/17", "tags": ["流程", "必读"] },
+    { "brand": "极氧", "category": "接待流程", "title": "极氧买前咨询引导技巧", "url": "https://example.feishu.cn/doc/18", "tags": ["转化", "技巧"] },
+    { "brand": "极氧", "category": "平台工作台", "title": "极氧-千牛工作台操作指南", "url": "https://example.feishu.cn/doc/19", "tags": ["淘宝", "千牛"] },
+    { "brand": "极氧", "category": "平台工作台", "title": "极氧-抖店工作台操作指南", "url": "https://example.feishu.cn/doc/20", "tags": ["抖音", "抖店"] },
+    { "brand": "极氧", "category": "平台工作台", "title": "极氧-拼多多商家后台操作", "url": "https://example.feishu.cn/doc/21", "tags": ["拼多多"] },
+    { "brand": "极氧", "category": "话术库", "title": "极氧度数咨询标准话术", "url": "https://example.feishu.cn/doc/22", "tags": ["度数", "高频"] },
+    { "brand": "极氧", "category": "话术库", "title": "极氧佩戴方法指导话术", "url": "https://example.feishu.cn/doc/23", "tags": ["佩戴", "新人"] },
+    { "brand": "极氧", "category": "售后处理", "title": "极氧售后常见问题应对", "url": "https://example.feishu.cn/doc/24", "tags": ["售后", "高频"] }
   ],
   "patternData": {
     "_comment": "花色素材库：按品牌→抛型→花色组织。每个花色包含名称、系列、色系、直径、话术等，镜片图和上眼图后续补充URL",

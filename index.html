@@ -195,6 +195,24 @@ body {
 .filter-tag:hover { border-color: var(--primary); color: var(--primary); }
 .filter-tag.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
+/* Training category sub-tabs */
+.training-cat-tabs { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+.training-cat-tab { padding:6px 16px; border:1px solid var(--border); border-radius:20px; font-size:13px; cursor:pointer; background:transparent; color:var(--text-secondary); font-family:inherit; transition:all .2s; white-space:nowrap; }
+.training-cat-tab:hover { border-color:var(--primary); color:var(--primary); }
+.training-cat-tab.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.train-card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:0; margin-bottom:20px; overflow:hidden; }
+.train-card-header { display:flex; align-items:center; gap:10px; padding:14px 20px; background:var(--hover-bg); border-bottom:1px solid var(--border); }
+.train-card-header h3 { margin:0; font-size:15px; }
+.train-card-count { font-size:12px; color:var(--text-secondary); margin-left:auto; }
+.train-link-list { list-style:none; padding:0; margin:0; }
+.train-link-item { display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid var(--border); }
+.train-link-item:last-child { border-bottom:none; }
+.train-link-item:hover { background:var(--hover-bg); }
+.train-link-item a { flex:1; color:var(--primary); text-decoration:none; font-size:14px; font-weight:500; }
+.train-link-item a:hover { text-decoration:underline; }
+.train-link-tags { display:flex; gap:4px; flex-shrink:0; }
+.train-empty { text-align:center; padding:60px 20px; color:var(--text-secondary); }
+
 /* Pattern gallery - Brand tabs */
 .brand-tabs { display:flex; gap:0; margin-bottom:16px; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 2px 10px rgba(108,92,231,0.08); }
 .brand-tab { flex:1; padding:13px 0; text-align:center; font-size:15px; font-weight:600; cursor:pointer; border:none; background:transparent; color:var(--text-secondary); font-family:inherit; transition:all 0.25s; position:relative; }
@@ -1236,9 +1254,18 @@ body {
 
   <!-- ===== 培训资料 ===== -->
   <div class="page" id="page-training">
-    <div class="page-header"><h1>📚 培训资料中心</h1><p>按分类查看飞书云文档，点击链接即可打开</p></div>
-    <div class="filter-bar" id="training-filters"></div>
+    <div class="page-header"><h1>📚 培训资料中心</h1><p>按品牌和分类查看培训资料，点击链接打开飞书云文档</p></div>
+    <!-- 品牌切换 Tab -->
+    <div class="brand-tabs" id="training-brand-tabs">
+      <button class="brand-tab active" data-brand="全部" onclick="setTrainingBrand('全部')">🌐 全部</button>
+      <button class="brand-tab" data-brand="弥生" onclick="setTrainingBrand('弥生')">🌸 弥生</button>
+      <button class="brand-tab" data-brand="极氧" onclick="setTrainingBrand('极氧')">🫧 极氧</button>
+    </div>
+    <!-- 子分类 -->
+    <div class="training-cat-tabs" id="training-cat-tabs"></div>
+    <!-- 搜索 -->
     <div class="search-bar"><input type="text" id="training-search" placeholder="🔍 搜索资料标题..." oninput="renderTraining()"></div>
+    <!-- 内容区 -->
     <div id="training-content"></div>
   </div>
 
@@ -2578,38 +2605,70 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ==================== TRAINING ====================
-let trainingFilter = '全部';
+let trainingBrand = '全部';
+let trainingCatFilter = '全部';
+const TRAIN_CATS = ['产品知识', '接待流程', '平台工作台', '话术库', '售后处理'];
 
-function renderTrainingFilters() {
-  const cats = ['全部', '产品知识', '平台流程', '话术库'];
-  document.getElementById('training-filters').innerHTML = cats.map(c =>
-    `<button class="filter-tag${trainingFilter === c ? ' active' : ''}" onclick="setTrainingFilter('${c}')">${c}</button>`
+function setTrainingBrand(brand) {
+  trainingBrand = brand;
+  trainingCatFilter = '全部';
+  document.querySelectorAll('#training-brand-tabs .brand-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.brand === brand);
+  });
+  renderTrainingCatTabs();
+  renderTraining();
+}
+
+function setTrainingCat(cat) {
+  trainingCatFilter = cat;
+  renderTrainingCatTabs();
+  renderTraining();
+}
+
+function renderTrainingCatTabs() {
+  const cats = ['全部', ...TRAIN_CATS];
+  document.getElementById('training-cat-tabs').innerHTML = cats.map(c =>
+    `<button class="training-cat-tab${trainingCatFilter === c ? ' active' : ''}" onclick="setTrainingCat('${c}')">${c}</button>`
   ).join('');
 }
 
-function setTrainingFilter(f) { trainingFilter = f; renderTrainingFilters(); renderTraining(); }
-
 function renderTraining() {
-  renderTrainingFilters();
+  renderTrainingCatTabs();
   const search = (document.getElementById('training-search')?.value || '').toLowerCase();
-  let filtered = trainingFilter === '全部' ? trainingData : trainingData.filter(d => d.category === trainingFilter);
+  let filtered = trainingData;
+
+  if (trainingBrand !== '全部') filtered = filtered.filter(d => d.brand === trainingBrand);
   if (search) filtered = filtered.filter(d => d.title.toLowerCase().includes(search));
 
-  const cats = ['产品知识', '平台流程', '话术库'];
   const container = document.getElementById('training-content');
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="train-empty">📭 没有匹配的培训资料<br><span style="font-size:13px;color:var(--text-secondary);margin-top:8px;display:block;">请联系管理员添加</span></div>';
+    return;
+  }
+
+  // Group by category
+  const cats = trainingCatFilter === '全部' ? TRAIN_CATS : [trainingCatFilter];
   let html = '';
 
   cats.forEach(cat => {
     const items = filtered.filter(d => d.category === cat);
-    if (items.length === 0) return;
-    html += `<div class="card"><h3>📁 ${cat}</h3><ul class="link-list">`;
+    if (!items.length) return;
+    html += '<div class="train-card">';
+    html += '<div class="train-card-header"><h3>📁 ' + cat + '</h3><span class="train-card-count">' + items.length + ' 篇</span></div>';
+    html += '<ul class="train-link-list">';
     items.forEach(d => {
-      html += `<li class="link-item"><a href="${d.url}" target="_blank">${d.title}</a><div><span class="tag">${d.tags.join('</span><span class="tag">')}</span></div></li>`;
+      const brandBadge = trainingBrand === '全部' ? '<span style="font-size:11px;color:var(--text-secondary);margin-right:4px;">[' + (d.brand || '') + ']</span>' : '';
+      html += '<li class="train-link-item">'
+        + '<span style="font-size:18px;">📄</span>'
+        + brandBadge
+        + '<a href="' + d.url + '" target="_blank">' + d.title + '</a>'
+        + '<span class="train-link-tags">' + (d.tags || []).map(t => '<span class="tag">' + t + '</span>').join('') + '</span>'
+        + '</li>';
     });
     html += '</ul></div>';
   });
 
-  if (!html) html = '<div class="card"><p style="text-align:center;padding:40px;color:var(--text-secondary);">没有找到匹配的培训资料，杨茹快来添加吧！</p></div>';
   container.innerHTML = html;
 }
 
