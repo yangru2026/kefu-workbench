@@ -706,6 +706,19 @@ body {
 .staff-ot-cell .ot-cell-val { font-weight:700; font-size:15px; }
 .staff-ot-cell .ot-cell-hint { font-size:10px; color:var(--text-secondary); }
 
+/* ===== 账号本弹窗 ===== */
+.accts-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.35); z-index:999; opacity:0; pointer-events:none; transition:opacity .25s; }
+.accts-overlay.show { opacity:1; pointer-events:auto; }
+.accts-modal { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.95); width:500px; max-width:90vw; max-height:80vh; background:var(--card-bg); border-radius:14px; z-index:1000; box-shadow:0 8px 40px rgba(0,0,0,0.18); display:flex; flex-direction:column; opacity:0; pointer-events:none; transition:opacity .2s,transform .2s; }
+.accts-modal.show { opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1); }
+.accts-header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border); }
+.accts-header h3 { margin:0; font-size:17px; }
+.accts-close { background:none; border:none; font-size:20px; cursor:pointer; color:var(--text-secondary); padding:4px 8px; border-radius:6px; }
+.accts-close:hover { background:var(--hover-bg); color:var(--text); }
+.accts-textarea { flex:1; min-height:200px; padding:14px 20px; border:none; font-size:14px; font-family:'Consolas','Microsoft YaHei',monospace; line-height:1.7; resize:vertical; background:var(--card-bg); color:var(--text); outline:none; }
+.accts-textarea::placeholder { color:var(--text-secondary); }
+.accts-footer { display:flex; gap:8px; padding:14px 20px; border-top:1px solid var(--border); justify-content:flex-end; }
+
 /* ===== Login ===== */
 .login-box { max-width: 400px; margin: 0 auto; background: #fff; border-radius: 16px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
 .login-tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 12px; }
@@ -1030,6 +1043,20 @@ body {
         </div>
         <div id="ot-leave-list" class="ot-list"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- 账号本弹窗 -->
+  <div class="accts-overlay" id="accts-overlay" onclick="closeAcctsModal()"></div>
+  <div class="accts-modal" id="accts-modal">
+    <div class="accts-header">
+      <h3 id="accts-title">📒 账号本</h3>
+      <button class="accts-close" onclick="closeAcctsModal()">✕</button>
+    </div>
+    <textarea id="accts-textarea" class="accts-textarea" placeholder="在此粘贴各店铺账号密码...&#10;格式随意，就像记事本一样"></textarea>
+    <div class="accts-footer">
+      <button class="btn-sm" id="accts-save-btn" onclick="saveAccts()">💾 保存</button>
+      <button class="btn-sm outline" onclick="copyAccts()">📋 一键复制</button>
     </div>
   </div>
 

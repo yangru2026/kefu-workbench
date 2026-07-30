@@ -1723,6 +1723,7 @@ function renderStaffTable() {
       + '<td class="staff-ot-cell" onclick="event.stopPropagation();openOTDrawer(\'' + s.id + '\',\'' + escapeAttr(nickname) + '\')">'
       + '<div class="ot-cell-val" style="color:' + rmColor + '">' + ot.remain + 'h</div></td>'
       + '<td><div class="staff-btn-row">'
+      + '<button class="btn-sm outline" onclick="event.stopPropagation();openAcctsModal(\'' + s.id + '\',\'' + escapeAttr(nickname) + '\')" title="账号本">📒</button>'
       + '<button class="btn-sm outline" onclick="event.stopPropagation();openOTDrawer(\'' + s.id + '\',\'' + escapeAttr(nickname) + '\')" title="管理加班调休">⏱️</button>'
       + '<button class="btn-sm outline" onclick="event.stopPropagation();copyStaffRow(\'' + s.id + '\')" title="复制该行">📋</button>'
       + '</div></td>'
@@ -1873,6 +1874,42 @@ async function deleteOTRecord(type, recordId) {
 
   renderOTDrawer();
   renderStaffTable();
+}
+
+// ========== 账号本 ==========
+
+let acctsUserId = null;
+
+async function openAcctsModal(userId, nickname) {
+  acctsUserId = userId;
+  const s = allStaffData.find(x => x.id === userId);
+  document.getElementById('accts-title').textContent = '📒 ' + nickname + ' - 账号本';
+  document.getElementById('accts-textarea').value = (s && s.store_accounts) || '';
+  document.getElementById('accts-overlay').classList.add('show');
+  document.getElementById('accts-modal').classList.add('show');
+  setTimeout(() => document.getElementById('accts-textarea').focus(), 150);
+}
+
+function closeAcctsModal() {
+  document.getElementById('accts-overlay').classList.remove('show');
+  document.getElementById('accts-modal').classList.remove('show');
+  acctsUserId = null;
+}
+
+async function saveAccts() {
+  if (!acctsUserId || !supabase) return;
+  const content = document.getElementById('accts-textarea').value;
+  const { error } = await supabase.from('profiles').update({ store_accounts: content || null }).eq('id', acctsUserId);
+  if (error) { showToast('保存失败：' + error.message); return; }
+  const idx = allStaffData.findIndex(s => s.id === acctsUserId);
+  if (idx >= 0) allStaffData[idx].store_accounts = content;
+  showToast('已保存');
+}
+
+function copyAccts() {
+  const content = document.getElementById('accts-textarea').value;
+  if (!content.trim()) { showToast('内容为空'); return; }
+  navigator.clipboard.writeText(content).then(() => showToast('已复制到剪贴板'));
 }
 
 function filterStaff() {
