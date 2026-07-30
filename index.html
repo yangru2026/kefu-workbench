@@ -360,6 +360,21 @@ body {
 .schedule-table .today-col { background:#FFF3D4 !important; }
 .schedule-table .today-col .shift-tag { box-shadow:0 0 0 2px #fff,0 0 0 3px #fdcb6e; }
 .schedule-table .today-col.name-cell { background:#ffe8b8 !important; }
+.schedule-table .sched-cell { cursor:pointer; position:relative; transition:background 0.15s; user-select:none; }
+.schedule-table .sched-cell:hover { background:#e8f0fe !important; }
+.schedule-table .sched-cell.selected { background:#c7d9f7 !important; box-shadow:inset 0 0 0 2px var(--primary); }
+/* 排班编辑弹窗 */
+.sched-popover { position:fixed; z-index:9999; background:#fff; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.18); padding:10px 14px; display:flex; gap:6px; align-items:center; animation:schedPopIn 0.15s ease-out; }
+.sched-popover::after { content:''; position:absolute; bottom:-6px; left:50%; transform:translateX(-50%); width:12px; height:12px; background:#fff; rotate:45deg; box-shadow:2px 2px 4px rgba(0,0,0,0.08); clip-path:polygon(0 0, 100% 0, 0 100%); }
+@keyframes schedPopIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+.sched-pop-btn { width:30px; height:30px; border-radius:50%; border:none; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; justify-content:center; }
+.sched-pop-btn:hover { transform:scale(1.12); }
+.sched-pop-btn.opt-morning { background:#6C5CE7; color:#fff; }
+.sched-pop-btn.opt-mid { background:#fdcb6e; color:#5d4037; }
+.sched-pop-btn.opt-night { background:#E17055; color:#fff; }
+.sched-pop-btn.opt-rest { background:#dfe6e9; color:#636e72; }
+.sched-pop-btn.opt-adjust { background:#00b894; color:#fff; }
+.sched-pop-btn.opt-clear { background:#fff; color:#999; border:1px dashed #ccc; }
 .highlight-row { background:#FFF9E6 !important; }
 .highlight-row .name-cell { background:#FFF3D4 !important; font-weight:700; }
 
@@ -1098,9 +1113,12 @@ body {
       <button class="btn btn-outline" onclick="nextMonth()">下月 ▶</button>
       <div style="flex:1;"></div>
       <div class="legend-item"><span class="legend-dot" style="background:#6C5CE7;"></span> 早班</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#fdcb6e;"></span> 中班</div>
       <div class="legend-item"><span class="legend-dot" style="background:#E17055;"></span> 晚班</div>
       <div class="legend-item"><span class="legend-dot" style="background:#B2BEC3;"></span> 休息</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#00b894;"></span> 调休</div>
     </div>
+    <div id="sched-popover" class="sched-popover" style="display:none;"></div>
     <div id="schedule-table-wrapper" style="overflow-x:auto;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04);"></div>
   </div>
 
@@ -2998,6 +3016,9 @@ function copyRankExport() {
 }
 
 // ==================== SCHEDULE ====================
+const GROUP_DISPLAY = { '天猫组': 'A组', '拼多多组': 'B组', '抖音组': 'C组' };
+const GROUP_ORDER = { 'A组': 0, 'B组': 1, 'C组': 2 };
+
 function getDaysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate();
 }
@@ -3025,6 +3046,14 @@ function renderSchedule() {
   const isCurrentMonth = scheduleMonth === todayStr;
   const todayDay = today.getDate();
 
+  // Sort staff: A组→B组→C组, within each group keep original order
+  const sortedStaff = [...monthData.staff].sort((a, b) => {
+    const ga = GROUP_DISPLAY[a.group] || a.group;
+    const gb = GROUP_DISPLAY[b.group] || b.group;
+    return (GROUP_ORDER[ga] !== undefined ? GROUP_ORDER[ga] : 99) -
+           (GROUP_ORDER[gb] !== undefined ? GROUP_ORDER[gb] : 99);
+  });
+
   // Build header
   let html = '<table class="schedule-table"><thead><tr><th>姓名</th>';
   for (let d = 1; d <= days; d++) {
@@ -3037,11 +3066,13 @@ function renderSchedule() {
 
   // Build rows with group headers
   let lastGroup = '';
-  monthData.staff.forEach(staff => {
-    if (staff.group && staff.group !== lastGroup) {
-      html += '<tr class="group-row"><td colspan="' + (days + 1) + '">' + staff.group + '</td></tr>';
-      lastGroup = staff.group;
+  sortedStaff.forEach(staff => {
+    const displayGroup = GROUP_DISPLAY[staff.group] || staff.group;
+    if (displayGroup !== lastGroup) {
+      html += '<tr class="group-row"><td colspan="' + (days + 1) + '">' + displayGroup + '</td></tr>';
+      lastGroup = displayGroup;
     }
+    const staffNameEnc = staff.name.replace(/'/g, "\\'");
     html += '<tr><td class="name-cell">' + staff.name + '</td>';
     for (let d = 1; d <= days; d++) {
       const shift = staff.schedule[String(d)] || '-';
@@ -3055,7 +3086,9 @@ function renderSchedule() {
       else if (shift === '加班') { shiftClass = 'shift-adjust'; label = '班'; }
 
       const todayClass = (isCurrentMonth && d === todayDay) ? ' today-col' : '';
-      html += '<td class="' + todayClass + '"><span class="' + shiftClass + '"><span class="shift-tag" title="' + shift + '">' + label + '</span></span></td>';
+      html += '<td class="' + todayClass + ' sched-cell" data-staff="' + staffNameEnc + '" data-day="' + d + '" data-shift="' + shift + '" onclick="editScheduleCell(this)" title="' + staff.name + ' ' + d + '日: ' + shift + '">';
+      html += '<span class="' + shiftClass + '"><span class="shift-tag">' + label + '</span></span>';
+      html += '</td>';
     }
     html += '</tr>';
   });
@@ -3063,6 +3096,105 @@ function renderSchedule() {
   html += '</tbody></table>';
   document.getElementById('schedule-table-wrapper').innerHTML = html;
 }
+
+// Current editing state
+let schedEditState = { cell: null, staff: '', day: 0, shift: '' };
+
+function editScheduleCell(cell) {
+  // Close any existing popover
+  closePopover();
+
+  // If clicking the same selected cell, toggle off
+  if (schedEditState.cell === cell) {
+    cell.classList.remove('selected');
+    schedEditState = { cell: null, staff: '', day: 0, shift: '' };
+    return;
+  }
+
+  // Deselect previous
+  if (schedEditState.cell) {
+    schedEditState.cell.classList.remove('selected');
+  }
+
+  // Select new cell
+  cell.classList.add('selected');
+  const staff = cell.dataset.staff;
+  const day = parseInt(cell.dataset.day);
+  const shift = cell.dataset.shift;
+
+  schedEditState = { cell, staff, day, shift };
+
+  // Show popover near the cell
+  const rect = cell.getBoundingClientRect();
+  const popover = document.getElementById('sched-popover');
+  const buttons = [
+    { cls: 'opt-morning', label: '早', val: '早班' },
+    { cls: 'opt-mid', label: '中', val: '中班' },
+    { cls: 'opt-night', label: '晚', val: '晚班' },
+    { cls: 'opt-rest', label: '休', val: '休息' },
+    { cls: 'opt-adjust', label: '调', val: '调休' },
+    { cls: 'opt-clear', label: '✕', val: '' },
+  ];
+
+  popover.innerHTML = '<span style="font-size:11px;color:#888;margin-right:4px;">' + staff + ' ' + day + '日</span>' +
+    buttons.map(b => '<button class="sched-pop-btn ' + b.cls + '" onclick="applyShift(\'' + b.val + '\')" title="' + b.val + '">' + b.label + '</button>').join('');
+
+  // Position: above the cell, centered
+  const popWidth = 220;
+  let left = rect.left + rect.width / 2 - popWidth / 2;
+  if (left < 10) left = 10;
+  if (left + popWidth > window.innerWidth - 10) left = window.innerWidth - popWidth - 10;
+  popover.style.left = left + 'px';
+  popover.style.top = (rect.top - 58) + 'px';
+  popover.style.display = 'flex';
+}
+
+function applyShift(val) {
+  if (!schedEditState.cell) return;
+
+  const { cell, staff, day } = schedEditState;
+  const monthKey = scheduleMonth;
+
+  // Update scheduleData in memory
+  const monthData = scheduleData[monthKey];
+  const staffEntry = monthData.staff.find(s => s.name === staff);
+  if (staffEntry) {
+    if (val) {
+      staffEntry.schedule[String(day)] = val;
+    } else {
+      delete staffEntry.schedule[String(day)];
+    }
+  }
+
+  // Update the cell visually
+  let shiftClass = '', label = val || '-';
+  if (val.includes('早班')) { shiftClass = 'shift-morning'; label = '早'; }
+  else if (val.includes('中班')) { shiftClass = 'shift-mid'; label = '中'; }
+  else if (val.includes('晚班')) { shiftClass = 'shift-night'; label = '晚'; }
+  else if (val === '休息') { shiftClass = 'shift-rest'; label = '休'; }
+  else if (val === '调休') { shiftClass = 'shift-adjust'; label = '调'; }
+  else if (val === '加班') { shiftClass = 'shift-adjust'; label = '班'; }
+
+  cell.dataset.shift = val || '-';
+  cell.innerHTML = val ? ('<span class="' + shiftClass + '"><span class="shift-tag">' + label + '</span></span>') : '<span style="color:#ccc;font-size:11px;">-</span>';
+
+  closePopover();
+}
+
+function closePopover() {
+  document.getElementById('sched-popover').style.display = 'none';
+  if (schedEditState.cell) {
+    schedEditState.cell.classList.remove('selected');
+  }
+  schedEditState = { cell: null, staff: '', day: 0, shift: '' };
+}
+
+// Close popover when clicking outside
+document.addEventListener('click', function(e) {
+  if (schedEditState.cell && !e.target.closest('.sched-cell') && !e.target.closest('#sched-popover')) {
+    closePopover();
+  }
+});
 
 function prevMonth() {
   const [y, m] = scheduleMonth.split('-').map(Number);
