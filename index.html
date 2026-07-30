@@ -216,40 +216,39 @@ body {
 .train-empty { text-align:center; padding:60px 20px; color:var(--text-secondary); }
 
 /* Pattern gallery - Brand tabs */
-.brand-tabs { display:flex; gap:0; margin-bottom:16px; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 2px 10px rgba(108,92,231,0.08); }
-.brand-tab { flex:1; padding:13px 0; text-align:center; font-size:15px; font-weight:600; cursor:pointer; border:none; background:transparent; color:var(--text-secondary); font-family:inherit; transition:all 0.25s; position:relative; }
+.brand-tabs { display:flex; gap:0; margin-bottom:12px; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 2px 10px rgba(108,92,231,0.08); }
+.brand-tab { flex:1; padding:12px 0; text-align:center; font-size:14px; font-weight:600; cursor:pointer; border:none; background:transparent; color:var(--text-secondary); font-family:inherit; transition:all 0.25s; position:relative; }
 .brand-tab.active { background:var(--primary); color:#fff; }
 .brand-tab:hover:not(.active) { background:#f5f3fc; color:var(--primary); }
-.filter-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; align-items:center; }
-.filter-row .flabel { font-size:12px; color:var(--text-secondary); white-space:nowrap; min-width:36px; font-weight:500; }
-.flink { font-size:12px; padding:5px 14px; border-radius:16px; border:1.5px solid #e0daf0; background:transparent; color:var(--text-secondary); cursor:pointer; font-family:inherit; white-space:nowrap; transition:all 0.2s; font-weight:500; }
+.filter-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; align-items:center; }
+.filter-row .flabel { font-size:11px; color:var(--text-muted); white-space:nowrap; min-width:32px; font-weight:500; }
+.flink { font-size:11px; padding:4px 12px; border-radius:14px; border:1.5px solid #e8e4f0; background:transparent; color:var(--text-secondary); cursor:pointer; font-family:inherit; white-space:nowrap; transition:all 0.2s; font-weight:500; }
 .flink:hover { border-color:var(--primary); color:var(--primary); }
 .flink.active { background:var(--primary); color:#fff; border-color:var(--primary); font-weight:600; }
-.pattern-stats { font-size:12px; color:var(--text-secondary); margin-bottom:12px; display:flex; align-items:center; gap:6px; }
-.pattern-stats .stat-num { font-weight:700; color:var(--primary); font-size:18px; }
-.pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap:16px; }
-.pattern-card { background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 2px 14px rgba(108,92,231,0.06); transition:all 0.25s cubic-bezier(0.25,0.46,0.45,0.94); display:flex; flex-direction:column; border:1px solid rgba(108,92,231,0.06); }
-.pattern-card:hover { transform:translateY(-3px); box-shadow:0 10px 32px rgba(108,92,231,0.13); border-color:rgba(108,92,231,0.14); }
-.pcard-img { width:100%; height:200px; display:flex; align-items:center; justify-content:center; background:linear-gradient(160deg, #f8f6fc 0%, #ede8f8 50%, #f5f2fa 100%); font-size:48px; color:#ccc; position:relative; overflow:hidden; cursor:pointer; }
-.pcard-img::after { content:''; position:absolute; bottom:0; left:0; right:0; height:40px; background:linear-gradient(transparent, rgba(108,92,231,0.04)); pointer-events:none; }
+.pattern-stats { font-size:12px; color:var(--text-secondary); margin-bottom:10px; }
+.pattern-stats .stat-num { font-weight:700; color:var(--primary); font-size:16px; }
+.pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:14px; }
+.pattern-card { background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 2px 12px rgba(108,92,231,0.05); transition:all 0.25s cubic-bezier(0.25,0.46,0.45,0.94); display:flex; flex-direction:column; border:1px solid rgba(108,92,231,0.06); position:relative; }
+.pattern-card:hover { transform:translateY(-3px); box-shadow:0 12px 36px rgba(108,92,231,0.12); border-color:rgba(108,92,231,0.12); }
+.pcard-img { width:100%; height:260px; display:flex; align-items:center; justify-content:center; background:linear-gradient(160deg, #f8f6fc 0%, #ede8f8 50%, #f5f2fa 100%); font-size:48px; color:#ccc; position:relative; overflow:hidden; cursor:pointer; }
+.pcard-img::after { content:''; position:absolute; bottom:0; left:0; right:0; height:50px; background:linear-gradient(transparent, rgba(108,92,231,0.05)); pointer-events:none; }
 .pcard-img img { width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; transition:opacity 0.4s ease; }
 .pcard-img img.img-lens { opacity:0; }
 .pcard-img:hover img.img-eye { opacity:0; }
 .pcard-img:hover img.img-lens { opacity:1; }
-.pcard-img .pcard-brand-tag { position:absolute; top:10px; left:10px; font-size:10px; padding:3px 10px; border-radius:10px; background:linear-gradient(135deg, var(--primary), var(--primary-light)); color:#fff; font-weight:700; z-index:3; box-shadow:0 2px 8px rgba(108,92,231,0.25); letter-spacing:0.5px; }
-.pcard-img .img-placeholder { display:flex; flex-direction:column; align-items:center; gap:8px; color:#c4b8d8; font-size:13px; }
-.pcard-img .img-placeholder span { font-size:42px; opacity:0.6; }
-.pcard-body { padding:14px 16px; flex:1; display:flex; flex-direction:column; }
-.pcard-title-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
-.pcard-name { font-size:15px; font-weight:700; color:var(--text); }
-.pcard-series { font-size:11px; color:var(--primary); font-weight:500; opacity:0.8; }
-.pcard-tags { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px; }
-.pcard-tags span { font-size:10px; padding:3px 8px; border-radius:10px; background:#f0edf7; color:var(--primary); font-weight:500; }
-.pcard-specs { font-size:11px; color:var(--text-secondary); line-height:1.7; margin-bottom:8px; display:flex; flex-wrap:wrap; gap:6px; }
-.pcard-specs .spec-item { background:#faf8fe; padding:2px 8px; border-radius:6px; }
-.pcard-script { background:linear-gradient(135deg, #faf8fe, #f5f2fb); border-radius:10px; padding:12px 14px 12px 14px; font-size:12px; color:#4a3f6b; line-height:1.7; position:relative; flex:1; border:1px solid #eae4f8; }
-.pcard-script .script-label { font-size:10px; color:var(--primary); margin-bottom:3px; font-weight:700; }
-.pcard-copy { position:absolute; top:8px; right:8px; padding:4px 12px; font-size:11px; border:none; border-radius:12px; background:var(--primary); color:#fff; cursor:pointer; font-family:inherit; transition:all 0.2s; font-weight:500; box-shadow:0 2px 6px rgba(108,92,231,0.2); }
+.pcard-img .pcard-brand-tag { position:absolute; top:8px; left:8px; font-size:10px; padding:2px 8px; border-radius:8px; background:rgba(108,92,231,0.85); color:#fff; font-weight:600; z-index:3; backdrop-filter:blur(4px); }
+.pcard-img .img-placeholder { display:flex; flex-direction:column; align-items:center; gap:6px; color:#c4b8d8; font-size:13px; }
+.pcard-img .img-placeholder span { font-size:36px; opacity:0.5; }
+.pcard-body { padding:12px 14px 14px; flex:1; display:flex; flex-direction:column; }
+.pcard-title-row { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:4px; gap:8px; }
+.pcard-name { font-size:16px; font-weight:700; color:var(--text); flex-shrink:0; }
+.pcard-series { font-size:11px; color:var(--primary); font-weight:500; opacity:0.75; }
+.pcard-meta-row { display:flex; align-items:center; gap:6px; margin-bottom:8px; flex-wrap:wrap; }
+.pcard-meta-row span { font-size:10px; padding:2px 8px; border-radius:8px; background:#f0edf7; color:var(--primary); font-weight:500; }
+.pcard-meta-row .pcard-spec-mini { background:#faf8fe; color:var(--text-secondary); }
+.pcard-script { background:linear-gradient(135deg, #faf8fe, #f5f2fb); border-radius:10px; padding:10px 12px; font-size:12px; color:#4a3f6b; line-height:1.65; position:relative; flex:1; border:1px solid #eae4f8; }
+.pcard-script .script-label { display:none; }
+.pcard-copy { position:absolute; top:6px; right:6px; padding:3px 10px; font-size:11px; border:none; border-radius:10px; background:var(--primary); color:#fff; cursor:pointer; font-family:inherit; transition:all 0.2s; font-weight:500; box-shadow:0 2px 6px rgba(108,92,231,0.2); }
 .pcard-copy:hover { transform:scale(1.05); }
 .pcard-copy:active { transform:scale(0.95); }
 .pcard-copy.copied { background:#00b894; }
@@ -662,6 +661,12 @@ body {
 .img-add-row { display:flex; gap:8px; align-items:flex-end; }
 .img-add-row input { flex:1; }
 .img-add-row select { width:90px; }
+.img-upload-btn { padding:6px 12px; border:1.5px dashed var(--primary-light); border-radius:8px; background:#f8f6fc; color:var(--primary); font-size:12px; cursor:pointer; font-family:inherit; font-weight:500; white-space:nowrap; transition:all 0.2s; }
+.img-upload-btn:hover { background:#f0edf7; border-color:var(--primary); }
+.img-upload-input { display:none; }
+.series-input-wrap { position:relative; }
+.series-input-wrap input { width:100%; }
+.series-input-wrap datalist { display:none; }
 .btn-sm { padding:6px 14px; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
 .btn-sm.primary { background:var(--primary); color:#fff; }
 .btn-sm.primary:hover { background:#6b9695; }
@@ -2263,12 +2268,12 @@ function renderPatterns() {
     window._patternRefs[pkey] = { brand: patternBrand, type: patternType, _id: p._id, ...p };
 
     const specs = [];
-    if (p.material) specs.push('<span class="spec-item">材质 ' + escapeHtml(p.material) + '</span>');
-    if (p.diameter) specs.push('<span class="spec-item">直径 ' + escapeHtml(p.diameter) + '</span>');
-    if (p.colorDiameter) specs.push('<span class="spec-item">着色 ' + escapeHtml(p.colorDiameter) + '</span>');
-    if (p.oxygen) specs.push('<span class="spec-item">透氧 ' + escapeHtml(p.oxygen) + '</span>');
-    if (p.water) specs.push('<span class="spec-item">含水 ' + escapeHtml(p.water) + '</span>');
-    if (p.spec) specs.push('<span class="spec-item">' + escapeHtml(p.spec) + '</span>');
+    if (p.material) specs.push('<span class="pcard-spec-mini">' + escapeHtml(p.material) + '</span>');
+    if (p.diameter) specs.push('<span class="pcard-spec-mini">' + escapeHtml(p.diameter) + '</span>');
+    if (p.colorDiameter) specs.push('<span class="pcard-spec-mini">着色 ' + escapeHtml(p.colorDiameter) + '</span>');
+    if (p.oxygen) specs.push('<span class="pcard-spec-mini">透氧 ' + escapeHtml(p.oxygen) + '</span>');
+    if (p.water) specs.push('<span class="pcard-spec-mini">含水 ' + escapeHtml(p.water) + '</span>');
+    if (p.spec) specs.push('<span class="pcard-spec-mini">' + escapeHtml(p.spec) + '</span>');
     const specsHtml = specs.length ? specs.join('') : '';
 
     // Management buttons: only show for admin
@@ -2287,15 +2292,14 @@ function renderPatterns() {
       <div class="pcard-body">
         <div class="pcard-title-row">
           <span class="pcard-name">${escapeHtml(p.name)}</span>
-          <span class="pcard-series">${escapeHtml(p.series)}</span>
+          <span class="pcard-series">${escapeHtml(p.series || '')}</span>
         </div>
-        <div class="pcard-tags">
-          <span>${escapeHtml(p.color)}</span>
-          <span>${escapeHtml(p.diameter || '')}</span>
+        <div class="pcard-meta-row">
+          <span>${escapeHtml(p.color || '')}</span>
+          ${p.diameter ? '<span>' + escapeHtml(p.diameter) + '</span>' : ''}
+          ${specsHtml}
         </div>
-        <div class="pcard-specs">${specsHtml}</div>
         <div class="pcard-script">
-          <div class="script-label">💬 推荐话术</div>
           ${escapeHtml(p.description || p.script || '暂无话术')}
           <button class="pcard-copy" onclick="copyPatternScript(this, '${escapeAttr(p.description || p.script || '')}')">📋 复制</button>
         </div>
@@ -2365,18 +2369,32 @@ function renderEditorForm(pattern) {
       + '<span class="img-mgr-item-badge">' + img.hint + '</span>'
       + '<button class="img-mgr-item-del" title="删除" onclick="removeEditImage(' + i + ')">✕</button></div>';
   });
-  if (!imgsHtml) imgsHtml = '<div class="empty-hint">暂无图片，下方添加</div>';
+  if (!imgsHtml) imgsHtml = '<div class="empty-hint">暂无图片，下方添加或上传</div>';
+
+  // Get existing series for the current brand+type context
+  let seriesOptions = '';
+  if (b.isNew) {
+    // For new patterns, get all series across all types of selected/default brand
+    const selectedBrand = t.brand || brands[0] || '弥生';
+    const allSeries = getPatternSeries(selectedBrand, '全部');
+    seriesOptions = allSeries.map(s => '<option value="' + escapeHtml(s) + '">').join('');
+  } else {
+    // For editing, get series for the pattern's brand and type
+    const allSeries = getPatternSeries(t.brand || patternBrand, '全部');
+    seriesOptions = allSeries.map(s => '<option value="' + escapeHtml(s) + '">').join('');
+  }
+
   let html = '';
   if (b.isNew) {
-    html += '<div class="modal-field-row"><div class="modal-field"><label>品牌</label><select id="ef-brand">'
-      + brands.map(br => '<option value="' + br + '">' + br + '</option>').join('')
-      + '</select></div><div class="modal-field"><label>抛型</label><select id="ef-type">'
-      + types.map(ty => '<option value="' + ty + '">' + ty + '</option>').join('')
+    html += '<div class="modal-field-row"><div class="modal-field"><label>品牌</label><select id="ef-brand" onchange="refreshSeriesDatalist()">'
+      + brands.map(br => '<option value="' + br + '"' + ((t.brand||'')===br?' selected':'') + '>' + br + '</option>').join('')
+      + '</select></div><div class="modal-field"><label>抛型</label><select id="ef-type" onchange="refreshSeriesDatalist()">'
+      + types.map(ty => '<option value="' + ty + '"' + ((t.type||'')===ty?' selected':'') + '>' + ty + '</option>').join('')
       + '</select></div></div>';
   }
   html += '<div class="modal-field"><label>花色名称 ' + (b.isNew ? '' : '<span style="color:#e17055;">(只读)</span>') + '</label>'
     + '<input id="ef-name" value="' + escapeHtml(t.name || '') + '"' + (b.isNew ? '' : ' readonly') + '></div>'
-    + '<div class="modal-field-row"><div class="modal-field"><label>系列</label><input id="ef-series" value="' + escapeHtml(t.series || '') + '"></div>'
+    + '<div class="modal-field-row"><div class="modal-field"><label>系列 <span style="font-weight:400;color:var(--text-muted);">(可选已有或输入新系列)</span></label><div class="series-input-wrap"><input id="ef-series" list="ef-series-list" value="' + escapeHtml(t.series || '') + '" placeholder="选择或输入系列..."><datalist id="ef-series-list">' + seriesOptions + '</datalist></div></div>'
     + '<div class="modal-field"><label>色系</label><select id="ef-color">'
     + ['棕色系','黑灰色系','蓝色系','绿色系','粉色系','紫色系','灰色系','混血色'].map(c => '<option value="' + c + '"' + ((t.color||'')===c?' selected':'') + '>' + c + '</option>').join('')
     + '</select></div></div>'
@@ -2388,10 +2406,54 @@ function renderEditorForm(pattern) {
     + '<div class="modal-field"><label>规格</label><input id="ef-spec" value="' + escapeHtml(t.spec || '') + '" placeholder="6片/盒"></div></div>'
     + '<div class="modal-field"><label>推荐话术</label><textarea id="ef-desc">' + escapeHtml(t.description || t.script || '') + '</textarea></div>'
     + '<div class="img-mgr"><h4>🖼️ 图片管理</h4><div class="img-mgr-grid" id="img-mgr-grid">' + imgsHtml + '</div>'
-    + '<div class="img-add-row"><input id="img-add-url" placeholder="图片URL..." style="flex:1;">'
-    + '<select id="img-add-type" style="width:100px;"><option value="eye">上眼图</option><option value="lens">镜片图</option></select>'
-    + '<button class="btn-sm primary" onclick="addEditImage()">＋ 添加</button></div></div>';
+    + '<div class="img-add-row">'
+    + '<input id="img-add-url" placeholder="粘贴图片URL..." style="flex:1;">'
+    + '<select id="img-add-type" style="width:90px;"><option value="eye">上眼图</option><option value="lens">镜片图</option></select>'
+    + '<button class="btn-sm primary" onclick="addEditImage()">＋ 添加</button>'
+    + '<label class="img-upload-btn"><input type="file" class="img-upload-input" accept="image/*" onchange="handlePatternImageUpload(this)">📁 上传本地图片</label>'
+    + '</div></div>';
   document.getElementById('mod-pattern-body').innerHTML = html;
+}
+
+function refreshSeriesDatalist() {
+  const brand = document.getElementById('ef-brand')?.value || '';
+  const allSeries = getPatternSeries(brand, '全部');
+  const datalist = document.getElementById('ef-series-list');
+  if (datalist) {
+    datalist.innerHTML = allSeries.map(s => '<option value="' + escapeHtml(s) + '">').join('');
+  }
+}
+
+async function handlePatternImageUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showToast('请选择图片文件'); return; }
+  if (file.size > 5 * 1024 * 1024) { showToast('图片不能超过5MB'); return; }
+
+  showToast('⏳ 正在上传图片...');
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = 'pattern_' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + '.' + fileExt;
+    const { data, error } = await supabase.storage.from('pattern-images').upload(fileName, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
+    if (error) {
+      showToast('上传失败：' + error.message);
+      return;
+    }
+    const { data: urlData } = supabase.storage.from('pattern-images').getPublicUrl(fileName);
+    const publicUrl = urlData?.publicUrl;
+    if (!publicUrl) { showToast('获取图片链接失败'); return; }
+
+    // Default to eye image
+    window._editImages.push({ type: 'eye', url: publicUrl, hint: '上眼效果' });
+    renderEditorForm(window._editPattern);
+    showToast('✅ 图片上传成功');
+  } catch (e) {
+    showToast('上传出错：' + e.message);
+  }
+  input.value = '';
 }
 
 function addEditImage() {
