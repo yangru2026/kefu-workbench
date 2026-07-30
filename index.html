@@ -2474,7 +2474,10 @@ async function confirmEditPatCat() {
 
 async function deletePatCat(type, name) {
   const cat = patternCategories.find(c => c.category_type === type && c.name === name);
-  if (!cat) return;
+  if (!cat) {
+    showToast('⚠️ 未找到该分类，请刷新页面后重试');
+    return;
+  }
   // 统计受影响的花色数量
   const fieldMap = { brand: 'brand', type: 'type', series: 'series', color: 'color' };
   const field = fieldMap[type];
@@ -2544,14 +2547,16 @@ function hidePatCatCtxMenu() {
 
 function ctxEditPatCat() {
   if (!_ctxPatCat) return;
+  const { type, name } = _ctxPatCat;
   hidePatCatCtxMenu();
-  startEditPatCat(_ctxPatCat.type, _ctxPatCat.name);
+  startEditPatCat(type, name);
 }
 
 function ctxDeletePatCat() {
-  if (!_ctxPatCat) return;
+  if (!_ctxPatCat) { showToast('⚠️ 操作失败，请重试'); return; }
+  const { type, name } = _ctxPatCat;
   hidePatCatCtxMenu();
-  deletePatCat(_ctxPatCat.type, _ctxPatCat.name);
+  deletePatCat(type, name);
 }
 
 function renderPatterns() {
