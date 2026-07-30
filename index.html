@@ -2468,20 +2468,20 @@ async function confirmEditPatCat() {
   else if (_editingPatCat.type === 'color' && patternColor === _editingPatCat.oldName) patternColor = newName;
   _editingPatCat = null;
   showToast('✅ 分类已修改，花色数据已同步更新');
-  loadPatternCategories();
-  loadPatternsFromDB();
+  await loadPatternCategories();
+  await loadPatternsFromDB();
 }
 
 async function deletePatCat(type, name) {
   const cat = patternCategories.find(c => c.category_type === type && c.name === name);
   if (!cat) return;
-  // 统计受影响的品牌/类型
+  // 统计受影响的花色数量
   const fieldMap = { brand: 'brand', type: 'type', series: 'series', color: 'color' };
   const field = fieldMap[type];
   let count = 0;
   if (field) {
-    const { data, error } = await supabase.from('pattern_assets').select('id', { count: 'exact', head: true }).eq(field, name);
-    if (!error) count = data?.length || (await supabase.from('pattern_assets').select('*', { count: 'exact', head: true }).eq(field, name)).count || 0;
+    const { count: c, error } = await supabase.from('pattern_assets').select('*', { count: 'exact', head: true }).eq(field, name);
+    if (!error) count = c || 0;
   }
   if (type === 'brand' || type === 'type') {
     if (count > 0) {
@@ -2506,8 +2506,8 @@ async function deletePatCat(type, name) {
   else if (type === 'type' && patternType === name) patternType = '全部';
   else if (type === 'series' && patternSeries === name) patternSeries = '全部';
   else if (type === 'color' && patternColor === name) patternColor = '全部';
-  loadPatternCategories();
-  loadPatternsFromDB();
+  await loadPatternCategories();
+  await loadPatternsFromDB();
 }
 
 async function addPatCat(type) {
@@ -2520,7 +2520,7 @@ async function addPatCat(type) {
   const { error } = await supabase.from('pattern_categories').insert({ category_type: type, name: trimmed, sort_order: maxOrder + 1 });
   if (error) { showToast('添加失败：' + error.message); return; }
   showToast('✅ 分类已添加');
-  loadPatternCategories();
+  await loadPatternCategories();
 }
 
 // ---------- 花色分类右键菜单 ----------
