@@ -1238,7 +1238,10 @@ body {
   <div class="page" id="page-patterns">
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <div><h1>🎨 花色素材库</h1><p>按品牌、抛型、系列、色系筛选，一键复制推荐话术 | 修改实时同步所有客服</p></div>
-      <button class="mgmt-add-btn" id="mgmt-add-btn" onclick="openPatternEditor(null)" style="display:none;">＋ 新增花色</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="mgmt-toggle admin-only-nav" id="mgmt-toggle" onclick="toggleMgmtMode()" style="display:none;">📝 管理素材</button>
+        <button class="mgmt-add-btn" id="mgmt-add-btn" onclick="openPatternEditor(null)" style="display:none;">＋ 新增花色</button>
+      </div>
     </div>
     <div class="brand-tabs" id="pattern-brand-tabs"></div>
     <div class="filter-row" id="pattern-filter-type"><span class="flabel">抛型</span></div>
@@ -1253,7 +1256,7 @@ body {
   <div class="page" id="page-training">
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <div><h1>📚 培训资料中心</h1><p>按品牌和分类查看培训资料，点击链接打开飞书云文档 | 修改实时同步所有客服</p></div>
-      <button class="mgmt-add-btn" id="train-add-btn" onclick="openTrainingEditor(null)" style="display:none;">＋ 新增资料</button>
+      <button class="admin-only-nav" id="train-add-btn" onclick="openTrainingEditor(null)" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">＋ 新增资料</button>
     </div>
     <!-- 品牌切换 Tab -->
     <div class="brand-tabs" id="training-brand-tabs">
@@ -2329,6 +2332,9 @@ function toggleMgmtMode() {
   btn.textContent = mgmtMode ? '✅ 管理模式' : '📝 管理素材';
   btn.classList.toggle('active', mgmtMode);
   document.getElementById('page-patterns').classList.toggle('mgmt-mode', mgmtMode);
+  // 同时控制新增按钮显示
+  const addBtn = document.getElementById('mgmt-add-btn');
+  if (addBtn) addBtn.style.display = mgmtMode ? '' : 'none';
 }
 
 function openPatternEditor(pattern) {
