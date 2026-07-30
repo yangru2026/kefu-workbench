@@ -216,18 +216,16 @@ body {
 .cat-inline-edit input { padding:3px 8px; border:1px solid var(--primary); border-radius:10px; font-size:12px; width:100px; font-family:inherit; outline:none; }
 .cat-inline-edit button { padding:2px 8px; border:none; border-radius:8px; font-size:11px; cursor:pointer; font-family:inherit; }
 
-/* Pattern category management buttons */
+/* Pattern category management buttons - only show on active tab */
 .brand-tab .pcat-edit-btn, .brand-tab .pcat-del-btn { display:none; margin-left:4px; font-size:10px; background:none; border:none; cursor:pointer; color:inherit; opacity:0.7; padding:0 2px; vertical-align:middle; }
-.brand-tab:hover .pcat-edit-btn, .brand-tab:hover .pcat-del-btn { display:inline; }
-.brand-tab.active .pcat-edit-btn, .brand-tab.active .pcat-del-btn { color:#fff; }
+.brand-tab.active .pcat-edit-btn, .brand-tab.active .pcat-del-btn { display:inline; color:#fff; }
 .brand-tab .pcat-edit-btn:hover, .brand-tab .pcat-del-btn:hover { opacity:1; }
 .brand-tab .pcat-inline-edit { display:inline-flex; align-items:center; gap:3px; }
 .brand-tab .pcat-inline-edit input { padding:2px 6px; border:1px solid var(--primary); border-radius:8px; font-size:12px; width:80px; font-family:inherit; outline:none; text-align:center; }
 .brand-tab .pcat-inline-edit button { padding:2px 6px; border:none; border-radius:6px; font-size:10px; cursor:pointer; font-family:inherit; }
 
 .flink .pcat-edit-btn, .flink .pcat-del-btn { display:none; margin-left:3px; font-size:9px; background:none; border:none; cursor:pointer; color:inherit; opacity:0.6; padding:0 1px; vertical-align:middle; }
-.flink:hover .pcat-edit-btn, .flink:hover .pcat-del-btn { display:inline; }
-.flink.active .pcat-edit-btn, .flink.active .pcat-del-btn { color:#fff; }
+.flink.active .pcat-edit-btn, .flink.active .pcat-del-btn { display:inline; color:#fff; }
 .flink .pcat-edit-btn:hover, .flink .pcat-del-btn:hover { opacity:1; }
 .flink .pcat-inline-edit { display:inline-flex; align-items:center; gap:2px; }
 .flink .pcat-inline-edit input { padding:1px 5px; border:1px solid var(--primary); border-radius:8px; font-size:10px; width:60px; font-family:inherit; outline:none; }
@@ -2298,7 +2296,7 @@ function renderPatternFilters() {
         <button class="btn-sm primary" onclick="confirmEditPatCat()">✓</button>
         <button class="btn-sm outline" onclick="cancelEditPatCat()">✕</button></span>`;
     }
-    const mgmtBtns = (isAdmin && b.isManaged)
+    const mgmtBtns = (isAdmin && b.isManaged && isActive)
       ? `<button class="pcat-edit-btn" onclick="event.stopPropagation();startEditPatCat('brand','${escapeAttr(b.name)}')" title="编辑">✎</button>`
         + `<button class="pcat-del-btn" onclick="event.stopPropagation();deletePatCat('brand','${escapeAttr(b.name)}')" title="删除">✕</button>`
       : '';
@@ -2320,7 +2318,7 @@ function renderPatternFilters() {
         <button class="btn-sm primary" onclick="confirmEditPatCat()">✓</button>
         <button class="btn-sm outline" onclick="cancelEditPatCat()">✕</button></span>`;
     } else {
-      const mgmtBtns = (isAdmin && t.isManaged)
+      const mgmtBtns = (isAdmin && t.isManaged && patternType === t.name)
         ? `<button class="pcat-edit-btn" onclick="event.stopPropagation();startEditPatCat('type','${escapeAttr(t.name)}')" title="编辑">✎</button>`
           + `<button class="pcat-del-btn" onclick="event.stopPropagation();deletePatCat('type','${escapeAttr(t.name)}')" title="删除">✕</button>`
         : '';
@@ -2345,7 +2343,7 @@ function renderPatternFilters() {
           <button class="btn-sm primary" onclick="confirmEditPatCat()">✓</button>
           <button class="btn-sm outline" onclick="cancelEditPatCat()">✕</button></span>`;
       } else {
-        const mgmtBtns = (isAdmin && s.isManaged)
+        const mgmtBtns = (isAdmin && s.isManaged && patternSeries === s.name)
           ? `<button class="pcat-edit-btn" onclick="event.stopPropagation();startEditPatCat('series','${escapeAttr(s.name)}')" title="编辑">✎</button>`
             + `<button class="pcat-del-btn" onclick="event.stopPropagation();deletePatCat('series','${escapeAttr(s.name)}')" title="删除">✕</button>`
           : '';
@@ -2375,7 +2373,7 @@ function renderPatternFilters() {
           <button class="btn-sm primary" onclick="confirmEditPatCat()">✓</button>
           <button class="btn-sm outline" onclick="cancelEditPatCat()">✕</button></span>`;
       } else {
-        const mgmtBtns = (isAdmin && c.isManaged)
+        const mgmtBtns = (isAdmin && c.isManaged && patternColor === c.name)
           ? `<button class="pcat-edit-btn" onclick="event.stopPropagation();startEditPatCat('color','${escapeAttr(c.name)}')" title="编辑">✎</button>`
             + `<button class="pcat-del-btn" onclick="event.stopPropagation();deletePatCat('color','${escapeAttr(c.name)}')" title="删除">✕</button>`
           : '';
