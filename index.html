@@ -215,6 +215,26 @@ body {
 .cat-inline-edit { display:inline-flex; align-items:center; gap:4px; }
 .cat-inline-edit input { padding:3px 8px; border:1px solid var(--primary); border-radius:10px; font-size:12px; width:100px; font-family:inherit; outline:none; }
 .cat-inline-edit button { padding:2px 8px; border:none; border-radius:8px; font-size:11px; cursor:pointer; font-family:inherit; }
+
+/* Pattern category management buttons */
+.brand-tab .pcat-edit-btn, .brand-tab .pcat-del-btn { display:none; margin-left:4px; font-size:10px; background:none; border:none; cursor:pointer; color:inherit; opacity:0.7; padding:0 2px; vertical-align:middle; }
+.brand-tab:hover .pcat-edit-btn, .brand-tab:hover .pcat-del-btn { display:inline; }
+.brand-tab.active .pcat-edit-btn, .brand-tab.active .pcat-del-btn { color:#fff; }
+.brand-tab .pcat-edit-btn:hover, .brand-tab .pcat-del-btn:hover { opacity:1; }
+.brand-tab .pcat-inline-edit { display:inline-flex; align-items:center; gap:3px; }
+.brand-tab .pcat-inline-edit input { padding:2px 6px; border:1px solid var(--primary); border-radius:8px; font-size:12px; width:80px; font-family:inherit; outline:none; text-align:center; }
+.brand-tab .pcat-inline-edit button { padding:2px 6px; border:none; border-radius:6px; font-size:10px; cursor:pointer; font-family:inherit; }
+
+.flink .pcat-edit-btn, .flink .pcat-del-btn { display:none; margin-left:3px; font-size:9px; background:none; border:none; cursor:pointer; color:inherit; opacity:0.6; padding:0 1px; vertical-align:middle; }
+.flink:hover .pcat-edit-btn, .flink:hover .pcat-del-btn { display:inline; }
+.flink.active .pcat-edit-btn, .flink.active .pcat-del-btn { color:#fff; }
+.flink .pcat-edit-btn:hover, .flink .pcat-del-btn:hover { opacity:1; }
+.flink .pcat-inline-edit { display:inline-flex; align-items:center; gap:2px; }
+.flink .pcat-inline-edit input { padding:1px 5px; border:1px solid var(--primary); border-radius:8px; font-size:10px; width:60px; font-family:inherit; outline:none; }
+.flink .pcat-inline-edit button { padding:1px 5px; border:none; border-radius:6px; font-size:9px; cursor:pointer; font-family:inherit; }
+
+.pcat-add-mini { font-size:10px; padding:4px 10px; border:1px dashed var(--primary-light); border-radius:14px; cursor:pointer; background:transparent; color:var(--primary); font-family:inherit; white-space:nowrap; transition:all .2s; }
+.pcat-add-mini:hover { background:rgba(123,155,106,0.08); border-color:var(--primary); }
 .train-card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:0; margin-bottom:20px; overflow:hidden; }
 .train-card-header { display:flex; align-items:center; gap:10px; padding:14px 20px; background:var(--hover-bg); border-bottom:1px solid var(--border); }
 .train-card-header h3 { margin:0; font-size:15px; }
@@ -1670,6 +1690,35 @@ function subscribePatterns() {
     .subscribe();
 }
 
+// ---------- 花色分类管理 ----------
+async function loadPatternCategories() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase
+      .from('pattern_categories')
+      .select('*')
+      .order('sort_order', { ascending: true });
+    if (error) {
+      // 表可能还没创建，用现有数据作为后备
+      console.warn('花色分类表加载失败（可能尚未建表），使用数据驱动分类:', error.message);
+      return;
+    }
+    patternCategories = data || [];
+    if (currentPage === 'patterns') { renderPatternFilters(); }
+  } catch(e) {
+    console.error('花色分类加载异常:', e);
+  }
+}
+
+function subscribePatternCategories() {
+  if (!supabase) return;
+  supabase.channel('pattern-cat-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'pattern_categories' }, () => {
+      loadPatternCategories();
+    })
+    .subscribe();
+}
+
 function buildPatternTree(flatData) {
   const tree = { brands: {} };
   flatData.forEach(p => {
@@ -2183,6 +2232,7 @@ let patternBrand = '弥生';
 let patternType = '全部';
 let patternSeries = '全部';
 let patternColor = '全部';
+let patternCategories = []; // [{id, category_type:'brand'|'type'|'series'|'color', name, sort_order}]
 
 function getPatternBrands() {
   return Object.keys(patternData.brands || {});
@@ -2223,43 +2273,123 @@ function getFilteredItems(brand, type, series) {
   return items;
 }
 
+// 获取合并后的分类列表（托管分类 + 数据驱动分类，去重排序）
+function getMergedCats(catType, dataCats) {
+  const managed = patternCategories.filter(c => c.category_type === catType);
+  const managedNames = managed.map(c => c.name);
+  const allNames = [...new Set([...managedNames, ...dataCats])];
+  return allNames.map(name => {
+    const mc = managed.find(c => c.name === name);
+    return { name, isManaged: !!mc, id: mc ? mc.id : null };
+  });
+}
+
 function renderPatternFilters() {
+  const isAdmin = currentProfile && currentProfile.role === 'admin';
+
   // Brand tabs
-  const brands = getPatternBrands();
+  const brandData = getMergedCats('brand', getPatternBrands());
   const brandTabs = document.getElementById('pattern-brand-tabs');
-  brandTabs.innerHTML = brands.map(b =>
-    `<button class="brand-tab${patternBrand === b ? ' active' : ''}" onclick="switchPatternBrand('${b}')">${b}</button>`
-  ).join('');
+  brandTabs.innerHTML = brandData.map(b => {
+    const isActive = patternBrand === b.name;
+    if (_editingPatCat && _editingPatCat.type === 'brand' && _editingPatCat.oldName === b.name) {
+      return `<span class="brand-tab active pcat-inline-edit">
+        <input id="pcat-edit-input" value="${escapeHtml(b.name)}" onkeydown="if(event.key==='Enter')confirmEditPatCat();if(event.key==='Escape')cancelEditPatCat();">
+        <button class="btn-sm primary" onclick="confirmEditPatCat()">✓</button>
+        <button class="btn-sm outline" onclick="cancelEditPatCat()">✕</button></span>`;
+    }
+    const mgmtBtns = (isAdmin && b.isManaged)
+      ? `<button class="pcat-edit-btn" onclick="event.stopPropagation();startEditPatCat('brand','${escapeAttr(b.name)}')" title="编辑">✎</button>`
+        + `<button class="pcat-del-btn" onclick="event.stopPropagation();deletePatCat('brand','${escapeAttr(b.name)}')" title="删除">✕</button>`
+      : '';
+    return `<button class="brand-tab${isActive ? ' active' : ''}" onclick="switchPatternBrand('${escapeAttr(b.name)}')">${escapeHtml(b.name)}${mgmtBtns}</button>`;
+  }).join('');
+  if (isAdmin) {
+    brandTabs.innerHTML += `<button class="brand-tab pcat-add-mini" onclick="addPatCat('brand')" style="flex:none;min-width:auto;padding:12px 14px;font-size:16px;border:none;">＋</button>`;
+  }
 
   // 抛型 filter
-  const types = getPatternTypes(patternBrand);
+  const typeData = getMergedCats('type', getPatternTypes(patternBrand));
   const typeRow = document.getElementById('pattern-filter-type');
-  typeRow.innerHTML = '<span class="flabel">抛型</span>' +
-    '<button class="flink' + (patternType === '全部' ? ' active' : '') + '" onclick="setPatternType(\'全部\')">全部</button>' +
-    types.map(t => '<button class="flink' + (patternType === t ? ' active' : '') + '" onclick="setPatternType(\'' + t + '\')">' + t + '</button>').join('');
+  let typeHtml = '<span class="flabel">抛型</span>' +
+    '<button class="flink' + (patternType === '全部' ? ' active' : '') + '" onclick="setPatternType(\'全部\')">全部</button>';
+  typeData.forEach(t => {
+    if (_editingPatCat && _editingPatCat.type === 'type' && _editingPatCat.oldName === t.name) {
+      typeHtml += `<span class="flink active pcat-inline-edit">
+        <input id="pcat-edit-input" value="${escapeHtml(t.name)}" onkeydown="if(event.key==='Enter')confirmEditPatCat();if(event.key==='Escape')cancelEditPatCat();">
+        <button class="btn-sm primary" onclick="confirmEditPatCat()">✓</button>
+        <button class="btn-sm outline" onclick="cancelEditPatCat()">✕</button></span>`;
+    } else {
+      const mgmtBtns = (isAdmin && t.isManaged)
+        ? `<button class="pcat-edit-btn" onclick="event.stopPropagation();startEditPatCat('type','${escapeAttr(t.name)}')" title="编辑">✎</button>`
+          + `<button class="pcat-del-btn" onclick="event.stopPropagation();deletePatCat('type','${escapeAttr(t.name)}')" title="删除">✕</button>`
+        : '';
+      typeHtml += `<button class="flink${patternType === t.name ? ' active' : ''}" onclick="setPatternType('${escapeAttr(t.name)}')">${escapeHtml(t.name)}${mgmtBtns}</button>`;
+    }
+  });
+  if (isAdmin) {
+    typeHtml += `<button class="pcat-add-mini" onclick="addPatCat('type')">＋</button>`;
+  }
+  typeRow.innerHTML = typeHtml;
 
   // 系列 filter
-  const seriesList = getPatternSeries(patternBrand, patternType);
+  const seriesData = getMergedCats('series', getPatternSeries(patternBrand, patternType));
   const seriesRow = document.getElementById('pattern-filter-series');
-  if (seriesList.length > 0) {
-    seriesRow.innerHTML = '<span class="flabel">系列</span>' +
-      '<button class="flink' + (patternSeries === '全部' ? ' active' : '') + '" onclick="setPatternSeries(\'全部\')">全部</button>' +
-      seriesList.map(s => '<button class="flink' + (patternSeries === s ? ' active' : '') + '" onclick="setPatternSeries(\'' + s + '\')">' + s + '</button>').join('');
+  if (seriesData.length > 0) {
+    let seriesHtml = '<span class="flabel">系列</span>' +
+      '<button class="flink' + (patternSeries === '全部' ? ' active' : '') + '" onclick="setPatternSeries(\'全部\')">全部</button>';
+    seriesData.forEach(s => {
+      if (_editingPatCat && _editingPatCat.type === 'series' && _editingPatCat.oldName === s.name) {
+        seriesHtml += `<span class="flink active pcat-inline-edit">
+          <input id="pcat-edit-input" value="${escapeHtml(s.name)}" onkeydown="if(event.key==='Enter')confirmEditPatCat();if(event.key==='Escape')cancelEditPatCat();">
+          <button class="btn-sm primary" onclick="confirmEditPatCat()">✓</button>
+          <button class="btn-sm outline" onclick="cancelEditPatCat()">✕</button></span>`;
+      } else {
+        const mgmtBtns = (isAdmin && s.isManaged)
+          ? `<button class="pcat-edit-btn" onclick="event.stopPropagation();startEditPatCat('series','${escapeAttr(s.name)}')" title="编辑">✎</button>`
+            + `<button class="pcat-del-btn" onclick="event.stopPropagation();deletePatCat('series','${escapeAttr(s.name)}')" title="删除">✕</button>`
+          : '';
+        seriesHtml += `<button class="flink${patternSeries === s.name ? ' active' : ''}" onclick="setPatternSeries('${escapeAttr(s.name)}')">${escapeHtml(s.name)}${mgmtBtns}</button>`;
+      }
+    });
+    if (isAdmin) {
+      seriesHtml += `<button class="pcat-add-mini" onclick="addPatCat('series')">＋</button>`;
+    }
+    seriesRow.innerHTML = seriesHtml;
     seriesRow.style.display = 'flex';
   } else {
-    seriesRow.style.display = 'none';
+    seriesRow.innerHTML = isAdmin ? '<span class="flabel">系列</span><button class="pcat-add-mini" onclick="addPatCat(\'series\')">＋ 添加系列</button>' : '';
+    seriesRow.style.display = seriesRow.innerHTML ? 'flex' : 'none';
   }
 
   // 色系 filter
-  const colors = getPatternColors(patternBrand, patternType, patternSeries);
+  const colorData = getMergedCats('color', getPatternColors(patternBrand, patternType, patternSeries));
   const colorRow = document.getElementById('pattern-filter-color');
-  if (colors.length > 0) {
-    colorRow.innerHTML = '<span class="flabel">色系</span>' +
-      '<button class="flink' + (patternColor === '全部' ? ' active' : '') + '" onclick="setPatternColor(\'全部\')">全部</button>' +
-      colors.map(c => '<button class="flink' + (patternColor === c ? ' active' : '') + '" onclick="setPatternColor(\'' + c + '\')">' + c + '</button>').join('');
+  if (colorData.length > 0) {
+    let colorHtml = '<span class="flabel">色系</span>' +
+      '<button class="flink' + (patternColor === '全部' ? ' active' : '') + '" onclick="setPatternColor(\'全部\')">全部</button>';
+    colorData.forEach(c => {
+      if (_editingPatCat && _editingPatCat.type === 'color' && _editingPatCat.oldName === c.name) {
+        colorHtml += `<span class="flink active pcat-inline-edit">
+          <input id="pcat-edit-input" value="${escapeHtml(c.name)}" onkeydown="if(event.key==='Enter')confirmEditPatCat();if(event.key==='Escape')cancelEditPatCat();">
+          <button class="btn-sm primary" onclick="confirmEditPatCat()">✓</button>
+          <button class="btn-sm outline" onclick="cancelEditPatCat()">✕</button></span>`;
+      } else {
+        const mgmtBtns = (isAdmin && c.isManaged)
+          ? `<button class="pcat-edit-btn" onclick="event.stopPropagation();startEditPatCat('color','${escapeAttr(c.name)}')" title="编辑">✎</button>`
+            + `<button class="pcat-del-btn" onclick="event.stopPropagation();deletePatCat('color','${escapeAttr(c.name)}')" title="删除">✕</button>`
+          : '';
+        colorHtml += `<button class="flink${patternColor === c.name ? ' active' : ''}" onclick="setPatternColor('${escapeAttr(c.name)}')">${escapeHtml(c.name)}${mgmtBtns}</button>`;
+      }
+    });
+    if (isAdmin) {
+      colorHtml += `<button class="pcat-add-mini" onclick="addPatCat('color')">＋</button>`;
+    }
+    colorRow.innerHTML = colorHtml;
     colorRow.style.display = 'flex';
   } else {
-    colorRow.style.display = 'none';
+    colorRow.innerHTML = isAdmin ? '<span class="flabel">色系</span><button class="pcat-add-mini" onclick="addPatCat(\'color\')">＋ 添加色系</button>' : '';
+    colorRow.style.display = colorRow.innerHTML ? 'flex' : 'none';
   }
 }
 
@@ -2291,6 +2421,99 @@ function setPatternColor(c) {
   patternColor = c;
   renderPatternFilters();
   renderPatterns();
+}
+
+// ---------- 花色分类 CRUD ----------
+let _editingPatCat = null; // {type:'brand'|'type'|'series'|'color', oldName}
+
+function startEditPatCat(type, name) {
+  _editingPatCat = { type, oldName: name };
+  renderPatternFilters();
+  const input = document.getElementById('pcat-edit-input');
+  if (input) { input.focus(); input.select(); }
+}
+
+function cancelEditPatCat() {
+  _editingPatCat = null;
+  renderPatternFilters();
+}
+
+async function confirmEditPatCat() {
+  const newName = document.getElementById('pcat-edit-input').value.trim();
+  if (!newName || !_editingPatCat) { cancelEditPatCat(); return; }
+  if (newName === _editingPatCat.oldName) { cancelEditPatCat(); return; }
+  const cat = patternCategories.find(c => c.category_type === _editingPatCat.type && c.name === _editingPatCat.oldName);
+  if (!cat) { cancelEditPatCat(); return; }
+  // 更新托管分类名
+  const { error } = await supabase.from('pattern_categories').update({ name: newName }).eq('id', cat.id);
+  if (error) { showToast('修改失败：' + error.message); return; }
+  // 级联更新花色数据中对应字段
+  const fieldMap = { brand: 'brand', type: 'type', series: 'series', color: 'color' };
+  const field = fieldMap[_editingPatCat.type];
+  if (field) {
+    const { error: e2 } = await supabase.from('pattern_assets').update({ [field]: newName }).eq(field, _editingPatCat.oldName);
+    if (e2) console.warn('级联更新花色数据失败：', e2.message);
+  }
+  // 同步更新当前筛选状态
+  if (_editingPatCat.type === 'brand' && patternBrand === _editingPatCat.oldName) patternBrand = newName;
+  else if (_editingPatCat.type === 'type' && patternType === _editingPatCat.oldName) patternType = newName;
+  else if (_editingPatCat.type === 'series' && patternSeries === _editingPatCat.oldName) patternSeries = newName;
+  else if (_editingPatCat.type === 'color' && patternColor === _editingPatCat.oldName) patternColor = newName;
+  _editingPatCat = null;
+  showToast('✅ 分类已修改，花色数据已同步更新');
+  loadPatternCategories();
+  loadPatternsFromDB();
+}
+
+async function deletePatCat(type, name) {
+  const cat = patternCategories.find(c => c.category_type === type && c.name === name);
+  if (!cat) return;
+  // 统计受影响的品牌/类型
+  const fieldMap = { brand: 'brand', type: 'type', series: 'series', color: 'color' };
+  const field = fieldMap[type];
+  let count = 0;
+  if (field) {
+    const { data, error } = await supabase.from('pattern_assets').select('id', { count: 'exact', head: true }).eq(field, name);
+    if (!error) count = data?.length || (await supabase.from('pattern_assets').select('*', { count: 'exact', head: true }).eq(field, name)).count || 0;
+  }
+  if (type === 'brand' || type === 'type') {
+    if (count > 0) {
+      if (!confirm(`「${name}」下还有 ${count} 款花色，无法删除。请先将这些花色移入其他${type==='brand'?'品牌':'抛型'}后再操作。`)) return;
+      showToast('⚠️ 请先转移花色到其他分类后再删除');
+      return;
+    }
+  } else {
+    const confirmMsg = count > 0
+      ? `「${name}」下有 ${count} 款花色使用了该${type==='series'?'系列':'色系'}。\n删除后这些花色的${type==='series'?'系列':'色系'}字段将被清空。\n确定删除吗？`
+      : `确定要删除${type==='series'?'系列':'色系'}「${name}」吗？`;
+    if (!confirm(confirmMsg)) return;
+    if (count > 0) {
+      await supabase.from('pattern_assets').update({ [field]: '' }).eq(field, name);
+    }
+  }
+  const { error } = await supabase.from('pattern_categories').delete().eq('id', cat.id);
+  if (error) { showToast('删除失败：' + error.message); return; }
+  showToast('🗑️ 分类已删除');
+  // 重置筛选
+  if (type === 'brand' && patternBrand === name) patternBrand = getPatternBrands()[0] || '';
+  else if (type === 'type' && patternType === name) patternType = '全部';
+  else if (type === 'series' && patternSeries === name) patternSeries = '全部';
+  else if (type === 'color' && patternColor === name) patternColor = '全部';
+  loadPatternCategories();
+  loadPatternsFromDB();
+}
+
+async function addPatCat(type) {
+  const labels = { brand: '品牌', type: '抛型', series: '系列', color: '色系' };
+  const name = prompt(`请输入新${labels[type]}名称：`);
+  if (!name || !name.trim()) return;
+  const trimmed = name.trim();
+  if (patternCategories.some(c => c.category_type === type && c.name === trimmed)) { showToast('该分类已存在'); return; }
+  const maxOrder = patternCategories.filter(c => c.category_type === type).reduce((m, c) => Math.max(m, c.sort_order || 0), 0);
+  const { error } = await supabase.from('pattern_categories').insert({ category_type: type, name: trimmed, sort_order: maxOrder + 1 });
+  if (error) { showToast('添加失败：' + error.message); return; }
+  showToast('✅ 分类已添加');
+  loadPatternCategories();
 }
 
 function renderPatterns() {
@@ -2452,8 +2675,11 @@ function openPatternEditor(pattern) {
 function renderEditorForm(pattern) {
   const t = pattern || {};
   const b = window._editPattern || {};
-  const brands = getPatternBrands();
-  const types = ['日抛','月抛','季抛','半年抛','年抛'];
+  const managedBrands = patternCategories.filter(c => c.category_type === 'brand').map(c => c.name);
+  const dataBrands = getPatternBrands();
+  const brands = [...new Set([...managedBrands, ...dataBrands])];
+  const managedTypes = patternCategories.filter(c => c.category_type === 'type').map(c => c.name);
+  const types = managedTypes.length > 0 ? managedTypes : ['日抛','月抛','季抛','半年抛','年抛'];
   let imgsHtml = '';
   window._editImages.forEach((img, i) => {
     imgsHtml += '<div class="img-mgr-item">'
@@ -2488,7 +2714,7 @@ function renderEditorForm(pattern) {
     + '<input id="ef-name" value="' + escapeHtml(t.name || '') + '"' + (b.isNew ? '' : ' readonly') + '></div>'
     + '<div class="modal-field-row"><div class="modal-field"><label>系列 <span style="font-weight:400;color:var(--text-muted);">(可选已有或输入新系列)</span></label><div class="series-input-wrap"><input id="ef-series" list="ef-series-list" value="' + escapeHtml(t.series || '') + '" placeholder="选择或输入系列..."><datalist id="ef-series-list">' + seriesOptions + '</datalist></div></div>'
     + '<div class="modal-field"><label>色系</label><select id="ef-color">'
-    + ['棕色系','黑灰色系','蓝色系','绿色系','粉色系','紫色系','灰色系','混血色'].map(c => '<option value="' + c + '"' + ((t.color||'')===c?' selected':'') + '>' + c + '</option>').join('')
+    + (() => { const mc = patternCategories.filter(c => c.category_type === 'color').map(c => c.name); const colors = mc.length > 0 ? mc : ['棕色系','黑灰色系','蓝色系','绿色系','粉色系','紫色系','灰色系','混血色']; return colors.map(c => '<option value="' + c + '"' + ((t.color||'')===c?' selected':'') + '>' + c + '</option>').join(''); })()
     + '</select></div></div>'
     + '<div class="modal-field-row"><div class="modal-field"><label>直径</label><input id="ef-diameter" value="' + escapeHtml(t.diameter || '') + '" placeholder="14.2mm"></div>'
     + '<div class="modal-field"><label>着色直径</label><input id="ef-cdiam" value="' + escapeHtml(t.colorDiameter || '') + '" placeholder="13.5"></div></div>'

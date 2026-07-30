@@ -8,6 +8,8 @@ window.onSupabaseReady = function() {
   if (window.subscribeTrainingCategories) subscribeTrainingCategories();
   if (window.loadTrainingFromDB) loadTrainingFromDB();
   if (window.loadPatternsFromDB) loadPatternsFromDB();
+  if (window.loadPatternCategories) loadPatternCategories();
+  if (window.subscribePatternCategories) subscribePatternCategories();
   if (currentPage === 'home') { loadAnnouncements(); subscribeAnnouncements(); }
   if (currentPage === 'daily') { loadDailyReports(); subscribeDaily(); }
   if (currentPage === 'presale') { loadPresaleData(); subscribePresale(); }
