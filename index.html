@@ -829,17 +829,17 @@ body {
     <div class="nav-item" data-page="tools"><span class="icon">🛠</span><span>快捷工具</span></div>
     <div class="nav-section">培训</div>
     <div class="nav-item" data-page="training"><span class="icon">📚</span><span>培训资料</span></div>
-    <div class="nav-item" data-page="sop"><span class="icon">📋</span><span>新人SOP</span></div>
-    <div class="nav-item" data-page="quiz"><span class="icon">✅</span><span>知识测验</span></div>
+    <div class="nav-item" data-page="sop"><span class="icon">📄</span><span>新人SOP</span></div>
+    <div class="nav-item" data-page="quiz"><span class="icon">⭐</span><span>知识测验</span></div>
     <div class="nav-section">运营</div>
     <div class="nav-item" data-page="bulletin"><span class="icon">📢</span><span>每日速报</span></div>
     <div class="nav-item" data-page="schedule"><span class="icon">📅</span><span>排班表</span></div>
     <div class="nav-item" data-page="ranking"><span class="icon">🏆</span><span>客服排名</span></div>
-    <div class="nav-item" data-page="daily"><span class="icon">📝</span><span>日报</span></div>
-    <div class="nav-item" data-page="presale"><span class="icon">📊</span><span>售前数据</span></div>
+    <div class="nav-item" data-page="daily"><span class="icon">🌙</span><span>日报</span></div>
+    <div class="nav-item" data-page="presale"><span class="icon">📈</span><span>售前数据</span></div>
     <div class="nav-section">账号</div>
     <div class="nav-item admin-only-nav" data-page="members" style="display:none;"><span class="icon">👥</span><span>成员管理</span></div>
-    <div class="nav-item admin-only-nav" data-page="staff-info" style="display:none;"><span class="icon">📋</span><span>客服信息</span></div>
+    <div class="nav-item admin-only-nav" data-page="staff-info" style="display:none;"><span class="icon">👥</span><span>客服信息</span></div>
     <div class="nav-item admin-only-nav" data-page="templates" style="display:none;"><span class="icon">⚙️</span><span>模板管理</span></div>
     <div class="nav-item" id="nav-login" data-page="login"><span class="icon">🔐</span><span>登录/注册</span></div>
   </nav>
@@ -893,9 +893,9 @@ body {
 
   <!-- ===== 日报 ===== -->
   <div class="page" id="page-daily">
-    <div class="page-header"><h1>📝 日报</h1><p>每日店铺数据 · 自动汇总 · 实时同步</p></div>
+    <div class="page-header"><h1>🌙 日报</h1><p>每日店铺数据 · 自动汇总 · 实时同步</p></div>
     <div class="daily-actions" style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;">
-      <button class="btn-sm primary" onclick="openDailyForm()">✏️ 填写今日日报</button>
+      <button class="btn-sm primary" onclick="openDailyForm()">✎ 填写今日日报</button>
       <button class="btn-sm outline admin-only" onclick="renderDailyTrack()">👀 查看提交情况</button>
     </div>
     <div id="daily-content">
@@ -930,7 +930,7 @@ body {
       <div id="daily-track-area" style="display:none;">
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-            <h3 style="margin:0;">📊 日报提交情况 <span id="daily-track-date" style="font-size:13px;color:var(--text-secondary);"></span></h3>
+            <h3 style="margin:0;">📈 日报提交情况 <span id="daily-track-date" style="font-size:13px;color:var(--text-secondary);"></span></h3>
             <button class="btn-sm outline" onclick="closeDailyTrack()" style="font-size:12px;">返回</button>
           </div>
           <div id="daily-track-list"></div>
@@ -943,7 +943,7 @@ body {
 
   <!-- ===== 售前数据 ===== -->
   <div class="page" id="page-presale">
-    <div class="page-header"><h1>📊 售前数据汇总</h1><p>每日售前指标 · 趋势分析</p></div>
+    <div class="page-header"><h1>📈 售前数据汇总</h1><p>每日售前指标 · 趋势分析</p></div>
     <div class="presale-actions admin-only" style="margin-bottom:16px;">
       <button class="btn-sm primary" onclick="openPresaleForm()">➕ 录入今日数据</button>
     </div>
@@ -977,7 +977,7 @@ body {
             </table>
           </div>
           <div id="presale-empty" style="text-align:center;padding:40px;color:var(--text-secondary);display:none;">
-            <div style="font-size:40px;margin-bottom:8px;">📊</div>
+            <div style="font-size:40px;margin-bottom:8px;">📈</div>
             <p>暂无数据，请录入</p>
           </div>
         </div>
@@ -1013,7 +1013,7 @@ body {
 
   <!-- ===== 客服信息管理 ===== -->
   <div class="page" id="page-staff-info">
-    <div class="page-header"><h1>📋 客服信息管理</h1><p>管理客服真实姓名、入职日期、花名、手机号、岗位、加班调休（按小时累计）</p></div>
+    <div class="page-header"><h1>👥 客服信息管理</h1><p>管理客服真实姓名、入职日期、花名、手机号、岗位、加班调休（按小时累计）</p></div>
     <div class="staff-toolbar" style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
       <input type="text" id="staff-search" placeholder="🔍 搜索姓名/花名/手机号..." oninput="filterStaff()" style="flex:1;min-width:200px;padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--card-bg);color:var(--text);">
       <button class="btn-sm outline" onclick="copyAllStaff()">📋 复制全部</button>
@@ -1088,7 +1088,7 @@ body {
   <div class="accts-overlay" id="accts-overlay" onclick="closeAcctsModal()"></div>
   <div class="accts-modal" id="accts-modal">
     <div class="accts-header">
-      <h3 id="accts-title">📒 账号本</h3>
+      <h3 id="accts-title">🔐 账号本</h3>
       <button class="accts-close" onclick="closeAcctsModal()">✕</button>
     </div>
     <textarea id="accts-textarea" class="accts-textarea" placeholder="在此粘贴各店铺账号密码...&#10;格式随意，就像记事本一样"></textarea>
@@ -1298,14 +1298,14 @@ body {
 
   <!-- ===== 新人SOP ===== -->
   <div class="page" id="page-sop">
-    <div class="page-header"><h1>📋 新人标准操作流程</h1><p>各平台接待流程，新人打开跟着走</p></div>
+    <div class="page-header"><h1>📄 新人标准操作流程</h1><p>各平台接待流程，新人打开跟着走</p></div>
     <div class="filter-bar" id="sop-filters"></div>
     <div id="sop-content"></div>
   </div>
 
   <!-- ===== 知识测验 ===== -->
   <div class="page" id="page-quiz">
-    <div class="page-header"><h1>✅ 知识测验</h1><p>检验培训成果，看看掌握了多少</p></div>
+    <div class="page-header"><h1>⭐ 知识测验</h1><p>检验培训成果，看看掌握了多少</p></div>
     <div id="quiz-content" class="quiz-container"></div>
   </div>
 
@@ -1349,7 +1349,7 @@ body {
         <button class="rank-group-btn" data-group="2">C组</button>
       </div>
       <div class="ranking-actions">
-        <button class="rank-action-btn" id="rank-edit-btn" onclick="toggleRankEdit()">✏️ 编辑数据</button>
+        <button class="rank-action-btn" id="rank-edit-btn" onclick="toggleRankEdit()">✎ 编辑数据</button>
         <button class="rank-action-btn primary" id="rank-export-btn" onclick="exportRankData()" style="display:none;">📋 导出数据</button>
       </div>
     </div>
@@ -2383,7 +2383,7 @@ let mgmtMode = false;
 function toggleMgmtMode() {
   mgmtMode = !mgmtMode;
   const btn = document.getElementById('mgmt-toggle');
-  btn.textContent = mgmtMode ? '✅ 管理模式' : '📝 管理素材';
+  btn.textContent = mgmtMode ? '✓ 管理模式' : '📝 管理素材';
   btn.classList.toggle('active', mgmtMode);
   document.getElementById('page-patterns').classList.toggle('mgmt-mode', mgmtMode);
   // 同时控制新增按钮显示
@@ -3713,7 +3713,7 @@ init();
 <div class="modal-overlay" id="mod-pattern" onclick="closeModal('mod-pattern')">
   <div class="modal-box" onclick="event.stopPropagation()">
     <div class="modal-header">
-      <h3 id="mod-pattern-title">✏️ 编辑花色</h3>
+      <h3 id="mod-pattern-title">✎ 编辑花色</h3>
       <button class="modal-close" onclick="closeModal('mod-pattern')">✕</button>
     </div>
     <div class="modal-body" id="mod-pattern-body"></div>
