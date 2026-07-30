@@ -363,6 +363,11 @@ body {
 .schedule-table .sched-cell { cursor:pointer; position:relative; transition:background 0.15s; user-select:none; }
 .schedule-table .sched-cell:hover { background:#e8f0fe !important; }
 .schedule-table .sched-cell.selected { background:#c7d9f7 !important; box-shadow:inset 0 0 0 2px var(--primary); }
+.schedule-table th.col-header { cursor:pointer; transition:background 0.15s; }
+.schedule-table th.col-header:hover { background:#7c6fae !important; }
+.schedule-table th.col-header.selected-col { background:#6C5CE7 !important; box-shadow:inset 0 -3px 0 #fdcb6e; }
+.schedule-table td.col-highlight { background:#f0ecff !important; }
+.schedule-table td.col-highlight.today-col { background:#e8dff5 !important; }
 /* 排班编辑弹窗 */
 .sched-popover { position:fixed; z-index:9999; background:#fff; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.18); padding:10px 14px; display:flex; gap:6px; align-items:center; animation:schedPopIn 0.15s ease-out; }
 .sched-popover::after { content:''; position:absolute; bottom:-6px; left:50%; transform:translateX(-50%); width:12px; height:12px; background:#fff; rotate:45deg; box-shadow:2px 2px 4px rgba(0,0,0,0.08); clip-path:polygon(0 0, 100% 0, 0 100%); }
@@ -3059,7 +3064,7 @@ function renderSchedule() {
   for (let d = 1; d <= days; d++) {
     const isToday = isCurrentMonth && d === todayDay;
     const todayClass = isToday ? ' today-head' : '';
-    html += '<th class="' + todayClass + '"><span class="d-num">' + d + '</span><span class="d-wk">' +
+    html += '<th class="col-header' + todayClass + '" onclick="highlightSchedCol(this, ' + d + ')"><span class="d-num">' + d + '</span><span class="d-wk">' +
       ['日','一','二','三','四','五','六'][new Date(year, month - 1, d).getDay()] + '</span></th>';
   }
   html += '</tr></thead><tbody>';
@@ -3099,8 +3104,16 @@ function renderSchedule() {
 
 // Current editing state
 let schedEditState = { cell: null, staff: '', day: 0, shift: '' };
+let schedHighlightCol = null; // currently highlighted column number
+
+function isSchedAdmin() {
+  return currentProfile?.role === 'admin' || currentProfile?.role === 'leader';
+}
 
 function editScheduleCell(cell) {
+  // Clear column highlight
+  clearSchedColHighlight();
+
   // Close any existing popover
   closePopover();
 
@@ -3124,7 +3137,21 @@ function editScheduleCell(cell) {
 
   schedEditState = { cell, staff, day, shift };
 
-  // Show popover near the cell
+  // Non-admin: just show a read-only info tooltip, no edit buttons
+  if (!isSchedAdmin()) {
+    const rect = cell.getBoundingClientRect();
+    const popover = document.getElementById('sched-popover');
+    popover.innerHTML = '<span style="font-size:12px;color:#555;">' + staff + ' · ' + day + '日 · <strong>' + (shift || '无') + '</strong></span>';
+    let left = rect.left + rect.width / 2 - 60;
+    if (left < 10) left = 10;
+    popover.style.left = left + 'px';
+    popover.style.top = (rect.top - 48) + 'px';
+    popover.style.display = 'flex';
+    popover.style.gap = '0';
+    return;
+  }
+
+  // Admin: show edit popover
   const rect = cell.getBoundingClientRect();
   const popover = document.getElementById('sched-popover');
   const buttons = [
@@ -3139,7 +3166,6 @@ function editScheduleCell(cell) {
   popover.innerHTML = '<span style="font-size:11px;color:#888;margin-right:4px;">' + staff + ' ' + day + '日</span>' +
     buttons.map(b => '<button class="sched-pop-btn ' + b.cls + '" onclick="applyShift(\'' + b.val + '\')" title="' + b.val + '">' + b.label + '</button>').join('');
 
-  // Position: above the cell, centered
   const popWidth = 220;
   let left = rect.left + rect.width / 2 - popWidth / 2;
   if (left < 10) left = 10;
@@ -3147,6 +3173,50 @@ function editScheduleCell(cell) {
   popover.style.left = left + 'px';
   popover.style.top = (rect.top - 58) + 'px';
   popover.style.display = 'flex';
+  popover.style.gap = '6px';
+}
+
+function highlightSchedCol(th, day) {
+  // Close any cell popover
+  closePopover();
+  if (schedEditState.cell) {
+    schedEditState.cell.classList.remove('selected');
+    schedEditState = { cell: null, staff: '', day: 0, shift: '' };
+  }
+
+  // Toggle: if same column clicked, clear highlight
+  if (schedHighlightCol === day) {
+    clearSchedColHighlight();
+    return;
+  }
+
+  // Clear previous column highlight
+  clearSchedColHighlight();
+
+  // Highlight this column
+  schedHighlightCol = day;
+  th.classList.add('selected-col');
+
+  // Highlight all cells in this column
+  const cells = document.querySelectorAll('.sched-cell[data-day="' + day + '"]');
+  cells.forEach(c => c.classList.add('col-highlight'));
+
+  // Highlight name cells in the column indirectly via row
+  cells.forEach(c => {
+    const row = c.closest('tr');
+    if (row) {
+      const nameCell = row.querySelector('.name-cell');
+      if (nameCell) nameCell.style.background = '#f0ecff';
+    }
+  });
+}
+
+function clearSchedColHighlight() {
+  if (schedHighlightCol === null) return;
+  document.querySelectorAll('th.col-header.selected-col').forEach(th => th.classList.remove('selected-col'));
+  document.querySelectorAll('td.col-highlight').forEach(td => td.classList.remove('col-highlight'));
+  document.querySelectorAll('.name-cell').forEach(td => td.style.background = '');
+  schedHighlightCol = null;
 }
 
 function applyShift(val) {
