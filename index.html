@@ -207,6 +207,14 @@ body {
 .training-cat-tab { padding:6px 16px; border:1px solid var(--border); border-radius:20px; font-size:13px; cursor:pointer; background:transparent; color:var(--text-secondary); font-family:inherit; transition:all .2s; white-space:nowrap; }
 .training-cat-tab:hover { border-color:var(--primary); color:var(--primary); }
 .training-cat-tab.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.training-cat-tab .cat-edit-btn, .training-cat-tab .cat-del-btn { display:none; margin-left:4px; font-size:11px; background:none; border:none; cursor:pointer; color:inherit; opacity:0.7; padding:0 2px; }
+.training-cat-tab:hover .cat-edit-btn, .training-cat-tab:hover .cat-del-btn { display:inline; }
+.training-cat-tab .cat-edit-btn:hover, .training-cat-tab .cat-del-btn:hover { opacity:1; }
+.cat-add-btn { padding:6px 14px; border:1.5px dashed var(--primary-light); border-radius:20px; font-size:12px; cursor:pointer; background:transparent; color:var(--primary); font-family:inherit; white-space:nowrap; transition:all .2s; }
+.cat-add-btn:hover { background:rgba(123,155,106,0.08); border-color:var(--primary); }
+.cat-inline-edit { display:inline-flex; align-items:center; gap:4px; }
+.cat-inline-edit input { padding:3px 8px; border:1px solid var(--primary); border-radius:10px; font-size:12px; width:100px; font-family:inherit; outline:none; }
+.cat-inline-edit button { padding:2px 8px; border:none; border-radius:8px; font-size:11px; cursor:pointer; font-family:inherit; }
 .train-card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:0; margin-bottom:20px; overflow:hidden; }
 .train-card-header { display:flex; align-items:center; gap:10px; padding:14px 20px; background:var(--hover-bg); border-bottom:1px solid var(--border); }
 .train-card-header h3 { margin:0; font-size:15px; }
@@ -1594,6 +1602,40 @@ function subscribeTraining() {
     .subscribe();
 }
 
+async function loadTrainingCategories() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase
+      .from('training_categories')
+      .select('*')
+      .order('sort_order', { ascending: true });
+    if (error) {
+      console.error('分类加载失败:', error);
+      // Fallback: use default categories if table doesn't exist yet
+      trainingCategories = [
+        { id: '1', name: '产品知识', sort_order: 1 },
+        { id: '2', name: '接待流程', sort_order: 2 },
+        { id: '3', name: '平台工作台', sort_order: 3 },
+        { id: '4', name: '话术库', sort_order: 4 },
+        { id: '5', name: '售后处理', sort_order: 5 }
+      ];
+      if (currentPage === 'training') { renderTrainingCatTabs(); renderTraining(); }
+      return;
+    }
+    trainingCategories = data || [];
+    if (currentPage === 'training') { renderTrainingCatTabs(); renderTraining(); }
+  } catch(e) { console.error('分类加载异常:', e); }
+}
+
+function subscribeTrainingCategories() {
+  if (!supabase) return;
+  supabase.channel('training-cat-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'training_categories' }, () => {
+      loadTrainingCategories();
+    })
+    .subscribe();
+}
+
 async function loadPatternsFromDB() {
   if (!supabase) return;
   try {
@@ -2650,7 +2692,7 @@ document.addEventListener('keydown', function(e) {
 // ==================== TRAINING ====================
 let trainingBrand = '全部';
 let trainingCatFilter = '全部';
-const TRAIN_CATS = ['产品知识', '接待流程', '平台工作台', '话术库', '售后处理'];
+let trainingCategories = [];
 
 function setTrainingBrand(brand) {
   trainingBrand = brand;
@@ -2669,10 +2711,83 @@ function setTrainingCat(cat) {
 }
 
 function renderTrainingCatTabs() {
-  const cats = ['全部', ...TRAIN_CATS];
-  document.getElementById('training-cat-tabs').innerHTML = cats.map(c =>
-    `<button class="training-cat-tab${trainingCatFilter === c ? ' active' : ''}" onclick="setTrainingCat('${c}')">${c}</button>`
-  ).join('');
+  const isAdmin = currentProfile && currentProfile.role === 'admin';
+  const cats = ['全部', ...trainingCategories.map(c => c.name)];
+  let html = cats.map(c => {
+    const isActive = trainingCatFilter === c;
+    // Inline editing mode
+    if (_editingCatName && _editingCatName === c) {
+      return `<span class="training-cat-tab active cat-inline-edit">`
+        + `<input id="cat-edit-input" value="${escapeHtml(c)}" onkeydown="if(event.key==='Enter')confirmEditCat();if(event.key==='Escape')cancelEditCat();">`
+        + `<button class="btn-sm primary" style="padding:2px 8px;font-size:11px;" onclick="confirmEditCat()">✓</button>`
+        + `<button class="btn-sm outline" style="padding:2px 8px;font-size:11px;" onclick="cancelEditCat()">✕</button>`
+        + `</span>`;
+    }
+    const mgmtBtns = (isAdmin && c !== '全部')
+      ? `<button class="cat-edit-btn" onclick="event.stopPropagation();startEditCat('${c}')" title="编辑">✏️</button><button class="cat-del-btn" onclick="event.stopPropagation();deleteCat('${c}')" title="删除">✕</button>`
+      : '';
+    return `<button class="training-cat-tab${isActive ? ' active' : ''}" onclick="setTrainingCat('${c}')">${c}${mgmtBtns}</button>`;
+  }).join('');
+  if (isAdmin) {
+    html += `<button class="cat-add-btn" onclick="addNewCat()">＋ 新增分类</button>`;
+  }
+  document.getElementById('training-cat-tabs').innerHTML = html;
+}
+
+let _editingCatName = null;
+function startEditCat(name) {
+  _editingCatName = name;
+  renderTrainingCatTabs();
+  const input = document.getElementById('cat-edit-input');
+  if (input) { input.focus(); input.select(); }
+}
+function cancelEditCat() {
+  _editingCatName = null;
+  renderTrainingCatTabs();
+}
+async function confirmEditCat() {
+  const newName = document.getElementById('cat-edit-input').value.trim();
+  if (!newName) { cancelEditCat(); return; }
+  if (newName === _editingCatName) { cancelEditCat(); return; }
+  const cat = trainingCategories.find(c => c.name === _editingCatName);
+  if (!cat) { cancelEditCat(); return; }
+  // Update category name
+  const { error } = await supabase.from('training_categories').update({ name: newName }).eq('id', cat.id);
+  if (error) { showToast('修改失败：' + error.message); return; }
+  // Update all training materials with old category name
+  await supabase.from('training_materials').update({ category: newName }).eq('category', _editingCatName);
+  _editingCatName = null;
+  showToast('✅ 分类已修改，资料已同步更新');
+  loadTrainingCategories();
+  loadTrainingFromDB();
+}
+async function deleteCat(name) {
+  const cat = trainingCategories.find(c => c.name === name);
+  if (!cat) return;
+  // Check if any materials use this category
+  const count = trainingData.filter(d => d.category === name).length;
+  if (count > 0) {
+    if (!confirm(`「${name}」下还有 ${count} 篇资料，删除后这些资料将变为「未分类」。确定删除吗？`)) return;
+    await supabase.from('training_materials').update({ category: '未分类' }).eq('category', name);
+  } else {
+    if (!confirm(`确定要删除分类「${name}」吗？`)) return;
+  }
+  const { error } = await supabase.from('training_categories').delete().eq('id', cat.id);
+  if (error) { showToast('删除失败：' + error.message); return; }
+  showToast('🗑️ 分类已删除');
+  if (trainingCatFilter === name) trainingCatFilter = '全部';
+  loadTrainingCategories();
+  loadTrainingFromDB();
+}
+async function addNewCat() {
+  const name = prompt('请输入新分类名称：');
+  if (!name || !name.trim()) return;
+  const trimmed = name.trim();
+  if (trainingCategories.some(c => c.name === trimmed)) { showToast('该分类已存在'); return; }
+  const { error } = await supabase.from('training_categories').insert({ name: trimmed, sort_order: trainingCategories.length + 1 });
+  if (error) { showToast('添加失败：' + error.message); return; }
+  showToast('✅ 分类已添加');
+  loadTrainingCategories();
 }
 
 function renderTraining() {
@@ -2691,7 +2806,8 @@ function renderTraining() {
   }
 
   // Group by category
-  const cats = trainingCatFilter === '全部' ? TRAIN_CATS : [trainingCatFilter];
+  const allCats = trainingCategories.map(c => c.name);
+  const cats = trainingCatFilter === '全部' ? allCats : [trainingCatFilter];
   let html = '';
 
   cats.forEach(cat => {
@@ -2731,13 +2847,14 @@ function openTrainingEditor(item) {
   window._editTrain = item ? { id: item.id, isNew: false } : { id: null, isNew: true };
   const t = item || {};
   const brands = ['弥生','极氧'];
-  const cats = ['产品知识','接待流程','平台工作台','话术库','售后处理'];
+  const cats = trainingCategories.map(c => c.name);
   let html = '';
   if (isNew) {
     html += '<div class="modal-field-row"><div class="modal-field"><label>品牌</label><select id="tf-brand">'
       + brands.map(b => '<option value="' + b + '">' + b + '</option>').join('') + '</select></div>'
       + '<div class="modal-field"><label>分类</label><select id="tf-cat">'
-      + cats.map(c => '<option value="' + c + '">' + c + '</option>').join('') + '</select></div></div>';
+      + cats.map(c => '<option value="' + c + '">' + c + '</option>').join('')
+      + '<option value="未分类">未分类</option></select></div></div>';
   }
   html += '<div class="modal-field"><label>标题</label><input id="tf-title" value="' + escapeHtml(t.title || '') + '"></div>'
     + '<div class="modal-field"><label>链接URL</label><input id="tf-url" value="' + escapeHtml(t.url || '') + '" placeholder="https://..."></div>'

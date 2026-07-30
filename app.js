@@ -4,6 +4,8 @@
 // Called when supabase is initialized
 window.onSupabaseReady = function() {
   loadTemplates(); // 预加载模板数据
+  if (window.loadTrainingCategories) loadTrainingCategories();
+  if (window.subscribeTrainingCategories) subscribeTrainingCategories();
   if (window.loadTrainingFromDB) loadTrainingFromDB();
   if (window.loadPatternsFromDB) loadPatternsFromDB();
   if (currentPage === 'home') { loadAnnouncements(); subscribeAnnouncements(); }
