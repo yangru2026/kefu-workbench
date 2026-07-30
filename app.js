@@ -8,6 +8,7 @@ window.onSupabaseReady = function() {
   if (currentPage === 'daily') { loadDailyReports(); subscribeDaily(); }
   if (currentPage === 'presale') { loadPresaleData(); subscribePresale(); }
   if (currentPage === 'members') { loadMembers(); subscribeProfiles(); }
+  if (currentPage === 'staff-info') { loadStaffInfo(); subscribeStaffInfo(); }
   if (currentPage === 'templates') { loadTemplates().then(() => renderTemplates()); subscribeTemplates(); }
 };
 
@@ -1624,3 +1625,254 @@ function subscribeProfiles() {
     setTimeout(() => clearInterval(trySwitch), 10000);
   }
 })();
+
+// ==================== 客服信息管理 ====================
+let allStaffData = [];
+let staffSearchTerm = '';
+
+async function loadStaffInfo() {
+  if (!supabase) {
+    document.getElementById('staff-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">Supabase 未初始化</td></tr>';
+    return;
+  }
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('group_name', { ascending: true })
+      .order('name', { ascending: true });
+    if (error) {
+      document.getElementById('staff-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--danger);">加载失败：' + escapeHtml(error.message) + '</td></tr>';
+      return;
+    }
+    allStaffData = data || [];
+    renderStaffTable();
+  } catch (e) {
+    document.getElementById('staff-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--danger);">加载异常</td></tr>';
+  }
+}
+
+function renderStaffTable() {
+  const tbody = document.getElementById('staff-tbody');
+  const term = staffSearchTerm.toLowerCase();
+  const filtered = allStaffData.filter(s => {
+    if (!term) return true;
+    const name = (s.name || '').toLowerCase();
+    const real = (s.real_name || '').toLowerCase();
+    const phone = (s.phone || '').toLowerCase();
+    return name.includes(term) || real.includes(term) || phone.includes(term);
+  });
+
+  document.getElementById('staff-count').textContent = '共 ' + filtered.length + ' 人（总计 ' + allStaffData.length + ' 人）';
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">' + (term ? '无匹配结果' : '暂无客服数据') + '</td></tr>';
+    return;
+  }
+
+  const isAdmin = currentProfile?.role === 'admin';
+  const groupMap = { 'A组': '🔵 A组', 'B组': '🟠 B组', 'C组': '🟢 C组' };
+
+  tbody.innerHTML = filtered.map(s => {
+    const nickname = s.name || '-';
+    const realName = s.real_name || '-';
+    const phone = s.phone || '-';
+    const hireDate = s.hire_date || '-';
+    const position = s.position || '-';
+    const group = groupMap[s.group_name] || (s.group_name || '未分组');
+    const overtime = s.overtime != null ? Number(s.overtime) : 0;
+    const compLeave = s.compensatory_leave != null ? Number(s.compensatory_leave) : 0;
+
+    const editable = isAdmin ? ' class="staff-editable"' : '';
+    const onClickEdit = isAdmin ? ' onclick="event.stopPropagation();startEditStaffField(this,\'' + s.id + '\',\'' + 'nickname' + '\',\'' + escapeAttr(nickname) + '\')"' : '';
+    const onClickReal = isAdmin ? ' onclick="event.stopPropagation();startEditStaffField(this,\'' + s.id + '\',\'' + 'real_name' + '\',\'' + escapeAttr(realName) + '\')"' : '';
+    const onClickPhone = isAdmin ? ' onclick="event.stopPropagation();startEditStaffField(this,\'' + s.id + '\',\'' + 'phone' + '\',\'' + escapeAttr(phone) + '\')"' : '';
+    const onClickHire = isAdmin ? ' onclick="event.stopPropagation();startEditStaffField(this,\'' + s.id + '\',\'' + 'hire_date' + '\',\'' + escapeAttr(hireDate) + '\')"' : '';
+    const onClickPos = isAdmin ? ' onclick="event.stopPropagation();startEditStaffField(this,\'' + s.id + '\',\'' + 'position' + '\',\'' + escapeAttr(position) + '\')"' : '';
+    const onClickOT = isAdmin ? ' onclick="event.stopPropagation();startEditStaffField(this,\'' + s.id + '\',\'' + 'overtime' + '\',\'' + overtime + '\')"' : '';
+    const onClickCL = isAdmin ? ' onclick="event.stopPropagation();startEditStaffField(this,\'' + s.id + '\',\'' + 'compensatory_leave' + '\',\'' + compLeave + '\')"' : '';
+
+    const otBadge = overtime > 0 ? '<span class="staff-badge overtime">+' + overtime + '天</span>' : '<span style="color:#999;">0</span>';
+    const clBadge = compLeave > 0 ? '<span class="staff-badge leave">' + compLeave + '天</span>' : '<span style="color:#999;">0</span>';
+
+    return '<tr>'
+      + '<td' + (isAdmin ? ' style="cursor:pointer;"' : '') + onClickEdit + '>' + escapeHtml(nickname) + '</td>'
+      + '<td' + (isAdmin ? ' style="cursor:pointer;"' : '') + onClickReal + '>' + escapeHtml(realName) + '</td>'
+      + '<td' + (isAdmin ? ' style="cursor:pointer;"' : '') + onClickPhone + '>' + escapeHtml(phone) + '</td>'
+      + '<td' + (isAdmin ? ' style="cursor:pointer;"' : '') + onClickHire + '>' + escapeHtml(hireDate) + '</td>'
+      + '<td' + (isAdmin ? ' style="cursor:pointer;"' : '') + onClickPos + '>' + escapeHtml(position) + '</td>'
+      + '<td>' + group + '</td>'
+      + '<td' + (isAdmin ? ' style="cursor:pointer;"' : '') + onClickOT + ' style="text-align:center;">' + otBadge + '</td>'
+      + '<td' + (isAdmin ? ' style="cursor:pointer;"' : '') + onClickCL + ' style="text-align:center;">' + clBadge + '</td>'
+      + '<td><div class="staff-btn-row">'
+      + '<button class="btn-sm outline" onclick="event.stopPropagation();copyStaffRow(\'' + s.id + '\')" title="复制该行">📋</button>'
+      + '</div></td>'
+      + '</tr>';
+  }).join('');
+}
+
+function filterStaff() {
+  staffSearchTerm = document.getElementById('staff-search').value;
+  renderStaffTable();
+}
+
+function startEditStaffField(td, userId, field, currentValue) {
+  // Prevent duplicate edit
+  if (td.querySelector('input')) return;
+
+  const oldHtml = td.innerHTML;
+  const isDate = field === 'hire_date';
+  const isNum = field === 'overtime' || field === 'compensatory_leave';
+  const inputType = isDate ? 'date' : isNum ? 'number' : 'text';
+  const placeholder = isDate ? 'YYYY-MM-DD' : field === 'phone' ? '手机号' : '';
+
+  const input = document.createElement('input');
+  input.type = inputType;
+  input.value = currentValue === '-' ? '' : currentValue;
+  input.className = 'staff-input';
+  input.style.cssText = 'padding:4px 8px;border:1.5px solid var(--primary);border-radius:6px;font-size:14px;width:100%;max-width:' + (isNum ? '70px' : '140px') + ';font-family:inherit;background:var(--card-bg);color:var(--text);';
+  if (isNum) { input.step = '0.5'; input.min = '0'; input.style.textAlign = 'center'; }
+  if (placeholder) input.placeholder = placeholder;
+
+  td.innerHTML = '';
+  td.appendChild(input);
+  input.focus();
+  input.select();
+
+  const save = async () => {
+    const newVal = input.value.trim();
+    const oldVal = currentValue === '-' ? '' : currentValue;
+    if (newVal === oldVal) { td.innerHTML = oldHtml; return; }
+
+    const payload = {};
+    if (isNum) {
+      payload[field] = newVal === '' ? 0 : parseFloat(newVal) || 0;
+    } else if (isDate) {
+      payload[field] = newVal || null;
+    } else {
+      payload[field] = newVal || null;
+    }
+
+    const { error } = await supabase.from('profiles').update(payload).eq('id', userId);
+    if (error) {
+      showToast('保存失败：' + error.message);
+      td.innerHTML = oldHtml;
+      return;
+    }
+    showToast('已更新');
+    // Update local cache
+    const idx = allStaffData.findIndex(s => s.id === userId);
+    if (idx >= 0) {
+      if (isNum) {
+        allStaffData[idx][field] = newVal === '' ? 0 : parseFloat(newVal) || 0;
+      } else if (isDate) {
+        allStaffData[idx][field] = newVal || null;
+      } else {
+        allStaffData[idx][field] = newVal || null;
+      }
+    }
+    renderStaffTable();
+  };
+
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { input.blur(); }
+    if (e.key === 'Escape') { td.innerHTML = oldHtml; }
+  });
+}
+
+async function copyStaffRow(userId) {
+  const s = allStaffData.find(x => x.id === userId);
+  if (!s) { showToast('未找到该客服'); return; }
+  const hireDate = s.hire_date || '-';
+  const text = [
+    '花名：' + (s.name || '-'),
+    '真实姓名：' + (s.real_name || '-'),
+    '手机号：' + (s.phone || '-'),
+    '入职日期：' + hireDate,
+    '岗位：' + (s.position || '-'),
+    '组别：' + (s.group_name || '未分组'),
+    '加班：' + (s.overtime || 0) + '天',
+    '调休：' + (s.compensatory_leave || 0) + '天'
+  ].join('\n');
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('已复制到剪贴板');
+  } catch (e) {
+    showToast('复制失败，请手动复制');
+  }
+}
+
+function copyAllStaff() {
+  const term = staffSearchTerm.toLowerCase();
+  const filtered = term ? allStaffData.filter(s => {
+    const name = (s.name || '').toLowerCase();
+    const real = (s.real_name || '').toLowerCase();
+    const phone = (s.phone || '').toLowerCase();
+    return name.includes(term) || real.includes(term) || phone.includes(term);
+  }) : allStaffData;
+
+  const text = filtered.map(s => {
+    return [
+      s.name || '-',
+      s.real_name || '-',
+      s.phone || '-',
+      s.hire_date || '-',
+      s.position || '-',
+      s.group_name || '未分组',
+      (s.overtime || 0) + '天',
+      (s.compensatory_leave || 0) + '天'
+    ].join('\t');
+  }).join('\n');
+
+  const header = '花名\t真实姓名\t手机号\t入职日期\t岗位\t组别\t加班\t调休';
+  const full = header + '\n' + text;
+
+  try {
+    navigator.clipboard.writeText(full).then(() => showToast('已复制 ' + filtered.length + ' 条记录'));
+  } catch (e) {
+    showToast('复制失败');
+  }
+}
+
+function exportStaffCSV() {
+  const term = staffSearchTerm.toLowerCase();
+  const filtered = term ? allStaffData.filter(s => {
+    const name = (s.name || '').toLowerCase();
+    const real = (s.real_name || '').toLowerCase();
+    const phone = (s.phone || '').toLowerCase();
+    return name.includes(term) || real.includes(term) || phone.includes(term);
+  }) : allStaffData;
+
+  const header = '花名,真实姓名,手机号,入职日期,岗位,组别,加班(天),调休(天)';
+  const rows = filtered.map(s => {
+    return [
+      '"' + (s.name || '') + '"',
+      '"' + (s.real_name || '') + '"',
+      '"' + (s.phone || '') + '"',
+      '"' + (s.hire_date || '') + '"',
+      '"' + (s.position || '') + '"',
+      '"' + (s.group_name || '未分组') + '"',
+      s.overtime || 0,
+      s.compensatory_leave || 0
+    ].join(',');
+  });
+  const csv = '\uFEFF' + header + '\n' + rows.join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '客服信息_' + new Date().toISOString().split('T')[0] + '.csv';
+  a.click();
+  showToast('已导出 ' + filtered.length + ' 条记录');
+}
+
+let staffSub = null;
+function subscribeStaffInfo() {
+  if (!supabase || staffSub) return;
+  staffSub = supabase.channel('staff-info')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+      if (currentPage === 'staff-info') loadStaffInfo();
+    })
+    .subscribe();
+}
