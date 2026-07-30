@@ -4,12 +4,16 @@
 // Called when supabase is initialized
 window.onSupabaseReady = function() {
   loadTemplates(); // 预加载模板数据
+  if (window.loadTrainingFromDB) loadTrainingFromDB();
+  if (window.loadPatternsFromDB) loadPatternsFromDB();
   if (currentPage === 'home') { loadAnnouncements(); subscribeAnnouncements(); }
   if (currentPage === 'daily') { loadDailyReports(); subscribeDaily(); }
   if (currentPage === 'presale') { loadPresaleData(); subscribePresale(); }
   if (currentPage === 'members') { loadMembers(); subscribeProfiles(); }
   if (currentPage === 'staff-info') { loadStaffInfo(); subscribeStaffInfo(); }
   if (currentPage === 'templates') { loadTemplates().then(() => renderTemplates()); subscribeTemplates(); }
+  if (currentPage === 'training') { if (window.renderTraining) renderTraining(); }
+  if (currentPage === 'patterns') { if (window.renderPatternFilters) renderPatternFilters(); if (window.renderPatterns) renderPatterns(); }
 };
 
 // ---------- 公告栏 ----------

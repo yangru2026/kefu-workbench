@@ -209,6 +209,8 @@ body {
 .train-link-item:last-child { border-bottom:none; }
 .train-link-item:hover { background:var(--hover-bg); }
 .train-link-item a { flex:1; color:var(--primary); text-decoration:none; font-size:14px; font-weight:500; }
+.train-mgmt-btns { display:flex; gap:4px; flex-shrink:0; }
+.train-mgmt-btns .btn-edit, .train-mgmt-btns .btn-del { width:26px; height:26px; border:1px solid var(--border); border-radius:5px; background:var(--card-bg); cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; }
 .train-link-item a:hover { text-decoration:underline; }
 .train-link-tags { display:flex; gap:4px; flex-shrink:0; }
 .train-empty { text-align:center; padding:60px 20px; color:var(--text-secondary); }
@@ -1235,8 +1237,8 @@ body {
   <!-- ===== 花色素材 ===== -->
   <div class="page" id="page-patterns">
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-      <div><h1>🎨 花色素材库</h1><p>按品牌、抛型、系列、色系筛选，一键复制推荐话术</p></div>
-      <button class="mgmt-toggle" id="mgmt-toggle" onclick="toggleMgmtMode()">📝 管理素材</button>
+      <div><h1>🎨 花色素材库</h1><p>按品牌、抛型、系列、色系筛选，一键复制推荐话术 | 修改实时同步所有客服</p></div>
+      <button class="mgmt-add-btn" id="mgmt-add-btn" onclick="openPatternEditor(null)" style="display:none;">＋ 新增花色</button>
     </div>
     <div class="brand-tabs" id="pattern-brand-tabs"></div>
     <div class="filter-row" id="pattern-filter-type"><span class="flabel">抛型</span></div>
@@ -1245,16 +1247,14 @@ body {
     <div class="search-bar"><input type="text" id="pattern-search" placeholder="🔍 搜索花色名称..." oninput="renderPatterns()"></div>
     <div class="pattern-stats" id="pattern-stats"></div>
     <div class="pattern-grid" id="pattern-grid"></div>
-    <button class="mgmt-add-btn" id="mgmt-add-btn" onclick="openPatternEditor(null)">＋ 新增花色</button>
-    <div class="mgmt-export" id="mgmt-export">
-      <button class="btn-sm outline" onclick="exportPatternConfig()">💾 导出更新配置</button>
-      <span style="font-size:11px;color:var(--text-secondary);margin-left:8px;">本地修改保存后，导出文件发给小布部署</span>
-    </div>
   </div>
 
   <!-- ===== 培训资料 ===== -->
   <div class="page" id="page-training">
-    <div class="page-header"><h1>📚 培训资料中心</h1><p>按品牌和分类查看培训资料，点击链接打开飞书云文档</p></div>
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div><h1>📚 培训资料中心</h1><p>按品牌和分类查看培训资料，点击链接打开飞书云文档 | 修改实时同步所有客服</p></div>
+      <button class="mgmt-add-btn" id="train-add-btn" onclick="openTrainingEditor(null)" style="display:none;">＋ 新增资料</button>
+    </div>
     <!-- 品牌切换 Tab -->
     <div class="brand-tabs" id="training-brand-tabs">
       <button class="brand-tab active" data-brand="全部" onclick="setTrainingBrand('全部')">🌐 全部</button>
@@ -1421,6 +1421,26 @@ function updateAuthUI() {
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.admin-only-nav').forEach(el => el.style.display = 'none');
   }
+  refreshAdminUI();
+}
+
+function refreshAdminUI() {
+  const isAdmin = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  // 花色素材「新增」按钮
+  const addBtn = document.getElementById('mgmt-add-btn');
+  if (addBtn) addBtn.style.display = isAdmin ? '' : 'none';
+  // 培训资料「新增」按钮
+  const trainBtn = document.getElementById('train-add-btn');
+  if (trainBtn) trainBtn.style.display = isAdmin ? '' : 'none';
+  // Re-render patterns/training to show/hide mgmt buttons
+  if (currentPage === 'patterns' && isAdmin !== (window._lastAdminState !== false)) {
+    window._lastAdminState = isAdmin;
+    renderPatterns();
+  }
+  if (currentPage === 'training') {
+    window._lastAdminState = isAdmin;
+    renderTraining();
+  }
 }
 
 async function signUp(name, phone, password) {
@@ -1450,8 +1470,8 @@ async function signOut() {
 }
 
 // ==================== DYNAMIC CONFIG LOADING ====================
-// 数据存储在独立的 config.json 文件中
-// 杨茹修改 config.json 后重新部署，所有客服刷新页面即可看到最新内容
+// 基础数据存储在 config.json 中
+// 培训资料 & 花色素材实时同步自 Supabase，管理员可直接在页面上增删改
 
 let configVersion = '';
 let trainingData = [];
@@ -1479,11 +1499,9 @@ async function loadConfig() {
     if (!resp.ok) throw new Error('Config load failed');
     const cfg = await resp.json();
     configVersion = cfg.version || '1.0';
-    trainingData = cfg.trainingData || [];
-    patternData = cfg.patternData || { brands: {} };
-    // Store base data for management merge
-    window._basePatternData = JSON.parse(JSON.stringify(patternData));
-    patternData = getMergedPatternData(); // apply localStorage edits
+    // 培训资料和花色素材改为从 Supabase 实时加载（不再从 config.json 读取）
+    trainingData = [];
+    patternData = { brands: {} };
     sopData = cfg.sopData || [];
     bulletinData = cfg.bulletinData || [];
     toolsData = cfg.toolsData || [];
@@ -1506,17 +1524,99 @@ async function loadConfig() {
 
 function updateStats() {
   document.getElementById('stat-training').textContent = trainingData.length;
-  // Count total patterns (use merged data for management edits)
-  const pd = getMergedPatternData();
+  // Count total patterns from patternData tree
   let totalPatterns = 0;
-  if (pd.brands) {
-    Object.values(pd.brands).forEach(brand => {
-      Object.values(brand).forEach(items => { totalPatterns += items.length; });
+  if (patternData && patternData.brands) {
+    Object.values(patternData.brands).forEach(brand => {
+      if (brand) Object.values(brand).forEach(items => { if (items) totalPatterns += items.length; });
     });
   }
   document.getElementById('stat-patterns').textContent = totalPatterns || 0;
   document.getElementById('stat-sop').textContent = sopData.length;
   document.getElementById('stat-tools').textContent = toolsData.length;
+}
+
+// ==================== 培训资料 & 花色素材 Supabase 加载 ====================
+let trainSub = null, patternSub = null;
+
+async function loadTrainingFromDB() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase
+      .from('training_materials')
+      .select('*')
+      .order('brand', { ascending: true })
+      .order('category', { ascending: true });
+    if (error) { console.error('培训资料加载失败:', error); return; }
+    trainingData = (data || []).map(d => ({
+      ...d,
+      tags: d.tags || []
+    }));
+    updateStats();
+    if (currentPage === 'training') renderTraining();
+    subscribeTraining();
+  } catch(e) { console.error('培训资料加载异常:', e); }
+}
+
+function subscribeTraining() {
+  if (!supabase || trainSub) return;
+  trainSub = supabase.channel('training-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'training_materials' }, () => {
+      loadTrainingFromDB();
+    })
+    .subscribe();
+}
+
+async function loadPatternsFromDB() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase
+      .from('pattern_assets')
+      .select('*')
+      .order('brand', { ascending: true })
+      .order('type', { ascending: true })
+      .order('name', { ascending: true });
+    if (error) { console.error('花色素材加载失败:', error); return; }
+    patternData = buildPatternTree(data || []);
+    updateStats();
+    if (currentPage === 'patterns') { renderPatternFilters(); renderPatterns(); }
+    subscribePatterns();
+  } catch(e) { console.error('花色素材加载异常:', e); }
+}
+
+function subscribePatterns() {
+  if (!supabase || patternSub) return;
+  patternSub = supabase.channel('pattern-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'pattern_assets' }, () => {
+      loadPatternsFromDB();
+    })
+    .subscribe();
+}
+
+function buildPatternTree(flatData) {
+  const tree = { brands: {} };
+  flatData.forEach(p => {
+    if (!tree.brands[p.brand]) tree.brands[p.brand] = {};
+    if (!tree.brands[p.brand][p.type]) tree.brands[p.brand][p.type] = [];
+    tree.brands[p.brand][p.type].push({
+      name: p.name,
+      series: p.series || '',
+      color: p.color || '',
+      diameter: p.diameter || '',
+      colorDiameter: p.color_diameter || '',
+      material: p.material || '',
+      oxygen: p.oxygen || '',
+      water: p.water || '',
+      spec: p.spec || '',
+      lensImg: p.lens_img || '',
+      eyeImg: p.eye_img || '',
+      description: p.description || '',
+      _id: p.id,
+      _brand: p.brand,
+      _type: p.type
+    });
+  });
+  return tree;
 }
 
 // ==================== VISITOR STATS ====================
@@ -1552,10 +1652,11 @@ function switchPage(page) {
   currentPage = page;
 
   // Initialize page content
-  if (page === 'training') renderTraining();
+  if (page === 'training') { renderTraining(); }
   if (page === 'patterns') { renderPatternFilters(); renderPatterns(); }
   if (page === 'sop') renderSOP();
   if (page === 'bulletin') renderBulletin();
+  refreshAdminUI();
   if (page === 'tools') renderTools();
   if (page === 'quiz') renderQuiz();
   if (page === 'schedule') renderSchedule();
@@ -2094,9 +2195,7 @@ function setPatternColor(c) {
 }
 
 function renderPatterns() {
-  // Apply management edits
-  patternData = getMergedPatternData();
-
+  // patternData already loaded from Supabase, no localStorage merge needed
   let items = getFilteredItems(patternBrand, patternType, patternSeries);
 
   // 色系筛选
@@ -2155,10 +2254,10 @@ function renderPatterns() {
     const lbKey = 'pi' + idx;
     window._lbImages[lbKey] = images;
 
-    // Store full pattern data for management
+    // Store full pattern data including Supabase _id for management
     const pkey = patternBrand + '::' + patternType + '::' + p.name;
     window._patternRefs = window._patternRefs || {};
-    window._patternRefs[pkey] = { brand: patternBrand, type: patternType, ...p };
+    window._patternRefs[pkey] = { brand: patternBrand, type: patternType, _id: p._id, ...p };
 
     const specs = [];
     if (p.material) specs.push('<span class="spec-item">材质 ' + escapeHtml(p.material) + '</span>');
@@ -2169,15 +2268,19 @@ function renderPatterns() {
     if (p.spec) specs.push('<span class="spec-item">' + escapeHtml(p.spec) + '</span>');
     const specsHtml = specs.length ? specs.join('') : '';
 
+    // Management buttons: only show for admin
+    const isAdmin = currentProfile && currentProfile.role === 'admin';
+    const mgmtBtns = isAdmin ? `<div class="pcard-mgmt">
+      <button class="btn-edit" title="编辑" onclick="event.stopPropagation();openPatternEditor(window._patternRefs['${escapeAttr(pkey)}'])">✏️</button>
+      <button class="btn-del" title="删除" onclick="event.stopPropagation();deletePattern('${escapeAttr(p._id)}','${escapeAttr(p.name)}')">🗑️</button>
+    </div>` : '';
+
     return `<div class="pattern-card">
       <div class="pcard-img"${images.length ? ` onclick="openLightbox(window._lbImages['${lbKey}'])" style="cursor:pointer"` : ''}>
         ${imgHtml}
         <div class="pcard-brand-tag">${escapeHtml(patternBrand)}</div>
       </div>
-      <div class="pcard-mgmt">
-        <button class="btn-edit" title="编辑" onclick="event.stopPropagation();openPatternEditor(window._patternRefs['${escapeAttr(pkey)}'])">✏️</button>
-        <button class="btn-del" title="删除" onclick="event.stopPropagation();deletePattern('${escapeAttr(patternBrand)}','${escapeAttr(patternType)}','${escapeAttr(p.name)}')">🗑️</button>
-      </div>
+      ${mgmtBtns}
       <div class="pcard-body">
         <div class="pcard-title-row">
           <span class="pcard-name">${escapeHtml(p.name)}</span>
@@ -2217,9 +2320,8 @@ function copyPatternScript(btn, text) {
   });
 }
 
-// ==================== PATTERN MANAGEMENT ====================
+// ==================== PATTERN MANAGEMENT (Supabase) ====================
 let mgmtMode = false;
-const MGMT_KEY = 'kf_pattern_edits';  // localStorage key
 
 function toggleMgmtMode() {
   mgmtMode = !mgmtMode;
@@ -2227,77 +2329,19 @@ function toggleMgmtMode() {
   btn.textContent = mgmtMode ? '✅ 管理模式' : '📝 管理素材';
   btn.classList.toggle('active', mgmtMode);
   document.getElementById('page-patterns').classList.toggle('mgmt-mode', mgmtMode);
-  renderPatterns();
 }
 
-// Load saved edits from localStorage
-function loadPatternEdits() {
-  try {
-    return JSON.parse(localStorage.getItem(MGMT_KEY) || '{}');
-  } catch(e) { return {}; }
-}
-
-function savePatternEdits(edits) {
-  localStorage.setItem(MGMT_KEY, JSON.stringify(edits));
-}
-
-// Merge edits onto base config data
-function getMergedPatternData() {
-  const edits = loadPatternEdits();
-  const base = JSON.parse(JSON.stringify(window._basePatternData || patternData));
-  // Apply adds
-  const added = edits._added || [];
-  added.forEach(add => {
-    const b = add.brand, t = add.type;
-    if (!base.brands[b]) base.brands[b] = {};
-    if (!base.brands[b][t]) base.brands[b][t] = [];
-    base.brands[b][t].push(add.data);
-  });
-  // Apply edits
-  const modified = edits._modified || {};
-  Object.keys(modified).forEach(key => {
-    const [brand, type, name] = key.split('::');
-    const arr = base.brands[brand] && base.brands[brand][type];
-    if (!arr) return;
-    const idx = arr.findIndex(p => p.name === name);
-    if (idx >= 0) Object.assign(arr[idx], modified[key]);
-  });
-  // Apply deletes
-  const deleted = edits._deleted || [];
-  deleted.forEach(key => {
-    const [brand, type, name] = key.split('::');
-    const arr = base.brands[brand] && base.brands[brand][type];
-    if (!arr) return;
-    const idx = arr.findIndex(p => p.name === name);
-    if (idx >= 0) arr.splice(idx, 1);
-  });
-  return base;
-}
-
-// Open editor: pattern is null for new, or the full pattern object with brand/type
 function openPatternEditor(pattern) {
   const isNew = !pattern;
   document.getElementById('mod-pattern-title').textContent = isNew ? '＋ 新增花色' : '✏️ 编辑花色';
-  
-  // Store editing state
   window._editPattern = pattern ? {
-    brand: pattern.brand,
-    type: pattern.type,
-    name: pattern.name,
-    isNew: false
-  } : { brand: '', type: '', name: '', isNew: true };
-  
-  // Build image list
+    brand: pattern.brand, type: pattern.type, name: pattern.name, isNew: false, _id: pattern._id || null
+  } : { brand: '', type: '', name: '', isNew: true, _id: null };
   window._editImages = [];
   if (!isNew) {
-    if (pattern.eyeImg && pattern.eyeImg.trim()) {
-      window._editImages.push({ type: 'eye', url: pattern.eyeImg, hint: '上眼效果' });
-    }
-    if (pattern.lensImg && pattern.lensImg.trim()) {
-      window._editImages.push({ type: 'lens', url: pattern.lensImg, hint: '镜片图' });
-    }
+    if (pattern.eyeImg && pattern.eyeImg.trim()) window._editImages.push({ type: 'eye', url: pattern.eyeImg, hint: '上眼效果' });
+    if (pattern.lensImg && pattern.lensImg.trim()) window._editImages.push({ type: 'lens', url: pattern.lensImg, hint: '镜片图' });
   }
-
   renderEditorForm(pattern);
   document.getElementById('mod-pattern').classList.add('show');
   document.body.style.overflow = 'hidden';
@@ -2306,99 +2350,41 @@ function openPatternEditor(pattern) {
 function renderEditorForm(pattern) {
   const t = pattern || {};
   const b = window._editPattern || {};
-  const brands = Object.keys((window._basePatternData || patternData).brands);
-  const types = ['日抛', '月抛', '季抛', '半年抛', '年抛'];
-  
-  // Image manager HTML
+  const brands = getPatternBrands();
+  const types = ['日抛','月抛','季抛','半年抛','年抛'];
   let imgsHtml = '';
   window._editImages.forEach((img, i) => {
-    imgsHtml += `<div class="img-mgr-item">
-      ${img.url ? `<img src="${escapeHtml(img.url)}" alt="" onerror="this.style.display='none'">` : '<div style="height:72px;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:20px;">🖼️</div>'}
-      <span class="img-mgr-item-badge">${img.hint}</span>
-      <button class="img-mgr-item-del" title="删除" onclick="removeEditImage(${i})">✕</button>
-    </div>`;
+    imgsHtml += '<div class="img-mgr-item">'
+      + (img.url ? '<img src="' + escapeHtml(img.url) + '" alt="" onerror="this.style.display=\'none\'">' : '<div style="height:72px;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:20px;">🖼️</div>')
+      + '<span class="img-mgr-item-badge">' + img.hint + '</span>'
+      + '<button class="img-mgr-item-del" title="删除" onclick="removeEditImage(' + i + ')">✕</button></div>';
   });
   if (!imgsHtml) imgsHtml = '<div class="empty-hint">暂无图片，下方添加</div>';
-
   let html = '';
-  // For new: show brand/type selectors
   if (b.isNew) {
-    html += `<div class="modal-field-row">
-      <div class="modal-field">
-        <label>品牌</label>
-        <select id="ef-brand">${brands.map(br => `<option value="${br}">${br}</option>`).join('')}</select>
-      </div>
-      <div class="modal-field">
-        <label>抛型</label>
-        <select id="ef-type">${types.map(ty => `<option value="${ty}">${ty}</option>`).join('')}</select>
-      </div>
-    </div>`;
+    html += '<div class="modal-field-row"><div class="modal-field"><label>品牌</label><select id="ef-brand">'
+      + brands.map(br => '<option value="' + br + '">' + br + '</option>').join('')
+      + '</select></div><div class="modal-field"><label>抛型</label><select id="ef-type">'
+      + types.map(ty => '<option value="' + ty + '">' + ty + '</option>').join('')
+      + '</select></div></div>';
   }
-  html += `
-    <div class="modal-field">
-      <label>花色名称 ${b.isNew ? '' : '<span style="color:#e17055;">(只读)</span>'}</label>
-      <input id="ef-name" value="${escapeHtml(t.name || '')}" ${b.isNew ? '' : 'readonly'}>
-    </div>
-    <div class="modal-field-row">
-      <div class="modal-field">
-        <label>系列</label>
-        <input id="ef-series" value="${escapeHtml(t.series || '')}">
-      </div>
-      <div class="modal-field">
-        <label>色系</label>
-        <select id="ef-color">
-          ${['棕色系','黑灰色系','蓝色系','绿色系','粉色系','紫色系','灰色系','混血色'].map(c => `<option value="${c}"${(t.color||'')===c?' selected':''}>${c}</option>`).join('')}
-        </select>
-      </div>
-    </div>
-    <div class="modal-field-row">
-      <div class="modal-field">
-        <label>直径</label>
-        <input id="ef-diameter" value="${escapeHtml(t.diameter || '')}" placeholder="14.2mm">
-      </div>
-      <div class="modal-field">
-        <label>着色直径</label>
-        <input id="ef-cdiam" value="${escapeHtml(t.colorDiameter || '')}" placeholder="13.5">
-      </div>
-    </div>
-    <div class="modal-field-row">
-      <div class="modal-field">
-        <label>材质</label>
-        <input id="ef-material" value="${escapeHtml(t.material || '')}" placeholder="硅水凝胶">
-      </div>
-      <div class="modal-field">
-        <label>透氧量</label>
-        <input id="ef-oxygen" value="${escapeHtml(t.oxygen || '')}" placeholder="100dk">
-      </div>
-    </div>
-    <div class="modal-field-row">
-      <div class="modal-field">
-        <label>含水量</label>
-        <input id="ef-water" value="${escapeHtml(t.water || '')}" placeholder="58%">
-      </div>
-      <div class="modal-field">
-        <label>规格</label>
-        <input id="ef-spec" value="${escapeHtml(t.spec || '')}" placeholder="6片/盒">
-      </div>
-    </div>
-    <div class="modal-field">
-      <label>推荐话术</label>
-      <textarea id="ef-desc">${escapeHtml(t.description || t.script || '')}</textarea>
-    </div>
-    <!-- Image manager -->
-    <div class="img-mgr">
-      <h4>🖼️ 图片管理</h4>
-      <div class="img-mgr-grid" id="img-mgr-grid">${imgsHtml}</div>
-      <div class="img-add-row">
-        <input id="img-add-url" placeholder="图片URL..." style="flex:1;">
-        <select id="img-add-type" style="width:100px;">
-          <option value="eye">上眼图</option>
-          <option value="lens">镜片图</option>
-        </select>
-        <button class="btn-sm primary" onclick="addEditImage()">＋ 添加</button>
-      </div>
-    </div>
-  `;
+  html += '<div class="modal-field"><label>花色名称 ' + (b.isNew ? '' : '<span style="color:#e17055;">(只读)</span>') + '</label>'
+    + '<input id="ef-name" value="' + escapeHtml(t.name || '') + '"' + (b.isNew ? '' : ' readonly') + '></div>'
+    + '<div class="modal-field-row"><div class="modal-field"><label>系列</label><input id="ef-series" value="' + escapeHtml(t.series || '') + '"></div>'
+    + '<div class="modal-field"><label>色系</label><select id="ef-color">'
+    + ['棕色系','黑灰色系','蓝色系','绿色系','粉色系','紫色系','灰色系','混血色'].map(c => '<option value="' + c + '"' + ((t.color||'')===c?' selected':'') + '>' + c + '</option>').join('')
+    + '</select></div></div>'
+    + '<div class="modal-field-row"><div class="modal-field"><label>直径</label><input id="ef-diameter" value="' + escapeHtml(t.diameter || '') + '" placeholder="14.2mm"></div>'
+    + '<div class="modal-field"><label>着色直径</label><input id="ef-cdiam" value="' + escapeHtml(t.colorDiameter || '') + '" placeholder="13.5"></div></div>'
+    + '<div class="modal-field-row"><div class="modal-field"><label>材质</label><input id="ef-material" value="' + escapeHtml(t.material || '') + '" placeholder="硅水凝胶"></div>'
+    + '<div class="modal-field"><label>透氧量</label><input id="ef-oxygen" value="' + escapeHtml(t.oxygen || '') + '" placeholder="100dk"></div></div>'
+    + '<div class="modal-field-row"><div class="modal-field"><label>含水量</label><input id="ef-water" value="' + escapeHtml(t.water || '') + '" placeholder="58%"></div>'
+    + '<div class="modal-field"><label>规格</label><input id="ef-spec" value="' + escapeHtml(t.spec || '') + '" placeholder="6片/盒"></div></div>'
+    + '<div class="modal-field"><label>推荐话术</label><textarea id="ef-desc">' + escapeHtml(t.description || t.script || '') + '</textarea></div>'
+    + '<div class="img-mgr"><h4>🖼️ 图片管理</h4><div class="img-mgr-grid" id="img-mgr-grid">' + imgsHtml + '</div>'
+    + '<div class="img-add-row"><input id="img-add-url" placeholder="图片URL..." style="flex:1;">'
+    + '<select id="img-add-type" style="width:100px;"><option value="eye">上眼图</option><option value="lens">镜片图</option></select>'
+    + '<button class="btn-sm primary" onclick="addEditImage()">＋ 添加</button></div></div>';
   document.getElementById('mod-pattern-body').innerHTML = html;
 }
 
@@ -2406,112 +2392,51 @@ function addEditImage() {
   const url = document.getElementById('img-add-url').value.trim();
   if (!url) { alert('请输入图片URL'); return; }
   const type = document.getElementById('img-add-type').value;
-  const hint = type === 'eye' ? '上眼效果' : '镜片图';
-  window._editImages.push({ type, url, hint });
+  window._editImages.push({ type, url, hint: type === 'eye' ? '上眼效果' : '镜片图' });
   document.getElementById('img-add-url').value = '';
-  // Re-render image grid
   renderEditorForm(window._editPattern);
 }
 
-function removeEditImage(idx) {
-  window._editImages.splice(idx, 1);
-  renderEditorForm(window._editPattern);
-}
+function removeEditImage(idx) { window._editImages.splice(idx, 1); renderEditorForm(window._editPattern); }
 
-function savePattern() {
+async function savePattern() {
   const b = window._editPattern;
   const data = {
     name: document.getElementById('ef-name').value.trim(),
     series: document.getElementById('ef-series').value.trim(),
     color: document.getElementById('ef-color').value,
     diameter: document.getElementById('ef-diameter').value.trim(),
-    colorDiameter: document.getElementById('ef-cdiam').value.trim(),
+    color_diameter: document.getElementById('ef-cdiam').value.trim(),
     material: document.getElementById('ef-material').value.trim(),
     oxygen: document.getElementById('ef-oxygen').value.trim(),
     water: document.getElementById('ef-water').value.trim(),
     spec: document.getElementById('ef-spec').value.trim(),
     description: document.getElementById('ef-desc').value.trim(),
-    // eyeImg / lensImg from images array
-    eyeImg: window._editImages.filter(i => i.type === 'eye').map(i => i.url)[0] || '',
-    lensImg: window._editImages.filter(i => i.type === 'lens').map(i => i.url)[0] || '',
+    eye_img: window._editImages.filter(i => i.type === 'eye').map(i => i.url)[0] || '',
+    lens_img: window._editImages.filter(i => i.type === 'lens').map(i => i.url)[0] || '',
   };
-  
   if (!data.name) { alert('请输入花色名称'); return; }
-
-  const edits = loadPatternEdits();
-  
   if (b.isNew) {
-    // New pattern
-    const brand = document.getElementById('ef-brand').value;
-    const type = document.getElementById('ef-type').value;
-    data.brand = brand; data.type = type;
-    const added = edits._added || [];
-    // Check duplicate
-    if (added.some(a => a.brand === brand && a.type === type && a.data.name === data.name)) {
-      alert('该花色已存在'); return;
-    }
-    // Also check base data
-    const base = window._basePatternData || patternData;
-    const baseArr = base.brands[brand] && base.brands[brand][type];
-    if (baseArr && baseArr.some(p => p.name === data.name)) {
-      alert('该花色在基础数据中已存在，请使用编辑功能'); return;
-    }
-    added.push({ brand, type, data });
-    edits._added = added;
+    data.brand = document.getElementById('ef-brand').value;
+    data.type = document.getElementById('ef-type').value;
+    const { error } = await supabase.from('pattern_assets').insert(data);
+    if (error) { showToast('保存失败：' + error.message); return; }
+    showToast('✅ 花色已添加，实时同步中...');
   } else {
-    // Edit existing - store in _modified
-    const key = b.brand + '::' + b.type + '::' + b.name;
-    const modified = edits._modified || {};
-    modified[key] = data;
-    edits._modified = modified;
+    const { error } = await supabase.from('pattern_assets').update(data).eq('id', b._id);
+    if (error) { showToast('保存失败：' + error.message); return; }
+    showToast('✅ 花色已更新，实时同步中...');
   }
-
-  savePatternEdits(edits);
-  
   closeModal('mod-pattern');
-  renderPatterns();
-  showToast('✅ 已保存到本地，记得导出配置发给小布部署');
+  loadPatternsFromDB();
 }
 
-function deletePattern(brand, type, name) {
-  if (!confirm('确定要删除「' + name + '」吗？\n此操作仅存储在本地，导出部署后生效。')) return;
-  
-  const edits = loadPatternEdits();
-  const key = brand + '::' + type + '::' + name;
-  
-  // Check if it was a previously added item
-  const added = edits._added || [];
-  const addIdx = added.findIndex(a => a.brand === brand && a.type === type && a.data.name === name);
-  if (addIdx >= 0) {
-    added.splice(addIdx, 1);
-    edits._added = added;
-  } else {
-    const deleted = edits._deleted || [];
-    if (!deleted.includes(key)) deleted.push(key);
-    edits._deleted = deleted;
-    // Also remove from modified if present
-    if (edits._modified) delete edits._modified[key];
-  }
-
-  savePatternEdits(edits);
-  
-  renderPatterns();
-  showToast('🗑️ 已标记删除（本地），导出部署后生效');
-}
-
-function exportPatternConfig() {
-  const merged = getMergedPatternData();
-  // Build full config for download
-  const fullCfg = JSON.parse(JSON.stringify(window._fullConfig || {}));
-  fullCfg.patternData = merged;
-  fullCfg.lastUpdate = new Date().toISOString().split('T')[0];
-  
-  const blob = new Blob([JSON.stringify(fullCfg, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'config-更新_' + new Date().toISOString().split('T')[0] + '.json';
-  a.click();
-  showToast('💾 config.json 已下载，发给小布部署即可');
+async function deletePattern(id, name) {
+  if (!confirm('确定要删除「' + name + '」吗？\n此操作实时生效，所有客服页面同步更新。')) return;
+  const { error } = await supabase.from('pattern_assets').delete().eq('id', id);
+  if (error) { showToast('删除失败：' + error.message); return; }
+  showToast('🗑️ 已删除「' + name + '」');
+  loadPatternsFromDB();
 }
 
 function closeModal(id) {
@@ -2657,19 +2582,82 @@ function renderTraining() {
     html += '<div class="train-card">';
     html += '<div class="train-card-header"><h3>📁 ' + cat + '</h3><span class="train-card-count">' + items.length + ' 篇</span></div>';
     html += '<ul class="train-link-list">';
+    const isAdmin = currentProfile && currentProfile.role === 'admin';
     items.forEach(d => {
       const brandBadge = trainingBrand === '全部' ? '<span style="font-size:11px;color:var(--text-secondary);margin-right:4px;">[' + (d.brand || '') + ']</span>' : '';
+      const mgmtBtns = isAdmin ? '<span class="train-mgmt-btns">'
+        + '<button class="btn-edit" title="编辑" onclick="event.stopPropagation();event.preventDefault();openTrainingEditor(window._trainRefs[\'' + d.id + '\'])">✏️</button>'
+        + '<button class="btn-del" title="删除" onclick="event.stopPropagation();event.preventDefault();deleteTraining(\'' + d.id + '\',\'' + escapeAttr(d.title) + '\')">🗑️</button>'
+        + '</span>' : '';
+      // Store for editing
+      window._trainRefs = window._trainRefs || {};
+      window._trainRefs[d.id] = d;
       html += '<li class="train-link-item">'
         + '<span style="font-size:18px;">📄</span>'
         + brandBadge
         + '<a href="' + d.url + '" target="_blank">' + d.title + '</a>'
         + '<span class="train-link-tags">' + (d.tags || []).map(t => '<span class="tag">' + t + '</span>').join('') + '</span>'
+        + mgmtBtns
         + '</li>';
     });
     html += '</ul></div>';
   });
 
   container.innerHTML = html;
+}
+
+// ==================== TRAINING MANAGEMENT (Supabase) ====================
+function openTrainingEditor(item) {
+  const isNew = !item;
+  document.getElementById('mod-training-title').textContent = isNew ? '＋ 新增培训资料' : '✏️ 编辑培训资料';
+  window._editTrain = item ? { id: item.id, isNew: false } : { id: null, isNew: true };
+  const t = item || {};
+  const brands = ['弥生','极氧'];
+  const cats = ['产品知识','接待流程','平台工作台','话术库','售后处理'];
+  let html = '';
+  if (isNew) {
+    html += '<div class="modal-field-row"><div class="modal-field"><label>品牌</label><select id="tf-brand">'
+      + brands.map(b => '<option value="' + b + '">' + b + '</option>').join('') + '</select></div>'
+      + '<div class="modal-field"><label>分类</label><select id="tf-cat">'
+      + cats.map(c => '<option value="' + c + '">' + c + '</option>').join('') + '</select></div></div>';
+  }
+  html += '<div class="modal-field"><label>标题</label><input id="tf-title" value="' + escapeHtml(t.title || '') + '"></div>'
+    + '<div class="modal-field"><label>链接URL</label><input id="tf-url" value="' + escapeHtml(t.url || '') + '" placeholder="https://..."></div>'
+    + '<div class="modal-field"><label>标签（逗号分隔）</label><input id="tf-tags" value="' + escapeHtml((t.tags || []).join(',')) + '" placeholder="材质,入门"></div>';
+  document.getElementById('mod-training-body').innerHTML = html;
+  document.getElementById('mod-training').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+async function saveTraining() {
+  const isNew = window._editTrain && window._editTrain.isNew;
+  const data = {
+    title: document.getElementById('tf-title').value.trim(),
+    url: document.getElementById('tf-url').value.trim(),
+    tags: (document.getElementById('tf-tags').value || '').split(',').map(t => t.trim()).filter(Boolean)
+  };
+  if (!data.title || !data.url) { alert('标题和链接不能为空'); return; }
+  if (isNew) {
+    data.brand = document.getElementById('tf-brand').value;
+    data.category = document.getElementById('tf-cat').value;
+    const { error } = await supabase.from('training_materials').insert(data);
+    if (error) { showToast('保存失败：' + error.message); return; }
+    showToast('✅ 资料已添加');
+  } else {
+    const { error } = await supabase.from('training_materials').update(data).eq('id', window._editTrain.id);
+    if (error) { showToast('保存失败：' + error.message); return; }
+    showToast('✅ 资料已更新');
+  }
+  closeModal('mod-training');
+  loadTrainingFromDB();
+}
+
+async function deleteTraining(id, title) {
+  if (!confirm('确定要删除「' + title + '」吗？')) return;
+  const { error } = await supabase.from('training_materials').delete().eq('id', id);
+  if (error) { showToast('删除失败：' + error.message); return; }
+  showToast('🗑️ 已删除「' + title + '」');
+  loadTrainingFromDB();
 }
 
 // ==================== SOP ====================
@@ -3613,7 +3601,22 @@ init();
     <div class="modal-body" id="mod-pattern-body"></div>
     <div class="modal-footer">
       <button class="btn-sm outline" onclick="closeModal('mod-pattern')">取消</button>
-      <button class="btn-sm primary" id="mod-pattern-save" onclick="savePattern()">💾 保存到本地</button>
+      <button class="btn-sm primary" id="mod-pattern-save" onclick="savePattern()">💾 保存并同步</button>
+    </div>
+  </div>
+</div>
+
+<!-- 培训资料编辑弹窗 -->
+<div class="modal-overlay" id="mod-training" onclick="closeModal('mod-training')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="mod-training-title">＋ 新增培训资料</h3>
+      <button class="modal-close" onclick="closeModal('mod-training')">✕</button>
+    </div>
+    <div class="modal-body" id="mod-training-body"></div>
+    <div class="modal-footer">
+      <button class="btn-sm outline" onclick="closeModal('mod-training')">取消</button>
+      <button class="btn-sm primary" onclick="saveTraining()">💾 保存并同步</button>
     </div>
   </div>
 </div>
