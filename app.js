@@ -1629,28 +1629,44 @@ function subscribeProfiles() {
 // ==================== 客服信息管理 ====================
 let allStaffData = [];
 let staffSearchTerm = '';
+let allOvertimeRecords = [];  // all overtime records from Supabase
+let allLeaveRecords = [];     // all compensatory leave records from Supabase
+let otDrawerProfileId = null;
 
 async function loadStaffInfo() {
   if (!supabase) {
-    document.getElementById('staff-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">Supabase 未初始化</td></tr>';
+    document.getElementById('staff-tbody').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">Supabase 未初始化</td></tr>';
     return;
   }
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('group_name', { ascending: true })
-      .order('name', { ascending: true });
-    if (error) {
-      document.getElementById('staff-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--danger);">加载失败：' + escapeHtml(error.message) + '</td></tr>';
+    const [profRes, otRes, lvRes] = await Promise.all([
+      supabase.from('profiles').select('*').order('group_name', { ascending: true }).order('name', { ascending: true }),
+      supabase.from('overtime_records').select('*').order('date', { ascending: false }),
+      supabase.from('compensatory_leave_records').select('*').order('date', { ascending: false })
+    ]);
+    if (profRes.error) {
+      document.getElementById('staff-tbody').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--danger);">加载失败：' + escapeHtml(profRes.error.message) + '</td></tr>';
       return;
     }
-    allStaffData = data || [];
+    allStaffData = profRes.data || [];
+    allOvertimeRecords = otRes.data || [];
+    allLeaveRecords = lvRes.data || [];
     renderStaffTable();
   } catch (e) {
-    document.getElementById('staff-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--danger);">加载异常</td></tr>';
+    document.getElementById('staff-tbody').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--danger);">加载异常</td></tr>';
   }
 }
+
+function getOTSummary(profileId) {
+  const otRecs = allOvertimeRecords.filter(r => r.profile_id === profileId);
+  const lvRecs = allLeaveRecords.filter(r => r.profile_id === profileId);
+  const totalOT = otRecs.reduce((sum, r) => sum + (Number(r.hours) || 0), 0);
+  const totalLV = lvRecs.reduce((sum, r) => sum + (Number(r.hours) || 0), 0);
+  const remain = Math.max(0, totalOT - totalLV);
+  return { totalOT: roundH(totalOT), totalLV: roundH(totalLV), remain: roundH(remain) };
+}
+
+function roundH(v) { return Math.round(v * 10) / 10; }
 
 function renderStaffTable() {
   const tbody = document.getElementById('staff-tbody');
@@ -1666,7 +1682,7 @@ function renderStaffTable() {
   document.getElementById('staff-count').textContent = '共 ' + filtered.length + ' 人（总计 ' + allStaffData.length + ' 人）';
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">' + (term ? '无匹配结果' : '暂无客服数据') + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">' + (term ? '无匹配结果' : '暂无客服数据') + '</td></tr>';
     return;
   }
 
@@ -1680,20 +1696,18 @@ function renderStaffTable() {
     const hireDate = s.hire_date || '-';
     const position = s.position || '-';
     const group = groupMap[s.group_name] || (s.group_name || '未分组');
-    const overtime = s.overtime != null ? Number(s.overtime) : 0;
-    const compLeave = s.compensatory_leave != null ? Number(s.compensatory_leave) : 0;
 
-    const editable = isAdmin ? ' class="staff-editable"' : '';
-    const onClickEdit = isAdmin ? ' onclick="event.stopPropagation();startEditStaffField(this,\'' + s.id + '\',\'' + 'nickname' + '\',\'' + escapeAttr(nickname) + '\')"' : '';
-    const onClickReal = isAdmin ? ' onclick="event.stopPropagation();startEditStaffField(this,\'' + s.id + '\',\'' + 'real_name' + '\',\'' + escapeAttr(realName) + '\')"' : '';
-    const onClickPhone = isAdmin ? ' onclick="event.stopPropagation();startEditStaffField(this,\'' + s.id + '\',\'' + 'phone' + '\',\'' + escapeAttr(phone) + '\')"' : '';
-    const onClickHire = isAdmin ? ' onclick="event.stopPropagation();startEditStaffField(this,\'' + s.id + '\',\'' + 'hire_date' + '\',\'' + escapeAttr(hireDate) + '\')"' : '';
-    const onClickPos = isAdmin ? ' onclick="event.stopPropagation();startEditStaffField(this,\'' + s.id + '\',\'' + 'position' + '\',\'' + escapeAttr(position) + '\')"' : '';
-    const onClickOT = isAdmin ? ' onclick="event.stopPropagation();startEditStaffField(this,\'' + s.id + '\',\'' + 'overtime' + '\',\'' + overtime + '\')"' : '';
-    const onClickCL = isAdmin ? ' onclick="event.stopPropagation();startEditStaffField(this,\'' + s.id + '\',\'' + 'compensatory_leave' + '\',\'' + compLeave + '\')"' : '';
+    const ot = getOTSummary(s.id);
 
-    const otBadge = overtime > 0 ? '<span class="staff-badge overtime">+' + overtime + '天</span>' : '<span style="color:#999;">0</span>';
-    const clBadge = compLeave > 0 ? '<span class="staff-badge leave">' + compLeave + '天</span>' : '<span style="color:#999;">0</span>';
+    const onClickEdit = isAdmin ? ' onclick="event.stopPropagation();startEditStaffField(this,\'' + s.id + '\',\'nickname\',\'' + escapeAttr(nickname) + '\')"' : '';
+    const onClickReal = isAdmin ? ' onclick="event.stopPropagation();startEditStaffField(this,\'' + s.id + '\',\'real_name\',\'' + escapeAttr(realName) + '\')"' : '';
+    const onClickPhone = isAdmin ? ' onclick="event.stopPropagation();startEditStaffField(this,\'' + s.id + '\',\'phone\',\'' + escapeAttr(phone) + '\')"' : '';
+    const onClickHire = isAdmin ? ' onclick="event.stopPropagation();startEditStaffField(this,\'' + s.id + '\',\'hire_date\',\'' + escapeAttr(hireDate) + '\')"' : '';
+    const onClickPos = isAdmin ? ' onclick="event.stopPropagation();startEditStaffField(this,\'' + s.id + '\',\'position\',\'' + escapeAttr(position) + '\')"' : '';
+
+    const otColor = ot.totalOT > 0 ? '#e67e22' : '#999';
+    const lvColor = ot.totalLV > 0 ? '#3498db' : '#999';
+    const rmColor = ot.remain > 0 ? '#27ae60' : '#999';
 
     return '<tr>'
       + '<td' + (isAdmin ? ' style="cursor:pointer;"' : '') + onClickEdit + '>' + escapeHtml(nickname) + '</td>'
@@ -1702,13 +1716,163 @@ function renderStaffTable() {
       + '<td' + (isAdmin ? ' style="cursor:pointer;"' : '') + onClickHire + '>' + escapeHtml(hireDate) + '</td>'
       + '<td' + (isAdmin ? ' style="cursor:pointer;"' : '') + onClickPos + '>' + escapeHtml(position) + '</td>'
       + '<td>' + group + '</td>'
-      + '<td' + (isAdmin ? ' style="cursor:pointer;"' : '') + onClickOT + ' style="text-align:center;">' + otBadge + '</td>'
-      + '<td' + (isAdmin ? ' style="cursor:pointer;"' : '') + onClickCL + ' style="text-align:center;">' + clBadge + '</td>'
+      + '<td class="staff-ot-cell" onclick="event.stopPropagation();openOTDrawer(\'' + s.id + '\',\'' + escapeAttr(nickname) + '\')">'
+      + '<div class="ot-cell-val" style="color:' + otColor + '">' + ot.totalOT + 'h</div></td>'
+      + '<td class="staff-ot-cell" onclick="event.stopPropagation();openOTDrawer(\'' + s.id + '\',\'' + escapeAttr(nickname) + '\')">'
+      + '<div class="ot-cell-val" style="color:' + lvColor + '">' + ot.totalLV + 'h</div></td>'
+      + '<td class="staff-ot-cell" onclick="event.stopPropagation();openOTDrawer(\'' + s.id + '\',\'' + escapeAttr(nickname) + '\')">'
+      + '<div class="ot-cell-val" style="color:' + rmColor + '">' + ot.remain + 'h</div></td>'
       + '<td><div class="staff-btn-row">'
+      + '<button class="btn-sm outline" onclick="event.stopPropagation();openOTDrawer(\'' + s.id + '\',\'' + escapeAttr(nickname) + '\')" title="管理加班调休">⏱️</button>'
       + '<button class="btn-sm outline" onclick="event.stopPropagation();copyStaffRow(\'' + s.id + '\')" title="复制该行">📋</button>'
       + '</div></td>'
       + '</tr>';
   }).join('');
+}
+
+// ========== 加班调休抽屉 ==========
+
+function openOTDrawer(profileId, nickname) {
+  otDrawerProfileId = profileId;
+  document.getElementById('ot-drawer-name').textContent = '⏱️ ' + nickname + ' - 加班调休';
+  document.getElementById('ot-drawer-overlay').classList.add('show');
+  document.getElementById('ot-drawer').classList.add('show');
+
+  const isAdmin = currentProfile?.role === 'admin';
+  document.getElementById('ot-add-overtime-btn').style.display = isAdmin ? '' : 'none';
+  document.getElementById('ot-add-leave-btn').style.display = isAdmin ? '' : 'none';
+  hideOTAddForm('overtime');
+  hideOTAddForm('leave');
+
+  renderOTDrawer();
+}
+
+function closeOTDrawer() {
+  document.getElementById('ot-drawer-overlay').classList.remove('show');
+  document.getElementById('ot-drawer').classList.remove('show');
+  otDrawerProfileId = null;
+}
+
+function renderOTDrawer() {
+  const pid = otDrawerProfileId;
+  if (!pid) return;
+
+  const ot = getOTSummary(pid);
+  document.getElementById('ot-drawer-summary').innerHTML =
+    '<div class="ot-stat ot-total"><div class="ot-stat-val">' + ot.totalOT + 'h</div><div class="ot-stat-label">累计加班</div></div>' +
+    '<div class="ot-stat ot-used"><div class="ot-stat-val">' + ot.totalLV + 'h</div><div class="ot-stat-label">已调休</div></div>' +
+    '<div class="ot-stat ot-remain"><div class="ot-stat-val">' + ot.remain + 'h</div><div class="ot-stat-label">剩余可调</div></div>';
+
+  // Overtime list
+  const otRecs = allOvertimeRecords.filter(r => r.profile_id === pid);
+  const otList = document.getElementById('ot-overtime-list');
+  if (!otRecs.length) {
+    otList.innerHTML = '<div class="ot-list-empty">暂无加班记录</div>';
+  } else {
+    otList.innerHTML = otRecs.map(r => {
+      const isAdmin = currentProfile?.role === 'admin';
+      return '<div class="ot-record-item overtime-rec">'
+        + '<span class="ot-rec-date">' + (r.date || '-') + '</span>'
+        + '<span class="ot-rec-hours">+' + roundH(r.hours) + 'h</span>'
+        + '<span class="ot-rec-note">' + escapeHtml(r.note || '') + '</span>'
+        + (isAdmin ? '<button class="ot-rec-del" onclick="deleteOTRecord(\'overtime\',\'' + r.id + '\')" title="删除">🗑️</button>' : '')
+        + '</div>';
+    }).join('');
+  }
+
+  // Leave list
+  const lvRecs = allLeaveRecords.filter(r => r.profile_id === pid);
+  const lvList = document.getElementById('ot-leave-list');
+  if (!lvRecs.length) {
+    lvList.innerHTML = '<div class="ot-list-empty">暂无调休记录</div>';
+  } else {
+    lvList.innerHTML = lvRecs.map(r => {
+      const isAdmin = currentProfile?.role === 'admin';
+      return '<div class="ot-record-item leave-rec">'
+        + '<span class="ot-rec-date">' + (r.date || '-') + '</span>'
+        + '<span class="ot-rec-hours" style="color:#3498db;">-' + roundH(r.hours) + 'h</span>'
+        + '<span class="ot-rec-note">' + escapeHtml(r.note || '') + '</span>'
+        + (isAdmin ? '<button class="ot-rec-del" onclick="deleteOTRecord(\'leave\',\'' + r.id + '\')" title="删除">🗑️</button>' : '')
+        + '</div>';
+    }).join('');
+  }
+}
+
+function showOTAddForm(type) {
+  if (type === 'overtime') {
+    document.getElementById('ot-overtime-form').style.display = 'flex';
+    document.getElementById('ot-ov-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('ot-ov-hours').value = '';
+    document.getElementById('ot-ov-note').value = '';
+    setTimeout(() => document.getElementById('ot-ov-hours').focus(), 100);
+  } else {
+    document.getElementById('ot-leave-form').style.display = 'flex';
+    document.getElementById('ot-lv-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('ot-lv-hours').value = '';
+    document.getElementById('ot-lv-note').value = '';
+    setTimeout(() => document.getElementById('ot-lv-hours').focus(), 100);
+  }
+}
+
+function hideOTAddForm(type) {
+  document.getElementById(type === 'overtime' ? 'ot-overtime-form' : 'ot-leave-form').style.display = 'none';
+}
+
+async function saveOTRecord(type) {
+  const pid = otDrawerProfileId;
+  if (!pid || !supabase) return;
+
+  const prefix = type === 'overtime' ? 'ot-ov-' : 'ot-lv-';
+  const dateVal = document.getElementById(prefix + 'date').value;
+  const hoursVal = parseFloat(document.getElementById(prefix + 'hours').value);
+  const noteVal = document.getElementById(prefix + 'note').value.trim();
+
+  if (!dateVal) { showToast('请选择日期'); return; }
+  if (!hoursVal || hoursVal <= 0) { showToast('请输入有效小时数'); return; }
+
+  const table = type === 'overtime' ? 'overtime_records' : 'compensatory_leave_records';
+  const { data, error } = await supabase.from(table).insert({
+    profile_id: pid,
+    date: dateVal,
+    hours: hoursVal,
+    note: noteVal || null
+  }).select().single();
+
+  if (error) { showToast('保存失败：' + error.message); return; }
+
+  showToast(type === 'overtime' ? '加班记录已添加' : '调休记录已添加');
+  hideOTAddForm(type);
+
+  // Update local cache
+  if (type === 'overtime') {
+    allOvertimeRecords.unshift(data);
+  } else {
+    allLeaveRecords.unshift(data);
+  }
+
+  renderOTDrawer();
+  renderStaffTable();
+}
+
+async function deleteOTRecord(type, recordId) {
+  if (!supabase) return;
+  if (!confirm('确定删除该条记录？')) return;
+
+  const table = type === 'overtime' ? 'overtime_records' : 'compensatory_leave_records';
+  const { error } = await supabase.from(table).delete().eq('id', recordId);
+  if (error) { showToast('删除失败：' + error.message); return; }
+
+  showToast('已删除');
+
+  // Update local cache
+  if (type === 'overtime') {
+    allOvertimeRecords = allOvertimeRecords.filter(r => r.id !== recordId);
+  } else {
+    allLeaveRecords = allLeaveRecords.filter(r => r.id !== recordId);
+  }
+
+  renderOTDrawer();
+  renderStaffTable();
 }
 
 function filterStaff() {
@@ -1722,16 +1886,14 @@ function startEditStaffField(td, userId, field, currentValue) {
 
   const oldHtml = td.innerHTML;
   const isDate = field === 'hire_date';
-  const isNum = field === 'overtime' || field === 'compensatory_leave';
-  const inputType = isDate ? 'date' : isNum ? 'number' : 'text';
+  const inputType = isDate ? 'date' : 'text';
   const placeholder = isDate ? 'YYYY-MM-DD' : field === 'phone' ? '手机号' : '';
 
   const input = document.createElement('input');
   input.type = inputType;
   input.value = currentValue === '-' ? '' : currentValue;
   input.className = 'staff-input';
-  input.style.cssText = 'padding:4px 8px;border:1.5px solid var(--primary);border-radius:6px;font-size:14px;width:100%;max-width:' + (isNum ? '70px' : '140px') + ';font-family:inherit;background:var(--card-bg);color:var(--text);';
-  if (isNum) { input.step = '0.5'; input.min = '0'; input.style.textAlign = 'center'; }
+  input.style.cssText = 'padding:4px 8px;border:1.5px solid var(--primary);border-radius:6px;font-size:14px;width:100%;max-width:140px;font-family:inherit;background:var(--card-bg);color:var(--text);';
   if (placeholder) input.placeholder = placeholder;
 
   td.innerHTML = '';
@@ -1745,9 +1907,7 @@ function startEditStaffField(td, userId, field, currentValue) {
     if (newVal === oldVal) { td.innerHTML = oldHtml; return; }
 
     const payload = {};
-    if (isNum) {
-      payload[field] = newVal === '' ? 0 : parseFloat(newVal) || 0;
-    } else if (isDate) {
+    if (isDate) {
       payload[field] = newVal || null;
     } else {
       payload[field] = newVal || null;
@@ -1760,12 +1920,9 @@ function startEditStaffField(td, userId, field, currentValue) {
       return;
     }
     showToast('已更新');
-    // Update local cache
     const idx = allStaffData.findIndex(s => s.id === userId);
     if (idx >= 0) {
-      if (isNum) {
-        allStaffData[idx][field] = newVal === '' ? 0 : parseFloat(newVal) || 0;
-      } else if (isDate) {
+      if (isDate) {
         allStaffData[idx][field] = newVal || null;
       } else {
         allStaffData[idx][field] = newVal || null;
@@ -1784,16 +1941,17 @@ function startEditStaffField(td, userId, field, currentValue) {
 async function copyStaffRow(userId) {
   const s = allStaffData.find(x => x.id === userId);
   if (!s) { showToast('未找到该客服'); return; }
-  const hireDate = s.hire_date || '-';
+  const ot = getOTSummary(userId);
   const text = [
     '花名：' + (s.name || '-'),
     '真实姓名：' + (s.real_name || '-'),
     '手机号：' + (s.phone || '-'),
-    '入职日期：' + hireDate,
+    '入职日期：' + (s.hire_date || '-'),
     '岗位：' + (s.position || '-'),
     '组别：' + (s.group_name || '未分组'),
-    '加班：' + (s.overtime || 0) + '天',
-    '调休：' + (s.compensatory_leave || 0) + '天'
+    '累计加班：' + ot.totalOT + 'h',
+    '已调休：' + ot.totalLV + 'h',
+    '剩余可调：' + ot.remain + 'h'
   ].join('\n');
   try {
     await navigator.clipboard.writeText(text);
@@ -1813,6 +1971,7 @@ function copyAllStaff() {
   }) : allStaffData;
 
   const text = filtered.map(s => {
+    const ot = getOTSummary(s.id);
     return [
       s.name || '-',
       s.real_name || '-',
@@ -1820,12 +1979,13 @@ function copyAllStaff() {
       s.hire_date || '-',
       s.position || '-',
       s.group_name || '未分组',
-      (s.overtime || 0) + '天',
-      (s.compensatory_leave || 0) + '天'
+      ot.totalOT + 'h',
+      ot.totalLV + 'h',
+      ot.remain + 'h'
     ].join('\t');
   }).join('\n');
 
-  const header = '花名\t真实姓名\t手机号\t入职日期\t岗位\t组别\t加班\t调休';
+  const header = '花名\t真实姓名\t手机号\t入职日期\t岗位\t组别\t累计加班(h)\t已调休(h)\t剩余可调(h)';
   const full = header + '\n' + text;
 
   try {
@@ -1844,8 +2004,9 @@ function exportStaffCSV() {
     return name.includes(term) || real.includes(term) || phone.includes(term);
   }) : allStaffData;
 
-  const header = '花名,真实姓名,手机号,入职日期,岗位,组别,加班(天),调休(天)';
+  const header = '花名,真实姓名,手机号,入职日期,岗位,组别,累计加班(h),已调休(h),剩余可调(h)';
   const rows = filtered.map(s => {
+    const ot = getOTSummary(s.id);
     return [
       '"' + (s.name || '') + '"',
       '"' + (s.real_name || '') + '"',
@@ -1853,8 +2014,9 @@ function exportStaffCSV() {
       '"' + (s.hire_date || '') + '"',
       '"' + (s.position || '') + '"',
       '"' + (s.group_name || '未分组') + '"',
-      s.overtime || 0,
-      s.compensatory_leave || 0
+      ot.totalOT,
+      ot.totalLV,
+      ot.remain
     ].join(',');
   });
   const csv = '\uFEFF' + header + '\n' + rows.join('\n');
@@ -1872,6 +2034,12 @@ function subscribeStaffInfo() {
   if (!supabase || staffSub) return;
   staffSub = supabase.channel('staff-info')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+      if (currentPage === 'staff-info') loadStaffInfo();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'overtime_records' }, () => {
+      if (currentPage === 'staff-info') loadStaffInfo();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'compensatory_leave_records' }, () => {
       if (currentPage === 'staff-info') loadStaffInfo();
     })
     .subscribe();

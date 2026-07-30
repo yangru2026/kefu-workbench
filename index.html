@@ -667,6 +667,45 @@ body {
 .staff-badge.leave { background:#e8f5e9; color:#27ae60; }
 .staff-btn-row { display:flex; gap:6px; justify-content:center; }
 
+/* ===== 加班调休抽屉 ===== */
+.ot-drawer-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.35); z-index:999; opacity:0; pointer-events:none; transition:opacity .25s; }
+.ot-drawer-overlay.show { opacity:1; pointer-events:auto; }
+.ot-drawer { position:fixed; top:0; right:0; width:420px; max-width:92vw; height:100%; background:var(--card-bg); z-index:1000; transform:translateX(100%); transition:transform .25s ease; display:flex; flex-direction:column; box-shadow:-4px 0 24px rgba(0,0,0,0.12); }
+.ot-drawer.show { transform:translateX(0); }
+.ot-drawer-header { display:flex; align-items:center; justify-content:space-between; padding:20px 24px; border-bottom:1px solid var(--border); flex-shrink:0; }
+.ot-drawer-header h3 { margin:0; font-size:18px; }
+.ot-drawer-close { background:none; border:none; font-size:20px; cursor:pointer; color:var(--text-secondary); padding:4px 8px; border-radius:6px; }
+.ot-drawer-close:hover { background:var(--hover-bg); color:var(--text); }
+.ot-drawer-summary { display:flex; gap:12px; padding:16px 24px; border-bottom:1px solid var(--border); flex-shrink:0; }
+.ot-drawer-summary .ot-stat { flex:1; text-align:center; padding:10px 8px; border-radius:10px; background:var(--hover-bg); }
+.ot-drawer-summary .ot-stat-val { font-size:22px; font-weight:700; }
+.ot-drawer-summary .ot-stat-label { font-size:11px; color:var(--text-secondary); margin-top:2px; }
+.ot-stat.ot-total .ot-stat-val { color:#e67e22; }
+.ot-stat.ot-used .ot-stat-val { color:#3498db; }
+.ot-stat.ot-remain .ot-stat-val { color:#27ae60; }
+.ot-drawer-body { flex:1; overflow-y:auto; padding:20px 24px; }
+.ot-section { margin-bottom:24px; }
+.ot-section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.ot-section-header h4 { margin:0; font-size:15px; }
+.ot-record-form { display:flex; align-items:center; gap:8px; margin-bottom:12px; padding:12px; background:var(--hover-bg); border-radius:8px; flex-wrap:wrap; }
+.ot-input { padding:6px 10px; border:1px solid var(--border); border-radius:6px; font-size:14px; font-family:inherit; background:var(--card-bg); color:var(--text); }
+.ot-input-sm { width:70px; }
+.ot-input-note { flex:1; min-width:100px; }
+.ot-list { display:flex; flex-direction:column; gap:6px; }
+.ot-record-item { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--card-bg); border:1px solid var(--border); border-radius:8px; font-size:13px; }
+.ot-record-item .ot-rec-date { font-weight:600; color:var(--text); min-width:90px; }
+.ot-record-item .ot-rec-hours { font-weight:700; min-width:50px; }
+.ot-record-item.overtime-rec .ot-rec-hours { color:#e67e22; }
+.ot-record-item.leave-rec .ot-rec-hours { color:#3498db; }
+.ot-record-item .ot-rec-note { flex:1; color:var(--text-secondary); }
+.ot-record-item .ot-rec-del { background:none; border:none; color:#e74c3c; cursor:pointer; font-size:14px; padding:2px 6px; border-radius:4px; }
+.ot-record-item .ot-rec-del:hover { background:#fde8e8; }
+.ot-list-empty { text-align:center; padding:16px; color:var(--text-secondary); font-size:13px; }
+.staff-ot-cell { cursor:pointer; text-align:center; transition:background .15s; }
+.staff-ot-cell:hover { background:var(--hover-bg); }
+.staff-ot-cell .ot-cell-val { font-weight:700; font-size:15px; }
+.staff-ot-cell .ot-cell-hint { font-size:10px; color:var(--text-secondary); }
+
 /* ===== Login ===== */
 .login-box { max-width: 400px; margin: 0 auto; background: #fff; border-radius: 16px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
 .login-tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 12px; }
@@ -923,7 +962,7 @@ body {
 
   <!-- ===== 客服信息管理 ===== -->
   <div class="page" id="page-staff-info">
-    <div class="page-header"><h1>📋 客服信息管理</h1><p>管理客服真实姓名、入职日期、花名、手机号、岗位、加班、调休等信息</p></div>
+    <div class="page-header"><h1>📋 客服信息管理</h1><p>管理客服真实姓名、入职日期、花名、手机号、岗位、加班调休（按小时累计）</p></div>
     <div class="staff-toolbar" style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
       <input type="text" id="staff-search" placeholder="🔍 搜索姓名/花名/手机号..." oninput="filterStaff()" style="flex:1;min-width:200px;padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--card-bg);color:var(--text);">
       <button class="btn-sm outline" onclick="copyAllStaff()">📋 复制全部</button>
@@ -931,7 +970,7 @@ body {
       <button class="btn-sm outline" onclick="loadStaffInfo()">🔄 刷新</button>
     </div>
     <div class="ranking-table-wrap">
-      <table class="ranking-table" style="min-width:900px;">
+      <table class="ranking-table" style="min-width:1000px;">
         <thead><tr>
           <th>花名</th>
           <th>真实姓名</th>
@@ -939,16 +978,59 @@ body {
           <th>入职日期</th>
           <th>岗位</th>
           <th>组别</th>
-          <th style="width:70px;">加班(天)</th>
-          <th style="width:70px;">调休(天)</th>
+          <th style="width:80px;">累计加班(h)</th>
+          <th style="width:80px;">已调休(h)</th>
+          <th style="width:90px;">剩余可调(h)</th>
           <th style="width:120px;">操作</th>
         </tr></thead>
         <tbody id="staff-tbody">
-          <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">加载中...</td></tr>
+          <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">加载中...</td></tr>
         </tbody>
       </table>
     </div>
     <div style="margin-top:12px;font-size:12px;color:var(--text-secondary);text-align:right;" id="staff-count"></div>
+  </div>
+
+  <!-- 加班调休详情抽屉 -->
+  <div class="ot-drawer-overlay" id="ot-drawer-overlay" onclick="closeOTDrawer()"></div>
+  <div class="ot-drawer" id="ot-drawer">
+    <div class="ot-drawer-header">
+      <h3 id="ot-drawer-name"></h3>
+      <button class="ot-drawer-close" onclick="closeOTDrawer()">✕</button>
+    </div>
+    <div class="ot-drawer-summary" id="ot-drawer-summary"></div>
+    <div class="ot-drawer-body">
+      <!-- 加班记录 -->
+      <div class="ot-section">
+        <div class="ot-section-header">
+          <h4>⏰ 加班记录</h4>
+          <button class="btn-sm" id="ot-add-overtime-btn" onclick="showOTAddForm('overtime')">+ 新增加班</button>
+        </div>
+        <div id="ot-overtime-form" class="ot-record-form" style="display:none;">
+          <input type="date" id="ot-ov-date" class="ot-input">
+          <input type="number" id="ot-ov-hours" class="ot-input ot-input-sm" placeholder="小时" step="0.5" min="0.5">
+          <input type="text" id="ot-ov-note" class="ot-input ot-input-note" placeholder="备注（选填）">
+          <button class="btn-sm" onclick="saveOTRecord('overtime')">保存</button>
+          <button class="btn-sm outline" onclick="hideOTAddForm('overtime')">取消</button>
+        </div>
+        <div id="ot-overtime-list" class="ot-list"></div>
+      </div>
+      <!-- 调休记录 -->
+      <div class="ot-section">
+        <div class="ot-section-header">
+          <h4>🏖️ 调休记录</h4>
+          <button class="btn-sm" id="ot-add-leave-btn" onclick="showOTAddForm('leave')">+ 新增调休</button>
+        </div>
+        <div id="ot-leave-form" class="ot-record-form" style="display:none;">
+          <input type="date" id="ot-lv-date" class="ot-input">
+          <input type="number" id="ot-lv-hours" class="ot-input ot-input-sm" placeholder="小时" step="0.5" min="0.5">
+          <input type="text" id="ot-lv-note" class="ot-input ot-input-note" placeholder="备注（选填）">
+          <button class="btn-sm" onclick="saveOTRecord('leave')">保存</button>
+          <button class="btn-sm outline" onclick="hideOTAddForm('leave')">取消</button>
+        </div>
+        <div id="ot-leave-list" class="ot-list"></div>
+      </div>
+    </div>
   </div>
 
   <!-- ===== 度数换算 ===== -->
