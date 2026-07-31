@@ -2336,7 +2336,7 @@ function renderPatternFilters() {
         <button class="btn-sm primary" onclick="confirmEditPatCat()">✓</button>
         <button class="btn-sm outline" onclick="cancelEditPatCat()">✕</button></span>`;
     } else {
-      const ctxAttr = (isAdmin && t.isManaged) ? ` oncontextmenu="showPatCatCtxMenu(event,'type','${escapeAttr(t.name)}')"` : '';
+      const ctxAttr = isAdmin ? ` oncontextmenu="showPatCatCtxMenu(event,'type','${escapeAttr(t.name)}')"` : '';
       typeHtml += `<button class="flink${patternType === t.name ? ' active' : ''}" onclick="setPatternType('${escapeAttr(t.name)}')"${ctxAttr}>${escapeHtml(t.name)}</button>`;
     }
   });
@@ -2358,7 +2358,7 @@ function renderPatternFilters() {
           <button class="btn-sm primary" onclick="confirmEditPatCat()">✓</button>
           <button class="btn-sm outline" onclick="cancelEditPatCat()">✕</button></span>`;
       } else {
-        const ctxAttr = (isAdmin && s.isManaged) ? ` oncontextmenu="showPatCatCtxMenu(event,'series','${escapeAttr(s.name)}')"` : '';
+        const ctxAttr = isAdmin ? ` oncontextmenu="showPatCatCtxMenu(event,'series','${escapeAttr(s.name)}')"` : '';
         seriesHtml += `<button class="flink${patternSeries === s.name ? ' active' : ''}" onclick="setPatternSeries('${escapeAttr(s.name)}')"${ctxAttr}>${escapeHtml(s.name)}</button>`;
       }
     });
@@ -2385,7 +2385,7 @@ function renderPatternFilters() {
           <button class="btn-sm primary" onclick="confirmEditPatCat()">✓</button>
           <button class="btn-sm outline" onclick="cancelEditPatCat()">✕</button></span>`;
       } else {
-        const ctxAttr = (isAdmin && c.isManaged) ? ` oncontextmenu="showPatCatCtxMenu(event,'color','${escapeAttr(c.name)}')"` : '';
+        const ctxAttr = isAdmin ? ` oncontextmenu="showPatCatCtxMenu(event,'color','${escapeAttr(c.name)}')"` : '';
         colorHtml += `<button class="flink${patternColor === c.name ? ' active' : ''}" onclick="setPatternColor('${escapeAttr(c.name)}')"${ctxAttr}>${escapeHtml(c.name)}</button>`;
       }
     });
@@ -2450,10 +2450,16 @@ async function confirmEditPatCat() {
   if (!newName || !_editingPatCat) { cancelEditPatCat(); return; }
   if (newName === _editingPatCat.oldName) { cancelEditPatCat(); return; }
   const cat = patternCategories.find(c => c.category_type === _editingPatCat.type && c.name === _editingPatCat.oldName);
-  if (!cat) { cancelEditPatCat(); return; }
-  // 更新托管分类名
-  const { error } = await supabase.from('pattern_categories').update({ name: newName }).eq('id', cat.id);
-  if (error) { showToast('修改失败：' + error.message); return; }
+  // 兼容：即使 cat 不存在，也要把花色数据里的旧名字改成新名字
+  // 更新托管分类名（如果有 cat 记录）
+  if (cat) {
+    const { error } = await supabase.from('pattern_categories').update({ name: newName }).eq('id', cat.id);
+    if (error) { showToast('修改失败：' + error.message); return; }
+  } else {
+    // 数据驱动分类被改名：插入一条新的托管分类记录，让它以后也能被管理
+    const maxOrder = patternCategories.filter(c => c.category_type === _editingPatCat.type).reduce((m, c) => Math.max(m, c.sort_order || 0), 0);
+    await supabase.from('pattern_categories').insert({ category_type: _editingPatCat.type, name: newName, sort_order: maxOrder + 1 });
+  }
   // 级联更新花色数据中对应字段
   const fieldMap = { brand: 'brand', type: 'type', series: 'series', color: 'color' };
   const field = fieldMap[_editingPatCat.type];
@@ -2473,11 +2479,9 @@ async function confirmEditPatCat() {
 }
 
 async function deletePatCat(type, name) {
+  // 兼容处理：即使 patternCategories 里没有该分类（说明它只是数据驱动的），
+  // 也允许删除关联花色字段，并从数据库清掉对应记录（如果存在）
   const cat = patternCategories.find(c => c.category_type === type && c.name === name);
-  if (!cat) {
-    showToast('⚠️ 未找到该分类，请刷新页面后重试');
-    return;
-  }
   // 统计受影响的花色数量
   const fieldMap = { brand: 'brand', type: 'type', series: 'series', color: 'color' };
   const field = fieldMap[type];
@@ -2501,8 +2505,11 @@ async function deletePatCat(type, name) {
       await supabase.from('pattern_assets').update({ [field]: '' }).eq(field, name);
     }
   }
-  const { error } = await supabase.from('pattern_categories').delete().eq('id', cat.id);
-  if (error) { showToast('删除失败：' + error.message); return; }
+  // 删除数据库记录（如果有的话）；不阻塞后续 UI 刷新
+  if (cat) {
+    const { error } = await supabase.from('pattern_categories').delete().eq('id', cat.id);
+    if (error) console.warn('删除分类记录失败（不影响操作）:', error.message);
+  }
   showToast('🗑️ 分类已删除');
   // 重置筛选
   if (type === 'brand' && patternBrand === name) patternBrand = getPatternBrands()[0] || '';
