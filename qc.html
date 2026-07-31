@@ -740,18 +740,18 @@ function updateFilterOptions() {
 
 function getFilteredRecords() {
   let r = [...records];
-  const fStaff = document.getElementById('filterStaff').value;
-  const fShop = document.getElementById('filterShop').value;
-  const fTag = document.getElementById('filterTag').value;
-  const fStatus = document.getElementById('filterStatus').value;
-  const fFrom = document.getElementById('filterDateFrom').value;
-  const fTo = document.getElementById('filterDateTo').value;
-  if (fStaff) r = r.filter(x => x.staff === fStaff);
-  if (fShop) r = r.filter(x => x.shop === fShop);
-  if (fTag) r = r.filter(x => (x.tags||[]).includes(fTag));
-  if (fStatus) r = r.filter(x => x.status === fStatus);
-  if (fFrom) r = r.filter(x => x.date >= fFrom);
-  if (fTo) r = r.filter(x => x.date <= fTo);
+  const elStaff = document.getElementById('filterStaff');
+  const elShop = document.getElementById('filterShop');
+  const elTag = document.getElementById('filterTag');
+  const elStatus = document.getElementById('filterStatus');
+  const elFrom = document.getElementById('filterDateFrom');
+  const elTo = document.getElementById('filterDateTo');
+  if (elStaff && elStaff.value) r = r.filter(x => x.staff === elStaff.value);
+  if (elShop && elShop.value) r = r.filter(x => x.shop === elShop.value);
+  if (elTag && elTag.value) r = r.filter(x => (x.tags||[]).includes(elTag.value));
+  if (elStatus && elStatus.value) r = r.filter(x => x.status === elStatus.value);
+  if (elFrom && elFrom.value) r = r.filter(x => x.date >= elFrom.value);
+  if (elTo && elTo.value) r = r.filter(x => x.date <= elTo.value);
   return r;
 }
 
@@ -1307,14 +1307,34 @@ function exportCSV() {
 }
 
 /* ==================== Init ==================== */
-async function init() {
+function init() {
   loadLocalCache();
-  await checkAuth();
-  await loadRecords();
-  updateAdminUI();
+  checkAuth().then(() => {
+    loadRecords().then(() => {
+      updateAdminUI();
+    });
+  });
 }
 
-init();
+// 等待 DOM 和 supabase 库都就绪
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.supabase && window.supabase.createClient) {
+      init();
+    } else {
+      // supabase 库还没加载完，再等一下
+      const t = setInterval(function() {
+        if (window.supabase && window.supabase.createClient) {
+          clearInterval(t);
+          init();
+        }
+      }, 100);
+      setTimeout(function() { clearInterval(t); }, 10000);
+    }
+  });
+} else {
+  init();
+}
 </script>
 </body>
 </html>
