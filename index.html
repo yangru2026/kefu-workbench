@@ -854,6 +854,13 @@ body {
 .daily-report-card .dr-label { color: var(--text-secondary); }
 .daily-report-card .dr-val { font-weight: 600; }
 
+/* ===== 质检工具 topbar ===== */
+.qc-topbar { background:var(--sidebar-bg); color:#e0e5d8; padding:10px 20px; display:flex; justify-content:space-between; align-items:center; font-size:14px; flex-shrink:0; }
+.qc-topbar-title { font-weight:600; }
+.qc-topbar-user { font-size:12px; opacity:.7; }
+#page-qc { padding:0 !important; }
+#page-qc .page-header { display:none; }
+
 /* Responsive */
 @media (max-width: 768px) {
   .sidebar { width: 60px; }
@@ -890,6 +897,7 @@ body {
     <div class="nav-item" data-page="ranking"><span class="icon">🏆</span><span>客服排名</span></div>
     <div class="nav-item" data-page="daily"><span class="icon">🌙</span><span>日报</span></div>
     <div class="nav-item" data-page="presale"><span class="icon">📈</span><span>售前数据</span></div>
+    <div class="nav-item" data-page="qc"><span class="icon">🔍</span><span>质检工具</span></div>
     <div class="nav-section">账号</div>
     <div class="nav-item admin-only-nav" data-page="members" style="display:none;"><span class="icon">👥</span><span>成员管理</span></div>
     <div class="nav-item admin-only-nav" data-page="staff-info" style="display:none;"><span class="icon">👥</span><span>客服信息</span></div>
@@ -1393,6 +1401,15 @@ body {
   </div>
 
   <!-- ===== 客服排名 ===== -->
+  <!-- ===== 质检工具 ===== -->
+  <div class="page" id="page-qc" style="padding:0;overflow:hidden;display:flex;flex-direction:column;">
+    <div class="qc-topbar">
+      <span class="qc-topbar-title">🔍 客服聊天记录质检工具</span>
+      <span class="qc-topbar-user" id="qc-user-badge">管理员模式下可增删改</span>
+    </div>
+    <iframe id="qc-iframe" src="qc.html" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write" onload="onQcIframeLoad()"></iframe>
+  </div>
+
   <div class="page" id="page-ranking">
     <div class="page-header"><h1>🏆 客服排名</h1><p>A/B/C三组，按转化率/连带销售额/满意度/响应时效排名</p></div>
     <div class="ranking-toolbar">
@@ -1825,6 +1842,24 @@ function switchPage(page) {
   if (page === 'schedule') renderSchedule();
   if (page === 'ranking') renderRanking();
   if (page === 'staff-info') loadStaffInfo();
+  if (page === 'qc') {
+    const isAdmin = currentUser && isAdminUser();
+    document.getElementById('qc-user-badge').textContent = isAdmin ? '👑 管理员模式 · ' + (currentUser.email || currentUser.phone) : '📖 只读模式';
+    notifyQcIframe(isAdmin);
+  }
+}
+
+function notifyQcIframe(admin) {
+  const iframe = document.getElementById('qc-iframe');
+  if (iframe && iframe.contentWindow && iframe.contentWindow.setQcMode) {
+    iframe.contentWindow.setQcMode(admin);
+  }
+}
+
+function onQcIframeLoad() {
+  if (currentPage === 'qc') {
+    notifyQcIframe(currentUser && isAdminUser());
+  }
 }
 
 // ==================== DIOPTER CONVERTER (Full) ====================
