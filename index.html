@@ -1621,17 +1621,20 @@ async function loadConfig() {
 }
 
 function updateStats() {
-  document.getElementById('stat-training').textContent = trainingData.length;
-  // Count total patterns from patternData tree
+  const elTrain = document.getElementById('stat-training');
+  const elPat = document.getElementById('stat-patterns');
+  const elSop = document.getElementById('stat-sop');
+  const elTools = document.getElementById('stat-tools');
+  if (elTrain) elTrain.textContent = trainingData.length;
   let totalPatterns = 0;
   if (patternData && patternData.brands) {
     Object.values(patternData.brands).forEach(brand => {
       if (brand) Object.values(brand).forEach(items => { if (items) totalPatterns += items.length; });
     });
   }
-  document.getElementById('stat-patterns').textContent = totalPatterns || 0;
-  document.getElementById('stat-sop').textContent = sopData.length;
-  document.getElementById('stat-tools').textContent = toolsData.length;
+  if (elPat) elPat.textContent = totalPatterns || 0;
+  if (elSop) elSop.textContent = sopData.length;
+  if (elTools) elTools.textContent = toolsData.length;
 }
 
 // ==================== 培训资料 & 花色素材 Supabase 加载 ====================
@@ -3869,6 +3872,9 @@ let schedHighlightCol = null; // currently highlighted column number
 
 function isSchedAdmin() {
   return currentProfile?.role === 'admin' || currentProfile?.role === 'leader';
+}
+function isAdminUser() {
+  return isSchedAdmin();
 }
 
 function editScheduleCell(cell) {
