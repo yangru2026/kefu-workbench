@@ -691,6 +691,10 @@ body {
 .mgmt-toggle:hover { background:var(--tag-bg); }
 .mgmt-toggle.active { background:var(--primary); color:#fff; }
 .mgmt-toggle.active:hover { background:#5b4bd5; }
+.feishu-sync-btn { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border:1px solid #3370ff; background:#fff; color:#3370ff; border-radius:18px; font-size:12px; cursor:pointer; font-family:inherit; font-weight:500; transition:all 0.15s; }
+.feishu-sync-btn:hover { background:#f0f4ff; }
+.feishu-sync-btn:disabled { opacity:0.5; cursor:wait; }
+.feishu-sync-btn.syncing { background:#3370ff; color:#fff; }
 .pcard-mgmt { position:absolute; top:6px; right:6px; display:none; gap:4px; z-index:10; }
 .mgmt-mode .pcard-mgmt { display:flex; }
 .pcard-mgmt button { width:26px; height:26px; border:none; border-radius:50%; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.85); box-shadow:0 1px 4px rgba(0,0,0,0.12); }
@@ -1318,6 +1322,7 @@ body {
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <div><h1>🎨 花色素材库</h1><p>按品牌、抛型、系列、色系筛选，一键复制推荐话术 | 修改实时同步所有客服</p></div>
       <div style="display:flex;gap:8px;align-items:center;">
+        <button class="feishu-sync-btn admin-only-nav" id="feishu-sync-btn" onclick="syncFromFeishu()" style="display:none;">🔄 从飞书同步</button>
         <button class="mgmt-toggle admin-only-nav" id="mgmt-toggle" onclick="toggleMgmtMode()" style="display:none;">📝 管理素材</button>
         <button class="mgmt-add-btn" id="mgmt-add-btn" onclick="openPatternEditor(null)" style="display:none;">＋ 新增花色</button>
       </div>
@@ -1332,8 +1337,6 @@ body {
         <span class="pattern-stats" id="pattern-stats"></span>
       </div>
     </div>
-    <div class="pattern-grid" id="pattern-grid"></div>
-  </div>
     <div class="pattern-grid" id="pattern-grid"></div>
   </div>
 
@@ -1733,6 +1736,52 @@ function subscribePatterns() {
       loadPatternsFromDB();
     })
     .subscribe();
+}
+
+// ---------- 从飞书同步 ----------
+const FEISHU_SYNC_CONFIG = {
+  edgeFunctionUrl: 'https://ienmejlxukhrxjjxvfqf.supabase.co/functions/v1/feishu-sync',
+  authToken: ''  // 部署后填入 SYNC_AUTH_TOKEN 的值
+};
+
+async function syncFromFeishu() {
+  const btn = document.getElementById('feishu-sync-btn');
+  if (!btn) return;
+  if (!FEISHU_SYNC_CONFIG.authToken) {
+    showToast('⚠️ 请先配置飞书同步参数（联系管理员在代码中设置 SYNC_AUTH_TOKEN）');
+    return;
+  }
+  if (!confirm('确定从飞书多维表格同步花色素材？\n\n同步规则：\n• 飞书中的记录会覆盖工作台同名数据\n• 飞书中已删除的记录会标记为下架\n• 同步完成后自动刷新')) return;
+
+  btn.disabled = true;
+  btn.classList.add('syncing');
+  btn.textContent = '🔄 同步中...';
+
+  try {
+    const resp = await fetch(FEISHU_SYNC_CONFIG.edgeFunctionUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + FEISHU_SYNC_CONFIG.authToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ action: 'sync' })
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      showToast('✅ 同步完成！飞书 ' + data.total_in_feishu + ' 条，写入 ' + data.synced + ' 条');
+      // Realtime 会自动刷新，这里兜底手动刷新一次
+      loadPatternsFromDB();
+    } else {
+      showToast('❌ 同步失败: ' + (data.error || '未知错误'));
+    }
+  } catch(e) {
+    console.error('飞书同步异常:', e);
+    showToast('❌ 同步异常: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('syncing');
+    btn.textContent = '🔄 从飞书同步';
+  }
 }
 
 // ---------- 花色分类管理 ----------

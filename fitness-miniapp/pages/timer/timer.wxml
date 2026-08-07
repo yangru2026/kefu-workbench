@@ -1,0 +1,47 @@
+<view class="container">
+  <!-- 圆形计时器 -->
+  <view class="timer-circle">
+    <view class="circle-bg">
+      <view class="progress-ring">
+        <view class="ring-bg"></view>
+        <view class="ring-fill" style="--progress: {{progress}}; --running: {{running ? '1' : '0'}};"></view>
+      </view>
+      <view class="circle-inner">
+        <text class="timer-display">{{displayTime}}</text>
+        <text class="timer-state" wx:if="{{!running && remaining > 0}}">暂停</text>
+        <text class="timer-state done" wx:if="{{remaining === 0 && selected > 0}}">完成!</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 预设按钮 -->
+  <view class="presets">
+    <view
+      class="preset {{selected === item ? 'active' : ''}}"
+      wx:for="{{presets}}"
+      wx:key="*this"
+      wx:for-item="item"
+      bindtap="selectPreset"
+      data-time="{{item}}"
+    >
+      <text class="preset-val">{{item >= 60 ? item / 60 + '分' : item + '秒'}}</text>
+      <text class="preset-sec">{{item}}s</text>
+    </view>
+  </view>
+
+  <!-- 控制按钮 -->
+  <view class="controls">
+    <button class="ctrl-btn start {{running ? 'pause' : ''}}" bindtap="toggleTimer">
+      <text>{{running ? '⏸ 暂停' : '▶ 开始'}}</text>
+    </button>
+    <button class="ctrl-btn reset" bindtap="resetTimer">
+      <text>↺ 重置</text>
+    </button>
+  </view>
+
+  <!-- 自定义输入 -->
+  <view class="custom-row">
+    <input class="custom-input" type="number" placeholder="自定义秒数" value="{{customTime}}" bindinput="onCustomInput" />
+    <button class="btn-sm" bindtap="setCustom">设置</button>
+  </view>
+</view>

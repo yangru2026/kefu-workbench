@@ -1,0 +1,187 @@
+page {
+  background-color: #0f0f1a;
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 28rpx;
+  --primary: #ff6b35;
+  --primary-light: rgba(255, 107, 53, 0.15);
+  --success: #2ecc71;
+  --warning: #f39c12;
+  --danger: #e74c3c;
+  --bg-dark: #1a1a2e;
+  --bg-card: #16213e;
+  --bg-input: #0f3460;
+  --text-dim: #888;
+  --text-main: #e0e0e0;
+  --border: #2a2a4a;
+}
+
+::-webkit-scrollbar { width: 0; height: 0; }
+
+/* 按钮 */
+.btn-primary {
+  background: linear-gradient(135deg, #ff6b35, #e55d2b);
+  color: #fff;
+  border: none;
+  border-radius: 12rpx;
+  padding: 20rpx 40rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+.btn-primary:active { opacity: 0.8; }
+
+.btn-outline {
+  background: transparent;
+  color: #ff6b35;
+  border: 2rpx solid #ff6b35;
+  border-radius: 12rpx;
+  padding: 16rpx 32rpx;
+  font-size: 26rpx;
+}
+.btn-outline:active { background: rgba(255, 107, 53, 0.15); }
+
+.btn-danger {
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 12rpx;
+  padding: 12rpx 24rpx;
+  font-size: 24rpx;
+}
+
+/* 通用卡片 */
+.card {
+  background: #16213e;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+/* 通用标题 */
+.section-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 20rpx;
+}
+
+/* 标签 */
+.tag {
+  display: inline-block;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  background: rgba(255, 107, 53, 0.15);
+  color: #ff6b35;
+}
+
+.tag-green {
+  background: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
+}
+
+/* 模式切换Tab */
+.mode-tabs {
+  display: flex;
+  background: #16213e;
+  border-radius: 12rpx;
+  padding: 6rpx;
+  margin: 20rpx 0;
+}
+
+.mode-tab {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 0;
+  border-radius: 8rpx;
+  font-size: 26rpx;
+  color: #888;
+  transition: all 0.2s;
+}
+
+.mode-tab.active {
+  background: linear-gradient(135deg, #ff6b35, #e55d2b);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* 通用弹窗 */
+.modal-mask {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-box {
+  width: 620rpx;
+  max-height: 80vh;
+  background: #1a1a2e;
+  border-radius: 24rpx;
+  padding: 40rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  margin-bottom: 24rpx;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  padding: 20rpx 40rpx;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  z-index: 999;
+}
+.toast.show { opacity: 1; }
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 40rpx;
+}
+.empty-icon { font-size: 80rpx; margin-bottom: 24rpx; }
+.empty-title { font-size: 36rpx; font-weight: 700; color: #ccc; margin-bottom: 12rpx; }
+.empty-sub { font-size: 26rpx; color: #888; }
+
+/* 统计卡片 */
+.stat-grid {
+  display: flex;
+  gap: 16rpx;
+}
+.stat-card {
+  flex: 1;
+  background: #16213e;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  text-align: center;
+}
+.stat-value {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #ff6b35;
+}
+.stat-label {
+  font-size: 22rpx;
+  color: #888;
+  margin-top: 4rpx;
+}

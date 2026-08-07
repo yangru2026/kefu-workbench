@@ -1,0 +1,46 @@
+{
+  "pages": [
+    "pages/plan/plan",
+    "pages/follow/follow",
+    "pages/timer/timer",
+    "pages/diet/diet",
+    "pages/profile/profile",
+    "pages/video-manager/video-manager"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#1a1a2e",
+    "navigationBarTitleText": "辽哥健身房",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#0f0f1a"
+  },
+  "tabBar": {
+    "color": "#666",
+    "selectedColor": "#ff6b35",
+    "backgroundColor": "#1a1a2e",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/plan/plan",
+        "text": "训练"
+      },
+      {
+        "pagePath": "pages/follow/follow",
+        "text": "跟练"
+      },
+      {
+        "pagePath": "pages/timer/timer",
+        "text": "计时"
+      },
+      {
+        "pagePath": "pages/diet/diet",
+        "text": "饮食"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

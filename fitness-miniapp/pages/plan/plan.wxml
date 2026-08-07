@@ -1,0 +1,161 @@
+<view class="container">
+  <!-- 模式切换 -->
+  <view class="mode-tabs">
+    <view class="mode-tab {{mode === 'template' ? 'active' : ''}}" bindtap="switchMode" data-mode="template">📋 模板计划</view>
+    <view class="mode-tab {{mode === 'free' ? 'active' : ''}}" bindtap="switchMode" data-mode="free">🔓 自由训练</view>
+    <view class="mode-tab {{mode === 'home' ? 'active' : ''}}" bindtap="switchMode" data-mode="home">🏠 居家模板</view>
+  </view>
+
+  <!-- 模板计划模式 -->
+  <block wx:if="{{mode === 'template'}}">
+    <scroll-view class="week-tabs" scroll-x enable-flex>
+      <view class="week-tab {{activeDay === item ? 'active' : ''}} {{isToday(item) ? 'today' : ''}}"
+        wx:for="{{weekDays}}" wx:key="*this" wx:for-item="item"
+        bindtap="switchDay" data-day="{{item}}">
+        <text class="day-name">{{item}}</text>
+        <text class="day-date">{{getDateForDay(item)}}</text>
+        <view class="done-dot" wx:if="{{completed[item]}}"></view>
+      </view>
+    </scroll-view>
+  </block>
+
+  <!-- 居家模板选择 -->
+  <block wx:if="{{mode === 'home'}}">
+    <scroll-view class="content" scroll-y>
+      <view class="home-template-list">
+        <view class="home-card" wx:for="{{homeTemplates}}" wx:key="*this" wx:for-item="tpl"
+          bindtap="selectHomeTemplate" data-name="{{tpl}}">
+          <view class="home-icon">🏠</view>
+          <view class="home-info">
+            <text class="home-name">{{tpl}}</text>
+            <text class="home-sub">点击加载到自由训练</text>
+          </view>
+          <text class="home-arrow">›</text>
+        </view>
+      </view>
+    </scroll-view>
+  </block>
+
+  <!-- 训练内容区（template 和 free 模式共用） -->
+  <scroll-view class="content" scroll-y wx:if="{{mode === 'template' || mode === 'free'}}">
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{currentExercises.length === 0}}">
+      <text class="empty-icon">{{mode === 'free' ? '🔓' : '🛌'}}</text>
+      <text class="empty-title">{{mode === 'free' ? '自由训练' : '休息日'}}</text>
+      <text class="empty-sub">{{mode === 'free' ? '点击下方添加动作，自由组建训练' : '好好恢复，肌肉在休息时生长'}}</text>
+    </view>
+
+    <!-- 动作列表 -->
+    <view class="exercise-list" wx:else>
+      <view class="ex-item" wx:for="{{currentExercises}}" wx:key="index" wx:for-item="ex" wx:for-index="exi">
+        <view class="ex-header">
+          <view class="ex-index {{ex.done ? 'done' : ''}}">
+            <text>{{ex.done ? '✓' : exi + 1}}</text>
+          </view>
+          <view class="ex-info">
+            <text class="ex-name">{{ex.name}}</text>
+            <text class="ex-target">{{ex.sets}}组 × {{ex.reps}}</text>
+          </view>
+          <view class="ex-video-btn" bindtap="playVideo" data-name="{{ex.name}}">
+            <text>▶</text>
+          </view>
+          <view class="ex-actions">
+            <text class="ex-delete" bindtap="removeExercise" data-idx="{{exi}}">✕</text>
+          </view>
+        </view>
+
+        <!-- 组详情 -->
+        <view class="sets-area" wx:if="{{ex.sets > 0}}">
+          <view class="set-row" wx:for="{{ex.setData}}" wx:key="si" wx:for-item="sd" wx:for-index="si">
+            <text class="set-label">第{{si + 1}}组</text>
+            <input class="set-input" type="digit" placeholder="kg" value="{{sd.weight}}"
+              bindinput="onWeightInput" data-exi="{{exi}}" data-si="{{si}}" />
+            <text class="set-unit">kg</text>
+            <input class="set-input" type="number" placeholder="次" value="{{sd.reps}}"
+              bindinput="onRepsInput" data-exi="{{exi}}" data-si="{{si}}" />
+            <text class="set-unit">次</text>
+            <view class="set-done {{sd.done ? 'checked' : ''}}" bindtap="toggleSetDone" data-exi="{{exi}}" data-si="{{si}}">
+              <text>{{sd.done ? '✓' : '○'}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="set-bar">
+          <button class="btn-sm" bindtap="addSet" data-exi="{{exi}}">+ 加组</button>
+          <button class="btn-sm danger" wx:if="{{ex.setData.length > 1}}" bindtap="removeSet" data-exi="{{exi}}">- 减组</button>
+        </view>
+      </view>
+    </view>
+
+    <!-- 添加动作 -->
+    <view class="add-section">
+      <button class="btn-outline add-btn" bindtap="showAddExercise">+ 添加动作</button>
+    </view>
+
+    <!-- 完成训练 -->
+    <view class="finish-area" wx:if="{{currentExercises.length > 0}}">
+      <button class="btn-primary btn-finish" bindtap="finishWorkout">✅ 完成训练</button>
+    </view>
+
+    <view class="toast {{showToast ? 'show' : ''}}">{{toastMsg}}</view>
+  </scroll-view>
+
+  <!-- 添加动作弹窗 -->
+  <view class="modal-mask" wx:if="{{showModal}}" bindtap="hideModal">
+    <view class="modal-box" catchtap="void">
+      <text class="modal-title">选择动作</text>
+      
+      <!-- 搜索框 -->
+      <input class="search-input" placeholder="搜索动作..." value="{{searchKeyword}}" bindinput="onSearchInput" />
+      
+      <!-- 分类筛选 -->
+      <scroll-view class="cat-filter" scroll-x enable-flex>
+        <view class="cat-chip {{activeCat === 'all' ? 'active' : ''}}" bindtap="filterByCat" data-cat="all">全部</view>
+        <view class="cat-chip {{activeCat === item.id ? 'active' : ''}}" wx:for="{{exCategories}}" wx:key="id"
+          wx:for-item="item" bindtap="filterByCat" data-cat="{{item.id}}">{{item.icon}} {{item.name}}</view>
+      </scroll-view>
+
+      <scroll-view class="modal-list" scroll-y>
+        <view class="modal-item {{selectedEx === item ? 'selected' : ''}}"
+          wx:for="{{filteredExercises}}" wx:key="*this" wx:for-item="item"
+          bindtap="selectEx" data-name="{{item}}">
+          <text>{{item}}</text>
+          <text class="modal-item-equip">{{allExercises[item].equip}}</text>
+        </view>
+      </scroll-view>
+
+      <view class="modal-input-row">
+        <input class="modal-input" placeholder="或自定义动作名" value="{{customName}}" bindinput="onCustomInput" />
+        <input class="modal-input sm" type="number" placeholder="组数" value="{{customSets}}" bindinput="onCustomSets" />
+        <input class="modal-input sm" placeholder="次数" value="{{customReps}}" bindinput="onCustomReps" />
+      </view>
+      <button class="btn-primary" bindtap="confirmAdd">确定添加</button>
+      <button class="btn-outline" bindtap="hideModal" style="margin-top:16rpx;">取消</button>
+    </view>
+  </view>
+
+  <!-- 动作示范弹窗 -->
+  <view class="video-overlay" wx:if="{{showVideo}}" bindtap="closeVideo">
+    <view class="video-box" catchtap="void">
+      <view class="video-header">
+        <view class="video-title-row">
+          <text class="video-title">📹 {{videoTitle}} 示范</text>
+          <text class="media-badge {{videoType === 'real' ? 'badge-real' : (videoType === '3d' ? 'badge-3d' : 'badge-gif')}}">{{videoType === 'real' ? '🧑 真人' : (videoType === '3d' ? '🎬 3D' : '🖼️ 动图')}}</text>
+        </view>
+        <text class="video-close" bindtap="closeVideo">✕</text>
+      </view>
+      <!-- 真人视频 / 3D视频 -->
+      <video wx:if="{{videoType === 'real' || videoType === '3d'}}" class="demo-video"
+        src="{{videoUrl}}" autoplay loop muted show-center-play-btn
+        show-play-btn object-fit="contain" controls
+        enable-progress-gesture show-fullscreen-btn></video>
+      <!-- GIF动图备用 -->
+      <image wx:else class="demo-image" src="{{videoUrl}}" mode="aspectFit" show-menu-by-longpress></image>
+      <view class="equip-tag" wx:if="{{videoEquip}}">器械：{{videoEquip}}</view>
+      <view class="tips-section" wx:if="{{videoTips}}">
+        <view class="tips-label">📝 动作要点</view>
+        <view class="tips-text">{{videoTips}}</view>
+      </view>
+    </view>
+  </view>
+</view>

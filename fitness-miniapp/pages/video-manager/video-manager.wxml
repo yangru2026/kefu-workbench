@@ -1,0 +1,102 @@
+<view class="container">
+  <!-- 顶部说明 -->
+  <view class="header-card">
+    <view class="header-title">🧑 真人视频管理</view>
+    <view class="header-desc">为每个动作配置真人示范视频。视频优先级：真人 > 3D > 动图</view>
+    <view class="stat-row">
+      <view class="stat-item">
+        <text class="stat-num">{{totalExercises}}</text>
+        <text class="stat-label">总动作</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-num green">{{realCount}}</text>
+        <text class="stat-label">已配真人</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-num orange">{{video3dCount}}</text>
+        <text class="stat-label">3D视频</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-num blue">{{gifCount}}</text>
+        <text class="stat-label">仅动图</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <input class="search-input" placeholder="搜索动作名称" value="{{searchKey}}" bindinput="onSearch" />
+  </view>
+
+  <!-- 分类筛选 -->
+  <scroll-view class="cat-filter" scroll-x>
+    <view class="cat-chip {{currentCat === 'all' ? 'active' : ''}}" bindtap="filterCat" data-cat="all">全部</view>
+    <view class="cat-chip {{currentCat === 'real' ? 'active' : ''}}" bindtap="filterCat" data-cat="real">🧑 已配真人</view>
+    <view class="cat-chip {{currentCat === 'no-real' ? 'active' : ''}}" bindtap="filterCat" data-cat="no-real">未配真人</view>
+    <view class="cat-chip {{currentCat === item.id ? 'active' : ''}}" wx:for="{{categories}}" wx:key="id" bindtap="filterCat" data-cat="{{item.id}}">{{item.icon}} {{item.name}}</view>
+  </scroll-view>
+
+  <!-- 动作列表 -->
+  <scroll-view class="exercise-list" scroll-y>
+    <view class="exercise-item" wx:for="{{filteredExercises}}" wx:key="name">
+      <view class="ex-info">
+        <text class="ex-name">{{item.name}}</text>
+        <view class="ex-tags">
+          <text class="ex-tag">{{item.equip}}</text>
+          <text class="ex-status {{item.statusType}}">{{item.statusText}}</text>
+        </view>
+      </view>
+      <view class="ex-actions">
+        <view class="action-btn {{item.hasReal ? 'btn-edit' : 'btn-add'}}" bindtap="editVideo" data-name="{{item.name}}">
+          <text>{{item.hasReal ? '✏️ 修改' : '➕ 添加'}}</text>
+        </view>
+        <view class="action-btn btn-del" wx:if="{{item.hasReal}}" bindtap="removeVideo" data-name="{{item.name}}">
+          <text>🗑️</text>
+        </view>
+      </view>
+    </view>
+    <view class="empty-tip" wx:if="{{filteredExercises.length === 0}}">
+      <text>没有匹配的动作</text>
+    </view>
+    <view class="bottom-space"></view>
+  </scroll-view>
+
+  <!-- 编辑弹窗 -->
+  <view class="edit-overlay" wx:if="{{showEdit}}" bindtap="closeEdit">
+    <view class="edit-box" catchtap="void">
+      <view class="edit-header">
+        <text class="edit-title">{{editName}}</text>
+        <text class="edit-close" bindtap="closeEdit">✕</text>
+      </view>
+      
+      <!-- 当前状态预览 -->
+      <view class="edit-preview" wx:if="{{editOldUrl}}">
+        <text class="preview-label">当前真人视频：</text>
+        <text class="preview-url">{{editOldUrl}}</text>
+      </view>
+
+      <!-- 方式一：粘贴URL -->
+      <view class="input-section">
+        <text class="input-label">方式一：粘贴视频链接</text>
+        <input class="url-input" placeholder="https://..." value="{{editUrl}}" bindinput="onUrlInput" />
+        <text class="input-hint">支持 MP4 视频链接，如云存储链接</text>
+      </view>
+
+      <!-- 方式二：从相册选择视频上传 -->
+      <view class="upload-section">
+        <text class="input-label">方式二：从手机相册选择视频</text>
+        <view class="upload-btn" bindtap="chooseVideo">
+          <text>📹 选择视频</text>
+        </view>
+        <text class="input-hint" wx:if="{{uploading}}">上传中... {{uploadProgress}}%</text>
+        <text class="input-hint" wx:if="{{uploadedUrl}}">✅ 已上传：{{uploadedUrl}}</text>
+      </view>
+
+      <!-- 操作按钮 -->
+      <view class="edit-actions">
+        <view class="btn-cancel" bindtap="closeEdit">取消</view>
+        <view class="btn-save" bindtap="saveVideo">保存</view>
+      </view>
+    </view>
+  </view>
+</view>

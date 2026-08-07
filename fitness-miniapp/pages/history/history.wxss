@@ -1,0 +1,154 @@
+.container {
+  min-height: 100vh;
+  background: #0f0f1a;
+  padding: 24rpx;
+}
+
+/* 统计卡片 */
+.stats-card {
+  display: flex;
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border-radius: 24rpx;
+  padding: 40rpx 20rpx;
+  margin-bottom: 32rpx;
+}
+
+.stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-num {
+  font-size: 56rpx;
+  font-weight: 700;
+  color: #ff6b35;
+}
+
+.stat-label {
+  font-size: 22rpx;
+  color: #888;
+  margin-top: 8rpx;
+}
+
+.stat-divider {
+  width: 2rpx;
+  background: #2a2a4a;
+  margin: 10rpx 0;
+}
+
+/* 记录列表 */
+.records-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.record-card {
+  background: #16213e;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+
+.record-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 32rpx;
+}
+
+.record-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.record-day {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
+.record-date {
+  font-size: 24rpx;
+  color: #888;
+  margin-top: 4rpx;
+}
+
+.record-toggle { padding: 10rpx; }
+.toggle-icon { font-size: 24rpx; color: #888; }
+
+/* 展开详情 */
+.record-detail {
+  padding: 0 32rpx 32rpx;
+  border-top: 1rpx solid #2a2a4a;
+  padding-top: 24rpx;
+}
+
+.detail-ex {
+  margin-bottom: 24rpx;
+  padding-bottom: 24rpx;
+  border-bottom: 1rpx solid #2a2a4a;
+}
+
+.detail-ex:last-child { border-bottom: none; }
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.detail-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #ff6b35;
+}
+
+.detail-info {
+  font-size: 24rpx;
+  color: #888;
+}
+
+.detail-sets { margin-left: 16rpx; }
+
+.detail-set-row {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 8rpx 0;
+}
+
+.ds-label {
+  font-size: 24rpx;
+  color: #888;
+  width: 80rpx;
+}
+
+.ds-value {
+  font-size: 26rpx;
+  color: #ccc;
+  min-width: 80rpx;
+}
+
+.ds-done {
+  font-size: 24rpx;
+  color: #2ecc71;
+}
+
+.del-btn {
+  width: 100%;
+  margin-top: 24rpx;
+}
+
+/* 空状态 */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 160rpx 40rpx;
+}
+
+.empty-icon { font-size: 80rpx; margin-bottom: 24rpx; }
+.empty-title { font-size: 34rpx; font-weight: 600; color: #888; }
+.empty-sub { font-size: 26rpx; color: #666; margin-top: 12rpx; }

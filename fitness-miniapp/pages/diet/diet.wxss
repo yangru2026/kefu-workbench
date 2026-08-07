@@ -1,0 +1,143 @@
+.container { display: flex; flex-direction: column; height: 100vh; background: #0f0f1a; }
+.content { flex: 1; padding: 24rpx; }
+
+/* 日期 */
+.date-bar { display: flex; align-items: center; justify-content: center; gap: 40rpx; padding: 10rpx 0 24rpx; }
+.date-arrow { font-size: 48rpx; color: #ff6b35; width: 60rpx; text-align: center; }
+.date-text { font-size: 32rpx; font-weight: 600; color: #fff; }
+
+/* 热量概览 */
+.kcal-overview {
+  display: flex; align-items: center; justify-content: space-between; padding: 32rpx;
+}
+.kcal-ring {
+  display: flex; flex-direction: column; align-items: center;
+  width: 180rpx; height: 180rpx; border-radius: 50%;
+  background: linear-gradient(135deg, #ff6b35, #e55d2b);
+  justify-content: center; flex-shrink: 0;
+}
+.kcal-num { font-size: 56rpx; font-weight: 800; color: #fff; line-height: 1; }
+.kcal-unit { font-size: 22rpx; color: rgba(255,255,255,0.8); margin-top: 4rpx; }
+
+.kcal-goal { flex: 1; margin-left: 32rpx; }
+.goal-label { font-size: 24rpx; color: #888; }
+.goal-bar { height: 16rpx; background: #2a2a4a; border-radius: 8rpx; margin: 12rpx 0; overflow: hidden; }
+.goal-fill { height: 100%; background: linear-gradient(90deg, #2ecc71, #f39c12); border-radius: 8rpx; transition: width 0.3s; }
+.goal-remain { font-size: 24rpx; color: #2ecc71; }
+
+/* 营养素 */
+.macro-grid { display: flex; gap: 16rpx; margin-top: 20rpx; }
+.macro-card {
+  flex: 1; background: #16213e; border-radius: 16rpx; padding: 24rpx; text-align: center;
+}
+.macro-val { font-size: 36rpx; font-weight: 700; color: #ff6b35; display: block; }
+.macro-label { font-size: 22rpx; color: #888; margin-top: 4rpx; }
+
+/* 三餐 */
+.meal-list { margin-top: 24rpx; }
+.meal-section { background: #16213e; border-radius: 16rpx; padding: 24rpx; margin-bottom: 16rpx; }
+.meal-header { display: flex; align-items: center; justify-content: space-between; }
+.meal-title { font-size: 30rpx; font-weight: 600; color: #fff; }
+.meal-kcal { font-size: 24rpx; color: #888; }
+.meal-add-btn {
+  background: rgba(255,107,53,0.15); color: #ff6b35;
+  padding: 8rpx 24rpx; border-radius: 20rpx; font-size: 24rpx;
+}
+.meal-btn-row { display: flex; gap: 12rpx; align-items: center; }
+.meal-camera-btn {
+  background: rgba(46,204,113,0.15); color: #2ecc71;
+  padding: 8rpx 20rpx; border-radius: 20rpx; font-size: 24rpx;
+}
+
+.food-item {
+  display: flex; align-items: center; padding: 16rpx 0;
+  border-top: 1rpx solid #2a2a4a; margin-top: 12rpx;
+}
+.food-info { flex: 1; }
+.food-name { font-size: 28rpx; color: #ddd; }
+.food-amount { font-size: 22rpx; color: #666; display: block; margin-top: 4rpx; }
+.food-kcal { font-size: 26rpx; color: #ff6b35; margin-right: 16rpx; }
+.food-del { font-size: 28rpx; color: #e74c3c; padding: 8rpx; }
+
+.meal-empty { font-size: 24rpx; color: #555; text-align: center; padding: 24rpx 0; }
+
+/* 弹窗 */
+.modal-box { max-height: 85vh; }
+.search-input {
+  height: 68rpx; background: #0f3460; border-radius: 12rpx;
+  padding: 0 20rpx; font-size: 26rpx; color: #fff; margin-bottom: 16rpx;
+}
+.cat-filter { display: flex; white-space: nowrap; margin-bottom: 16rpx; }
+.cat-chip {
+  display: inline-block; padding: 10rpx 20rpx; border-radius: 20rpx;
+  background: #16213e; font-size: 24rpx; color: #888; margin-right: 8rpx;
+}
+.cat-chip.active { background: #ff6b35; color: #fff; }
+
+.food-list { max-height: 400rpx; margin-bottom: 20rpx; }
+.food-option {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20rpx 24rpx; border-radius: 12rpx; margin-bottom: 8rpx; background: #16213e;
+}
+.food-option.selected { background: rgba(255,107,53,0.2); border: 1rpx solid #ff6b35; }
+.food-option-info { flex: 1; }
+.food-option-name { font-size: 28rpx; color: #ddd; }
+.food-option-meta { font-size: 22rpx; color: #666; display: block; margin-top: 4rpx; }
+.food-option-check { color: #ff6b35; font-size: 32rpx; }
+
+.amount-row {
+  display: flex; align-items: center; gap: 12rpx;
+  padding: 20rpx 0; border-top: 1rpx solid #2a2a4a; margin-bottom: 20rpx;
+}
+.amount-label { font-size: 28rpx; color: #ccc; }
+.amount-input {
+  width: 120rpx; height: 64rpx; background: #0f3460; border-radius: 10rpx;
+  text-align: center; font-size: 28rpx; color: #fff;
+}
+.amount-unit { font-size: 24rpx; color: #888; }
+.amount-kcal { font-size: 26rpx; color: #ff6b35; margin-left: auto; }
+
+/* 自定义食物 */
+.custom-food { margin-bottom: 20rpx; padding-top: 16rpx; border-top: 1rpx solid #2a2a4a; }
+.custom-title { font-size: 26rpx; color: #888; margin-bottom: 12rpx; display: block; }
+.custom-input {
+  height: 64rpx; background: #0f3460; border-radius: 10rpx;
+  padding: 0 16rpx; font-size: 26rpx; color: #fff; margin-bottom: 12rpx;
+}
+.custom-row { display: flex; gap: 8rpx; }
+.custom-input.sm { flex: 1; margin-bottom: 0; font-size: 22rpx; }
+
+/* 拍照识别弹窗 */
+.photo-loading { display: flex; flex-direction: column; align-items: center; padding: 48rpx 0; }
+.loading-icon { font-size: 72rpx; animation: pulse 1s infinite; }
+.loading-text { font-size: 28rpx; color: #888; margin-top: 16rpx; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.photo-no-api { margin-bottom: 16rpx; }
+.no-api-text { font-size: 28rpx; font-weight: 600; color: #fff; display: block; margin-bottom: 8rpx; }
+.no-api-sub { font-size: 22rpx; color: #888; display: block; margin-bottom: 16rpx; }
+.no-api-steps { font-size: 22rpx; color: #aaa; line-height: 2; margin-bottom: 16rpx; }
+.no-api-steps text { display: block; }
+.api-input {
+  height: 64rpx; background: #0f3460; border-radius: 10rpx;
+  padding: 0 16rpx; font-size: 24rpx; color: #fff; margin-bottom: 12rpx;
+}
+
+.photo-results { margin-bottom: 16rpx; }
+.photo-preview { width: 100%; height: 300rpx; border-radius: 16rpx; overflow: hidden; margin-bottom: 16rpx; }
+.photo-img { width: 100%; height: 100%; }
+.photo-tip { font-size: 24rpx; color: #888; display: block; margin-bottom: 12rpx; }
+
+.photo-food-list { max-height: 300rpx; margin-bottom: 16rpx; }
+.photo-food-item {
+  display: flex; align-items: center; padding: 16rpx 20rpx; border-radius: 12rpx;
+  background: #16213e; margin-bottom: 8rpx;
+}
+.photo-food-item.selected { background: rgba(255,107,53,0.2); border: 1rpx solid #ff6b35; }
+.photo-food-info { flex: 1; }
+.photo-food-name { font-size: 28rpx; color: #ddd; }
+.photo-food-kcal { font-size: 22rpx; color: #ff6b35; display: block; margin-top: 4rpx; }
+
+.photo-empty { text-align: center; padding: 48rpx 0; }
+.empty-text { font-size: 28rpx; color: #888; display: block; }
+.empty-sub { font-size: 22rpx; color: #666; margin-top: 8rpx; }

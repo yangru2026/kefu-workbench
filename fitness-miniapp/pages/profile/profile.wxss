@@ -1,0 +1,128 @@
+.container { display: flex; flex-direction: column; height: 100vh; background: #0f0f1a; }
+.content { flex: 1; padding: 24rpx; }
+
+/* 顶部统计 */
+.stat-banner {
+  display: flex; align-items: center; justify-content: space-around;
+  background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 20rpx;
+  padding: 32rpx 24rpx; margin-bottom: 24rpx;
+}
+.stat-item { display: flex; flex-direction: column; align-items: center; }
+.stat-val { font-size: 52rpx; font-weight: 800; color: #ff6b35; line-height: 1.2; }
+.stat-lbl { font-size: 24rpx; color: #888; margin-top: 8rpx; }
+.stat-divider { width: 1rpx; height: 60rpx; background: #2a2a4a; }
+
+/* Tab */
+.tab-bar {
+  display: flex; background: #16213e; border-radius: 12rpx; padding: 6rpx; margin-bottom: 24rpx;
+}
+.tab-item {
+  flex: 1; text-align: center; padding: 16rpx 0; border-radius: 8rpx;
+  font-size: 26rpx; color: #888; transition: all 0.2s;
+}
+.tab-item.active {
+  background: linear-gradient(135deg, #ff6b35, #e55d2b); color: #fff; font-weight: 600;
+}
+
+/* 记录卡片 */
+.section-title { font-size: 30rpx; font-weight: 700; color: #fff; margin: 24rpx 0 16rpx; }
+.record-card { background: #16213e; border-radius: 16rpx; margin-bottom: 12rpx; overflow: hidden; }
+.record-header {
+  display: flex; align-items: center; justify-content: space-between; padding: 24rpx;
+}
+.record-info { flex: 1; }
+.record-name { font-size: 30rpx; font-weight: 600; color: #fff; }
+.record-date { font-size: 24rpx; color: #888; display: block; margin-top: 6rpx; }
+.record-actions { display: flex; align-items: center; gap: 16rpx; }
+.record-delete { font-size: 28rpx; color: #e74c3c; }
+.record-arrow { font-size: 28rpx; color: #666; }
+
+.record-detail { padding: 0 24rpx 20rpx; border-top: 1rpx solid #2a2a4a; }
+.detail-item {
+  display: flex; justify-content: space-between; padding: 12rpx 0;
+  border-bottom: 1rpx solid #1a1a2e;
+}
+.detail-name { font-size: 26rpx; color: #ddd; }
+.detail-sets { font-size: 24rpx; color: #888; }
+
+/* 体重BMI */
+.card { background: #16213e; border-radius: 16rpx; padding: 24rpx; margin-bottom: 20rpx; }
+.card-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16rpx 0; border-bottom: 1rpx solid #2a2a4a;
+}
+.card-label { font-size: 28rpx; color: #ccc; }
+.card-value { font-size: 30rpx; font-weight: 600; color: #ff6b35; }
+.height-input {
+  width: 160rpx; height: 56rpx; background: #0f3460; border-radius: 8rpx;
+  text-align: center; font-size: 26rpx; color: #fff;
+}
+
+/* 体重列表 */
+.weight-list { background: #16213e; border-radius: 16rpx; padding: 12rpx 24rpx; }
+.weight-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16rpx 0; border-bottom: 1rpx solid #1a1a2e;
+}
+.weight-date { font-size: 26rpx; color: #aaa; }
+.weight-val { font-size: 30rpx; font-weight: 600; color: #ff6b35; }
+
+/* 卡路里卡片 */
+.kcal-card {
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 20rpx;
+  padding: 28rpx 32rpx; margin-bottom: 24rpx;
+}
+.kcal-card-left { display: flex; align-items: center; gap: 16rpx; }
+.kcal-card-icon { font-size: 48rpx; }
+.kcal-card-info { display: flex; flex-direction: column; }
+.kcal-card-label { font-size: 22rpx; color: #888; }
+.kcal-card-val { font-size: 32rpx; font-weight: 700; color: #ff6b35; }
+.kcal-card-right { text-align: right; }
+
+/* 维度网格 */
+.measure-grid { display: flex; flex-wrap: wrap; gap: 16rpx; margin-top: 24rpx; padding-top: 20rpx; border-top: 1rpx solid #2a2a4a; }
+.measure-item {
+  flex: 1; min-width: 28%; background: #1a1a2e; border-radius: 12rpx;
+  padding: 16rpx 12rpx; text-align: center;
+}
+.measure-val { font-size: 32rpx; font-weight: 700; color: #2ecc71; display: block; }
+.measure-lbl { font-size: 20rpx; color: #888; margin-top: 4rpx; }
+
+/* 趋势图 */
+.chart-container {
+  width: 100%; height: 340rpx; background: #16213e; border-radius: 16rpx;
+  padding: 8rpx; margin-bottom: 24rpx; overflow: hidden;
+}
+.chart-canvas { width: 100%; height: 100%; }
+.chart-empty { text-align: center; padding: 40rpx; font-size: 24rpx; color: #666; }
+
+/* 维度输入弹窗 */
+.measure-input-row {
+  display: flex; align-items: center; gap: 12rpx; margin-bottom: 16rpx;
+}
+.measure-label { font-size: 26rpx; color: #ccc; width: 100rpx; text-align: right; }
+.m-input {
+  width: 180rpx; height: 60rpx; background: #0f3460; border-radius: 10rpx;
+  text-align: center; font-size: 26rpx; color: #fff;
+}
+.measure-hint { font-size: 22rpx; color: #666; text-align: center; display: block; margin: 8rpx 0 16rpx; }
+.setting-item {
+  display: flex; align-items: center; padding: 24rpx 0;
+  border-bottom: 1rpx solid #2a2a4a;
+}
+.setting-icon { font-size: 32rpx; margin-right: 16rpx; }
+.setting-name { flex: 1; font-size: 28rpx; color: #ddd; }
+.setting-arrow { font-size: 32rpx; color: #666; }
+
+.about-text {
+  font-size: 24rpx; color: #888; line-height: 1.8; white-space: pre-line;
+}
+
+/* 体重弹窗 */
+.weight-input-row { display: flex; align-items: center; justify-content: center; gap: 12rpx; margin-bottom: 24rpx; }
+.weight-input {
+  width: 240rpx; height: 80rpx; background: #0f3460; border-radius: 12rpx;
+  text-align: center; font-size: 36rpx; color: #fff;
+}
+.weight-unit { font-size: 32rpx; color: #888; }

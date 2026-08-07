@@ -1,0 +1,186 @@
+<view class="container">
+  <scroll-view class="content" scroll-y>
+    <!-- 日期选择 -->
+    <view class="date-bar">
+      <view class="date-arrow" bindtap="changeDate" data-dir="-1">‹</view>
+      <text class="date-text">{{dateDisplay}}</text>
+      <view class="date-arrow" bindtap="changeDate" data-dir="1">›</view>
+    </view>
+
+    <!-- 今日热量概览 -->
+    <view class="kcal-overview card">
+      <view class="kcal-ring">
+        <text class="kcal-num">{{totalKcal}}</text>
+        <text class="kcal-unit">大卡</text>
+      </view>
+      <view class="kcal-goal">
+        <text class="goal-label">目标 {{kcalGoal}} 大卡</text>
+        <view class="goal-bar">
+          <view class="goal-fill" style="width: {{kcalGoal > 0 ? (totalKcal / kcalGoal * 100 > 100 ? 100 : totalKcal / kcalGoal * 100) : 0}}%;"></view>
+        </view>
+        <text class="goal-remain">剩余 {{kcalGoal - totalKcal > 0 ? kcalGoal - totalKcal : 0}} 大卡</text>
+      </view>
+    </view>
+
+    <!-- 营养素 -->
+    <view class="macro-grid">
+      <view class="macro-card">
+        <text class="macro-val">{{totalProtein}}g</text>
+        <text class="macro-label">蛋白质</text>
+      </view>
+      <view class="macro-card">
+        <text class="macro-val">{{totalCarbs}}g</text>
+        <text class="macro-label">碳水</text>
+      </view>
+      <view class="macro-card">
+        <text class="macro-val">{{totalFat}}g</text>
+        <text class="macro-label">脂肪</text>
+      </view>
+    </view>
+
+    <!-- 三餐列表 -->
+    <view class="meal-list">
+      <view class="meal-section" wx:for="{{meals}}" wx:key="id" wx:for-item="meal">
+        <view class="meal-header">
+          <text class="meal-title">{{meal.icon}} {{meal.name}}</text>
+          <text class="meal-kcal" wx:if="{{meal.items.length > 0}}">
+            {{meal.items[0].kcal > 0 ? '' : ''}}
+          </text>
+          <view class="meal-btn-row">
+            <view class="meal-camera-btn" bindtap="takeFoodPhoto" data-meal="{{meal.id}}">📷 拍照</view>
+            <view class="meal-add-btn" bindtap="showAddFoodModal" data-meal="{{meal.id}}">+ 添加</view>
+          </view>
+        </view>
+
+        <!-- 已添加的食物 -->
+        <view class="food-item" wx:for="{{meal.items}}" wx:key="index" wx:for-item="food" wx:for-index="fidx">
+          <view class="food-info">
+            <text class="food-name">{{food.name}}</text>
+            <text class="food-amount">{{food.amount}}g · {{food.unit}}</text>
+          </view>
+          <text class="food-kcal">{{food.kcal * food.amount / 100 | 0}} 大卡</text>
+          <text class="food-del" bindtap="removeFood" data-meal="{{meal.id}}" data-idx="{{fidx}}">✕</text>
+        </view>
+
+        <!-- 空状态 -->
+        <view class="meal-empty" wx:if="{{meal.items.length === 0}}">还没有记录</view>
+      </view>
+    </view>
+    <view style="height:60rpx;"></view>
+  </scroll-view>
+
+  <!-- 添加食物弹窗 -->
+  <view class="modal-mask" wx:if="{{showAddFood}}" bindtap="hideModal">
+    <view class="modal-box" catchtap="void">
+      <text class="modal-title">添加食物</text>
+
+      <!-- 搜索 -->
+      <input class="search-input" placeholder="搜索食物..." value="{{searchKeyword}}" bindinput="onSearchInput" />
+
+      <!-- 分类 -->
+      <scroll-view class="cat-filter" scroll-x enable-flex>
+        <view class="cat-chip {{activeCat === 'all' ? 'active' : ''}}" bindtap="filterCat" data-cat="all">全部</view>
+        <view class="cat-chip {{activeCat === item.id ? 'active' : ''}}" wx:for="{{foodCategories}}" wx:key="id"
+          wx:for-item="item" bindtap="filterCat" data-cat="{{item.id}}">{{item.icon}} {{item.name}}</view>
+      </scroll-view>
+
+      <!-- 食物列表 -->
+      <scroll-view class="food-list" scroll-y>
+        <view class="food-option {{selectedFood.name === item.name ? 'selected' : ''}}"
+          wx:for="{{filteredFoods}}" wx:key="name" wx:for-item="item"
+          bindtap="selectFood" data-name="{{item.name}}">
+          <view class="food-option-info">
+            <text class="food-option-name">{{item.name}}</text>
+            <text class="food-option-meta">{{item.kcal}}大卡/100g · {{item.unit}}</text>
+          </view>
+          <text class="food-option-check" wx:if="{{selectedFood.name === item.name}}">✓</text>
+        </view>
+      </scroll-view>
+
+      <!-- 数量输入 -->
+      <view class="amount-row" wx:if="{{selectedFood}}">
+        <text class="amount-label">数量</text>
+        <input class="amount-input" type="number" value="{{foodAmount}}" bindinput="onAmountInput" />
+        <text class="amount-unit">克</text>
+        <text class="amount-kcal">= {{selectedFood.kcal * foodAmount / 100 | 0}} 大卡</text>
+      </view>
+
+      <!-- 自定义食物 -->
+      <view class="custom-food" wx:if="{{!selectedFood}}">
+        <text class="custom-title">或手动输入</text>
+        <input class="custom-input" placeholder="食物名称" value="{{customName}}" bindinput="onCustomName" />
+        <view class="custom-row">
+          <input class="custom-input sm" type="number" placeholder="热量" value="{{customKcal}}" bindinput="onCustomKcal" />
+          <input class="custom-input sm" type="number" placeholder="蛋白质g" value="{{customP}}" bindinput="onCustomP" />
+          <input class="custom-input sm" type="number" placeholder="碳水g" value="{{customC}}" bindinput="onCustomC" />
+          <input class="custom-input sm" type="number" placeholder="脂肪g" value="{{customF}}" bindinput="onCustomF" />
+        </view>
+      </view>
+
+      <button class="btn-primary" bindtap="confirmAddFood">确认添加</button>
+      <button class="btn-outline" bindtap="hideModal" style="margin-top:16rpx;">取消</button>
+    </view>
+  </view>
+
+  <!-- 拍照识别结果弹窗 -->
+  <view class="modal-mask" wx:if="{{showPhotoModal}}" bindtap="hidePhotoModal">
+    <view class="modal-box" catchtap="void">
+      <text class="modal-title">📷 识别结果</text>
+      
+      <!-- 加载中 -->
+      <view class="photo-loading" wx:if="{{photoLoading}}">
+        <text class="loading-icon">🔍</text>
+        <text class="loading-text">AI识别中...</text>
+      </view>
+
+      <!-- 未配置API -->
+      <view class="photo-no-api" wx:if="{{photoNoApi}}">
+        <text class="no-api-text">尚未配置食物识别功能</text>
+        <text class="no-api-sub">需在百度AI开放平台注册获取免费API Key</text>
+        <view class="no-api-steps">
+          <text>1. 访问 ai.baidu.com 注册</text>
+          <text>2. 创建「菜品识别」应用</text>
+          <text>3. 复制 API Key 和 Secret Key</text>
+          <text>4. 粘贴到下方配置中</text>
+        </view>
+        <input class="api-input" placeholder="API Key" value="{{apiKeyInput}}" bindinput="onApiKeyInput" />
+        <input class="api-input" placeholder="Secret Key" value="{{apiSecretInput}}" bindinput="onApiSecretInput" />
+        <button class="btn-primary" bindtap="saveApiConfig">保存配置</button>
+      </view>
+
+      <!-- 识别结果列表 -->
+      <view class="photo-results" wx:if="{{photoResults.length > 0 && !photoLoading}}">
+        <view class="photo-preview">
+          <image class="photo-img" src="{{photoPath}}" mode="aspectFill" />
+        </view>
+        <text class="photo-tip">选择识别到的食物并确认添加</text>
+        <scroll-view class="photo-food-list" scroll-y>
+          <view class="photo-food-item {{photoSelectedIndex === idx ? 'selected' : ''}}"
+            wx:for="{{photoResults}}" wx:key="index" wx:for-index="idx"
+            bindtap="selectPhotoFood" data-idx="{{idx}}">
+            <view class="photo-food-info">
+              <text class="photo-food-name">{{item.name}}</text>
+              <text class="photo-food-kcal">{{item.kcal}} 大卡/100g · {{item.catName}}</text>
+            </view>
+          </view>
+        </scroll-view>
+        <!-- 份量 -->
+        <view class="amount-row" wx:if="{{photoSelectedIndex >= 0}}">
+          <text class="amount-label">份量</text>
+          <input class="amount-input" type="number" value="{{photoAmount}}" bindinput="onPhotoAmountInput" />
+          <text class="amount-unit">克</text>
+          <text class="amount-kcal">= {{photoResults[photoSelectedIndex].kcal * photoAmount / 100 | 0}} 大卡</text>
+        </view>
+        <button class="btn-primary" wx:if="{{photoSelectedIndex >= 0}}" bindtap="confirmPhotoFood">确认添加此食物</button>
+      </view>
+
+      <!-- 未识别到 -->
+      <view class="photo-empty" wx:if="{{photoResults.length === 0 && !photoLoading && !photoNoApi}}">
+        <text class="empty-text">未识别到食物</text>
+        <text class="empty-sub">请确保照片中有清晰的食物</text>
+      </view>
+
+      <button class="btn-outline" bindtap="hidePhotoModal" style="margin-top:16rpx;">关闭</button>
+    </view>
+  </view>
+</view>

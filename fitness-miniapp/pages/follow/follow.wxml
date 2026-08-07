@@ -1,0 +1,124 @@
+<view class="container">
+  <!-- 课程列表 -->
+  <block wx:if="{{!playing}}">
+    <scroll-view class="content" scroll-y>
+      <!-- 分类筛选 -->
+      <scroll-view class="type-filter" scroll-x enable-flex>
+        <view class="type-chip {{activeType === item.id ? 'active' : ''}}"
+          wx:for="{{courseTypes}}" wx:key="id" wx:for-item="item"
+          bindtap="filterType" data-type="{{item.id}}">
+          {{item.icon}} {{item.name}}
+        </view>
+      </scroll-view>
+
+      <!-- 课程卡片 -->
+      <view class="course-list">
+        <view class="course-card" wx:for="{{filteredCourses}}" wx:key="id" wx:for-item="course"
+          bindtap="selectCourse" data-id="{{course.id}}">
+          <view class="course-top" style="background: linear-gradient(135deg, {{course.color}}, {{course.color}}dd);">
+            <view class="course-badge">{{course.typeName}}</view>
+            <view class="course-duration">{{course.duration >= 60 ? (course.duration / 60 | 0) + '分钟' : course.duration + '秒'}}</view>
+          </view>
+          <view class="course-body">
+            <text class="course-name">{{course.name}}</text>
+            <text class="course-desc">{{course.desc}}</text>
+            <view class="course-meta">
+              <text class="meta-item">🎯 {{course.target}}</text>
+              <text class="meta-item">🔥 {{course.calories}}大卡</text>
+              <text class="meta-item">📊 {{course.difficulty}}</text>
+            </view>
+            <view class="bili-btn" wx:if="{{course.biliBvid}}" catchtap="watchOriginalVideo" data-bvid="{{course.biliBvid}}" data-title="{{course.biliTitle}}">
+              <text class="bili-icon">🎬</text>
+              <text class="bili-text">看帕梅拉真人完整视频</text>
+              <text class="bili-arrow">›</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view style="height:60rpx;"></view>
+    </scroll-view>
+  </block>
+
+  <!-- 播放器 -->
+  <block wx:if="{{playing}}">
+    <view class="player">
+      <!-- 进度条 -->
+      <view class="progress-bar">
+        <view class="progress-fill" style="width: {{totalTime > 0 ? (elapsedTime / totalTime * 100) : 0}}%;"></view>
+      </view>
+
+      <!-- 准备阶段 -->
+      <view class="phase-prepare" wx:if="{{currentPhase === 'prepare'}}">
+        <text class="prepare-label">准备开始</text>
+        <text class="prepare-count">{{countdown}}</text>
+        <text class="prepare-sub">即将开始：{{currentCourse.name}}</text>
+      </view>
+
+      <!-- 训练阶段 -->
+      <view class="phase-exercise" wx:if="{{currentPhase === 'exercise' || currentPhase === 'rest'}}">
+        <!-- 阶段标签 -->
+        <view class="phase-label {{currentPhase === 'rest' ? 'rest' : ''}}">
+          {{currentPhase === 'exercise' ? '💪 训练中' : '☕ 休息中'}}
+        </view>
+
+        <!-- 动作名称 -->
+        <text class="ex-name">{{currentCourse.exercises[currentExIdx].name}}</text>
+        <text class="demo-badge {{demoType === 'real' ? 'real' : (demoType === '3d' ? 'video' : 'gif')}}" wx:if="{{currentPhase === 'exercise'}}">{{demoType === 'real' ? '🧑 真人示范' : (demoType === '3d' ? '🎬 3D示范' : '🖼️ 动图示范')}}</text>
+        
+        <!-- 倒计时大数字 -->
+        <text class="countdown-big {{countdown <= 3 ? 'warning' : ''}}">{{countdown}}</text>
+        <text class="countdown-unit">秒</text>
+
+        <!-- 真人视频 / 3D视频 -->
+        <video class="demo-video" wx:if="{{(demoType === 'real' || demoType === '3d') && currentPhase === 'exercise'}}"
+          src="{{demoUrl}}" autoplay loop muted object-fit="contain"
+          show-center-play-btn="{{false}}" show-play-btn="{{false}}" controls="{{false}}"></video>
+        
+        <!-- GIF动图备用 -->
+        <image class="demo-gif" wx:if="{{demoType === 'gif' && currentPhase === 'exercise'}}"
+          src="{{demoUrl}}" mode="aspectFit" />
+        
+        <!-- 休息阶段不显示GIF -->
+        <view class="rest-icon" wx:if="{{currentPhase === 'rest'}}">☕</view>
+
+        <!-- 动作要点 -->
+        <view class="tips-box" wx:if="{{tips && currentPhase === 'exercise'}}">
+          <text class="tips-label">📝 动作要点</text>
+          <text class="tips-text">{{tips}}</text>
+        </view>
+
+        <!-- 进度 -->
+        <text class="ex-progress">{{currentExIdx + 1}} / {{currentCourse.exercises.length}}</text>
+      </view>
+
+      <!-- 完成阶段 -->
+      <view class="phase-done" wx:if="{{currentPhase === 'done'}}">
+        <text class="done-icon">🎉</text>
+        <text class="done-title">太棒了！</text>
+        <text class="done-sub">{{currentCourse.name}}</text>
+        <view class="done-stats">
+          <view class="done-stat">
+            <text class="done-stat-val">{{currentCourse.duration >= 60 ? (currentCourse.duration / 60 | 0) : 0}}分钟</text>
+            <text class="done-stat-label">训练时长</text>
+          </view>
+          <view class="done-stat">
+            <text class="done-stat-val">{{currentCourse.calories}}</text>
+            <text class="done-stat-label">消耗大卡</text>
+          </view>
+          <view class="done-stat">
+            <text class="done-stat-val">{{currentCourse.exercises.length}}</text>
+            <text class="done-stat-label">完成动作</text>
+          </view>
+        </view>
+        <button class="btn-primary done-btn" bindtap="closeDone">完成</button>
+      </view>
+
+      <!-- 控制按钮（非done阶段） -->
+      <view class="controls" wx:if="{{currentPhase !== 'done'}}">
+        <button class="ctrl-btn" bindtap="togglePause">{{paused ? '▶ 继续' : '⏸ 暂停'}}</button>
+        <button class="ctrl-btn skip" bindtap="skipPhase">⏭ 跳过</button>
+        <button class="ctrl-btn quit" bindtap="quitPlay">✕ 退出</button>
+      </view>
+    </view>
+  </block>
+</view>

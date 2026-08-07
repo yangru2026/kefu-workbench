@@ -1,0 +1,231 @@
+<view class="container">
+  <scroll-view class="content" scroll-y>
+    <!-- 顶部统计 -->
+    <view class="stat-banner">
+      <view class="stat-item">
+        <text class="stat-val">{{totalWorkouts}}</text>
+        <text class="stat-lbl">总训练</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-val">{{streakDays}}</text>
+        <text class="stat-lbl">连续天数</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-val">{{todayCalories}}</text>
+        <text class="stat-lbl">今日消耗</text>
+      </view>
+    </view>
+
+    <!-- 卡路里概览 -->
+    <view class="kcal-card">
+      <view class="kcal-card-left">
+        <text class="kcal-card-icon">🔥</text>
+        <view class="kcal-card-info">
+          <text class="kcal-card-label">今日消耗</text>
+          <text class="kcal-card-val">{{todayCalories}} 大卡</text>
+        </view>
+      </view>
+      <view class="kcal-card-right">
+        <text class="kcal-card-label">本周消耗</text>
+        <text class="kcal-card-val">{{weekCalories}} 大卡</text>
+      </view>
+    </view>
+
+    <!-- Tab切换 -->
+    <view class="tab-bar">
+      <view class="tab-item {{activeTab === 'workout' ? 'active' : ''}}" bindtap="switchTab" data-tab="workout">训练记录</view>
+      <view class="tab-item {{activeTab === 'body' ? 'active' : ''}}" bindtap="switchTab" data-tab="body">体重BMI</view>
+      <view class="tab-item {{activeTab === 'stats' ? 'active' : ''}}" bindtap="switchTab" data-tab="stats">更多</view>
+    </view>
+
+    <!-- 训练记录 -->
+    <block wx:if="{{activeTab === 'workout'}}">
+      <!-- 跟练记录 -->
+      <view class="section-title" wx:if="{{followRecords.length > 0}}">📺 跟练记录</view>
+      <view class="record-card" wx:for="{{followRecords}}" wx:key="index" wx:for-item="r" wx:for-index="ri">
+        <view class="record-header" bindtap="toggleRecord" data-idx="{{-1 - ri}}">
+          <view class="record-info">
+            <text class="record-name">{{r.courseName}}</text>
+            <text class="record-date">{{r.date}} · 🔥{{r.calories || '-'}}大卡</text>
+          </view>
+          <text class="record-arrow">{{expandedRecord === -1 - ri ? '∧' : '∨'}}</text>
+        </view>
+      </view>
+
+      <!-- 力量训练记录 -->
+      <view class="section-title" wx:if="{{records.length > 0}}">🏋️ 力量训练</view>
+      <view class="record-card" wx:for="{{records}}" wx:key="index" wx:for-item="r" wx:for-index="ri">
+        <view class="record-header" bindtap="toggleRecord" data-idx="{{ri}}">
+          <view class="record-info">
+            <text class="record-name">{{r.day}} · {{r.exercises.length}}个动作</text>
+            <text class="record-date">{{r.date}} · 🔥{{r.calories || '-'}}大卡</text>
+          </view>
+          <view class="record-actions">
+            <text class="record-delete" catchtap="deleteRecord" data-idx="{{ri}}">✕</text>
+            <text class="record-arrow">{{expandedRecord === ri ? '∧' : '∨'}}</text>
+          </view>
+        </view>
+        <!-- 展开详情 -->
+        <view class="record-detail" wx:if="{{expandedRecord === ri}}">
+          <view class="detail-item" wx:for="{{r.exercises}}" wx:key="index" wx:for-item="ex" wx:for-index="ei">
+            <text class="detail-name">{{ei + 1}}. {{ex.name}}</text>
+            <text class="detail-sets">{{ex.sets}}组 × {{ex.reps}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 空状态 -->
+      <view class="empty-state" wx:if="{{records.length === 0 && followRecords.length === 0}}">
+        <text class="empty-icon">🏋️</text>
+        <text class="empty-title">还没有训练记录</text>
+        <text class="empty-sub">完成一次训练后会在这里显示</text>
+      </view>
+    </block>
+
+    <!-- 体重BMI -->
+    <block wx:if="{{activeTab === 'body'}}">
+      <view class="card">
+        <view class="card-row">
+          <text class="card-label">当前体重</text>
+          <text class="card-value">{{latestWeight ? latestWeight + ' kg' : '未记录'}}</text>
+        </view>
+        <view class="card-row">
+          <text class="card-label">身高</text>
+          <input class="height-input" type="number" placeholder="输入身高cm" value="{{heightInput}}" bindinput="onHeightInput" bindblur="saveHeight" />
+        </view>
+        <view class="card-row" wx:if="{{bmiValue > 0}}">
+          <text class="card-label">BMI</text>
+          <text class="card-value">{{bmiValue}} ({{bmiLabel}})</text>
+        </view>
+        
+        <!-- 最新维度数据 -->
+        <view class="measure-grid" wx:if="{{bodyMetrics.length > 0 && bodyMetrics[0].chest}}">
+          <view class="measure-item">
+            <text class="measure-val">{{bodyMetrics[0].chest || '-'}}</text>
+            <text class="measure-lbl">胸围 cm</text>
+          </view>
+          <view class="measure-item">
+            <text class="measure-val">{{bodyMetrics[0].waist || '-'}}</text>
+            <text class="measure-lbl">腰围 cm</text>
+          </view>
+          <view class="measure-item">
+            <text class="measure-val">{{bodyMetrics[0].hip || '-'}}</text>
+            <text class="measure-lbl">臀围 cm</text>
+          </view>
+          <view class="measure-item">
+            <text class="measure-val">{{bodyMetrics[0].thigh || '-'}}</text>
+            <text class="measure-lbl">大腿围 cm</text>
+          </view>
+          <view class="measure-item">
+            <text class="measure-val">{{bodyMetrics[0].arm || '-'}}</text>
+            <text class="measure-lbl">臂围 cm</text>
+          </view>
+        </view>
+
+        <button class="btn-primary" style="margin-top:20rpx;" bindtap="showWeightInput">📝 记录体重和维度</button>
+      </view>
+
+      <!-- 体重趋势图 -->
+      <view class="section-title" wx:if="{{chartData.length > 1}}">📈 体重变化趋势</view>
+      <view class="chart-container" wx:if="{{chartData.length > 1}}">
+        <canvas type="2d" id="weightChart" class="chart-canvas"></canvas>
+      </view>
+      <view class="chart-empty" wx:if="{{chartData.length <= 1}}">
+        <text>至少需要2条体重记录才能显示趋势图</text>
+      </view>
+
+      <!-- 体重历史 -->
+      <view class="section-title" wx:if="{{bodyMetrics.length > 0}}">📋 历史记录</view>
+      <view class="weight-list" wx:if="{{bodyMetrics.length > 0}}">
+        <view class="weight-item" wx:for="{{bodyMetrics}}" wx:key="index" wx:for-item="m">
+          <text class="weight-date">{{m.date}}</text>
+          <text class="weight-val">{{m.weight}} kg</text>
+        </view>
+      </view>
+    </block>
+
+    <!-- 更多 -->
+    <block wx:if="{{activeTab === 'stats'}}">
+      <view class="card">
+        <text class="section-title" style="margin-bottom:16rpx;">⚙️ 设置</text>
+        <view class="setting-item" bindtap="goVideoManager">
+          <text class="setting-icon">🧑</text>
+          <text class="setting-name">真人视频管理</text>
+          <text class="setting-arrow">›</text>
+        </view>
+        <view class="setting-item" bindtap="shareApp">
+          <text class="setting-icon">📤</text>
+          <text class="setting-name">分享给朋友</text>
+          <text class="setting-arrow">›</text>
+        </view>
+        <view class="setting-item" bindtap="clearData">
+          <text class="setting-icon">🗑️</text>
+          <text class="setting-name" style="color:#e74c3c;">清除所有数据</text>
+          <text class="setting-arrow">›</text>
+        </view>
+      </view>
+
+      <view class="card">
+        <text class="section-title" style="margin-bottom:16rpx;">ℹ️ 关于</text>
+        <view class="about-text">
+          辽哥健身房 v2.2.0\n
+          💪 50+ 动作库（含居家哑铃/自重训练）\n
+          📺 10+ 跟练课程（帕梅拉/HIIT/核心/拉伸）\n
+          🧑 真人视频管理（可自定义真人示范视频）\n
+          🍽️ 70+ 食物热量数据库\n
+          ⏱️ 组间休息计时器\n
+          📊 体重BMI追踪\n
+          🏠 居家训练模板\n\n
+          数据存储在本地，更换手机需重新记录。
+        </view>
+      </view>
+    </block>
+
+    <view style="height:80rpx;"></view>
+  </scroll-view>
+
+  <!-- 体重+维度弹窗 -->
+  <view class="modal-mask" wx:if="{{showWeightModal}}" bindtap="hideWeightModal">
+    <view class="modal-box" catchtap="void">
+      <text class="modal-title">记录身体数据</text>
+      
+      <view class="measure-input-row">
+        <text class="measure-label">体重</text>
+        <input class="weight-input" type="digit" placeholder="体重" value="{{weightInput}}" bindinput="onWeightInput" />
+        <text class="weight-unit">kg</text>
+      </view>
+
+      <view class="measure-input-row">
+        <text class="measure-label">胸围</text>
+        <input class="m-input" type="digit" placeholder="cm" value="{{chestInput}}" bindinput="onChestInput" />
+        <text class="weight-unit">cm</text>
+      </view>
+      <view class="measure-input-row">
+        <text class="measure-label">腰围</text>
+        <input class="m-input" type="digit" placeholder="cm" value="{{waistInput}}" bindinput="onWaistInput" />
+        <text class="weight-unit">cm</text>
+      </view>
+      <view class="measure-input-row">
+        <text class="measure-label">臀围</text>
+        <input class="m-input" type="digit" placeholder="cm" value="{{hipInput}}" bindinput="onHipInput" />
+        <text class="weight-unit">cm</text>
+      </view>
+      <view class="measure-input-row">
+        <text class="measure-label">大腿围</text>
+        <input class="m-input" type="digit" placeholder="cm" value="{{thighInput}}" bindinput="onThighInput" />
+        <text class="weight-unit">cm</text>
+      </view>
+      <view class="measure-input-row">
+        <text class="measure-label">臂围</text>
+        <input class="m-input" type="digit" placeholder="cm" value="{{armInput}}" bindinput="onArmInput" />
+        <text class="weight-unit">cm</text>
+      </view>
+
+      <text class="measure-hint">体重为必填，维度选填</text>
+      <button class="btn-primary" bindtap="saveWeight">保存</button>
+      <button class="btn-outline" bindtap="hideWeightModal" style="margin-top:16rpx;">取消</button>
+    </view>
+  </view>
+</view>

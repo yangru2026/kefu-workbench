@@ -1,0 +1,3457 @@
+{
+  "version": "1.1",
+  "lastUpdate": "2026-07-28",
+  "trainingData": [
+    {
+      "title": "美瞳材质分类详解",
+      "url": "https://example.feishu.cn/doc/1",
+      "category": "产品知识",
+      "tags": [
+        "材质",
+        "入门"
+      ]
+    },
+    {
+      "title": "硅水凝胶 vs 水凝胶对比",
+      "url": "https://example.feishu.cn/doc/2",
+      "category": "产品知识",
+      "tags": [
+        "材质",
+        "进阶"
+      ]
+    },
+    {
+      "title": "美瞳直径与着色直径说明",
+      "url": "https://example.feishu.cn/doc/3",
+      "category": "产品知识",
+      "tags": [
+        "参数",
+        "基础"
+      ]
+    },
+    {
+      "title": "含水量与透氧率关系",
+      "url": "https://example.feishu.cn/doc/4",
+      "category": "产品知识",
+      "tags": [
+        "参数",
+        "进阶"
+      ]
+    },
+    {
+      "title": "淘宝接待流程",
+      "url": "https://example.feishu.cn/doc/5",
+      "category": "平台流程",
+      "tags": [
+        "淘宝"
+      ]
+    },
+    {
+      "title": "抖音小店接待规范",
+      "url": "https://example.feishu.cn/doc/6",
+      "category": "平台流程",
+      "tags": [
+        "抖音"
+      ]
+    },
+    {
+      "title": "拼多多客服操作指南",
+      "url": "https://example.feishu.cn/doc/7",
+      "category": "平台流程",
+      "tags": [
+        "拼多多"
+      ]
+    },
+    {
+      "title": "小红书私信接待流程",
+      "url": "https://example.feishu.cn/doc/8",
+      "category": "平台流程",
+      "tags": [
+        "小红书"
+      ]
+    },
+    {
+      "title": "度数咨询标准话术",
+      "url": "https://example.feishu.cn/doc/9",
+      "category": "话术库",
+      "tags": [
+        "度数",
+        "高频"
+      ]
+    },
+    {
+      "title": "佩戴方法指导话术",
+      "url": "https://example.feishu.cn/doc/10",
+      "category": "话术库",
+      "tags": [
+        "佩戴",
+        "新人必看"
+      ]
+    },
+    {
+      "title": "售后常见问题应对话术",
+      "url": "https://example.feishu.cn/doc/11",
+      "category": "话术库",
+      "tags": [
+        "售后",
+        "高频"
+      ]
+    },
+    {
+      "title": "新客首单引导话术",
+      "url": "https://example.feishu.cn/doc/12",
+      "category": "话术库",
+      "tags": [
+        "转化",
+        "销售"
+      ]
+    }
+  ],
+  "patternData": {
+    "_comment": "花色素材库：按品牌→抛型→花色组织。每个花色包含名称、系列、色系、直径、话术等，镜片图和上眼图后续补充URL",
+    "brands": {
+      "弥生": {
+        "日抛": [
+          {
+            "name": "玻璃娃娃",
+            "color": "黑",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_daily_玻璃娃娃_lens.jpg",
+            "eyeImg": "",
+            "script": "",
+            "series": "少女漫-日抛"
+          },
+          {
+            "name": "绿野仙棕",
+            "color": "棕",
+            "diameter": "14",
+            "colorDiameter": "13.4",
+            "lensImg": "images/patterns/misho_daily_绿野仙棕_lens.jpg",
+            "eyeImg": "",
+            "script": "红棕色外圈+点状式绿色内圈，从中心向外由深至浅自然过渡，外圈柔化锁边与原生瞳孔完美融合，素颜也能 hold 住",
+            "series": "少女漫-日抛"
+          },
+          {
+            "name": "小棕环pro",
+            "color": "棕+有锁边",
+            "diameter": "14.2",
+            "colorDiameter": "13.6",
+            "lensImg": "images/patterns/misho_daily_小棕环pro_lens.jpg",
+            "eyeImg": "images/patterns/misho_daily_小棕环pro_eye.jpg",
+            "script": "这款【小棕环pro】比自然款更有心机的棕色水珠，季节百搭、妆容百搭，即温柔又显嫩~",
+            "series": "少女漫-日抛"
+          },
+          {
+            "name": "小黑环pro",
+            "color": "黑+有锁边",
+            "diameter": "14.2",
+            "colorDiameter": "13.74",
+            "lensImg": "images/patterns/misho_daily_小黑环pro_lens.jpg",
+            "eyeImg": "images/patterns/misho_daily_小黑环pro_eye.jpg",
+            "script": "这款【小黑环pro】上眼是原生感的黑亮瞳，自然扩瞳不夸张，素颜戴也像天生的透亮黑眼珠～",
+            "series": "少女漫-日抛"
+          },
+          {
+            "name": "妮妮千金",
+            "color": "同款半年抛转日抛",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "",
+            "eyeImg": "images/patterns/misho_daily_妮妮千金_eye.jpg",
+            "script": "这款是属于氛围感眼珠珠，约会必备，戴上像在眼睛里打了腮红~",
+            "series": "少女漫-日抛"
+          },
+          {
+            "name": "摆烂海星",
+            "color": "亚裔棕",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_daily_摆烂海星_lens.jpg",
+            "eyeImg": "images/patterns/misho_daily_摆烂海星_eye.jpg",
+            "script": "这款花色外圈采用长短不一的放射性纹路，上眼自带亚裔感的深邃混血感，自然扩瞳不夸张，是一眼就有 “美式甜心” 既视感的原生棕瞳✨",
+            "series": "人鱼系列日抛"
+          },
+          {
+            "name": "海想豹豹",
+            "color": "雾蓝",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_daily_海想豹豹_lens.jpg",
+            "eyeImg": "images/patterns/misho_daily_海想豹豹_eye.jpg",
+            "script": "这款雾蓝调裹着清透柔雾，是一眼就沦陷的 “雾蓝清冷瞳”✨",
+            "series": "人鱼系列日抛"
+          },
+          {
+            "name": "一夜鲍富",
+            "color": "琥珀棕",
+            "diameter": "14.2",
+            "colorDiameter": "14.2",
+            "lensImg": "images/patterns/misho_daily_一夜鲍富_lens.jpg",
+            "eyeImg": "images/patterns/misho_daily_一夜鲍富_eye.jpg",
+            "script": "这款是琥珀棕调，暖调氛围感，自然扩瞳不夸张~",
+            "series": "人鱼系列日抛"
+          },
+          {
+            "name": "企鹅妮妮",
+            "color": "区别于妮妮千金，锁边是有纹理层次，粉色占比更高，高光更亮",
+            "diameter": "14.5",
+            "colorDiameter": "13.9",
+            "lensImg": "",
+            "eyeImg": "images/patterns/misho_daily_企鹅妮妮_eye.jpg",
+            "script": "这款是粉紫调融着通透光泽，上眼像把葡萄冻的粉紫碎光揉进瞳里的甜妹氛围感~",
+            "series": "人鱼系列日抛"
+          },
+          {
+            "name": "浮游记忆",
+            "color": "黑（和蔚蓝契约同款不同色）",
+            "diameter": "14.2",
+            "colorDiameter": "13.6",
+            "lensImg": "images/patterns/misho_daily_浮游记忆_lens.jpg",
+            "eyeImg": "images/patterns/misho_daily_浮游记忆_eye.jpg",
+            "script": "【浮游记忆】黑色小直径款上新啦，一口“糯叽叽的黑糖珍珠”美瞳，伪素颜必杀技！不死板的原生感超绝，带个美瞳就能出门～",
+            "series": "人鱼系列日抛"
+          },
+          {
+            "name": "泡沫挽歌",
+            "color": "棕",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_daily_泡沫挽歌_lens.jpg",
+            "eyeImg": "images/patterns/misho_daily_泡沫挽歌_eye.jpg",
+            "script": "泡沫挽歌：古早台妹风，上眼比较有古早芭比感，棕色锁边让花纹整体都像，奶茶焦糖琥珀棕。",
+            "series": "人鱼系列日抛"
+          },
+          {
+            "name": "蔚蓝契约",
+            "color": "蓝（和浮游记忆同款不同色）",
+            "diameter": "14.2",
+            "colorDiameter": "13.6",
+            "lensImg": "images/patterns/misho_daily_蔚蓝契约_lens.jpg",
+            "eyeImg": "images/patterns/misho_daily_蔚蓝契约_eye.jpg",
+            "script": "蔚蓝契约：静谧而温柔的深海蓝色，简单干净才是伪素颜的关键、水光透亮，蓝色超级显白，黄皮修正液~",
+            "series": "人鱼系列日抛"
+          },
+          {
+            "name": "微醺海浪",
+            "color": "棕（弥生女高窗外樱花、伦敦碎片的同款不同色。）",
+            "diameter": "14.5",
+            "colorDiameter": "13.81",
+            "lensImg": "images/patterns/misho_daily_微醺海浪_lens.jpg",
+            "eyeImg": "images/patterns/misho_daily_微醺海浪_eye.jpg",
+            "script": "微醺海浪：爆款花色同款不同色哒，真正的水珠感款式，柔棕调上眼像玻璃珠一样清透融瞳，眼神温柔又有氛围感~",
+            "series": "人鱼系列日抛"
+          },
+          {
+            "name": "草莓大福",
+            "color": "棕粉",
+            "diameter": "14.5",
+            "colorDiameter": "13.8",
+            "lensImg": "images/patterns/misho_daily_草莓大福_lens.jpg",
+            "eyeImg": "images/patterns/misho_daily_草莓大福_eye.jpg",
+            "script": "外圈棕色的细锁边+内圈浅粉色小高光使得眼睛更加立体及温柔",
+            "series": "花厨小熊-日抛"
+          },
+          {
+            "name": "焦糖熔岩",
+            "color": "棕",
+            "diameter": "14.5",
+            "colorDiameter": "14.2",
+            "lensImg": "images/patterns/misho_daily_焦糖熔岩_lens.jpg",
+            "eyeImg": "images/patterns/misho_daily_焦糖熔岩_eye.jpg",
+            "script": "柔润深棕底色自带通透感，上眼像把焦糖蜜色揉进瞳里，自然扩瞳不夸张，是素颜也能驾驭的 “妈生感暖棕瞳”✨",
+            "series": "花厨小熊-日抛"
+          },
+          {
+            "name": "快乐小狗",
+            "color": "黑",
+            "diameter": "14.5",
+            "colorDiameter": "14.15",
+            "lensImg": "images/patterns/misho_daily_快乐小狗_lens.jpg",
+            "eyeImg": "images/patterns/misho_daily_快乐小狗_eye.jpg",
+            "script": "宝子~这款【快乐小狗】上眼简直就是一颗黑曜石，黑色锁边不生硬，搭配内圈黑灰色的花纹很有个性~",
+            "series": "花厨小熊-日抛"
+          },
+          {
+            "name": "黄油小熊",
+            "color": "棕",
+            "diameter": "14.5",
+            "colorDiameter": "14.15",
+            "lensImg": "images/patterns/misho_daily_黄油小熊_lens.jpg",
+            "eyeImg": "images/patterns/misho_daily_黄油小熊_eye.jpg",
+            "script": "这款【黄油小熊】外圈偏黑色自然放大，内圈棕色高光，让眼神软糯又明亮~",
+            "series": "花厨小熊-日抛"
+          },
+          {
+            "name": "蜂蜜罐罐",
+            "color": "棕",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_daily_蜂蜜罐罐_lens.jpg",
+            "eyeImg": "images/patterns/misho_daily_蜂蜜罐罐_eye.jpg",
+            "script": "这款花色是暖棕调美瞳，融瞳自然，眼神温柔又透亮，超适合秋冬佩戴~",
+            "series": "花厨小熊-日抛"
+          },
+          {
+            "name": "糖霜可可",
+            "color": "黑灰+亮点",
+            "diameter": "14.5",
+            "colorDiameter": "14.3",
+            "lensImg": "images/patterns/misho_daily_糖霜可可_lens.jpg",
+            "eyeImg": "images/patterns/misho_daily_糖霜可可_eye.jpg",
+            "script": "【糖霜可可】神秘黑灰波纹，叠加细腻珠光，让眼神如水波般灵动深邃",
+            "series": "花厨小熊-日抛"
+          }
+        ],
+        "半年抛": [
+          {
+            "name": "白月光",
+            "color": "黑灰",
+            "diameter": "14.2",
+            "colorDiameter": "13.5",
+            "lensImg": "images/patterns/misho_halfyear_白月光_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_白月光_eye.jpg",
+            "script": "【白月光】雾感清透黑灰，自然融瞳的清冷白月光眼~",
+            "series": "心动调频"
+          },
+          {
+            "name": "蓝调时分",
+            "color": "蓝",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_halfyear_蓝调时分_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_蓝调时分_eye.jpg",
+            "script": "蓝调时分：深邃冰感蓝，自带混血感的清冷雾蓝瞳",
+            "series": "心动调频"
+          },
+          {
+            "name": "摩卡奶茶",
+            "color": "奶棕",
+            "diameter": "14.2",
+            "colorDiameter": "13.6",
+            "lensImg": "images/patterns/misho_halfyear_摩卡奶茶_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_摩卡奶茶_eye.jpg",
+            "script": "摩卡奶茶：柔润暖棕调，温柔又日常的妈生感奶茶瞳",
+            "series": "心动调频"
+          },
+          {
+            "name": "千禧校花",
+            "color": "黑灰",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_halfyear_千禧校花_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_千禧校花_eye.jpg",
+            "script": "千禧校花：黑亮扩瞳款，自带水光感的无辜黑亮眼",
+            "series": "心动调频"
+          },
+          {
+            "name": "桃气闪闪",
+            "color": "闪粉",
+            "diameter": "14.2",
+            "colorDiameter": "13.7",
+            "lensImg": "images/patterns/misho_halfyear_桃气闪闪_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_桃气闪闪_eye.jpg",
+            "script": "桃气闪闪：甜粉紫带细闪，自带少女感的软萌粉紫瞳",
+            "series": "心动调频"
+          },
+          {
+            "name": "全息悸动",
+            "color": "在逃公主同款蓝色",
+            "diameter": "14.5",
+            "colorDiameter": "14.5",
+            "lensImg": "images/patterns/misho_halfyear_全息悸动_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_全息悸动_eye.jpg",
+            "script": "这款「全息悸动」✨ 葱色光波漫入眼眸，复刻初音未来的清透蓝瞳，自带次元柔光感~",
+            "series": "初音未来"
+          },
+          {
+            "name": "指尖蝶舞",
+            "color": "深海蓝",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_halfyear_指尖蝶舞_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_指尖蝶舞_eye.jpg",
+            "script": "这款是蝶翼清透深海蓝瞳，还原公式级二次元灵动眼妆~",
+            "series": "初音未来"
+          },
+          {
+            "name": "39°巡光",
+            "color": "冷感蓝",
+            "diameter": "14.5",
+            "colorDiameter": "14.2",
+            "lensImg": "images/patterns/misho_halfyear_39°巡光_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_39°巡光_eye.jpg",
+            "script": "39° 巡光・初音款｜清透冷感蓝调 + 对称高光，自带舞台打光感~",
+            "series": "初音未来"
+          },
+          {
+            "name": "爱的无限曲",
+            "color": "暖棕琥珀调",
+            "diameter": "14.5",
+            "colorDiameter": "14.3",
+            "lensImg": "images/patterns/misho_halfyear_爱的无限曲_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_爱的无限曲_eye.jpg",
+            "script": "这款是暖棕琥珀瞳！爱的无限曲自带温柔氛围感，适配初音软萌感~",
+            "series": "初音未来"
+          },
+          {
+            "name": "薄荷微光",
+            "color": "青绿",
+            "diameter": "14.5",
+            "colorDiameter": "14.5",
+            "lensImg": "images/patterns/misho_halfyear_薄荷微光_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_薄荷微光_eye.jpg",
+            "script": "这款薄荷微光，薄荷青调瞳色，像虚拟舞台上的粼粼碎光~",
+            "series": "初音未来"
+          },
+          {
+            "name": "落日漫游",
+            "color": "甜酷棕",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_halfyear_落日漫游_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_落日漫游_eye.jpg",
+            "script": "这款【落日漫游】清透棕调 + 细腻高光，还原温柔次元眼！",
+            "series": "初音未来"
+          },
+          {
+            "name": "虚拟泪光",
+            "color": "经典黑",
+            "diameter": "14.5",
+            "colorDiameter": "14.3",
+            "lensImg": "images/patterns/misho_halfyear_虚拟泪光_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_虚拟泪光_eye.jpg",
+            "script": "这款是超自然的通透黑瞳 + 细腻高光，还原二次元的纯欲泪光感~",
+            "series": "初音未来"
+          },
+          {
+            "name": "甜心主唱",
+            "color": "樱花粉",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_halfyear_甜心主唱_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_甜心主唱_eye.jpg",
+            "script": "【甜心主唱】樱花粉调瞳色，把虚拟偶像的甜酷感揉进眼里~",
+            "series": "初音未来"
+          },
+          {
+            "name": "乌托邦幻想",
+            "color": "梦幻紫",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_halfyear_乌托邦幻想_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_乌托邦幻想_eye.jpg",
+            "script": "这款是雾紫柔光瞳，像虚拟世界里的浪漫幻梦~",
+            "series": "初音未来"
+          },
+          {
+            "name": "国民初恋",
+            "color": "",
+            "diameter": "14.2",
+            "colorDiameter": "13.3",
+            "lensImg": "images/patterns/misho_halfyear_国民初恋_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_国民初恋_eye.jpg",
+            "script": "黑色细锁边外圈配上黑灰色有一种水汪汪的、湿漉漉的无辜感，比单纯的黑更灵动，更让人心动~",
+            "series": "心动信号"
+          },
+          {
+            "name": "转校千金",
+            "color": "",
+            "diameter": "14.2",
+            "colorDiameter": "13.7",
+            "lensImg": "images/patterns/misho_halfyear_转校千金_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_转校千金_eye.jpg",
+            "script": "外圈采用黑灰色细锁边，内圈采用深灰色放射性花纹，让花色在放大眼睛的同时更加有混血感~",
+            "series": "心动信号"
+          },
+          {
+            "name": "告白汽水",
+            "color": "",
+            "diameter": "14.2",
+            "colorDiameter": "13.6",
+            "lensImg": "images/patterns/misho_halfyear_告白汽水_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_告白汽水_eye.jpg",
+            "script": "这款是低饱和的蓝灰色调+细闪打造出清澈透亮、自带呼吸感的眼睛。",
+            "series": "心动信号"
+          },
+          {
+            "name": "栗栗在逃",
+            "color": "",
+            "diameter": "14.2",
+            "colorDiameter": "13.6",
+            "lensImg": "images/patterns/misho_halfyear_栗栗在逃_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_栗栗在逃_eye.jpg",
+            "script": "整体以暖金棕色基底，内圈浅棕色高光使得外圈锁边更佳明显，但过渡自然，实现温柔放大双眼缺不死板",
+            "series": "心动信号"
+          },
+          {
+            "name": "蓝朋友",
+            "color": "",
+            "diameter": "14.2",
+            "colorDiameter": "13.5",
+            "lensImg": "images/patterns/misho_halfyear_蓝朋友_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_蓝朋友_eye.jpg",
+            "script": "这款深蓝色外圈过渡更加自然，内有细腻花纹点亮眼神！把精致直接刻在瞳孔里，近看才能发现的高级感，让眼睛自带故事感。",
+            "series": "心动信号"
+          },
+          {
+            "name": "夏吻野火",
+            "color": "灰咖",
+            "diameter": "14.2",
+            "colorDiameter": "13.65",
+            "lensImg": "images/patterns/misho_halfyear_夏吻野火_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_夏吻野火_eye.jpg",
+            "script": "这款是雾感咖灰美瞳！柔雾渐变外圈，自然柔和放大双眼，伪素颜白开水清透瞳，通勤淡妆万能款～",
+            "series": "随便花系列"
+          },
+          {
+            "name": "晚熟游戏",
+            "color": "黑灰+亮点",
+            "diameter": "14.5",
+            "colorDiameter": "14.3",
+            "lensImg": "images/patterns/misho_halfyear_晚熟游戏_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_晚熟游戏_eye.jpg",
+            "script": "【晚熟游戏】黑色外圈精致锁边，浅灰底色搭配若隐若现的紫色线条，上眼清冷又灵动，氛围感直接拉满～",
+            "series": "随便花系列"
+          },
+          {
+            "name": "月光骑士",
+            "color": "黑蓝色",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_halfyear_月光骑士_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_月光骑士_eye.jpg",
+            "script": "【月光骑士】冷调黑蓝交织，外圈深邃锁边，上眼清冷又神秘，宛如月光下的骑士眼眸～",
+            "series": "随便花系列"
+          },
+          {
+            "name": "暧昧戏法",
+            "color": "棕",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_halfyear_暧昧戏法_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_暧昧戏法_eye.jpg",
+            "script": "",
+            "series": "随便花系列"
+          },
+          {
+            "name": "柏林热吻",
+            "color": "棕",
+            "diameter": "14.5",
+            "colorDiameter": "14.5",
+            "lensImg": "images/patterns/misho_halfyear_柏林热吻_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_柏林热吻_eye.jpg",
+            "script": "",
+            "series": "随便花系列"
+          },
+          {
+            "name": "情绪玩家",
+            "color": "蓝色",
+            "diameter": "14.2",
+            "colorDiameter": "13.5",
+            "lensImg": "images/patterns/misho_halfyear_情绪玩家_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_情绪玩家_eye.jpg",
+            "script": "",
+            "series": "随便花系列"
+          },
+          {
+            "name": "初生玫瑰",
+            "color": "偏粉+拼色",
+            "diameter": "14.2",
+            "colorDiameter": "13.3",
+            "lensImg": "images/patterns/misho_halfyear_初生玫瑰_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_初生玫瑰_eye.jpg",
+            "script": "【初生玫瑰】柔粉调融瞳自然，眼神自带温柔滤镜~",
+            "series": "随便花系列"
+          },
+          {
+            "name": "月光恋人",
+            "color": "蓝紫",
+            "diameter": "14.2",
+            "colorDiameter": "13.5",
+            "lensImg": "images/patterns/misho_halfyear_月光恋人_lens.jpg",
+            "eyeImg": "",
+            "script": "",
+            "series": "随便花系列"
+          },
+          {
+            "name": "南韩千金",
+            "color": "浅蓝",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_halfyear_南韩千金_lens.jpg",
+            "eyeImg": "",
+            "script": "恰到好处的蓝，既不张扬又极具辨识度，日常戴显温柔，化妆戴更出彩，适配各种风格妆容哟~",
+            "series": "随便花系列"
+          },
+          {
+            "name": "冷雾茶黑",
+            "color": "黑",
+            "diameter": "14.5",
+            "colorDiameter": "14.2",
+            "lensImg": "images/patterns/misho_halfyear_冷雾茶黑_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_冷雾茶黑_eye.jpg",
+            "script": "宝宝~这款冷雾茶黑的看下哟，透透的大直径眼珠珠～戴上秒变无辜大眼，黑色超自然显幼态~",
+            "series": "随便花系列"
+          },
+          {
+            "name": "笨蛋美女",
+            "color": "棕",
+            "diameter": "14.5",
+            "colorDiameter": "13.8",
+            "lensImg": "images/patterns/misho_halfyear_笨蛋美女_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_笨蛋美女_eye.jpg",
+            "script": "宝宝~推荐这款笨蛋美女的，日常通勤必买单品 又纯又欲水光瞳，很温柔细腻",
+            "series": "随便花系列"
+          },
+          {
+            "name": "爽文女主",
+            "color": "棕+金粉",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_halfyear_爽文女主_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_爽文女主_eye.jpg",
+            "script": "这款棕瞳增大双眼效果明显，但又不会夸张突兀，让眼睛瞬间有神又灵动~",
+            "series": "随便花系列"
+          },
+          {
+            "name": "南洋水珠pro",
+            "color": "琥珀棕",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_halfyear_南洋水珠pro_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_南洋水珠pro_eye.jpg",
+            "script": "【南洋水珠】琥珀瞳仁是最近的新宠，通透少女感十足~",
+            "series": "随便花系列"
+          },
+          {
+            "name": "天菜女友",
+            "color": "灰绿",
+            "diameter": "14.5",
+            "colorDiameter": "13.9",
+            "lensImg": "images/patterns/misho_halfyear_天菜女友_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_天菜女友_eye.jpg",
+            "script": "清冷美女必备款【天菜女友】~绿色宝石眼珠珠超推荐！",
+            "series": "随便花系列"
+          },
+          {
+            "name": "水星记",
+            "color": "蓝",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_halfyear_水星记_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_水星记_eye.jpg",
+            "script": "宝宝~推荐这款水星记的，这个蓝色的透度真的好绝！超火的一款蓝色美瞳，相信宝贝戴了一定会爱上~",
+            "series": "随便花系列"
+          },
+          {
+            "name": "成为自己",
+            "color": "棕",
+            "diameter": "14.5",
+            "colorDiameter": "13.82",
+            "lensImg": "images/patterns/misho_halfyear_成为自己_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_成为自己_eye.jpg",
+            "script": "【成为自己】，暖棕调融瞳自然，眼神温柔又有气场",
+            "series": "随便花系列"
+          },
+          {
+            "name": "半熟幻想",
+            "color": "棕",
+            "diameter": "14.5",
+            "colorDiameter": "13.6",
+            "lensImg": "images/patterns/misho_halfyear_半熟幻想_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_半熟幻想_eye.jpg",
+            "script": "随便花新品上线\n半熟幻想 14.5mm",
+            "series": "随便花系列"
+          },
+          {
+            "name": "蓝岛时刻",
+            "color": "深蓝",
+            "diameter": "14.5",
+            "colorDiameter": "13.9",
+            "lensImg": "images/patterns/misho_halfyear_蓝岛时刻_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_蓝岛时刻_eye.jpg",
+            "script": "深邃牛仔蓝\n蓝岛时刻 14.5mm",
+            "series": "随便花系列"
+          },
+          {
+            "name": "富婆人生",
+            "color": "棕",
+            "diameter": "14.5",
+            "colorDiameter": "13.73",
+            "lensImg": "images/patterns/misho_halfyear_富婆人生_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_富婆人生_eye.jpg",
+            "script": "【富婆人生】清冷灰棕调，眼神贵气又吸睛",
+            "series": "随便花系列"
+          },
+          {
+            "name": "恋爱循环",
+            "color": "蓝",
+            "diameter": "14.5",
+            "colorDiameter": "13.77",
+            "lensImg": "images/patterns/misho_halfyear_恋爱循环_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_恋爱循环_eye.jpg",
+            "script": "",
+            "series": "随便花系列"
+          },
+          {
+            "name": "换乘恋爱",
+            "color": "黑色版【天菜女友】",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_halfyear_换乘恋爱_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_换乘恋爱_eye.jpg",
+            "script": "天菜同款黑色【换乘恋爱】，独特的花纹百搭自然款~",
+            "series": "随便花系列"
+          },
+          {
+            "name": "巴洛克玫瑰",
+            "color": "紫色",
+            "diameter": "14.5",
+            "colorDiameter": "13.95",
+            "lensImg": "images/patterns/misho_halfyear_巴洛克玫瑰_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_巴洛克玫瑰_eye.jpg",
+            "script": "【巴洛克玫瑰】少女无法拒绝的梦幻紫~紫色超温柔有韵味",
+            "series": "随便花系列"
+          },
+          {
+            "name": "航海日记",
+            "color": "蓝",
+            "diameter": "14.5",
+            "colorDiameter": "13.95",
+            "lensImg": "images/patterns/misho_halfyear_航海日记_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_航海日记_eye.jpg",
+            "script": "",
+            "series": "随便花系列"
+          },
+          {
+            "name": "小野猫",
+            "color": "棕",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_halfyear_小野猫_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_小野猫_eye.jpg",
+            "script": "宝宝~这款【小野猫】可爱又灵动的棕色大直径，日常通勤百搭款~",
+            "series": "随便花系列"
+          },
+          {
+            "name": "清晨解药",
+            "color": "灰色",
+            "diameter": "14.5",
+            "colorDiameter": "13.8",
+            "lensImg": "images/patterns/misho_halfyear_清晨解药_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_清晨解药_eye.jpg",
+            "script": "【清晨解药】甜酷灰色，百搭日常一丢丢混血",
+            "series": "随便花系列"
+          },
+          {
+            "name": "奶油黑客",
+            "color": "黑色",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_halfyear_奶油黑客_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_奶油黑客_eye.jpg",
+            "script": "【奶油黑客】，黑调融细闪，清透自然，眼神自带雾面滤镜~",
+            "series": "随便花系列"
+          },
+          {
+            "name": "反骨甜心",
+            "color": "紫色",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_halfyear_反骨甜心_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_反骨甜心_eye.jpg",
+            "script": "浅紫调自带梦幻滤镜，像把薰衣草花海揉进眼眸， 上眼清透又神秘，仿佛藏着一整片银河，温柔中带点清冷疏离感，妥妥的人间紫水晶特效~",
+            "series": "随便花系列"
+          },
+          {
+            "name": "冷雾茶棕",
+            "color": "棕色",
+            "diameter": "14.5",
+            "colorDiameter": "13.8",
+            "lensImg": "images/patterns/misho_halfyear_冷雾茶棕_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_冷雾茶棕_eye.jpg",
+            "script": "冷雾茶棕 Dia:14.5mm\n好自然的琥珀棕瞳",
+            "series": "随便花系列"
+          },
+          {
+            "name": "偷藏月光",
+            "color": "黑粉",
+            "diameter": "14.5",
+            "colorDiameter": "14.3",
+            "lensImg": "images/patterns/misho_halfyear_偷藏月光_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_偷藏月光_eye.jpg",
+            "script": "温柔粉棕调，上眼清透又空灵，自带柔光滤镜，仿佛藏着一汪清甜的晨露，无辜感拉满，妥妥的人间洋娃娃花色～",
+            "series": "随便花系列"
+          },
+          {
+            "name": "落日橘子海",
+            "color": "黑棕",
+            "diameter": "14.5",
+            "colorDiameter": "14.2",
+            "lensImg": "images/patterns/misho_halfyear_落日橘子海_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_落日橘子海_eye.jpg",
+            "script": "【落日橘子海】融瞳自然，眼神自带温柔氛围感",
+            "series": "随便花系列"
+          },
+          {
+            "name": "妮妮千金",
+            "color": "黑粉",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_halfyear_妮妮千金_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_妮妮千金_eye.jpg",
+            "script": "",
+            "series": "女高系列"
+          },
+          {
+            "name": "造梦乐园",
+            "color": "青灰",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_halfyear_造梦乐园_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_造梦乐园_eye.jpg",
+            "script": "这款美瞳青灰调裹着雾感，戴上感觉清透又带点疏离感，大直径扩瞳自带清冷滤镜，是一眼就沦陷的 “青灰雾感眼”✨",
+            "series": "女高系列"
+          },
+          {
+            "name": "气泡葡萄",
+            "color": "紫色",
+            "diameter": "14.5",
+            "colorDiameter": "13.8",
+            "lensImg": "images/patterns/misho_halfyear_气泡葡萄_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_气泡葡萄_eye.jpg",
+            "script": "这款深紫色调的美瞳，比自然款更魅惑 比混血款更温柔，戴上是一眼就心动的 “葡萄冻冻眼”✨~",
+            "series": "女高系列"
+          },
+          {
+            "name": "黑莓缪斯",
+            "color": "黑",
+            "diameter": "14.2",
+            "colorDiameter": "13.67",
+            "lensImg": "images/patterns/misho_halfyear_黑莓缪斯_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_黑莓缪斯_eye.jpg",
+            "script": "这款花色是黑色锁边+黑灰调内圈，无声放大双眼，眼神立刻变得清澈有神，像天生的好底子，自然到老师、上司都看不出你戴了美瞳！",
+            "series": "女高系列"
+          },
+          {
+            "name": "她的梨涡",
+            "color": "棕",
+            "diameter": "14.2",
+            "colorDiameter": "13.4",
+            "lensImg": "images/patterns/misho_halfyear_她的梨涡_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_她的梨涡_eye.jpg",
+            "script": "小直径终于有棕色自然款啦，可配合日常淡妆、伪素颜~日常通勤、上学、见长辈都可戴~",
+            "series": "女高系列"
+          },
+          {
+            "name": "我喜欢你",
+            "color": "灰",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_halfyear_我喜欢你_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_我喜欢你_eye.jpg",
+            "script": "适合淡颜系的新品眼珠【我喜欢ni】",
+            "series": "女高系列"
+          },
+          {
+            "name": "你的名字",
+            "color": "棕色",
+            "diameter": "14.5",
+            "colorDiameter": "13.88",
+            "lensImg": "images/patterns/misho_halfyear_你的名字_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_你的名字_eye.jpg",
+            "script": "宝子~推荐这款【ni的名字】温柔到骨子里的初恋眼，日常通勤必买单品~",
+            "series": "女高系列"
+          },
+          {
+            "name": "校花指南",
+            "color": "蓝色",
+            "diameter": "14.5",
+            "colorDiameter": "14.06",
+            "lensImg": "images/patterns/misho_halfyear_校花指南_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_校花指南_eye.jpg",
+            "script": "【校花指南】清冷蓝调，眼神亮眼又吸睛",
+            "series": "女高系列"
+          },
+          {
+            "name": "汪汪队",
+            "color": "黑色【冷雾茶黑同款小直径】",
+            "diameter": "14.2",
+            "colorDiameter": "13.7",
+            "lensImg": "images/patterns/misho_halfyear_汪汪队_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_汪汪队_eye.jpg",
+            "script": "水润润乖乖女必备，招牌花色清透小奶黑，喜欢不要错过哟~",
+            "series": "女高系列"
+          },
+          {
+            "name": "夜与法兰西",
+            "color": "黑色",
+            "diameter": "14.5",
+            "colorDiameter": "13.9",
+            "lensImg": "images/patterns/misho_halfyear_夜与法兰西_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_夜与法兰西_eye.jpg",
+            "script": "这款【夜与法兰西】，洋娃娃专属漫画大眼哟",
+            "series": "女高系列"
+          },
+          {
+            "name": "元气女高",
+            "color": "灰色",
+            "diameter": "14.2",
+            "colorDiameter": "13.4",
+            "lensImg": "images/patterns/misho_halfyear_元气女高_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_元气女高_eye.jpg",
+            "script": "元气感满满~氛围感混血珠珠",
+            "series": "女高系列"
+          },
+          {
+            "name": "少女心事",
+            "color": "紫色",
+            "diameter": "14.5",
+            "colorDiameter": "13.9",
+            "lensImg": "images/patterns/misho_halfyear_少女心事_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_少女心事_eye.jpg",
+            "script": "少女心事14.5mm，低饱和度紫灰色~上眼秒变温柔美少女~",
+            "series": "女高系列"
+          },
+          {
+            "name": "千禧莓莓",
+            "color": "粉棕",
+            "diameter": "14.5",
+            "colorDiameter": "13.9",
+            "lensImg": "images/patterns/misho_halfyear_千禧莓莓_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_千禧莓莓_eye.jpg",
+            "script": "宝子~看下这款又泰又嗲的眼珠珠-千禧莓莓",
+            "series": "女高系列"
+          },
+          {
+            "name": "甜断记忆",
+            "color": "棕色",
+            "diameter": "14.5",
+            "colorDiameter": "13.9",
+            "lensImg": "images/patterns/misho_halfyear_甜断记忆_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_甜断记忆_eye.jpg",
+            "script": "甜断记忆\n扑面而来的少女气息，粉棕色让你的妆容更出彩，日常不化妆也可以戴的自然款",
+            "series": "女高系列"
+          },
+          {
+            "name": "甜宠学妹",
+            "color": "粉色",
+            "diameter": "14.2",
+            "colorDiameter": "12.9",
+            "lensImg": "images/patterns/misho_halfyear_甜宠学妹_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_甜宠学妹_eye.jpg",
+            "script": "戴上就是超级温柔的粉紫色，14.20mm的直径自然放大双眼~",
+            "series": "女高系列"
+          },
+          {
+            "name": "冰岛日记",
+            "color": "黑色",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_halfyear_冰岛日记_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_冰岛日记_eye.jpg",
+            "script": "【冰岛日记】颜色是浓郁醇厚的巧克力棕，自然又百搭，素颜戴毫无压力，轻松打造妈生感美眸，适配各种妆容风格，日常通勤、约会出游都超合适哒~",
+            "series": "女高系列"
+          },
+          {
+            "name": "伦敦碎片",
+            "color": "黑灰",
+            "diameter": "14.5",
+            "colorDiameter": "13.92",
+            "lensImg": "images/patterns/misho_halfyear_伦敦碎片_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_伦敦碎片_eye.jpg",
+            "script": "弥生新花色来啦【伦敦碎片】，显色又有漫画感~尊嘟好看~",
+            "series": "女高系列"
+          },
+          {
+            "name": "加州校园",
+            "color": "棕色",
+            "diameter": "14.5",
+            "colorDiameter": "13.8",
+            "lensImg": "images/patterns/misho_halfyear_加州校园_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_加州校园_eye.jpg",
+            "script": "宝子~这款美瞳一戴，整个气质都提升了好几个档次，清冷又高级~",
+            "series": "女高系列"
+          },
+          {
+            "name": "暗恋无果",
+            "color": "墨绿+拼色",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_halfyear_暗恋无果_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_暗恋无果_eye.jpg",
+            "script": "【暗恋无果】森系墨绿调，融瞳自然，眼神清冷又勾人",
+            "series": "女高系列"
+          },
+          {
+            "name": "甜蜜暗号",
+            "color": "棕色",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_halfyear_甜蜜暗号_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_甜蜜暗号_eye.jpg",
+            "script": "浅棕主调温柔又清透，眼里藏着蜜糖般的清甜 ，自带初恋感 buff ，日常又纯欲，谁戴谁是人间水蜜桃～",
+            "series": "女高系列"
+          },
+          {
+            "name": "心动信号",
+            "color": "粉棕",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_halfyear_心动信号_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_心动信号_eye.jpg",
+            "script": "【心动信号】清透又带点朦胧雾感，上眼瞬间眼神会 “发电”，温柔钓系氛围拉满，谁戴谁是纯欲心动制造机~",
+            "series": "女高系列"
+          },
+          {
+            "name": "初恋小事",
+            "color": "灰色",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_halfyear_初恋小事_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_初恋小事_eye.jpg",
+            "script": "上眼水灵灵的小鹿眼，有种清纯女高的幼态感~",
+            "series": "女高系列"
+          },
+          {
+            "name": "窗外樱花",
+            "color": "棕色",
+            "diameter": "14.5",
+            "colorDiameter": "14.5",
+            "lensImg": "images/patterns/misho_halfyear_窗外樱花_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_窗外樱花_eye.jpg",
+            "script": "【窗外樱花】柔棕调融瞳自然，眼神温柔似樱花",
+            "series": "女高系列"
+          },
+          {
+            "name": "等你下课",
+            "color": "棕色",
+            "diameter": "14.5",
+            "colorDiameter": "14.3",
+            "lensImg": "images/patterns/misho_halfyear_等你下课_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_等你下课_eye.jpg",
+            "script": "【等你下课】暖棕带细闪，眼神温柔又灵动",
+            "series": "女高系列"
+          },
+          {
+            "name": "闪闪自信",
+            "color": "蓝",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_halfyear_闪闪自信_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_闪闪自信_eye.jpg",
+            "script": "【闪闪自信】戴上后眼睛瞬间有了深邃感，仿佛藏着无尽故事，自然又好看",
+            "series": "女高系列"
+          },
+          {
+            "name": "玻璃娃娃",
+            "color": "灰黑",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "",
+            "eyeImg": "",
+            "script": "",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "溺爱冰河",
+            "color": "蓝",
+            "diameter": "14.5",
+            "colorDiameter": "14.3",
+            "lensImg": "",
+            "eyeImg": "",
+            "script": "",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "恶女千金",
+            "color": "红色",
+            "diameter": "14.5",
+            "colorDiameter": "13.9",
+            "lensImg": "images/patterns/misho_halfyear_恶女千金_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_恶女千金_eye.jpg",
+            "script": "红棕调超吸睛，眼神又 A 又飒",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "魔女眼泪",
+            "color": "蓝色",
+            "diameter": "14.5",
+            "colorDiameter": "13.7",
+            "lensImg": "",
+            "eyeImg": "images/patterns/misho_halfyear_魔女眼泪_eye.jpg",
+            "script": "",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "水漾狂想曲",
+            "color": "蓝绿",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_halfyear_水漾狂想曲_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_水漾狂想曲_eye.jpg",
+            "script": "超推荐的【水漾狂想曲】，清新蓝绿搭配~买回去出去玩拍照超有氛围哒~90%客户已购的大爆款！",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "蓝色圆舞曲",
+            "color": "蓝色",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_halfyear_蓝色圆舞曲_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_蓝色圆舞曲_eye.jpg",
+            "script": "漫画感眼珠珠【蓝色圆舞曲】，上眼一秒拥有滤镜般水光大眼睛~",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "无人区玫瑰",
+            "color": "粉棕",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_halfyear_无人区玫瑰_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_无人区玫瑰_eye.jpg",
+            "script": "断货款【无人区玫瑰】仙气飘飘的粉色瞳~增添温柔情调",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "在逃公主",
+            "color": "粉+拼色",
+            "diameter": "14.2",
+            "colorDiameter": "13.36",
+            "lensImg": "",
+            "eyeImg": "",
+            "script": "【在逃公主】粉紫调，眼神温柔似童话",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "在逃公主pro",
+            "color": "",
+            "diameter": "14.5",
+            "colorDiameter": "14.35",
+            "lensImg": "images/patterns/misho_halfyear_在逃公主pro_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_在逃公主pro_eye.jpg",
+            "script": "",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "心动降临",
+            "color": "粉色",
+            "diameter": "14.5",
+            "colorDiameter": "13.83",
+            "lensImg": "images/patterns/misho_halfyear_心动降临_lens.jpg",
+            "eyeImg": "",
+            "script": "粉紫色新品花色，叫姐同款心动降临，好有氛围感的眼珠珠~",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "月光鸣奏曲",
+            "color": "棕",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_halfyear_月光鸣奏曲_lens.jpg",
+            "eyeImg": "",
+            "script": "新品琥珀色棕色瞳~叫姐同款花色",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "爱神降临",
+            "color": "棕+微粉",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_halfyear_爱神降临_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_爱神降临_eye.jpg",
+            "script": "这款【爱神降临】纯欲风~大直径超可爱百搭的款",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "月亮危机",
+            "color": "黑+金粉",
+            "diameter": "14.5",
+            "colorDiameter": "13.8",
+            "lensImg": "images/patterns/misho_halfyear_月亮危机_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_月亮危机_eye.jpg",
+            "script": "黑色美瞳推荐这款【月亮危机】，婴儿般透亮黑色大眼，水灵透亮~上眼不呆板",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "龙颜芭比",
+            "color": "粉",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_halfyear_龙颜芭比_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_龙颜芭比_eye.jpg",
+            "script": "",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "星光降落",
+            "color": "拼色",
+            "diameter": "14.5",
+            "colorDiameter": "13.8",
+            "lensImg": "images/patterns/misho_halfyear_星光降落_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_星光降落_eye.jpg",
+            "script": "新品星光降落..仿佛眼里有星河~",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "指尖魔法",
+            "color": "棕色",
+            "diameter": "14.5",
+            "colorDiameter": "14.2",
+            "lensImg": "images/patterns/misho_halfyear_指尖魔法_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_指尖魔法_eye.jpg",
+            "script": "淡颜宝宝的加分神器，新手盲选不出错的棕色水珠款，人畜无害乖乖女",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "虚空蔷薇",
+            "color": "紫色",
+            "diameter": "14.5",
+            "colorDiameter": "14.29",
+            "lensImg": "images/patterns/misho_halfyear_虚空蔷薇_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_虚空蔷薇_eye.jpg",
+            "script": "自带清冷感，超级显白的紫色玻璃珠，深瞳也完全不用担心！",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "仲夏夜探戈",
+            "color": "紫色【水漾狂想曲同款】",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_halfyear_仲夏夜探戈_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_仲夏夜探戈_eye.jpg",
+            "script": "水漾同款紫色【仲夏夜探戈】，神秘柔紫调，一戴自带梦幻滤镜，眼神像藏了仲夏夜星光，纯欲又魅惑~",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "玛丽皇后",
+            "color": "紫色",
+            "diameter": "14.5",
+            "colorDiameter": "14.2",
+            "lensImg": "images/patterns/misho_halfyear_玛丽皇后_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_玛丽皇后_eye.jpg",
+            "script": "【玛丽皇后】，神秘柔紫调，自带高贵滤镜，眼神秒变优雅宫廷风，纯欲又贵气",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "超大宝宝棕",
+            "color": "棕色",
+            "diameter": "14.5",
+            "colorDiameter": "14.5",
+            "lensImg": "images/patterns/misho_halfyear_超大宝宝棕_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_超大宝宝棕_eye.jpg",
+            "script": "“超大宝宝棕” ，暖棕调，眼神澄澈又显乖",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "超大渣渣黑",
+            "color": "黑色",
+            "diameter": "14.5",
+            "colorDiameter": "14.5",
+            "lensImg": "images/patterns/misho_halfyear_超大渣渣黑_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_超大渣渣黑_eye.jpg",
+            "script": "【超大渣渣黑】，一戴秒变无辜狗狗眼，纯欲又扩瞳，眼神直接锁住心动感~",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "超大奶芙芙",
+            "color": "棕+金粉",
+            "diameter": "14.5",
+            "colorDiameter": "14.5",
+            "lensImg": "images/patterns/misho_halfyear_超大奶芙芙_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_超大奶芙芙_eye.jpg",
+            "script": "“超大奶芙芙”温柔奶棕调。眼神像裹了层棉花糖，纯欲感直接拉满~",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "超大椰椰灰",
+            "color": "灰蓝",
+            "diameter": "14.5",
+            "colorDiameter": "14.5",
+            "lensImg": "images/patterns/misho_halfyear_超大椰椰灰_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_超大椰椰灰_eye.jpg",
+            "script": "“超大椰椰灰”清冷灰调自带松弛感，一戴秒变混血感，眼神像椰灰拿铁般高级，纯欲又清冷~",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "超大酥酥绿",
+            "color": "绿+金粉",
+            "diameter": "14.5",
+            "colorDiameter": "14.5",
+            "lensImg": "images/patterns/misho_halfyear_超大酥酥绿_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_超大酥酥绿_eye.jpg",
+            "script": "“超大酥酥绿” 清冷绿调自带清透感,一戴秒变空灵猫眼，眼神像藏了片森林，纯欲又高级~",
+            "series": "少女漫系列"
+          },
+          {
+            "name": "超大荧光水母",
+            "color": "棕",
+            "diameter": "14.5",
+            "colorDiameter": "14.5",
+            "lensImg": "images/patterns/misho_halfyear_超大荧光水母_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_超大荧光水母_eye.jpg",
+            "script": "深棕调如清透琥珀，上眼宛如把深海水母的荧光感揉进眸中，清透又自带柔光，大直径扩瞳效果绝绝子~",
+            "series": "人鱼系列"
+          },
+          {
+            "name": "偷吻珊瑚",
+            "color": "黑粉",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_halfyear_偷吻珊瑚_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_偷吻珊瑚_eye.jpg",
+            "script": "这款花色漫画扩瞳娃感超浓，是网版砂糖粉底的同款，戴上像是在眼睛里打了腮红~",
+            "series": "人鱼系列"
+          },
+          {
+            "name": "钓系美人",
+            "color": "紫色",
+            "diameter": "14.5",
+            "colorDiameter": "14.2",
+            "lensImg": "images/patterns/misho_halfyear_钓系美人_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_钓系美人_eye.jpg",
+            "script": "宝子~这款花色是饱和度比较低的紫色，想要有些个性、但是又不突兀的花色\n特点是紫色显白、融瞳~",
+            "series": "人鱼系列"
+          },
+          {
+            "name": "绝情玫瑰烧",
+            "color": "红黑+拼色",
+            "diameter": "14.5",
+            "colorDiameter": "13.96",
+            "lensImg": "images/patterns/misho_halfyear_绝情玫瑰烧_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_绝情玫瑰烧_eye.jpg",
+            "script": "“绝情玫瑰烧” ，红棕调，眼神又 A 又魅惑",
+            "series": "人鱼系列"
+          },
+          {
+            "name": "鲛人泪滴",
+            "color": "蓝棕拼色",
+            "diameter": "14.5",
+            "colorDiameter": "14.13",
+            "lensImg": "",
+            "eyeImg": "images/patterns/misho_halfyear_鲛人泪滴_eye.jpg",
+            "script": "新品人鱼系列半年抛＃鲛人泪滴",
+            "series": "人鱼系列"
+          },
+          {
+            "name": "深海之泪",
+            "color": "深蓝",
+            "diameter": "14.5",
+            "colorDiameter": "14.12",
+            "lensImg": "images/patterns/misho_halfyear_深海之泪_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_深海之泪_eye.jpg",
+            "script": "新品人鱼系列半年抛＃深海之泪",
+            "series": "人鱼系列"
+          },
+          {
+            "name": "海豚恋人",
+            "color": "红棕",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_halfyear_海豚恋人_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_海豚恋人_eye.jpg",
+            "script": "新品人鱼系列半年抛＃海豚恋人",
+            "series": "人鱼系列"
+          },
+          {
+            "name": "雾面珍珠",
+            "color": "黑灰",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_halfyear_雾面珍珠_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_雾面珍珠_eye.jpg",
+            "script": "新品人鱼系列半年抛＃雾面珍珠",
+            "series": "人鱼系列"
+          },
+          {
+            "name": "贝母光晕",
+            "color": "棕色",
+            "diameter": "14.5",
+            "colorDiameter": "14.2",
+            "lensImg": "images/patterns/misho_halfyear_贝母光晕_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_贝母光晕_eye.jpg",
+            "script": "很减龄可爱日常百搭款【贝母光晕】",
+            "series": "人鱼系列"
+          },
+          {
+            "name": "落日熔金",
+            "color": "棕色",
+            "diameter": "14.5",
+            "colorDiameter": "14.15",
+            "lensImg": "images/patterns/misho_halfyear_落日熔金_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_落日熔金_eye.jpg",
+            "script": "新品人鱼系列半年抛＃落日熔金\n「金棕瞳色+微闪细粉=狙击男神利器」",
+            "series": "人鱼系列"
+          },
+          {
+            "name": "冰摇海葡萄",
+            "color": "紫色",
+            "diameter": "14.5",
+            "colorDiameter": "13.9",
+            "lensImg": "images/patterns/misho_halfyear_冰摇海葡萄_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_冰摇海葡萄_eye.jpg",
+            "script": "新品人鱼系列半年抛＃冰瑶海葡萄",
+            "series": "人鱼系列"
+          },
+          {
+            "name": "黄油小熊",
+            "color": "",
+            "diameter": "14.5",
+            "colorDiameter": "14.15",
+            "lensImg": "",
+            "eyeImg": "",
+            "script": "",
+            "series": "happy系列"
+          },
+          {
+            "name": "快乐小狗",
+            "color": "",
+            "diameter": "14.5",
+            "colorDiameter": "14.15",
+            "lensImg": "",
+            "eyeImg": "",
+            "script": "",
+            "series": "happy系列"
+          },
+          {
+            "name": "松林小鹿",
+            "color": "",
+            "diameter": "14.5",
+            "colorDiameter": "13.97",
+            "lensImg": "",
+            "eyeImg": "",
+            "script": "",
+            "series": "happy系列"
+          },
+          {
+            "name": "美高舞会",
+            "color": "",
+            "diameter": "14.5",
+            "colorDiameter": "14.13",
+            "lensImg": "",
+            "eyeImg": "",
+            "script": "",
+            "series": "happy系列"
+          },
+          {
+            "name": "蜜糖戚风",
+            "color": "",
+            "diameter": "14.2",
+            "colorDiameter": "13.33",
+            "lensImg": "",
+            "eyeImg": "",
+            "script": "",
+            "series": "happy系列"
+          },
+          {
+            "name": "脆皮圣代",
+            "color": "",
+            "diameter": "14.5",
+            "colorDiameter": "13.9",
+            "lensImg": "",
+            "eyeImg": "",
+            "script": "",
+            "series": "happy系列"
+          },
+          {
+            "name": "纯白冬季",
+            "color": "",
+            "diameter": "14.5",
+            "colorDiameter": "13.9",
+            "lensImg": "",
+            "eyeImg": "",
+            "script": "",
+            "series": "happy系列"
+          },
+          {
+            "name": "记忆吐司",
+            "color": "红棕",
+            "diameter": "14.5",
+            "colorDiameter": "13.8",
+            "lensImg": "images/patterns/misho_halfyear_记忆吐司_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_记忆吐司_eye.jpg",
+            "script": "",
+            "series": "花厨小熊系列"
+          },
+          {
+            "name": "曲奇饼派对",
+            "color": "棕色",
+            "diameter": "14.5",
+            "colorDiameter": "14.05",
+            "lensImg": "images/patterns/misho_halfyear_曲奇饼派对_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_曲奇饼派对_eye.jpg",
+            "script": "这款是暖棕焦糖棕调+金闪糖霜 曲奇饼般的甜酷鎏金瞳~",
+            "series": "花厨小熊系列"
+          },
+          {
+            "name": "停止幻想",
+            "color": "黑灰",
+            "diameter": "14.5",
+            "colorDiameter": "13.7",
+            "lensImg": "images/patterns/misho_halfyear_停止幻想_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_停止幻想_eye.jpg",
+            "script": "【停止幻想】灰蓝花色+冰晶感纹理 很有银河感的赛博冰川瞳",
+            "series": "花厨小熊系列"
+          },
+          {
+            "name": "黄油流心",
+            "color": "棕色",
+            "diameter": "14.5",
+            "colorDiameter": "13.7",
+            "lensImg": "images/patterns/misho_halfyear_黄油流心_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_黄油流心_eye.jpg",
+            "script": "【黄油流心】\n黄油暖棕渐变+鎏金细闪 温柔又很特别的滤镜感~",
+            "series": "花厨小熊系列"
+          },
+          {
+            "name": "奶油噗噗",
+            "color": "黑紫",
+            "diameter": "14.5",
+            "colorDiameter": "14.2",
+            "lensImg": "images/patterns/misho_halfyear_奶油噗噗_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_奶油噗噗_eye.jpg",
+            "script": "【奶油噗噗】柔黑调融瞳自然，眼神软萌又通透",
+            "series": "花厨小熊系列"
+          },
+          {
+            "name": "灰熊奶霜",
+            "color": "黑色",
+            "diameter": "14.5",
+            "colorDiameter": "14",
+            "lensImg": "images/patterns/misho_halfyear_灰熊奶霜_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_灰熊奶霜_eye.jpg",
+            "script": "【灰熊奶霜】清冷灰调，眼神通透又高级",
+            "series": "花厨小熊系列"
+          },
+          {
+            "name": "牛仔布偶",
+            "color": "黑蓝",
+            "diameter": "14.5",
+            "colorDiameter": "14.1",
+            "lensImg": "images/patterns/misho_halfyear_牛仔布偶_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_牛仔布偶_eye.jpg",
+            "script": "【牛仔布偶】深邃黑调，眼神慵懒又吸睛",
+            "series": "花厨小熊系列"
+          },
+          {
+            "name": "偷心布朗尼",
+            "color": "棕色",
+            "diameter": "14.5",
+            "colorDiameter": "14.12",
+            "lensImg": "images/patterns/misho_halfyear_偷心布朗尼_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_偷心布朗尼_eye.jpg",
+            "script": "【偷心布朗尼】柔棕色调超绝，14.5mm 直径自然放大双眼，上眼宛如天生琉璃瞳持久水润，一键拿捏温柔心动感~",
+            "series": "花厨小熊系列"
+          },
+          {
+            "name": "快乐小狗",
+            "color": "黑色",
+            "diameter": "14.5",
+            "colorDiameter": "14.15",
+            "lensImg": "images/patterns/misho_halfyear_快乐小狗_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_快乐小狗_eye.jpg",
+            "script": "【快乐小狗】纯黑色基底+渐变星空灰 扩瞳感的黑曜石狗狗瞳",
+            "series": "花厨小熊系列"
+          },
+          {
+            "name": "黄油小熊",
+            "color": "棕色",
+            "diameter": "14.5",
+            "colorDiameter": "14.15",
+            "lensImg": "images/patterns/misho_halfyear_黄油小熊_lens.jpg",
+            "eyeImg": "images/patterns/misho_halfyear_黄油小熊_eye.jpg",
+            "script": "弥生美瞳新品 花厨小熊-【黄油小熊】，大直径打造清纯无辜感~",
+            "series": "花厨小熊系列"
+          }
+        ]
+      },
+      "极氧": {
+        "日抛": [
+          {
+            "name": "糖霜日落",
+            "series": "晨露",
+            "color": "棕色系",
+            "diameter": "14.2mm",
+            "colorDiameter": "13.47",
+            "material": "硅水凝胶",
+            "oxygen": "100dk",
+            "water": "58%",
+            "spec": "6片/盒",
+            "description": "暖调琥珀蜜糖棕，外圈浅棕向内渐变融瞳，戴上像天生浅瞳，通勤、面试见家长都不出错，谁戴谁温柔",
+            "lensImg": "images/patterns/日抛_糖霜日落_lens.jpg",
+            "eyeImg": "images/patterns/日抛_糖霜日落_eye.jpg"
+          },
+          {
+            "name": "暮色回响",
+            "series": "晨露",
+            "color": "黑灰色系",
+            "diameter": "14.2mm",
+            "colorDiameter": "13.43",
+            "material": "硅水凝胶",
+            "oxygen": "100dk",
+            "water": "58%",
+            "spec": "6片/盒",
+            "description": "清透黑灰底色+细微放射状纹理，融瞳度极高，戴上就是原生婴儿瞳的效果，日常通勤、证件照必备，自然到看不出戴了美瞳",
+            "lensImg": "",
+            "eyeImg": "images/patterns/日抛_暮色回响_eye.jpg"
+          },
+          {
+            "name": "梨漫花岛",
+            "series": "晨露",
+            "color": "棕色系",
+            "diameter": "14.2mm",
+            "colorDiameter": "13.7",
+            "material": "硅水凝胶",
+            "oxygen": "100dk",
+            "water": "58%",
+            "spec": "6片/盒",
+            "description": "温柔亚麻棕调，边缘虚化设计，上眼自带日系滤镜感，甜美又自然，约会、逛街、拍照都很出片",
+            "lensImg": "images/patterns/日抛_梨漫花岛_lens.jpg",
+            "eyeImg": "images/patterns/日抛_梨漫花岛_eye.jpg"
+          },
+          {
+            "name": "梨花杏雨",
+            "series": "晨露",
+            "color": "棕色系",
+            "diameter": "14.2mm",
+            "colorDiameter": "13.6",
+            "material": "硅水凝胶",
+            "oxygen": "100dk",
+            "water": "58%",
+            "spec": "6片/盒",
+            "description": "水润清透咖啡棕，内圈带细腻金粉高光，上眼有水光感，温柔不做作，约会通勤两相宜",
+            "lensImg": "images/patterns/日抛_梨花杏雨_lens.jpg",
+            "eyeImg": "images/patterns/日抛_梨花杏雨_eye.jpg"
+          },
+          {
+            "name": "樱落半夏",
+            "series": "晨露",
+            "color": "粉紫色系",
+            "diameter": "14.2mm",
+            "colorDiameter": "13.4",
+            "material": "硅水凝胶",
+            "oxygen": "100dk",
+            "water": "58%",
+            "spec": "6片/盒",
+            "description": "低饱和粉紫调，梦幻渐变设计，上眼温柔又浪漫，约会、拍照、出游必备，少女心拉满，甜妹必入",
+            "lensImg": "images/patterns/日抛_樱落半夏_lens.jpg",
+            "eyeImg": "images/patterns/日抛_樱落半夏_eye.jpg"
+          },
+          {
+            "name": "琥珀柔光",
+            "series": "晨露",
+            "color": "棕色系",
+            "diameter": "14.2mm",
+            "colorDiameter": "13.6",
+            "material": "硅水凝胶",
+            "oxygen": "100dk",
+            "water": "58%",
+            "spec": "6片/盒",
+            "description": "复古琥珀棕调，带细碎金闪，上眼显白又有高级感，黄皮救星，温柔与气场兼备",
+            "lensImg": "images/patterns/日抛_琥珀柔光_lens.jpg",
+            "eyeImg": "images/patterns/日抛_琥珀柔光_eye.jpg"
+          },
+          {
+            "name": "清欢水漾",
+            "series": "晨露",
+            "color": "绿色系",
+            "diameter": "14.2mm",
+            "colorDiameter": "13.52",
+            "material": "硅水凝胶",
+            "oxygen": "100dk",
+            "water": "58%",
+            "spec": "6片/盒",
+            "description": "森系薄荷绿调，带自然高光设计，上眼清冷又灵动，显白效果一流，想要独特又不夸张的首选，日常佩戴也很自然",
+            "lensImg": "",
+            "eyeImg": "images/patterns/日抛_清欢水漾_eye.jpg"
+          },
+          {
+            "name": "坠眼青花",
+            "series": "晨露",
+            "color": "灰色系",
+            "diameter": "14.2mm",
+            "colorDiameter": "13.4",
+            "material": "硅水凝胶",
+            "oxygen": "100dk",
+            "water": "58%",
+            "spec": "6片/盒",
+            "description": "冷调高级灰，边缘虚化+微混血纹理，上眼韩系轻混血感，清冷气质拉满，日常佩戴也不突兀",
+            "lensImg": "",
+            "eyeImg": "images/patterns/日抛_坠眼青花_eye.jpg"
+          },
+          {
+            "name": "扶光云梦",
+            "series": "晨露",
+            "color": "蓝色系",
+            "diameter": "14.2mm",
+            "colorDiameter": "13.15",
+            "material": "硅水凝胶",
+            "oxygen": "100dk",
+            "water": "58%",
+            "spec": "6片/盒",
+            "description": "梦幻冰蓝调，融瞳设计不突兀，上眼微混血又通透，海边出游、音乐节、派对必备，小心机拉满",
+            "lensImg": "",
+            "eyeImg": "images/patterns/日抛_扶光云梦_eye.jpg"
+          },
+          {
+            "name": "风摇南枝",
+            "series": "森氧",
+            "color": "灰色系",
+            "diameter": "14.1mm",
+            "colorDiameter": "13.8",
+            "material": "硅水凝胶",
+            "oxygen": "150dk",
+            "water": "47%",
+            "spec": "6片/盒",
+            "description": "清冷银灰调，混血纹理清晰但不夸张，上眼高级贵气，个性又有辨识度，深瞳也能显色",
+            "lensImg": "images/patterns/日抛_风摇南枝_lens.jpg",
+            "eyeImg": "images/patterns/日抛_风摇南枝_eye.jpg"
+          },
+          {
+            "name": "春野鹿鸣",
+            "series": "森氧",
+            "color": "棕色系",
+            "diameter": "14.1mm",
+            "colorDiameter": "13.7",
+            "material": "硅水凝胶",
+            "oxygen": "150dk",
+            "water": "47%",
+            "spec": "6片/盒",
+            "description": "日系亚麻棕调，带细微高光，上眼甜丧氛围感拉满，拍照超出片，喜欢日系、原宿风的姐妹必入",
+            "lensImg": "images/patterns/日抛_春野鹿鸣_lens.jpg",
+            "eyeImg": "images/patterns/日抛_春野鹿鸣_eye.jpg"
+          },
+          {
+            "name": "梦蝶晚窗",
+            "series": "森氧",
+            "color": "棕色系",
+            "diameter": "14.1mm",
+            "colorDiameter": "13.7",
+            "material": "硅水凝胶",
+            "oxygen": "150dk",
+            "water": "47%",
+            "spec": "6片/盒",
+            "description": "暖调玫瑰粉棕，内圈带细腻高光，上眼温柔到心坎里，初恋感满满，复购率超高，约会必备",
+            "lensImg": "images/patterns/日抛_梦蝶晚窗_lens.jpg",
+            "eyeImg": "images/patterns/日抛_梦蝶晚窗_eye.jpg"
+          },
+          {
+            "name": "雪落松香",
+            "series": "森氧",
+            "color": "绿色系",
+            "diameter": "14.1mm",
+            "colorDiameter": "13.7",
+            "material": "硅水凝胶",
+            "oxygen": "150dk",
+            "water": "47%",
+            "spec": "6片/盒",
+            "description": "复古松雾绿调，带微混血纹理，上眼像复古画报走出来的，黄黑皮闭眼入，独特又显白",
+            "lensImg": "images/patterns/日抛_雪落松香_lens.jpg",
+            "eyeImg": "images/patterns/日抛_雪落松香_eye.jpg"
+          },
+          {
+            "name": "晴空飞鸟",
+            "series": "YOUHOO联名",
+            "color": "棕色系",
+            "diameter": "14.2mm",
+            "colorDiameter": "13.5",
+            "material": "水凝胶",
+            "oxygen": "",
+            "water": "40%-50%",
+            "spec": "6片/盒",
+            "description": "水光感扩瞳棕，自然放大不死板，上眼有神又温柔，日常通勤、上学、面试都能戴，百搭不出错",
+            "lensImg": "",
+            "eyeImg": "images/patterns/日抛_晴空飞鸟_eye.jpg"
+          },
+          {
+            "name": "溪山晚风",
+            "series": "YOUHOO联名",
+            "color": "黑色系",
+            "diameter": "14.2mm",
+            "colorDiameter": "12.8",
+            "material": "水凝胶",
+            "oxygen": "",
+            "water": "40%-50%",
+            "spec": "6片/盒",
+            "description": "纯黑妈生瞳设计，边缘自然虚化，上眼像天生黑瞳一样有神，自然有神，学生党、上班族日常首选",
+            "lensImg": "",
+            "eyeImg": "images/patterns/日抛_溪山晚风_eye.jpg"
+          },
+          {
+            "name": "莫奈花园",
+            "series": "YOUHOO联名",
+            "color": "棕色系",
+            "diameter": "14.2mm",
+            "colorDiameter": "13.55",
+            "material": "水凝胶",
+            "oxygen": "",
+            "water": "50%",
+            "spec": "6片/盒",
+            "description": "油画感渐变棕，内浅外深设计，温柔又有层次感，大小直径都有，约会、日常都能戴，显气质",
+            "lensImg": "",
+            "eyeImg": "images/patterns/日抛_莫奈花园_eye.jpg"
+          },
+          {
+            "name": "枫糖戚风",
+            "series": "YOUHOO联名",
+            "color": "棕色系",
+            "diameter": "14.2mm",
+            "colorDiameter": "14.0",
+            "material": "水凝胶",
+            "oxygen": "",
+            "water": "40%-50%",
+            "spec": "6片/盒",
+            "description": "枫糖棕，外圈粗黑边+内圈渐变，扩瞳效果明显，甜妹必备，上镜超显眼睛大，拍照出片",
+            "lensImg": "",
+            "eyeImg": "images/patterns/日抛_枫糖戚风_eye.jpg"
+          },
+          {
+            "name": "梨花慢慢",
+            "series": "YOUHOO联名",
+            "color": "黑色系",
+            "diameter": "14.2mm",
+            "colorDiameter": "13.8",
+            "material": "水凝胶",
+            "oxygen": "",
+            "water": "50%",
+            "spec": "6片/盒",
+            "description": "清冷黑灰调，带细微高光，上眼高级疏离感，酷飒御姐风，个性十足超有辨识度",
+            "lensImg": "",
+            "eyeImg": "images/patterns/日抛_梨花慢慢_eye.jpg"
+          },
+          {
+            "name": "邂逅洱海",
+            "series": "YOUHOO联名",
+            "color": "蓝色系",
+            "diameter": "14.4mm",
+            "colorDiameter": "13.6",
+            "material": "水凝胶",
+            "oxygen": "",
+            "water": "50%",
+            "spec": "6片/盒",
+            "description": "大直径洱海蓝，混血蓝调+粗黑边，上眼混血感拉满，辣妹出片神器，派对、音乐节必备",
+            "lensImg": "",
+            "eyeImg": "images/patterns/日抛_邂逅洱海_eye.jpg"
+          }
+        ],
+        "季抛": [
+          {
+            "name": "极光金棕",
+            "series": "季抛系列",
+            "color": "棕色系",
+            "diameter": "14.1mm",
+            "colorDiameter": "13.4",
+            "material": "水凝胶",
+            "oxygen": "",
+            "water": "38%",
+            "spec": "季抛",
+            "description": "暖调金棕，带细腻金闪，上眼高级又温柔，像眼睛里装了小星星，约会、聚会都能戴，黄皮显白",
+            "lensImg": "images/patterns/季抛_极光金棕_lens.jpg",
+            "eyeImg": "images/patterns/季抛_极光金棕_eye.jpg"
+          },
+          {
+            "name": "极光黑灰",
+            "series": "季抛系列",
+            "color": "黑色系",
+            "diameter": "14.1mm",
+            "colorDiameter": "13.5",
+            "material": "水凝胶",
+            "oxygen": "",
+            "water": "38%",
+            "spec": "季抛",
+            "description": "清冷黑灰调，边缘自然虚化，上眼像原生黑瞳一样有神，自然有神，日常通勤首选",
+            "lensImg": "images/patterns/季抛_极光黑灰_lens.jpg",
+            "eyeImg": "images/patterns/季抛_极光黑灰_eye.jpg"
+          },
+          {
+            "name": "酒心巧克力",
+            "series": "季抛系列",
+            "color": "棕色系",
+            "diameter": "14.2mm",
+            "colorDiameter": "13.6",
+            "material": "水凝胶",
+            "oxygen": "",
+            "water": "38%",
+            "spec": "季抛",
+            "description": "浓郁巧克力棕，外圈深棕向内渐变，上眼深邃又有神，温柔气质拉满，约会、见家长都不出错",
+            "lensImg": "images/patterns/季抛_酒心巧克力_lens.jpg",
+            "eyeImg": "images/patterns/季抛_酒心巧克力_eye.jpg"
+          },
+          {
+            "name": "糖霜日落",
+            "series": "季抛系列",
+            "color": "棕色系",
+            "diameter": "14.2mm",
+            "colorDiameter": "13.6",
+            "material": "水凝胶",
+            "oxygen": "",
+            "water": "38%",
+            "spec": "季抛",
+            "description": "蜜糖琥珀棕，带细微高光，上眼水润又有神，融瞳度超高，日常百搭款",
+            "lensImg": "images/patterns/季抛_糖霜日落_lens.jpg",
+            "eyeImg": ""
+          },
+          {
+            "name": "月亮情诗",
+            "series": "季抛系列",
+            "color": "黑色系",
+            "diameter": "14.5mm",
+            "colorDiameter": "14.2",
+            "material": "水凝胶",
+            "oxygen": "",
+            "water": "38%",
+            "spec": "季抛",
+            "description": "大直径纯黑设计，外圈粗黑边+内圈自然渐变，扩瞳效果明显，上眼无辜感拉满，甜妹、学生党必入",
+            "lensImg": "images/patterns/季抛_月亮情诗_lens.jpg",
+            "eyeImg": ""
+          },
+          {
+            "name": "花漾甜梦",
+            "series": "季抛系列",
+            "color": "粉色系",
+            "diameter": "14.5mm",
+            "colorDiameter": "14.1",
+            "material": "水凝胶",
+            "oxygen": "",
+            "water": "38%",
+            "spec": "季抛",
+            "description": "梦幻粉紫调，带细腻金粉，上眼温柔又甜美，少女心爆棚，约会、出游、拍照都很出片",
+            "lensImg": "images/patterns/季抛_花漾甜梦_lens.jpg",
+            "eyeImg": ""
+          },
+          {
+            "name": "松涧小鹿",
+            "series": "季抛系列",
+            "color": "棕色系",
+            "diameter": "14.5mm",
+            "colorDiameter": "14.0",
+            "material": "水凝胶",
+            "oxygen": "",
+            "water": "38%",
+            "spec": "季抛",
+            "description": "自然棕调，带微扩瞳效果，上眼像小鹿一样灵动，日常、约会都能戴",
+            "lensImg": "images/patterns/季抛_松涧小鹿_lens.jpg",
+            "eyeImg": ""
+          },
+          {
+            "name": "月光拿铁",
+            "series": "季抛系列",
+            "color": "棕色系",
+            "diameter": "14.5mm",
+            "colorDiameter": "14.0",
+            "material": "水凝胶",
+            "oxygen": "",
+            "water": "38%",
+            "spec": "季抛",
+            "description": "暖调拿铁棕，带自然高光，上眼温柔又有神，像眼睛里有光，温柔气质款",
+            "lensImg": "images/patterns/季抛_月光拿铁_lens.jpg",
+            "eyeImg": ""
+          },
+          {
+            "name": "椰影摇光",
+            "series": "季抛系列",
+            "color": "棕色系",
+            "diameter": "14.1mm",
+            "colorDiameter": "13.1",
+            "material": "水凝胶",
+            "oxygen": "",
+            "water": "38%",
+            "spec": "季抛",
+            "description": "浅棕调+细微高光，上眼清透又自然，像天生浅瞳，日常通勤必备",
+            "lensImg": "images/patterns/季抛_椰影摇光_lens.jpg",
+            "eyeImg": ""
+          },
+          {
+            "name": "凌晨三点",
+            "series": "季抛系列",
+            "color": "蓝色系",
+            "diameter": "14.5mm",
+            "colorDiameter": "14.1",
+            "material": "水凝胶",
+            "oxygen": "",
+            "water": "38%",
+            "spec": "季抛",
+            "description": "深海蓝调，带微混血纹理，上眼高级又独特，海边出游、派对必备，混血感不夸张",
+            "lensImg": "images/patterns/季抛_凌晨三点_lens.jpg",
+            "eyeImg": ""
+          },
+          {
+            "name": "富士山雾",
+            "series": "季抛系列",
+            "color": "蓝色系",
+            "diameter": "14.1mm",
+            "colorDiameter": "13.4",
+            "material": "水凝胶",
+            "oxygen": "",
+            "water": "38%",
+            "spec": "季抛",
+            "description": "雾霾蓝灰调，带清冷感纹理，上眼高级疏离，气质型姐妹首选",
+            "lensImg": "images/patterns/季抛_富士山雾_lens.jpg",
+            "eyeImg": "images/patterns/季抛_富士山雾_eye.jpg"
+          },
+          {
+            "name": "榛果灰棕",
+            "series": "季抛系列",
+            "color": "棕色系",
+            "diameter": "14.5mm",
+            "colorDiameter": "14.1",
+            "material": "水凝胶",
+            "oxygen": "",
+            "water": "38%",
+            "spec": "季抛",
+            "description": "暖调榛果棕，带细微金闪，上眼温柔又有高级感，日常佩戴显气质",
+            "lensImg": "images/patterns/季抛_榛果灰棕_lens.jpg",
+            "eyeImg": "images/patterns/季抛_榛果灰棕_eye.jpg"
+          }
+        ]
+      }
+    },
+    "filters": {
+      "抛型": {
+        "极氧": [
+          "日抛",
+          "季抛"
+        ],
+        "弥生": [
+          "日抛",
+          "半年抛"
+        ]
+      },
+      "色系": [
+        "棕色系",
+        "灰色系",
+        "黑色系",
+        "蓝色系",
+        "绿色系",
+        "粉紫色系"
+      ],
+      "系列_极氧": [
+        "晨露",
+        "森氧",
+        "YOUHOO联名",
+        "季抛系列"
+      ]
+    }
+  },
+  "sopData": [
+    {
+      "platform": "通用",
+      "steps": [
+        {
+          "title": "了解美瞳基础知识",
+          "content": "学习产品知识（材质、参数、度数换算），完成材质分类和度数换算两项测验并通过。"
+        },
+        {
+          "title": "熟悉后台系统",
+          "content": "掌握各平台客服后台操作：快捷回复设置、订单查询、退款处理、评价管理。"
+        },
+        {
+          "title": "学习标准话术",
+          "content": "熟读话术库全部内容，重点掌握：欢迎语、度数咨询、佩戴指导、售后处理四大场景。"
+        },
+        {
+          "title": "跟岗旁听",
+          "content": "跟随老客服旁听至少 3 天，真实场景中学习应对技巧，每天写学习笔记。"
+        },
+        {
+          "title": "试接上岗",
+          "content": "在老客服监督下开始接待，前 50 单逐一复盘，50 单后独立上岗，持续接受质检抽查。"
+        }
+      ]
+    },
+    {
+      "platform": "淘宝",
+      "steps": [
+        {
+          "title": "千牛工作台操作",
+          "content": "学习千牛快捷回复设置、自动回复规则配置、订单查询与备注添加。"
+        },
+        {
+          "title": "淘宝接待流程",
+          "content": "掌握淘宝特有流程：买家咨询→库存确认→优惠说明→下单引导→物流跟进→评价邀请。"
+        },
+        {
+          "title": "淘宝售后处理",
+          "content": "学习淘宝退款/退货/换货流程，差评处理技巧，DSR评分维护要点。"
+        }
+      ]
+    },
+    {
+      "platform": "抖音",
+      "steps": [
+        {
+          "title": "抖店后台操作",
+          "content": "学习抖店客服系统：飞鸽工作台使用、快捷短语配置、智能辅助答题。"
+        },
+        {
+          "title": "抖音直播间配合",
+          "content": "了解直播客服配合：实时解答弹幕问题、引导下单、直播脚本配合。"
+        },
+        {
+          "title": "抖音特有流程",
+          "content": "抖音小黄车下单引导、运费险说明、售后时效要求、体验分维护。"
+        }
+      ]
+    },
+    {
+      "platform": "拼多多",
+      "steps": [
+        {
+          "title": "多多客服后台",
+          "content": "学习多多客服系统：机器人配置、分流规则、快捷回复。"
+        },
+        {
+          "title": "拼多多售后特点",
+          "content": "仅退款规则、退货包运费、纠纷处理流程，注意拼多多用户沟通风格。"
+        }
+      ]
+    },
+    {
+      "platform": "小红书",
+      "steps": [
+        {
+          "title": "小红书私信接待",
+          "content": "学习小红书私信功能：快捷回复、商品卡片发送、笔记关联。"
+        },
+        {
+          "title": "小红书沟通风格",
+          "content": "小红书用户偏种草型沟通，注重美感和体验描述，需要搭配图文回复。"
+        }
+      ]
+    }
+  ],
+  "bulletinData": [
+    {
+      "date": "07-28",
+      "title": "新品\"星空灰\"全平台上线",
+      "content": "14.2mm 直径，灰色混血风格，已更新话术和素材到资料库，请客服了解产品详情后推荐。"
+    },
+    {
+      "date": "07-27",
+      "title": "淘宝满减活动开启",
+      "content": "7/27-8/3 店铺满200减30，请客服主动告知客户，引导凑单提升客单价。"
+    },
+    {
+      "date": "07-25",
+      "title": "售后流程更新通知",
+      "content": "退换货地址已变更，请查阅最新售后文档，旧地址不再使用，务必注意避免发错。"
+    },
+    {
+      "date": "07-22",
+      "title": "本月话术考核通知",
+      "content": "7月30日进行月度话术考核，范围：度数咨询、售后处理、新客引导三大场景，请提前复习。"
+    }
+  ],
+  "toolsData": [
+    {
+      "icon": "🚛",
+      "title": "物流运费查询",
+      "desc": "顺丰补运费标准 + 中通/圆通/顺丰时效查询",
+      "type": "logistics-freight"
+    },
+    {
+      "icon": "📦",
+      "title": "发货时间",
+      "desc": "各平台发货时效要求",
+      "content": "常规订单：48小时内发货\n预售商品：按页面标注时间\n大促期间：72小时内发货\n缺货需联系客户协商"
+    },
+    {
+      "icon": "🔄",
+      "title": "退换货规则",
+      "desc": "各平台退换货政策",
+      "content": "7天无理由退换（未拆封）\n质量问题：承担来回运费\n非质量问题：客户承担运费\n美瞳属私人物品，拆封后不支持退换"
+    },
+    {
+      "icon": "📏",
+      "title": "尺寸选购指南",
+      "desc": "直径、基弧选择建议",
+      "content": "直径：14.0mm（自然）14.2mm（适中）14.5mm（放大明显）\n基弧：一般8.6mm适合大多数人\n着色直径：13.0-13.4mm自然，13.5+放大"
+    }
+  ],
+  "rankingData": {
+    "groups": [
+      {
+        "name": "A组",
+        "members": [
+          {
+            "name": "",
+            "conversion": 38.2,
+            "crossSales": 18600,
+            "satisfaction": 98,
+            "response": 22
+          },
+          {
+            "name": "",
+            "conversion": 35.7,
+            "crossSales": 17200,
+            "satisfaction": 96,
+            "response": 26
+          },
+          {
+            "name": "",
+            "conversion": 33.1,
+            "crossSales": 14900,
+            "satisfaction": 94,
+            "response": 31
+          },
+          {
+            "name": "",
+            "conversion": 30.5,
+            "crossSales": 13500,
+            "satisfaction": 92,
+            "response": 35
+          },
+          {
+            "name": "",
+            "conversion": 28.8,
+            "crossSales": 12100,
+            "satisfaction": 90,
+            "response": 40
+          },
+          {
+            "name": "",
+            "conversion": 26.3,
+            "crossSales": 10800,
+            "satisfaction": 88,
+            "response": 45
+          }
+        ]
+      },
+      {
+        "name": "B组",
+        "members": [
+          {
+            "name": "",
+            "conversion": 37.5,
+            "crossSales": 19500,
+            "satisfaction": 98,
+            "response": 20
+          },
+          {
+            "name": "",
+            "conversion": 34.2,
+            "crossSales": 16300,
+            "satisfaction": 96,
+            "response": 28
+          },
+          {
+            "name": "",
+            "conversion": 31.8,
+            "crossSales": 14200,
+            "satisfaction": 92,
+            "response": 33
+          },
+          {
+            "name": "",
+            "conversion": 29.1,
+            "crossSales": 12500,
+            "satisfaction": 90,
+            "response": 38
+          },
+          {
+            "name": "",
+            "conversion": 25.6,
+            "crossSales": 10200,
+            "satisfaction": 86,
+            "response": 48
+          }
+        ]
+      },
+      {
+        "name": "C组",
+        "members": [
+          {
+            "name": "",
+            "conversion": 36.8,
+            "crossSales": 17800,
+            "satisfaction": 96,
+            "response": 25
+          },
+          {
+            "name": "",
+            "conversion": 33.9,
+            "crossSales": 15600,
+            "satisfaction": 94,
+            "response": 29
+          },
+          {
+            "name": "",
+            "conversion": 32.2,
+            "crossSales": 13800,
+            "satisfaction": 92,
+            "response": 34
+          },
+          {
+            "name": "",
+            "conversion": 29.7,
+            "crossSales": 11800,
+            "satisfaction": 90,
+            "response": 37
+          },
+          {
+            "name": "",
+            "conversion": 27.4,
+            "crossSales": 10400,
+            "satisfaction": 88,
+            "response": 42
+          },
+          {
+            "name": "",
+            "conversion": 24.8,
+            "crossSales": 9100,
+            "satisfaction": 84,
+            "response": 52
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-07-28"
+  },
+  "quizData": [
+    {
+      "question": "框架眼镜度数 -5.00，换算成美瞳度数应为？",
+      "options": [
+        "-5.00",
+        "-4.75",
+        "-4.50",
+        "-5.25"
+      ],
+      "answer": 2
+    },
+    {
+      "question": "以下哪个不是美瞳常见材质？",
+      "options": [
+        "水凝胶",
+        "硅水凝胶",
+        "非离子",
+        "尼龙纤维"
+      ],
+      "answer": 3
+    },
+    {
+      "question": "美瞳直径 14.2mm 属于什么范围？",
+      "options": [
+        "自然偏小",
+        "适中型",
+        "明显放大",
+        "超大直径"
+      ],
+      "answer": 1
+    },
+    {
+      "question": "客户说\"戴着不舒服\"，首先应该问什么？",
+      "options": [
+        "直接建议退货",
+        "询问佩戴时间和具体情况",
+        "说是正常现象",
+        "建议换一个品牌"
+      ],
+      "answer": 1
+    },
+    {
+      "question": "拼多多平台的售后特点是什么？",
+      "options": [
+        "不支持退款",
+        "支持仅退款",
+        "需要寄回才能退款",
+        "只能换货"
+      ],
+      "answer": 1
+    },
+    {
+      "question": "美瞳拆封后可以退换吗？",
+      "options": [
+        "可以，7天无理由",
+        "可以，但要理由充分",
+        "不可以，属于私人物品",
+        "看平台政策"
+      ],
+      "answer": 2
+    }
+  ],
+  "scheduleData": {
+    "2026-07": {
+      "staff": [
+        {
+          "group": "拼多多组",
+          "name": "李烁南",
+          "schedule": {
+            "1": "休息",
+            "2": "休息",
+            "3": "早班",
+            "4": "早班",
+            "5": "早班",
+            "6": "早班",
+            "7": "休息",
+            "8": "晚班",
+            "9": "中班",
+            "10": "中班",
+            "11": "早班",
+            "12": "休息",
+            "13": "早班",
+            "14": "休息",
+            "15": "晚班",
+            "16": "晚班",
+            "17": "晚班",
+            "18": "晚班",
+            "19": "晚班",
+            "20": "休息",
+            "21": "晚班",
+            "22": "晚班",
+            "23": "晚班",
+            "24": "晚班",
+            "25": "晚班",
+            "26": "休息",
+            "27": "早班",
+            "28": "早班",
+            "29": "早班",
+            "30": "休息",
+            "31": "早班"
+          }
+        },
+        {
+          "group": "",
+          "name": "小念",
+          "schedule": {
+            "1": "早班",
+            "2": "早班",
+            "3": "早班",
+            "4": "休息",
+            "5": "晚班",
+            "6": "中班",
+            "7": "早班",
+            "8": "晚班",
+            "9": "晚班",
+            "10": "晚班",
+            "11": "晚班",
+            "12": "晚班",
+            "13": "休息",
+            "14": "早班",
+            "15": "早班",
+            "16": "早班",
+            "17": "早班",
+            "18": "早班",
+            "19": "早班",
+            "20": "早班",
+            "21": "早班",
+            "22": "早班",
+            "23": "休息",
+            "24": "中班",
+            "25": "晚班",
+            "26": "晚班",
+            "27": "晚班",
+            "28": "晚班",
+            "29": "晚班",
+            "30": "早班",
+            "31": "休息"
+          }
+        },
+        {
+          "group": "天猫组",
+          "name": "马雷旭",
+          "schedule": {
+            "1": "晚班",
+            "2": "晚班",
+            "3": "晚班",
+            "4": "晚班",
+            "5": "休息",
+            "6": "休息",
+            "7": "早班",
+            "8": "早班",
+            "9": "早班",
+            "10": "早班",
+            "11": "休息",
+            "12": "休息",
+            "13": "早班",
+            "14": "早班",
+            "15": "早班",
+            "16": "早班",
+            "17": "早班",
+            "18": "晚班",
+            "19": "晚班",
+            "20": "休息",
+            "21": "休息",
+            "22": "晚班",
+            "23": "晚班",
+            "24": "晚班",
+            "25": "晚班",
+            "26": "晚班",
+            "27": "休息",
+            "28": "休息",
+            "29": "早班",
+            "30": "早班",
+            "31": "早班"
+          }
+        },
+        {
+          "group": "",
+          "name": "小暖",
+          "schedule": {
+            "1": "早班",
+            "2": "早班",
+            "3": "休息",
+            "4": "早班",
+            "5": "早班",
+            "6": "早班",
+            "7": "晚班",
+            "8": "休息",
+            "9": "晚班",
+            "10": "晚班",
+            "11": "晚班",
+            "12": "晚班",
+            "13": "晚班",
+            "14": "晚班",
+            "15": "休息",
+            "16": "休息",
+            "17": "休息",
+            "18": "早班",
+            "19": "早班",
+            "20": "晚班",
+            "21": "晚班",
+            "22": "早班",
+            "23": "早班",
+            "24": "休息",
+            "25": "早班",
+            "26": "早班",
+            "27": "早班",
+            "28": "早班",
+            "29": "休息",
+            "30": "晚班",
+            "31": "晚班"
+          }
+        },
+        {
+          "group": "天猫/多多",
+          "name": "豆芽",
+          "schedule": {
+            "1": "休息",
+            "2": "晚班",
+            "3": "晚班",
+            "4": "晚班",
+            "5": "晚班",
+            "6": "晚班",
+            "7": "中班",
+            "8": "休息",
+            "9": "早班",
+            "10": "早班",
+            "11": "早班",
+            "12": "早班",
+            "13": "晚班",
+            "14": "晚班",
+            "15": "晚班",
+            "16": "晚班",
+            "17": "晚班",
+            "18": "休息",
+            "19": "休息",
+            "20": "早班",
+            "21": "早班",
+            "22": "早班",
+            "23": "早班",
+            "24": "早班",
+            "25": "休息",
+            "26": "晚班",
+            "27": "晚班",
+            "28": "晚班",
+            "29": "晚班",
+            "30": "中班",
+            "31": "中班"
+          }
+        },
+        {
+          "group": "抖音",
+          "name": "小猫",
+          "schedule": {
+            "1": "休息",
+            "2": "早班",
+            "3": "早班",
+            "4": "早班",
+            "5": "早班",
+            "6": "早班",
+            "7": "早班",
+            "8": "早班",
+            "9": "早班",
+            "10": "晚班",
+            "11": "休息",
+            "12": "晚班",
+            "13": "晚班",
+            "14": "晚班",
+            "15": "晚班",
+            "16": "晚班",
+            "17": "休息",
+            "18": "早班",
+            "19": "早班",
+            "20": "早班",
+            "21": "早班",
+            "22": "早班",
+            "23": "早班",
+            "24": "早班",
+            "25": "休息",
+            "26": "晚班",
+            "27": "晚班",
+            "28": "晚班",
+            "29": "晚班",
+            "30": "晚班",
+            "31": "晚班"
+          }
+        },
+        {
+          "group": "",
+          "name": "小火",
+          "schedule": {
+            "1": "晚班",
+            "2": "晚班",
+            "3": "晚班",
+            "4": "晚班",
+            "5": "晚班",
+            "6": "晚班",
+            "7": "晚班",
+            "8": "晚班",
+            "9": "晚班",
+            "10": "休息",
+            "11": "调休",
+            "12": "调休",
+            "13": "调休",
+            "14": "中班",
+            "15": "早班",
+            "16": "早班",
+            "17": "中班",
+            "18": "早班",
+            "19": "早班",
+            "20": "早班",
+            "21": "休息",
+            "22": "早班",
+            "23": "早班",
+            "24": "早班",
+            "25": "早班",
+            "26": "中班",
+            "27": "晚班",
+            "28": "休息",
+            "29": "休息",
+            "30": "早班",
+            "31": "早班"
+          }
+        },
+        {
+          "group": "",
+          "name": "小七",
+          "schedule": {
+            "1": "晚班",
+            "2": "晚班",
+            "3": "休息",
+            "4": "晚班",
+            "5": "晚班",
+            "6": "晚班",
+            "7": "晚班",
+            "8": "晚班",
+            "9": "晚班",
+            "10": "晚班",
+            "11": "休息",
+            "12": "休息",
+            "13": "晚班",
+            "14": "晚班",
+            "15": "晚班",
+            "16": "晚班",
+            "17": "晚班",
+            "18": "晚班",
+            "19": "晚班",
+            "20": "晚班",
+            "21": "晚班",
+            "22": "休息",
+            "23": "晚班",
+            "24": "晚班",
+            "25": "晚班",
+            "26": "晚班",
+            "27": "晚班",
+            "28": "晚班",
+            "29": "晚班",
+            "30": "晚班",
+            "31": "晚班"
+          }
+        },
+        {
+          "group": "",
+          "name": "小欣",
+          "schedule": {
+            "1": "晚班",
+            "2": "休息",
+            "3": "晚班",
+            "4": "晚班",
+            "5": "晚班",
+            "6": "晚班",
+            "7": "晚班",
+            "8": "晚班",
+            "9": "晚班",
+            "10": "休息",
+            "11": "早班",
+            "12": "早班",
+            "13": "早班",
+            "14": "早班",
+            "15": "早班",
+            "16": "早班",
+            "17": "晚班",
+            "18": "晚班",
+            "19": "休息",
+            "20": "晚班",
+            "21": "晚班",
+            "22": "晚班",
+            "23": "晚班",
+            "24": "休息",
+            "25": "早班",
+            "26": "早班",
+            "27": "早班",
+            "28": "早班",
+            "29": "早班",
+            "30": "早班",
+            "31": "中班"
+          }
+        },
+        {
+          "group": "",
+          "name": "小茜",
+          "schedule": {
+            "1": "早班",
+            "2": "早班",
+            "3": "早班",
+            "4": "早班",
+            "5": "早班",
+            "6": "早班",
+            "7": "早班",
+            "8": "早班",
+            "9": "休息",
+            "10": "早班",
+            "11": "早班",
+            "12": "早班",
+            "13": "早班",
+            "14": "早班",
+            "15": "晚班",
+            "16": "休息",
+            "17": "早班",
+            "18": "中班",
+            "19": "早班",
+            "20": "早班",
+            "21": "早班",
+            "22": "中班",
+            "23": "中班",
+            "24": "中班",
+            "25": "休息",
+            "26": "早班",
+            "27": "早班",
+            "28": "早班",
+            "29": "早班",
+            "30": "中班",
+            "31": "休息"
+          }
+        },
+        {
+          "group": "",
+          "name": "小咪",
+          "schedule": {
+            "1": "早班",
+            "2": "晚班",
+            "3": "晚班",
+            "4": "晚班",
+            "5": "晚班",
+            "6": "休息",
+            "7": "早班",
+            "8": "早班",
+            "9": "早班",
+            "10": "早班",
+            "11": "中班",
+            "12": "早班",
+            "13": "早班",
+            "14": "休息",
+            "15": "早班",
+            "16": "中班",
+            "17": "早班",
+            "18": "晚班",
+            "19": "晚班",
+            "20": "休息",
+            "21": "早班",
+            "22": "晚班",
+            "23": "晚班",
+            "24": "晚班",
+            "25": "晚班",
+            "26": "晚班",
+            "27": "晚班",
+            "28": "晚班",
+            "29": "晚班",
+            "30": "休息",
+            "31": "早班"
+          }
+        },
+        {
+          "group": "",
+          "name": "小卷",
+          "schedule": {
+            "1": "中班",
+            "2": "中班",
+            "3": "晚班",
+            "4": "休息",
+            "5": "早班",
+            "6": "早班",
+            "7": "休息",
+            "8": "早班",
+            "9": "早班",
+            "10": "早班",
+            "11": "晚班",
+            "12": "晚班",
+            "13": "晚班",
+            "14": "晚班",
+            "15": "晚班",
+            "16": "晚班",
+            "17": "晚班",
+            "18": "休息",
+            "19": "中班",
+            "20": "中班",
+            "21": "晚班",
+            "22": "晚班",
+            "23": "晚班",
+            "24": "晚班",
+            "25": "晚班",
+            "26": "休息",
+            "27": "早班",
+            "28": "早班",
+            "29": "早班",
+            "30": "早班",
+            "31": "早班"
+          }
+        }
+      ],
+      "lastUpdate": "2026-07-28"
+    },
+    "2026-08": {
+      "staff": [
+        {
+          "group": "抖音组",
+          "name": "小猫",
+          "schedule": {
+            "1": "晚班",
+            "2": "休息",
+            "3": "早班",
+            "4": "早班",
+            "5": "早班",
+            "6": "早班",
+            "7": "早班",
+            "8": "早班",
+            "9": "休息",
+            "10": "早班",
+            "11": "早班",
+            "12": "早班",
+            "13": "早班",
+            "14": "晚班",
+            "15": "晚班",
+            "16": "晚班",
+            "17": "休息",
+            "18": "早班",
+            "19": "早班",
+            "20": "早班",
+            "21": "早班",
+            "22": "早班",
+            "23": "早班",
+            "24": "早班",
+            "25": "休息",
+            "26": "早班",
+            "27": "晚班",
+            "28": "晚班",
+            "29": "晚班",
+            "30": "晚班",
+            "31": "晚班"
+          }
+        },
+        {
+          "group": "抖音组",
+          "name": "小咪",
+          "schedule": {
+            "1": "早班",
+            "2": "早班",
+            "3": "早班",
+            "4": "早班",
+            "5": "早班",
+            "6": "早班",
+            "7": "休息",
+            "8": "晚班",
+            "9": "晚班",
+            "10": "晚班",
+            "11": "晚班",
+            "12": "晚班",
+            "13": "晚班",
+            "14": "休息",
+            "15": "早班",
+            "16": "早班",
+            "17": "早班",
+            "18": "晚班",
+            "19": "晚班",
+            "20": "晚班",
+            "21": "晚班",
+            "22": "休息",
+            "23": "早班",
+            "24": "早班",
+            "25": "早班",
+            "26": "早班",
+            "27": "早班",
+            "28": "早班",
+            "29": "晚班",
+            "30": "晚班",
+            "31": "休息"
+          }
+        },
+        {
+          "group": "抖音组",
+          "name": "小喜",
+          "schedule": {
+            "1": "早班",
+            "2": "早班",
+            "3": "休息",
+            "4": "休息",
+            "5": "早班",
+            "6": "早班",
+            "7": "早班",
+            "8": "早班",
+            "9": "早班",
+            "10": "晚班",
+            "11": "晚班",
+            "12": "休息",
+            "13": "晚班",
+            "14": "晚班",
+            "15": "晚班",
+            "16": "晚班",
+            "17": "晚班",
+            "18": "晚班",
+            "19": "晚班",
+            "20": "晚班",
+            "21": "晚班",
+            "22": "晚班",
+            "23": "休息",
+            "24": "早班",
+            "25": "早班",
+            "26": "早班",
+            "27": "早班",
+            "28": "中班",
+            "29": "早班",
+            "30": "晚班",
+            "31": "晚班"
+          }
+        },
+        {
+          "group": "抖音组",
+          "name": "小恬",
+          "schedule": {
+            "1": "中班",
+            "2": "晚班",
+            "3": "晚班",
+            "4": "晚班",
+            "5": "晚班",
+            "6": "休息",
+            "7": "早班",
+            "8": "早班",
+            "9": "早班",
+            "10": "早班",
+            "11": "晚班",
+            "12": "晚班",
+            "13": "休息",
+            "14": "早班",
+            "15": "早班",
+            "16": "早班",
+            "17": "早班",
+            "18": "早班",
+            "19": "早班",
+            "20": "休息",
+            "21": "中班",
+            "22": "晚班",
+            "23": "晚班",
+            "24": "晚班",
+            "25": "晚班",
+            "26": "晚班",
+            "27": "晚班",
+            "28": "晚班",
+            "29": "晚班",
+            "30": "休息",
+            "31": "早班"
+          }
+        },
+        {
+          "group": "抖音组",
+          "name": "小溪",
+          "schedule": {
+            "1": "晚班",
+            "2": "晚班",
+            "3": "晚班",
+            "4": "晚班",
+            "5": "晚班",
+            "6": "晚班",
+            "7": "晚班",
+            "8": "休息",
+            "9": "早班",
+            "10": "早班",
+            "11": "早班",
+            "12": "晚班",
+            "13": "晚班",
+            "14": "晚班",
+            "15": "晚班",
+            "16": "晚班",
+            "17": "休息",
+            "18": "早班",
+            "19": "早班",
+            "20": "早班",
+            "21": "早班",
+            "22": "早班",
+            "23": "早班",
+            "24": "休息",
+            "25": "早班",
+            "26": "晚班",
+            "27": "晚班",
+            "28": "晚班",
+            "29": "休息",
+            "30": "早班",
+            "31": "早班"
+          }
+        },
+        {
+          "group": "抖音组",
+          "name": "小贴",
+          "schedule": {
+            "1": "休息",
+            "2": "晚班",
+            "3": "晚班",
+            "4": "晚班",
+            "5": "晚班",
+            "6": "晚班",
+            "7": "晚班",
+            "8": "晚班",
+            "9": "晚班",
+            "10": "休息",
+            "11": "早班",
+            "12": "早班",
+            "13": "早班",
+            "14": "早班",
+            "15": "中班",
+            "16": "中班",
+            "17": "晚班",
+            "18": "休息",
+            "19": "晚班",
+            "20": "晚班",
+            "21": "晚班",
+            "22": "晚班",
+            "23": "晚班",
+            "24": "晚班",
+            "25": "晚班",
+            "26": "休息",
+            "27": "早班",
+            "28": "早班",
+            "29": "早班",
+            "30": "早班",
+            "31": "晚班"
+          }
+        },
+        {
+          "group": "抖音组",
+          "name": "小江",
+          "schedule": {
+            "1": "休息",
+            "2": "早班",
+            "3": "早班",
+            "4": "早班",
+            "5": "中班",
+            "6": "晚班",
+            "7": "晚班",
+            "8": "晚班",
+            "9": "晚班",
+            "10": "晚班",
+            "11": "休息",
+            "12": "早班",
+            "13": "早班",
+            "14": "早班",
+            "15": "早班",
+            "16": "早班",
+            "17": "中班",
+            "18": "晚班",
+            "19": "休息",
+            "20": "早班",
+            "21": "早班",
+            "22": "早班",
+            "23": "晚班",
+            "24": "晚班",
+            "25": "晚班",
+            "26": "晚班",
+            "27": "休息",
+            "28": "早班",
+            "29": "早班",
+            "30": "早班",
+            "31": "早班"
+          }
+        },
+        {
+          "group": "天猫组",
+          "name": "马雷旭",
+          "schedule": {
+            "1": "调休",
+            "2": "休息",
+            "3": "早班",
+            "4": "早班",
+            "5": "早班",
+            "6": "早班",
+            "7": "早班",
+            "8": "休息",
+            "9": "休息",
+            "10": "早班",
+            "11": "晚班",
+            "12": "晚班",
+            "13": "晚班",
+            "14": "晚班",
+            "15": "晚班",
+            "16": "中班",
+            "17": "休息",
+            "18": "早班",
+            "19": "早班",
+            "20": "早班",
+            "21": "早班",
+            "22": "休息",
+            "23": "休息",
+            "24": "早班",
+            "25": "早班",
+            "26": "早班",
+            "27": "晚班",
+            "28": "晚班",
+            "29": "晚班",
+            "30": "休息",
+            "31": "休息"
+          }
+        },
+        {
+          "group": "天猫组",
+          "name": "小暖",
+          "schedule": {
+            "1": "晚班",
+            "2": "晚班",
+            "3": "晚班",
+            "4": "晚班",
+            "5": "晚班",
+            "6": "晚班",
+            "7": "休息",
+            "8": "早班",
+            "9": "早班",
+            "10": "早班",
+            "11": "早班",
+            "12": "早班",
+            "13": "早班",
+            "14": "休息",
+            "15": "早班",
+            "16": "早班",
+            "17": "早班",
+            "18": "早班",
+            "19": "早班",
+            "20": "中班",
+            "21": "休息",
+            "22": "早班",
+            "23": "早班",
+            "24": "早班",
+            "25": "早班",
+            "26": "早班",
+            "27": "早班",
+            "28": "早班",
+            "29": "休息",
+            "30": "晚班",
+            "31": "晚班"
+          }
+        },
+        {
+          "group": "天猫组",
+          "name": "豆芽",
+          "schedule": {
+            "1": "早班",
+            "2": "早班",
+            "3": "休息",
+            "4": "早班",
+            "5": "早班",
+            "6": "早班",
+            "7": "早班",
+            "8": "早班",
+            "9": "早班",
+            "10": "晚班",
+            "11": "休息",
+            "12": "早班",
+            "13": "早班",
+            "14": "早班",
+            "15": "晚班",
+            "16": "晚班",
+            "17": "晚班",
+            "18": "晚班",
+            "19": "休息",
+            "20": "早班",
+            "21": "早班",
+            "22": "早班",
+            "23": "早班",
+            "24": "晚班",
+            "25": "中班",
+            "26": "晚班",
+            "27": "休息",
+            "28": "早班",
+            "29": "早班",
+            "30": "早班",
+            "31": "早班"
+          }
+        },
+        {
+          "group": "天猫组",
+          "name": "小七",
+          "schedule": {
+            "1": "晚班",
+            "2": "晚班",
+            "3": "晚班",
+            "4": "晚班",
+            "5": "休息",
+            "6": "休息",
+            "7": "晚班",
+            "8": "晚班",
+            "9": "晚班",
+            "10": "晚班",
+            "11": "晚班",
+            "12": "晚班",
+            "13": "晚班",
+            "14": "晚班",
+            "15": "休息",
+            "16": "晚班",
+            "17": "晚班",
+            "18": "晚班",
+            "19": "晚班",
+            "20": "晚班",
+            "21": "晚班",
+            "22": "晚班",
+            "23": "晚班",
+            "24": "休息",
+            "25": "晚班",
+            "26": "晚班",
+            "27": "晚班",
+            "28": "晚班",
+            "29": "晚班",
+            "30": "晚班",
+            "31": "晚班"
+          }
+        },
+        {
+          "group": "天猫组",
+          "name": "小火",
+          "schedule": {
+            "1": "早班",
+            "2": "早班",
+            "3": "早班",
+            "4": "休息",
+            "5": "晚班",
+            "6": "晚班",
+            "7": "晚班",
+            "8": "晚班",
+            "9": "晚班",
+            "10": "休息",
+            "11": "早班",
+            "12": "中班",
+            "13": "中班",
+            "14": "早班",
+            "15": "早班",
+            "16": "早班",
+            "17": "早班",
+            "18": "休息",
+            "19": "晚班",
+            "20": "晚班",
+            "21": "晚班",
+            "22": "晚班",
+            "23": "晚班",
+            "24": "晚班",
+            "25": "晚班",
+            "26": "休息",
+            "27": "早班",
+            "28": "中班",
+            "29": "早班",
+            "30": "早班",
+            "31": "早班"
+          }
+        },
+        {
+          "group": "拼多多组",
+          "name": "李烁南",
+          "schedule": {
+            "1": "晚班",
+            "2": "晚班",
+            "3": "休息",
+            "4": "晚班",
+            "5": "中班",
+            "6": "中班",
+            "7": "中班",
+            "8": "早班",
+            "9": "休息",
+            "10": "早班",
+            "11": "早班",
+            "12": "早班",
+            "13": "早班",
+            "14": "早班",
+            "15": "休息",
+            "16": "休息",
+            "17": "晚班",
+            "18": "晚班",
+            "19": "晚班",
+            "20": "晚班",
+            "21": "中班",
+            "22": "休息",
+            "23": "休息",
+            "24": "早班",
+            "25": "早班",
+            "26": "早班",
+            "27": "早班",
+            "28": "晚班",
+            "29": "休息",
+            "30": "休息",
+            "31": "晚班"
+          }
+        },
+        {
+          "group": "拼多多组",
+          "name": "小莲",
+          "schedule": {
+            "1": "早班",
+            "2": "早班",
+            "3": "早班",
+            "4": "早班",
+            "5": "早班",
+            "6": "早班",
+            "7": "早班",
+            "8": "休息",
+            "9": "早班",
+            "10": "休息",
+            "11": "早班",
+            "12": "早班",
+            "13": "早班",
+            "14": "早班",
+            "15": "早班",
+            "16": "早班",
+            "17": "早班",
+            "18": "晚班",
+            "19": "晚班",
+            "20": "休息",
+            "21": "晚班",
+            "22": "晚班",
+            "23": "晚班",
+            "24": "晚班",
+            "25": "晚班",
+            "26": "晚班",
+            "27": "晚班",
+            "28": "休息",
+            "29": "晚班",
+            "30": "晚班",
+            "31": "晚班"
+          }
+        },
+        {
+          "group": "拼多多组",
+          "name": "小念",
+          "schedule": {
+            "1": "休息",
+            "2": "休息",
+            "3": "中班",
+            "4": "早班",
+            "5": "早班",
+            "6": "早班",
+            "7": "早班",
+            "8": "早班",
+            "9": "早班",
+            "10": "中班",
+            "11": "休息",
+            "12": "晚班",
+            "13": "中班",
+            "14": "中班",
+            "15": "早班",
+            "16": "早班",
+            "17": "早班",
+            "18": "早班",
+            "19": "早班",
+            "20": "晚班",
+            "21": "晚班",
+            "22": "晚班",
+            "23": "晚班",
+            "24": "晚班",
+            "25": "晚班",
+            "26": "休息",
+            "27": "晚班",
+            "28": "晚班",
+            "29": "晚班",
+            "30": "晚班",
+            "31": "中班"
+          }
+        },
+        {
+          "group": "拼多多组",
+          "name": "小熊",
+          "schedule": {
+            "1": "晚班",
+            "2": "晚班",
+            "3": "晚班",
+            "4": "休息",
+            "5": "晚班",
+            "6": "晚班",
+            "7": "晚班",
+            "8": "晚班",
+            "9": "晚班",
+            "10": "休息",
+            "11": "晚班",
+            "12": "晚班",
+            "13": "晚班",
+            "14": "晚班",
+            "15": "晚班",
+            "16": "晚班",
+            "17": "休息",
+            "18": "早班",
+            "19": "早班",
+            "20": "早班",
+            "21": "早班",
+            "22": "早班",
+            "23": "早班",
+            "24": "休息",
+            "25": "中班",
+            "26": "早班",
+            "27": "早班",
+            "28": "早班",
+            "29": "早班",
+            "30": "早班",
+            "31": "早班"
+          }
+        },
+        {
+          "group": "拼多多组",
+          "name": "小欣",
+          "schedule": {
+            "1": "早班",
+            "2": "早班",
+            "3": "休息",
+            "4": "晚班",
+            "5": "晚班",
+            "6": "晚班",
+            "7": "晚班",
+            "8": "晚班",
+            "9": "晚班",
+            "10": "晚班",
+            "11": "晚班",
+            "12": "休息",
+            "13": "晚班",
+            "14": "晚班",
+            "15": "晚班",
+            "16": "晚班",
+            "17": "晚班",
+            "18": "中班",
+            "19": "休息",
+            "20": "早班",
+            "21": "早班",
+            "22": "早班",
+            "23": "早班",
+            "24": "早班",
+            "25": "早班",
+            "26": "晚班",
+            "27": "休息",
+            "28": "早班",
+            "29": "早班",
+            "30": "早班",
+            "31": "早班"
+          }
+        }
+      ]
+    }
+  }
+}
