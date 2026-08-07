@@ -4,20 +4,14 @@
 // Called when supabase is initialized
 window.onSupabaseReady = function() {
   loadTemplates(); // 预加载模板数据
-  if (window.loadTrainingCategories) loadTrainingCategories();
-  if (window.subscribeTrainingCategories) subscribeTrainingCategories();
-  if (window.loadTrainingFromDB) loadTrainingFromDB();
-  if (window.loadPatternsFromDB) loadPatternsFromDB();
-  if (window.loadPatternCategories) loadPatternCategories();
-  if (window.subscribePatternCategories) subscribePatternCategories();
   if (currentPage === 'home') { loadAnnouncements(); subscribeAnnouncements(); }
   if (currentPage === 'daily') { loadDailyReports(); subscribeDaily(); }
   if (currentPage === 'presale') { loadPresaleData(); subscribePresale(); }
   if (currentPage === 'members') { loadMembers(); subscribeProfiles(); }
   if (currentPage === 'staff-info') { loadStaffInfo(); subscribeStaffInfo(); }
   if (currentPage === 'templates') { loadTemplates().then(() => renderTemplates()); subscribeTemplates(); }
-  if (currentPage === 'training') { if (window.renderTraining) renderTraining(); }
-  if (currentPage === 'patterns') { if (window.renderPatternFilters) renderPatternFilters(); if (window.renderPatterns) renderPatterns(); }
+  if (currentPage === 'training') { if (window.loadTrainingCategories) loadTrainingCategories(); if (window.loadTrainingFromDB) loadTrainingFromDB(); if (window.renderTraining) renderTraining(); }
+  if (currentPage === 'patterns') { if (window.loadPatternCategories) loadPatternCategories(); if (window.loadPatternsFromDB) loadPatternsFromDB(); if (window.renderPatternFilters) renderPatternFilters(); if (window.renderPatterns) renderPatterns(); }
 };
 
 // ---------- 公告栏 ----------

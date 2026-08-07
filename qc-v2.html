@@ -357,14 +357,42 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-/* ==================== Supabase Init ==================== */
+/* ==================== Supabase Init（优先复用父窗口 client，避免重复下载）==================== */
 const SUPABASE_URL = 'https://ienmejlxukhrxjjxvfqf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imllbm1lamx4dWtoeHJ4amp4dmZxZiIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzQ5NzU5NjgyLCJleHAiOjIwNjUzMzU2ODJ9.ABuL_Bn3o4Jp3gN1CFn8_FqFzSmS5xKQHj5jcE-akMk';
-// supabase-js UMD already declares var supabase globally; reuse it with var (allows redeclaration)
-var supabase = window.__qcSupabase || supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-window.__qcSupabase = supabase;
+
+function initSupabaseClient() {
+  try {
+    if (window.parent && window.parent.supabase) {
+      window.supabase = window.parent.supabase;
+      return true;
+    }
+  } catch(e) {}
+  if (window.__qcSupabase) { window.supabase = window.__qcSupabase; return true; }
+  if (typeof supabase !== 'undefined' && supabase.createClient) {
+    window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    window.__qcSupabase = window.supabase;
+    return true;
+  }
+  return false;
+}
+
+function loadSupabaseScript() {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+    s.onload = () => {
+      window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      window.__qcSupabase = window.supabase;
+      resolve();
+    };
+    s.onerror = () => reject(new Error('supabase-js 加载失败'));
+    document.head.appendChild(s);
+  });
+}
+
+var supabase = null;
 
 /* ==================== Auth State ==================== */
 let isAdmin = false;
@@ -1311,29 +1339,26 @@ function exportCSV() {
 /* ==================== Init ==================== */
 function init() {
   loadLocalCache();
-  checkAuth().then(() => {
-    loadRecords().then(() => {
-      updateAdminUI();
+  (async function() {
+    try {
+      if (!initSupabaseClient()) {
+        await loadSupabaseScript();
+      }
+    } catch(e) {
+      showToast('Supabase 初始化失败：' + e.message);
+      return;
+    }
+    checkAuth().then(() => {
+      loadRecords().then(() => {
+        updateAdminUI();
+      });
     });
-  });
+  })();
 }
 
-// 等待 DOM 和 supabase 库都就绪
+// 等待 DOM 就绪后启动
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', function() {
-    if (window.supabase && window.supabase.createClient) {
-      init();
-    } else {
-      // supabase 库还没加载完，再等一下
-      const t = setInterval(function() {
-        if (window.supabase && window.supabase.createClient) {
-          clearInterval(t);
-          init();
-        }
-      }, 100);
-      setTimeout(function() { clearInterval(t); }, 10000);
-    }
-  });
+  document.addEventListener('DOMContentLoaded', init);
 } else {
   init();
 }

@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>尤赫售前客服工作台</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%236C5CE7'/%3E%3Ccircle cx='50' cy='50' r='26' fill='none' stroke='%23fff' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='12' fill='%23fff'/%3E%3C/svg%3E">
-<script src="https://unpkg.com/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -698,6 +696,7 @@ body {
 .pcard-mgmt button { width:26px; height:26px; border:none; border-radius:50%; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.85); box-shadow:0 1px 4px rgba(0,0,0,0.12); }
 .pcard-mgmt .btn-edit { color:var(--primary); }
 .pcard-mgmt .btn-del { color:#e17055; }
+.pcard-mgmt .btn-disc { color:#d97706; }
 .pcard-mgmt button:hover { transform:scale(1.1); }
 
 /* Modal */
@@ -1329,7 +1328,7 @@ body {
       <div class="filter-row" id="pattern-filter-series"></div>
       <div class="filter-row" id="pattern-filter-color"></div>
       <div class="pattern-search-row">
-        <input type="text" id="pattern-search" placeholder="🔍 搜索花色名称..." oninput="renderPatterns()">
+        <input type="text" id="pattern-search" placeholder="🔍 搜索花色名称..." oninput="onPatternSearch()">
         <span class="pattern-stats" id="pattern-stats"></span>
       </div>
     </div>
@@ -1785,7 +1784,8 @@ function buildPatternTree(flatData) {
       description: p.description || '',
       _id: p.id,
       _brand: p.brand,
-      _type: p.type
+      _type: p.type,
+      isDiscontinued: !!p.is_discontinued
     });
   });
   return tree;
@@ -1824,15 +1824,21 @@ function switchPage(page) {
   currentPage = page;
 
   // Initialize page content
-  if (page === 'training') { renderTraining(); }
+  if (page === 'training') {
+    if (!window._trainingLoaded) {
+      window._trainingLoaded = true;
+      if (window.loadTrainingCategories) loadTrainingCategories();
+      if (window.loadTrainingFromDB) loadTrainingFromDB();
+    } else {
+      renderTraining();
+    }
+  }
   if (page === 'patterns') {
     // Ensure pattern data is loaded before rendering
     const brands = getPatternBrands();
     if (brands.length === 0) {
-      loadPatternsFromDB().then(() => {
-        renderPatternFilters();
-        renderPatterns();
-      });
+      if (window.loadPatternCategories) loadPatternCategories();
+      loadPatternsFromDB();
     } else {
       renderPatternFilters();
       renderPatterns();
@@ -2109,10 +2115,25 @@ function handleOCRImage(file) {
   reader.readAsDataURL(file);
 }
 
+function loadTesseract() {
+  return new Promise((resolve, reject) => {
+    if (typeof Tesseract !== 'undefined') { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/tesseract.js@4.1.1/dist/tesseract.min.js';
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('OCR 引擎加载失败'));
+    document.head.appendChild(s);
+  });
+}
+
 async function performOCR(imageData) {
   if (isLocalFile) { showOCRStatus('⚠️ 本地打开不支持截图识别，请部署到网页后使用', 'localwarn'); return; }
-  showOCRStatus('🔍 正在识别图片中的度数...', 'processing');
+  showOCRStatus('🔍 正在加载识别引擎...', 'processing');
   try {
+    if (typeof Tesseract === 'undefined') {
+      await loadTesseract();
+    }
+    showOCRStatus('🔍 正在识别图片中的度数...', 'processing');
     const result = await Tesseract.recognize(imageData, 'chi_sim+eng', {
       logger: m => { if (m.status === 'recognizing text') showOCRStatus('🔍 正在识别... ' + (m.progress * 100).toFixed(0) + '%', 'processing'); }
     });
@@ -2308,9 +2329,44 @@ let patternType = '全部';
 let patternSeries = '全部';
 let patternColor = '全部';
 let patternCategories = []; // [{id, category_type:'brand'|'type'|'series'|'color', name, sort_order}]
+let patternShowDiscontinued = false; // 是否只看下架花色
+
+function showDiscontinuedPatterns() {
+  patternShowDiscontinued = true;
+  renderPatternFilters();
+  renderPatterns();
+}
+
+function hideDiscontinuedPatterns() {
+  patternShowDiscontinued = false;
+  renderPatternFilters();
+  renderPatterns();
+}
 
 function getPatternBrands() {
   return Object.keys(patternData.brands || {});
+}
+
+function countDiscontinued() {
+  let count = 0;
+  const brands = patternData.brands || {};
+  Object.values(brands).forEach(types => {
+    Object.values(types).forEach(arr => {
+      arr.forEach(p => { if (p.isDiscontinued) count++; });
+    });
+  });
+  return count;
+}
+
+function getAllPatternItems() {
+  const items = [];
+  const brands = patternData.brands || {};
+  Object.values(brands).forEach(types => {
+    Object.values(types).forEach(arr => {
+      arr.forEach(p => items.push(p));
+    });
+  });
+  return items;
 }
 
 function getPatternTypes(brand) {
@@ -2367,9 +2423,12 @@ function renderPatternFilters() {
   const brandData = getMergedCats('brand', getPatternBrands());
   const brandTabs = document.getElementById('pattern-brand-tabs');
   brandTabs.innerHTML = brandData.map(b => {
-    const isActive = patternBrand === b.name;
+    const isActive = !patternShowDiscontinued && patternBrand === b.name;
     return `<button class="brand-tab${isActive ? ' active' : ''}" onclick="switchPatternBrand('${escapeAttr(b.name)}')">${escapeHtml(b.name)}</button>`;
   }).join('');
+  // 下架花色分类入口
+  const discCount = countDiscontinued();
+  brandTabs.innerHTML += `<button class="brand-tab${patternShowDiscontinued ? ' active' : ''}" onclick="showDiscontinuedPatterns()" style="flex:none;color:#b45309;">📦 下架花色${discCount > 0 ? '<span style="margin-left:4px;font-size:11px;background:#fef3c7;color:#d97706;padding:1px 6px;border-radius:8px;">' + discCount + '</span>' : ''}</button>`;
   if (isAdmin) {
     brandTabs.innerHTML += `<button class="brand-tab pcat-add-mini" onclick="addPatCat('brand')" style="flex:none;min-width:auto;padding:12px 14px;font-size:16px;border:none;">＋</button>`;
   }
@@ -2455,6 +2514,7 @@ function switchPatternBrand(b) {
   patternType = '全部';
   patternSeries = '全部';
   patternColor = '全部';
+  patternShowDiscontinued = false;
   renderPatternFilters();
   renderPatterns();
 }
@@ -2616,13 +2676,26 @@ function ctxDeletePatCat() {
   deletePatCat(type, name);
 }
 
+function _debounce(fn, delay) {
+  let t = null;
+  return function() {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, arguments), delay);
+  };
+}
+const onPatternSearch = _debounce(() => renderPatterns(), 250);
+
 function renderPatterns() {
   // patternData already loaded from Supabase, no localStorage merge needed
-  let items = getFilteredItems(patternBrand, patternType, patternSeries);
-
-  // 色系筛选
-  if (patternColor !== '全部') {
-    items = items.filter(p => p.color === patternColor);
+  let items;
+  if (patternShowDiscontinued) {
+    items = getAllPatternItems().filter(p => p.isDiscontinued);
+  } else {
+    items = getFilteredItems(patternBrand, patternType, patternSeries);
+    // 色系筛选
+    if (patternColor !== '全部') {
+      items = items.filter(p => p.color === patternColor);
+    }
   }
 
   // 搜索
@@ -2638,7 +2711,7 @@ function renderPatterns() {
 
   // Stats
   const statsEl = document.getElementById('pattern-stats');
-  if (statsEl) statsEl.innerHTML = '共 <b>' + items.length + '</b> 款花色';
+  if (statsEl) statsEl.innerHTML = (patternShowDiscontinued ? '下架花色共 ' : '共 ') + '<b>' + items.length + '</b> 款花色';
 
   // Render
   const grid = document.getElementById('pattern-grid');
@@ -2678,9 +2751,9 @@ function renderPatterns() {
     window._lbImages[lbKey] = images;
 
     // Store full pattern data including Supabase _id for management
-    const pkey = patternBrand + '::' + patternType + '::' + p.name;
+    const pkey = 'p' + idx;
     window._patternRefs = window._patternRefs || {};
-    window._patternRefs[pkey] = { brand: patternBrand, type: patternType, _id: p._id, ...p };
+    window._patternRefs[pkey] = { brand: p._brand || patternBrand, type: p._type || patternType, _id: p._id, ...p };
 
     const specs = [];
     if (p.material) specs.push('<span class="pcard-spec-mini">' + escapeHtml(p.material) + '</span>');
@@ -2693,15 +2766,21 @@ function renderPatterns() {
 
     // Management buttons: only show for admin
     const isAdmin = currentProfile && currentProfile.role === 'admin';
+    const discBtn = isAdmin
+      ? `<button class="btn-disc" title="${p.isDiscontinued ? '取消下架' : '标记下架'}" onclick="event.stopPropagation();toggleDiscontinued('${escapeAttr(p._id)}', ${!p.isDiscontinued})">${p.isDiscontinued ? '↩️' : '📦'}</button>`
+      : '';
     const mgmtBtns = isAdmin ? `<div class="pcard-mgmt">
+      ${discBtn}
       <button class="btn-edit" title="编辑" onclick="event.stopPropagation();openPatternEditor(window._patternRefs['${escapeAttr(pkey)}'])">✏️</button>
       <button class="btn-del" title="删除" onclick="event.stopPropagation();deletePattern('${escapeAttr(p._id)}','${escapeAttr(p.name)}')">🗑️</button>
     </div>` : '';
+    const discBadge = p.isDiscontinued ? `<div style="position:absolute;top:8px;left:8px;background:#d97706;color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;z-index:2;">已下架</div>` : '';
 
-    return `<div class="pattern-card">
+    return `<div class="pattern-card"${p.isDiscontinued ? ' style="opacity:.7;"' : ''}>
       <div class="pcard-img"${images.length ? ` onclick="openLightbox(window._lbImages['${lbKey}'])" style="cursor:pointer"` : ''}>
+        ${discBadge}
         ${imgHtml}
-        <div class="pcard-brand-tag">${escapeHtml(patternBrand)}</div>
+        <div class="pcard-brand-tag">${escapeHtml(p._brand || patternBrand)}</div>
       </div>
       ${mgmtBtns}
       <div class="pcard-body">
@@ -2922,6 +3001,20 @@ async function deletePattern(id, name) {
   const { error } = await supabase.from('pattern_assets').delete().eq('id', id);
   if (error) { showToast('删除失败：' + error.message); return; }
   showToast('🗑️ 已删除「' + name + '」');
+  loadPatternsFromDB();
+}
+
+async function toggleDiscontinued(id, markDiscontinued) {
+  const { error } = await supabase.from('pattern_assets').update({ is_discontinued: markDiscontinued }).eq('id', id);
+  if (error) {
+    if (/is_discontinued|column/i.test(error.message)) {
+      showToast('⚠️ 数据库缺少 is_discontinued 字段，请先在 Supabase 执行建表 SQL');
+    } else {
+      showToast('操作失败：' + error.message);
+    }
+    return;
+  }
+  showToast(markDiscontinued ? '📦 已标记为下架花色' : '↩️ 已取消下架标记');
   loadPatternsFromDB();
 }
 
