@@ -886,7 +886,7 @@ function renderDailyReportCanvas(content) {
   }
 
   // 预计算各区域高度
-  const headerH = 100;
+  const headerH = 124;
   const tagsH = drawBadges(labels, INNER_X, PAGE_Y + headerH, INNER_W) + 16;
   const tableHeaderH = 38;
   const tableRowH = 36;
@@ -925,7 +925,7 @@ function renderDailyReportCanvas(content) {
   ctx.strokeStyle = '#e2e0dc';
   ctx.stroke();
 
-  let y = PAGE_Y + 20;
+  let y = PAGE_Y + 24;
 
   // 头部：日期 + 售前徽章
   ctx.fillStyle = '#7a7a7a';
@@ -944,34 +944,34 @@ function renderDailyReportCanvas(content) {
   ctx.textAlign = 'center';
   ctx.fillText(badgeText, INNER_X + INNER_W - badgeW/2, y + 1);
 
-  // 姓名/分组 + 总接待量
-  y += 34;
+  // 姓名/分组 + 总接待量（同一行左右分布，避免上下挤）
+  const nameY = PAGE_Y + 78;
   ctx.textAlign = 'left';
   ctx.fillStyle = '#2d2d2d';
   ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
   const nameText = `${currentProfile?.name || ''} · ${currentProfile?.group_name || ''}`;
-  ctx.fillText(nameText, INNER_X, y);
+  ctx.fillText(nameText, INNER_X, nameY);
 
   ctx.textAlign = 'right';
-  ctx.fillStyle = '#3a5a8a';
-  ctx.font = 'bold 34px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
-  ctx.fillText(String(totalV), INNER_X + INNER_W, y + 4);
-
   ctx.fillStyle = '#8a8a8a';
   ctx.font = '12px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
-  ctx.fillText('总接待量', INNER_X + INNER_W, y - 18);
+  ctx.fillText('总接待量', INNER_X + INNER_W, nameY - 14);
+
+  ctx.fillStyle = '#3a5a8a';
+  ctx.font = 'bold 34px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
+  ctx.fillText(String(totalV), INNER_X + INNER_W, nameY + 20);
 
   // 分隔线
-  y += 28;
+  const sepY = PAGE_Y + 110;
   ctx.beginPath();
-  ctx.moveTo(INNER_X, y);
-  ctx.lineTo(INNER_X + INNER_W, y);
+  ctx.moveTo(INNER_X, sepY);
+  ctx.lineTo(INNER_X + INNER_W, sepY);
   ctx.strokeStyle = '#f0eeeb';
   ctx.lineWidth = 1;
   ctx.stroke();
 
   // 数据新鲜度标签
-  y += 20;
+  y = PAGE_Y + headerH;
   drawBadges(labels, INNER_X, y, INNER_W);
   y += tagsH - 16;
 
