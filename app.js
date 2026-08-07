@@ -598,7 +598,7 @@ function renderDailyResult(content) {
   const resultDiv = document.getElementById('daily-result-area');
   resultDiv.innerHTML = `
     <div style="max-width:680px;margin:0 auto;background:#f4f2ef;border-radius:16px;padding:20px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#2d2d2d;line-height:1.5;">
-      <div style="background:#fff;border-radius:12px;padding:20px 18px;border:1px solid #e2e0dc;">
+      <div class="daily-screenshot-card" style="background:#fff;border-radius:12px;padding:20px 18px;border:1px solid #e2e0dc;">
         <!-- 头部 -->
         <div style="margin-bottom:16px;border-bottom:1px solid #f0eeeb;padding-bottom:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -698,7 +698,7 @@ async function submitDaily() {
 function copyDailyResult() {
   const area = document.getElementById('daily-result-area');
   if (!area) return;
-  const card = area.querySelector('div');
+  const card = area.querySelector('.daily-screenshot-card');
   if (!card) return;
   if (typeof html2canvas === 'undefined') {
     showToast('截图库加载中，请稍后重试');
@@ -713,7 +713,6 @@ function copyDailyResult() {
     loader.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.35);z-index:9999;display:flex;align-items:center;justify-content:center;';
     loader.innerHTML = '<div style="background:#fff;border-radius:14px;padding:28px 36px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.2);"><div style="width:40px;height:40px;border:3px solid #e2e0dc;border-top-color:#7B9B6A;border-radius:50%;margin:0 auto 14px;animation:dailySpin 0.8s linear infinite;"></div><div style="font-size:15px;font-weight:600;color:#2C3328;">正在生成截图...</div><div style="font-size:12px;color:#8B8E87;margin-top:4px;">请稍等几秒</div></div>';
     document.body.appendChild(loader);
-    // 添加旋转动画（如果还没添加）
     if (!document.getElementById('daily-spin-style')) {
       const style = document.createElement('style');
       style.id = 'daily-spin-style';
@@ -723,19 +722,28 @@ function copyDailyResult() {
   }
   loader.style.display = 'flex';
 
+  let aborted = false;
+  const timeoutId = setTimeout(() => {
+    aborted = true;
+    loader.style.display = 'none';
+    showToast('截图生成超时，请重试或手动截图');
+  }, 10000);
+
   // 用 requestAnimationFrame 让 loading 先渲染，再执行耗时的 html2canvas
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       html2canvas(card, {
-        scale: 1.5,
-        backgroundColor: '#f4f2ef',
+        scale: 1,
+        backgroundColor: '#ffffff',
         useCORS: false,
         logging: false,
-        imageTimeout: 5000,
-        removeContainer: true
+        imageTimeout: 0,
+        removeContainer: true,
+        ignoreElements: (el) => el.tagName === 'BUTTON'
       }).then(canvas => {
+        if (aborted) return;
+        clearTimeout(timeoutId);
         canvas.toBlob(async (blob) => {
-          // 隐藏 loading
           loader.style.display = 'none';
           if (!blob) {
             showToast('生成图片失败');
@@ -746,30 +754,30 @@ function copyDailyResult() {
               await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
               showToast('✅ 截图已复制到剪贴板');
             } else {
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `日报-${new Date().toISOString().slice(0,10)}.png`;
-              a.click();
-              URL.revokeObjectURL(url);
-              showToast('截图已下载（浏览器不支持直接复制图片）');
+              downloadScreenshot(blob);
             }
           } catch (err) {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `日报-${new Date().toISOString().slice(0,10)}.png`;
-            a.click();
-            URL.revokeObjectURL(url);
-            showToast('截图已下载（请手动复制）');
+            downloadScreenshot(blob);
           }
         }, 'image/png');
       }).catch(() => {
+        if (aborted) return;
+        clearTimeout(timeoutId);
         loader.style.display = 'none';
         showToast('截图生成失败，请手动截图');
       });
     });
   });
+}
+
+function downloadScreenshot(blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `日报-${new Date().toISOString().slice(0,10)}.png`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('截图已下载（请手动复制）');
 }
 
 // ==================== DAILY STATS PANEL ====================
