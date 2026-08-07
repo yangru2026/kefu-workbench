@@ -704,45 +704,71 @@ function copyDailyResult() {
     showToast('截图库加载中，请稍后重试');
     return;
   }
-  showToast('正在生成截图...');
-  html2canvas(card, {
-    scale: 2,
-    backgroundColor: '#f4f2ef',
-    useCORS: true,
-    logging: false
-  }).then(canvas => {
-    canvas.toBlob(async (blob) => {
-      if (!blob) {
-        showToast('生成图片失败');
-        return;
-      }
-      try {
-        if (navigator.clipboard && navigator.clipboard.write) {
-          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-          showToast('✅ 截图已复制到剪贴板');
-        } else {
-          // Fallback: 下载图片
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `日报-${new Date().toISOString().slice(0,10)}.png`;
-          a.click();
-          URL.revokeObjectURL(url);
-          showToast('截图已下载（浏览器不支持直接复制图片）');
-        }
-      } catch (err) {
-        // Fallback: 下载图片
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `日报-${new Date().toISOString().slice(0,10)}.png`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast('截图已下载（请手动复制）');
-      }
-    }, 'image/png');
-  }).catch(() => {
-    showToast('截图生成失败，请手动截图');
+
+  // 显示 loading 遮罩
+  let loader = document.getElementById('daily-screenshot-loader');
+  if (!loader) {
+    loader = document.createElement('div');
+    loader.id = 'daily-screenshot-loader';
+    loader.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.35);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    loader.innerHTML = '<div style="background:#fff;border-radius:14px;padding:28px 36px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.2);"><div style="width:40px;height:40px;border:3px solid #e2e0dc;border-top-color:#7B9B6A;border-radius:50%;margin:0 auto 14px;animation:dailySpin 0.8s linear infinite;"></div><div style="font-size:15px;font-weight:600;color:#2C3328;">正在生成截图...</div><div style="font-size:12px;color:#8B8E87;margin-top:4px;">请稍等几秒</div></div>';
+    document.body.appendChild(loader);
+    // 添加旋转动画（如果还没添加）
+    if (!document.getElementById('daily-spin-style')) {
+      const style = document.createElement('style');
+      style.id = 'daily-spin-style';
+      style.textContent = '@keyframes dailySpin{to{transform:rotate(360deg)}}';
+      document.head.appendChild(style);
+    }
+  }
+  loader.style.display = 'flex';
+
+  // 用 requestAnimationFrame 让 loading 先渲染，再执行耗时的 html2canvas
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      html2canvas(card, {
+        scale: 1.5,
+        backgroundColor: '#f4f2ef',
+        useCORS: false,
+        logging: false,
+        imageTimeout: 5000,
+        removeContainer: true
+      }).then(canvas => {
+        canvas.toBlob(async (blob) => {
+          // 隐藏 loading
+          loader.style.display = 'none';
+          if (!blob) {
+            showToast('生成图片失败');
+            return;
+          }
+          try {
+            if (navigator.clipboard && navigator.clipboard.write) {
+              await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+              showToast('✅ 截图已复制到剪贴板');
+            } else {
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `日报-${new Date().toISOString().slice(0,10)}.png`;
+              a.click();
+              URL.revokeObjectURL(url);
+              showToast('截图已下载（浏览器不支持直接复制图片）');
+            }
+          } catch (err) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `日报-${new Date().toISOString().slice(0,10)}.png`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('截图已下载（请手动复制）');
+          }
+        }, 'image/png');
+      }).catch(() => {
+        loader.style.display = 'none';
+        showToast('截图生成失败，请手动截图');
+      });
+    });
   });
 }
 
