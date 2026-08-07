@@ -23,6 +23,7 @@ window.onSupabaseReady = function() {
 // ---------- 公告栏 ----------
 let announcements = [];
 let annSub = null;
+let lastDailyContent = null;
 
 async function loadAnnouncements() {
   if (!supabase) {
@@ -549,6 +550,7 @@ function getShopDelayDays(shopName) {
 }
 
 function renderDailyResult(content) {
+  lastDailyContent = content;
   const shops = content.shops || [];
   const totalV = shops.reduce((s, r) => s + (parseInt(r.visitors) || 0), 0);
   const totalI = shops.reduce((s, r) => s + (parseInt(r.inquiries) || 0), 0);
@@ -696,15 +698,6 @@ async function submitDaily() {
 }
 
 function copyDailyResult() {
-  const area = document.getElementById('daily-result-area');
-  if (!area) return;
-  const card = area.querySelector('.daily-screenshot-card');
-  if (!card) return;
-  if (typeof html2canvas === 'undefined') {
-    showToast('截图库加载中，请稍后重试');
-    return;
-  }
-
   // 显示 loading 遮罩
   let loader = document.getElementById('daily-screenshot-loader');
   if (!loader) {
@@ -722,27 +715,10 @@ function copyDailyResult() {
   }
   loader.style.display = 'flex';
 
-  let aborted = false;
-  const timeoutId = setTimeout(() => {
-    aborted = true;
-    loader.style.display = 'none';
-    showToast('截图生成超时，请重试或手动截图');
-  }, 10000);
-
-  // 用 requestAnimationFrame 让 loading 先渲染，再执行耗时的 html2canvas
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      html2canvas(card, {
-        scale: 1,
-        backgroundColor: '#ffffff',
-        useCORS: false,
-        logging: false,
-        imageTimeout: 0,
-        removeContainer: true,
-        ignoreElements: (el) => el.tagName === 'BUTTON'
-      }).then(canvas => {
-        if (aborted) return;
-        clearTimeout(timeoutId);
+      try {
+        const canvas = renderDailyReportCanvas(lastDailyContent || {});
         canvas.toBlob(async (blob) => {
           loader.style.display = 'none';
           if (!blob) {
@@ -754,23 +730,22 @@ function copyDailyResult() {
               await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
               showToast('✅ 截图已复制到剪贴板');
             } else {
-              downloadScreenshot(blob);
+              downloadDailyScreenshot(blob);
             }
           } catch (err) {
-            downloadScreenshot(blob);
+            downloadDailyScreenshot(blob);
           }
         }, 'image/png');
-      }).catch(() => {
-        if (aborted) return;
-        clearTimeout(timeoutId);
+      } catch (err) {
+        console.error('截图绘制失败', err);
         loader.style.display = 'none';
         showToast('截图生成失败，请手动截图');
-      });
+      }
     });
   });
 }
 
-function downloadScreenshot(blob) {
+function downloadDailyScreenshot(blob) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -778,6 +753,377 @@ function downloadScreenshot(blob) {
   a.click();
   URL.revokeObjectURL(url);
   showToast('截图已下载（请手动复制）');
+}
+
+// ---------- Canvas 原生绘制日报截图（绕过 html2canvas 卡顿）----------
+function renderDailyReportCanvas(content) {
+  const shops = (content && content.shops) || [];
+  const totalV = shops.reduce((s, r) => s + (parseInt(r.visitors) || 0), 0);
+  const totalI = shops.reduce((s, r) => s + (parseInt(r.inquiries) || 0), 0);
+  const totalP = shops.reduce((s, r) => s + (parseInt(r.payments) || 0), 0);
+
+  const today = new Date();
+  const weekDay = ['周日','周一','周二','周三','周四','周五','周六'][today.getDay()];
+  const dateStr = today.getFullYear() + '.' + (today.getMonth()+1) + '.' + today.getDate();
+
+  const W = 720;                 // 逻辑宽度
+  const PAGE_X = 24;             // 卡片左边距
+  const PAGE_Y = 24;             // 卡片上边距
+  const CARD_W = W - PAGE_X * 2; // 卡片宽度
+  const INNER_X = PAGE_X + 18;    // 内容左边距
+  const INNER_W = CARD_W - 36;   // 内容可用宽度
+
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  // 辅助：绘制圆角矩形路径
+  function roundedRect(x, y, w, h, r) {
+    const rr = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.lineTo(x + w - rr, y);
+    ctx.arcTo(x + w, y, x + w, y + rr, rr);
+    ctx.lineTo(x + w, y + h - rr);
+    ctx.arcTo(x + w, y + h, x + w - rr, y + h, rr);
+    ctx.lineTo(x + rr, y + h);
+    ctx.arcTo(x, y + h, x, y + h - rr, rr);
+    ctx.lineTo(x, y + rr);
+    ctx.arcTo(x, y, x + rr, y, rr);
+    ctx.closePath();
+  }
+
+  // 辅助：测量文字
+  function measure(text, font) {
+    ctx.font = font;
+    return ctx.measureText(text).width;
+  }
+
+  // 辅助：自动换行
+  function wrapText(text, maxWidth) {
+    const chars = String(text || '').split('');
+    const lines = [];
+    let line = '';
+    ctx.font = '12px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
+    for (const ch of chars) {
+      const test = line + ch;
+      if (measure(test, ctx.font) > maxWidth && line) {
+        lines.push(line);
+        line = ch;
+      } else {
+        line = test;
+      }
+    }
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  // 辅助：徽章尺寸（不绘制）
+  function measureBadge(text) {
+    const padX = 10;
+    const font = 'bold 12px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
+    return { w: measure(text, font) + padX * 2, h: 24 };
+  }
+
+  // 辅助：绘制徽章标签
+  function drawBadge(item, x, y) {
+    const padX = 10;
+    const h = 24;
+    const font = 'bold 12px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
+    const tw = measure(item.text, font) + padX * 2;
+    roundedRect(x, y, tw, h, 10);
+    ctx.fillStyle = item.bg;
+    ctx.fill();
+    ctx.fillStyle = item.color;
+    ctx.font = font;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    ctx.fillText(item.text, x + padX, y + h/2 + 1);
+    return { w: tw, h };
+  }
+
+  // 辅助：绘制多行徽章（自动换行）
+  function drawBadges(items, x, y, maxWidth) {
+    let cx = x;
+    let cy = y;
+    let rowH = 0;
+    for (const item of items) {
+      const size = measureBadge(item.text);
+      if (cx + size.w > x + maxWidth && cx > x) {
+        cx = x;
+        cy += rowH + 8;
+        rowH = 0;
+      }
+      drawBadge(item, cx, cy);
+      cx += size.w + 8;
+      rowH = Math.max(rowH, size.h);
+    }
+    return cy - y + rowH;
+  }
+
+  // 辅助：截断文本
+  function truncate(text, maxWidth, font) {
+    let t = String(text || '');
+    if (measure(t, font) <= maxWidth) return t;
+    while (t.length > 0 && measure(t + '...', font) > maxWidth) t = t.slice(0, -1);
+    return t + '...';
+  }
+
+  // 计算延迟标签
+  const labels = [{ text: '接待量 = 当日数据', bg: '#dcfce7', color: '#16a34a' }];
+  const delaySet = new Set();
+  shops.forEach(s => { delaySet.add(getShopDelayDays(s.name)); });
+  const delays = Array.from(delaySet).sort((a,b) => a-b);
+  for (const d of delays) {
+    const shopNames = shops.filter(s => getShopDelayDays(s.name) === d).map(s => s.name);
+    const platforms = [];
+    if (shopNames.some(n => /tm|天猫/i.test(n))) platforms.push('天猫');
+    if (shopNames.some(n => /pdd|拼多多/i.test(n))) platforms.push('拼多多');
+    if (shopNames.some(n => /ks|快手/i.test(n))) platforms.push('快手');
+    if (shopNames.some(n => /dy|抖音/i.test(n))) platforms.push('抖音');
+    const prefix = platforms.length > 0 ? platforms.join('/') + ' ' : '';
+    labels.push({ text: `⏳ ${prefix}数据 = ${d}天前`, bg: '#fef3c7', color: '#d97706' });
+  }
+
+  // 预计算各区域高度
+  const headerH = 100;
+  const tagsH = drawBadges(labels, INNER_X, PAGE_Y + headerH, INNER_W) + 16;
+  const tableHeaderH = 38;
+  const tableRowH = 36;
+  const tableH = tableHeaderH + shops.length * tableRowH;
+  const summaryH = 90;
+  const sectionGap = 16;
+
+  let notesH = 0;
+  const notes = [];
+  if (content && content.analysis) notes.push({ title: '未成交分析：', text: content.analysis, bg: '#fffbeb', border: '#f59e0b', titleColor: '#b45309' });
+  if (content && content.followUp) notes.push({ title: '催付：', text: content.followUp, bg: '#f0fdf4', border: '#22c55e', titleColor: '#15803d' });
+  if (content && content.feedback) notes.push({ title: '反馈：', text: content.feedback, bg: '#eff6ff', border: '#3b82f6', titleColor: '#1d4ed8' });
+  for (const note of notes) {
+    const maxTextW = INNER_W - 30;
+    const lines = wrapText(note.title + note.text, maxTextW);
+    notesH += 18 + lines.length * 18 + 18;
+  }
+
+  const totalH = PAGE_Y * 2 + headerH + tagsH + tableH + sectionGap + summaryH + sectionGap + notesH;
+
+  canvas.width = W * dpr;
+  canvas.height = totalH * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = totalH + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // 背景
+  ctx.fillStyle = '#f4f2ef';
+  ctx.fillRect(0, 0, W, totalH);
+
+  // 卡片外框
+  roundedRect(PAGE_X, PAGE_Y, CARD_W, totalH - PAGE_Y * 2, 12);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#e2e0dc';
+  ctx.stroke();
+
+  let y = PAGE_Y + 20;
+
+  // 头部：日期 + 售前徽章
+  ctx.fillStyle = '#7a7a7a';
+  ctx.font = '500 14px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.fillText(dateStr + ' ' + weekDay, INNER_X, y);
+
+  const badgeText = '售前';
+  const badgeW = measure(badgeText, 'bold 12px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif') + 22;
+  roundedRect(INNER_X + INNER_W - badgeW, y - 11, badgeW, 22, 10);
+  ctx.fillStyle = '#7c6fae';
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(badgeText, INNER_X + INNER_W - badgeW/2, y + 1);
+
+  // 姓名/分组 + 总接待量
+  y += 34;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#2d2d2d';
+  ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
+  const nameText = `${currentProfile?.name || ''} · ${currentProfile?.group_name || ''}`;
+  ctx.fillText(nameText, INNER_X, y);
+
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#3a5a8a';
+  ctx.font = 'bold 34px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
+  ctx.fillText(String(totalV), INNER_X + INNER_W, y + 4);
+
+  ctx.fillStyle = '#8a8a8a';
+  ctx.font = '12px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
+  ctx.fillText('总接待量', INNER_X + INNER_W, y - 18);
+
+  // 分隔线
+  y += 28;
+  ctx.beginPath();
+  ctx.moveTo(INNER_X, y);
+  ctx.lineTo(INNER_X + INNER_W, y);
+  ctx.strokeStyle = '#f0eeeb';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // 数据新鲜度标签
+  y += 20;
+  drawBadges(labels, INNER_X, y, INNER_W);
+  y += tagsH - 16;
+
+  // 表格
+  const colX = [0, 180, 250, 320, 390, 520, INNER_W];
+  const tableTop = y;
+
+  // 表头背景
+  ctx.fillStyle = '#f5f6f8';
+  ctx.fillRect(INNER_X, tableTop, INNER_W, tableHeaderH - 1);
+  // 表头下边框
+  ctx.beginPath();
+  ctx.moveTo(INNER_X, tableTop + tableHeaderH - 1);
+  ctx.lineTo(INNER_X + INNER_W, tableTop + tableHeaderH - 1);
+  ctx.strokeStyle = '#ddd';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  const headers = ['店铺', '接待', '询单', '支付', '达成 / 目标', '还差'];
+  ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
+  ctx.fillStyle = '#555555';
+  ctx.textBaseline = 'middle';
+  for (let i = 0; i < headers.length; i++) {
+    const cx = INNER_X + (colX[i] + colX[i+1]) / 2;
+    ctx.textAlign = 'center';
+    ctx.fillText(headers[i], cx, tableTop + tableHeaderH/2 + 1);
+  }
+
+  // 表格行
+  y = tableTop + tableHeaderH;
+  ctx.font = '13px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
+  for (const s of shops) {
+    const inquiries = parseInt(s.inquiries) || 0;
+    const payments = parseInt(s.payments) || 0;
+    const visitors = parseInt(s.visitors) || 0;
+    const target = parseFloat(s.target) || 0;
+    const conv = inquiries > 0 ? (payments / inquiries * 100).toFixed(1) : '--';
+    const convNum = inquiries > 0 ? (payments / inquiries * 100) : 0;
+    const need = target > 0 && inquiries > 0 ? Math.ceil(inquiries * target / 100 - payments) : null;
+    const hit = target > 0 ? convNum >= target : true;
+
+    // 行底部线
+    ctx.beginPath();
+    ctx.moveTo(INNER_X, y + tableRowH - 1);
+    ctx.lineTo(INNER_X + INNER_W, y + tableRowH - 1);
+    ctx.strokeStyle = '#f0eeeb';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // 店铺名（左对齐，超长截断）
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#2d2d2d';
+    ctx.font = '500 13px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
+    const nameW = colX[1] - colX[0] - 16;
+    ctx.fillText(truncate(s.name || '', nameW, ctx.font), INNER_X + 8, y + tableRowH/2 + 1);
+
+    const values = [
+      visitors || '-',
+      inquiries || '-',
+      payments || '-',
+      inquiries > 0 ? `${conv}%${target > 0 ? ' / ' + target + '%' : ''}` : '--',
+      need !== null ? (need > 0 ? '差' + need : '✓') : '-'
+    ];
+
+    for (let i = 0; i < values.length; i++) {
+      const idx = i + 1;
+      const cx = INNER_X + (colX[idx] + colX[idx+1]) / 2;
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
+      if (i === 3) ctx.fillStyle = hit ? '#16a34a' : '#ef4444';
+      else if (i === 4) ctx.fillStyle = (need !== null && need > 0) ? '#ef4444' : '#16a34a';
+      else ctx.fillStyle = '#2d2d2d';
+      ctx.fillText(String(values[i]), cx, y + tableRowH/2 + 1);
+    }
+
+    y += tableRowH;
+  }
+
+  // 汇总区域
+  y += sectionGap;
+  const totalNeed = shops.reduce((sum, s) => {
+    const i = parseInt(s.inquiries) || 0;
+    const p = parseInt(s.payments) || 0;
+    const t = parseFloat(s.target) || 0;
+    return t > 0 && i > 0 ? sum + Math.max(0, Math.ceil(i * t / 100 - p)) : sum;
+  }, 0) || '--';
+  const totalConvStr = totalI > 0 ? (totalP / totalI * 100).toFixed(1) + '%' : '--%';
+  const anyNeed = shops.some(s => {
+    const i = parseInt(s.inquiries) || 0;
+    const p = parseInt(s.payments) || 0;
+    const t = parseFloat(s.target) || 0;
+    return t > 0 && i > 0 && Math.ceil(i * t / 100 - p) > 0;
+  });
+
+  roundedRect(INNER_X, y, INNER_W, summaryH, 8);
+  ctx.fillStyle = '#fafaf9';
+  ctx.fill();
+  ctx.strokeStyle = '#eee';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  const summaryItems = [
+    { label: '总询单', value: String(totalI) },
+    { label: '总支付', value: String(totalP) },
+    { label: '总转化率', value: totalConvStr, color: '#3a5a8a' },
+    { label: '总还差', value: String(totalNeed), color: anyNeed ? '#ef4444' : '#16a34a' }
+  ];
+  const itemW = INNER_W / 4;
+  for (let i = 0; i < summaryItems.length; i++) {
+    const item = summaryItems[i];
+    const cx = INNER_X + itemW * i + itemW / 2;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#8a8a8a';
+    ctx.font = '12px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.fillText(item.label, cx, y + 28);
+    ctx.fillStyle = item.color || '#2d2d2d';
+    ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.fillText(item.value, cx, y + 58);
+  }
+
+  // 备注区域
+  y += summaryH + sectionGap;
+  for (const note of notes) {
+    const maxTextW = INNER_W - 30;
+    const lines = wrapText(note.title + note.text, maxTextW);
+    const blockH = 18 + lines.length * 18 + 18;
+
+    roundedRect(INNER_X, y, INNER_W, blockH, 8);
+    ctx.fillStyle = note.bg;
+    ctx.fill();
+
+    // 左侧色条
+    ctx.fillStyle = note.border;
+    ctx.fillRect(INNER_X, y, 3, blockH);
+
+    ctx.textAlign = 'left';
+    let ly = y + 24;
+    for (let i = 0; i < lines.length; i++) {
+      if (i === 0) {
+        ctx.fillStyle = note.titleColor;
+        ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
+      } else {
+        ctx.fillStyle = '#5a5a5a';
+        ctx.font = '13px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
+      }
+      ctx.fillText(lines[i], INNER_X + 12, ly);
+      ly += 18;
+    }
+    y += blockH + 10;
+  }
+
+  return canvas;
 }
 
 // ==================== DAILY STATS PANEL ====================
