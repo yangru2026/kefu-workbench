@@ -4,8 +4,8 @@
 批量生成花色图片 lightbox 中图
 - 源目录: images/patterns/
 - 目标目录: images/patterns/large/
-- 中图尺寸: 宽度 600px（lightbox 容器最大 900px，600px 已足够清晰且体积更小）
-- 格式: WebP（质量 70），优先加载速度
+- 中图尺寸: 宽度 1200px（lightbox 容器最大 900px，1200px 保证高清不模糊）
+- 格式: WebP（质量 82），兼顾清晰度与体积
 """
 import os
 import sys
@@ -14,8 +14,8 @@ from PIL import Image
 
 SRC_DIR = Path(__file__).parent / 'images' / 'patterns'
 DST_DIR = SRC_DIR / 'large'
-LARGE_WIDTH = 600
-QUALITY = 70
+LARGE_WIDTH = 1200
+QUALITY = 82
 
 def human_size(n):
     if n < 1024:
