@@ -578,6 +578,99 @@ async function fillEmptyPatternFields(
   return { checked: existingRecords.length, filled: filledCount, fields: fieldCount };
 }
 
+// 对已有花色同步图片数组（始终覆盖，因为图片是飞书的源数据）
+// insert-only 模式下，已有记录的图片不会被插入操作更新，需要单独 PATCH
+// 解决场景：之前同步时只有1张上眼图，飞书后续加了第2张，需要覆盖更新
+async function syncExistingPatternImages(
+  supabaseUrl: string,
+  serviceKey: string,
+  mappedRows: Record<string, unknown>[],
+): Promise<{ checked: number; updated: number }> {
+  if (mappedRows.length === 0) return { checked: 0, updated: 0 };
+
+  // 只处理有图片数据的行
+  const rowsWithImages = mappedRows.filter(
+    (r) => r.lens_imgs || r.eye_imgs || r.lens_img || r.eye_img,
+  );
+  if (rowsWithImages.length === 0) return { checked: 0, updated: 0 };
+
+  const names = rowsWithImages.map((r) => r.name).filter(Boolean) as string[];
+  const uniqueNames = [...new Set(names)].map((v) => encodeURIComponent(v)).join(",");
+  const query = `${supabaseUrl}/rest/v1/pattern_assets?name=in.(${uniqueNames})&select=id,name,brand,lens_imgs,eye_imgs`;
+  const resp = await fetch(query, {
+    headers: { "apikey": serviceKey, "Authorization": `Bearer ${serviceKey}` },
+  });
+  if (!resp.ok) {
+    console.error("查询已有花色图片失败:", await resp.text());
+    return { checked: 0, updated: 0 };
+  }
+  const existingRecords = (await resp.json()) as Record<string, unknown>[];
+
+  let updatedCount = 0;
+
+  for (const existing of existingRecords) {
+    const name = existing.name;
+    const brand = existing.brand;
+    if (!name || !brand) continue;
+
+    const idx = mappedRows.findIndex((r) => r.name === name && r.brand === brand);
+    if (idx < 0) continue;
+    const mapped = mappedRows[idx];
+
+    // 比较图片数组是否需要更新
+    const updates: Record<string, unknown> = {};
+    const fsLensImgs = mapped.lens_imgs;
+    const fsEyeImgs = mapped.eye_imgs;
+    const dbLensImgs = existing.lens_imgs;
+    const dbEyeImgs = existing.eye_imgs;
+
+    // 如果飞书有 lens_imgs 且与数据库不同，更新
+    if (Array.isArray(fsLensImgs) && fsLensImgs.length > 0) {
+      const dbArr = Array.isArray(dbLensImgs) ? dbLensImgs : [];
+      if (dbArr.length !== fsLensImgs.length ||
+          JSON.stringify(dbArr) !== JSON.stringify(fsLensImgs)) {
+        updates.lens_imgs = fsLensImgs;
+        updates.lens_img = fsLensImgs[0]; // 兼容字段
+      }
+    }
+
+    // 如果飞书有 eye_imgs 且与数据库不同，更新
+    if (Array.isArray(fsEyeImgs) && fsEyeImgs.length > 0) {
+      const dbArr = Array.isArray(dbEyeImgs) ? dbEyeImgs : [];
+      if (dbArr.length !== fsEyeImgs.length ||
+          JSON.stringify(dbArr) !== JSON.stringify(fsEyeImgs)) {
+        updates.eye_imgs = fsEyeImgs;
+        updates.eye_img = fsEyeImgs[0]; // 兼容字段
+      }
+    }
+
+    if (Object.keys(updates).length === 0) continue;
+
+    const id = existing.id;
+    const patchResp = await fetch(
+      `${supabaseUrl}/rest/v1/pattern_assets?id=eq.${id}`,
+      {
+        method: "PATCH",
+        headers: {
+          "apikey": serviceKey,
+          "Authorization": `Bearer ${serviceKey}`,
+          "Content-Type": "application/json",
+          "Prefer": "return=minimal",
+        },
+        body: JSON.stringify(updates),
+      },
+    );
+    if (patchResp.ok) {
+      updatedCount++;
+      console.log(`图片同步 ${name}:`, Object.keys(updates).join(","));
+    } else {
+      console.error(`图片同步 ${name} 失败:`, await patchResp.text());
+    }
+  }
+
+  return { checked: existingRecords.length, updated: updatedCount };
+}
+
 // ============================================
 // 同步类型定义
 // ============================================
@@ -715,6 +808,11 @@ async function doSync(
     console.log(`${syncType.name}: 检查已有记录的空字段...`);
     fillInfo = await fillEmptyPatternFields(supabaseUrl, serviceKey, records, mappedRows);
     console.log(`${syncType.name}: 补录完成`, JSON.stringify(fillInfo));
+
+    // 图片数组始终用飞书最新数据覆盖（飞书附件是图片的源数据）
+    console.log(`${syncType.name}: 同步已有记录的图片...`);
+    const imgSyncInfo = await syncExistingPatternImages(supabaseUrl, serviceKey, mappedRows);
+    console.log(`${syncType.name}: 图片同步完成`, JSON.stringify(imgSyncInfo));
   }
 
   return {
