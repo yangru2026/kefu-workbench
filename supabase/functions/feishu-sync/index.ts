@@ -135,11 +135,148 @@ function boolValue(val: unknown): boolean {
 }
 
 // ============================================
+// 飞书附件字段处理
+// ============================================
+
+// 从飞书字段值中提取附件的 file_token（附件字段返回 [{file_token, name, type, size}]）
+function extractFileToken(val: unknown): string | null {
+  if (!val) return null;
+  if (typeof val === "string") return null; // 纯文本 URL，不是附件
+  if (Array.isArray(val)) {
+    for (const item of val) {
+      if (item && typeof item === "object") {
+        const token = (item as Record<string, unknown>).file_token;
+        if (token && typeof token === "string") return token;
+      }
+    }
+  }
+  if (typeof val === "object" && val !== null) {
+    const token = (val as Record<string, unknown>).file_token;
+    if (token && typeof token === "string") return token;
+  }
+  return null;
+}
+
+// 从 content-type 获取文件扩展名
+function extFromContentType(ct: string): string {
+  if (ct.includes("png")) return "png";
+  if (ct.includes("webp")) return "webp";
+  if (ct.includes("gif")) return "gif";
+  if (ct.includes("bmp")) return "bmp";
+  return "jpg"; // 默认 jpg
+}
+
+// 从飞书下载附件文件
+async function downloadFeishuFile(
+  token: string,
+  fileToken: string,
+): Promise<{ data: ArrayBuffer; contentType: string }> {
+  const resp = await fetch(
+    `${FEISHU_BASE}/drive/v1/medias/${fileToken}/download`,
+    {
+      headers: { "Authorization": `Bearer ${token}` },
+    },
+  );
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => "");
+    throw new Error(`下载飞书文件失败(${resp.status}): ${errText.slice(0, 200)}`);
+  }
+  const contentType = resp.headers.get("content-type") || "image/jpeg";
+  const data = await resp.arrayBuffer();
+  return { data, contentType };
+}
+
+// 上传文件到 Supabase Storage，返回公开 URL
+async function uploadToStorage(
+  supabaseUrl: string,
+  serviceKey: string,
+  bucket: string,
+  path: string,
+  fileData: ArrayBuffer,
+  contentType: string,
+): Promise<string> {
+  const resp = await fetch(
+    `${supabaseUrl}/storage/v1/object/${bucket}/${path}`,
+    {
+      method: "POST",
+      headers: {
+        "apikey": serviceKey,
+        "Authorization": `Bearer ${serviceKey}`,
+        "Content-Type": contentType,
+      },
+      body: fileData,
+    },
+  );
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => "");
+    throw new Error(`上传到 Storage 失败(${resp.status}): ${errText.slice(0, 200)}`);
+  }
+  return `${supabaseUrl}/storage/v1/object/public/${bucket}/${path}`;
+}
+
+// 处理花色素材附件：从飞书下载图片 → 上传到 Supabase Storage → 填充 URL
+async function processPatternAttachments(
+  feishuToken: string,
+  supabaseUrl: string,
+  serviceKey: string,
+  rawRecords: Record<string, unknown>[],
+  mappedRows: Record<string, unknown>[],
+): Promise<{ downloaded: number; failed: number }> {
+  const BUCKET = "pattern-images";
+  let downloaded = 0;
+  let failed = 0;
+
+  for (let i = 0; i < mappedRows.length; i++) {
+    const row = mappedRows[i];
+    const f = (rawRecords[i]?.fields || {}) as Record<string, unknown>;
+
+    // 花色图（镜片图）：支持附件字段 "花色图" 或文本字段 "花色图URL"
+    const lensToken = extractFileToken(f["花色图"]);
+    if (lensToken) {
+      try {
+        const { data, contentType } = await downloadFeishuFile(feishuToken, lensToken);
+        const ext = extFromContentType(contentType);
+        const path = `lens/${crypto.randomUUID()}.${ext}`;
+        const url = await uploadToStorage(supabaseUrl, serviceKey, BUCKET, path, data, contentType);
+        row.lens_img = url;
+        downloaded++;
+        console.log(`花色图下载成功: ${row.name} → ${path}`);
+      } catch (e) {
+        console.error(`花色图下载失败(${row.name}):`, e.message);
+        failed++;
+      }
+    }
+
+    // 上眼图：支持附件字段 "上眼图" 或文本字段 "上眼图URL"
+    const eyeToken = extractFileToken(f["上眼图"]);
+    if (eyeToken) {
+      try {
+        const { data, contentType } = await downloadFeishuFile(feishuToken, eyeToken);
+        const ext = extFromContentType(contentType);
+        const path = `eye/${crypto.randomUUID()}.${ext}`;
+        const url = await uploadToStorage(supabaseUrl, serviceKey, BUCKET, path, data, contentType);
+        row.eye_img = url;
+        downloaded++;
+        console.log(`上眼图下载成功: ${row.name} → ${path}`);
+      } catch (e) {
+        console.error(`上眼图下载失败(${row.name}):`, e.message);
+        failed++;
+      }
+    }
+  }
+
+  return { downloaded, failed };
+}
+
+// ============================================
 // 字段映射函数 - 每种表一个
 // ============================================
 
 // 花色素材 → pattern_assets
 // 空值字段不写入，避免覆盖数据库已有数据（如图片URL）
+// 图片字段支持两种模式：
+//   1. 附件字段（"花色图"/"上眼图"）→ 同步时自动下载上传到 Supabase Storage
+//   2. 文本字段（"花色图URL"/"上眼图URL"）→ 直接使用 URL
 function mapPatternRecord(record: Record<string, unknown>) {
   const f = (record.fields || {}) as Record<string, unknown>;
 
@@ -161,14 +298,26 @@ function mapPatternRecord(record: Record<string, unknown>) {
     ["oxygen", "氧透率"],
     ["water", "含水量"],
     ["spec", "规格"],
-    ["lens_img", "花色图URL"],
-    ["eye_img", "上眼图URL"],
     ["description", "推荐话术"],
   ];
 
   for (const [dbField, feishuField] of optionalFields) {
     const val = fieldValue(f[feishuField]);
     if (val) row[dbField] = val;
+  }
+
+  // 图片字段：优先检查是否为附件（附件由 processPatternAttachments 处理）
+  // 如果不是附件，检查是否为文本 URL
+  const lensVal = f["花色图"] || f["花色图URL"];
+  if (lensVal && !extractFileToken(lensVal)) {
+    const lensUrl = fieldValue(lensVal);
+    if (lensUrl) row.lens_img = lensUrl;
+  }
+
+  const eyeVal = f["上眼图"] || f["上眼图URL"];
+  if (eyeVal && !extractFileToken(eyeVal)) {
+    const eyeUrl = fieldValue(eyeVal);
+    if (eyeUrl) row.eye_img = eyeUrl;
   }
 
   // 是否下架：飞书有值才写入（避免空值覆盖已有的下架标记）
@@ -326,6 +475,14 @@ interface SyncType {
   filterFn: (row: Record<string, unknown>) => boolean;
   // insertOnly: true = 只插入新记录，已存在的跳过（不覆盖任何已有数据）
   insertOnly?: boolean;
+  // upsert 前的异步处理（如下载飞书附件并上传到 Storage）
+  preUpsertFn?: (
+    feishuToken: string,
+    supabaseUrl: string,
+    serviceKey: string,
+    rawRecords: Record<string, unknown>[],
+    mappedRows: Record<string, unknown>[],
+  ) => Promise<Record<string, unknown>>;
   // 花色素材特殊的删除处理（仅非 insertOnly 模式生效）
   postSyncFn?: (
     supabaseUrl: string,
@@ -344,7 +501,10 @@ const SYNC_TYPES: Record<string, SyncType> = {
     filterFn: (row) => !!row.name,
     // 只插入新花色，已有的完全不动（图片、下架标记等全部保留）
     insertOnly: true,
-    // 不再标记下架 —— 飞书表格只放新款，不能用来判断哪些花色该下架
+    // 下载飞书附件图片 → 上传到 Supabase Storage → 填充 URL
+    preUpsertFn: async (feishuToken, supabaseUrl, serviceKey, rawRecords, mappedRows) => {
+      return await processPatternAttachments(feishuToken, supabaseUrl, serviceKey, rawRecords, mappedRows);
+    },
   },
   schedule: {
     name: "排班表",
@@ -398,6 +558,14 @@ async function doSync(
     return { total_in_feishu: records.length, synced: 0 };
   }
 
+  // upsert 前的异步处理（如下载飞书附件图片并上传到 Storage）
+  let attachmentInfo: Record<string, unknown> | undefined;
+  if (syncType.preUpsertFn) {
+    console.log(`${syncType.name}: 处理附件...`);
+    attachmentInfo = await syncType.preUpsertFn(token, supabaseUrl, serviceKey, records, mappedRows);
+    console.log(`${syncType.name}: 附件处理完成`, JSON.stringify(attachmentInfo));
+  }
+
   const upserted = await supabaseUpsert(
     supabaseUrl,
     serviceKey,
@@ -420,6 +588,7 @@ async function doSync(
     total_in_feishu: records.length,
     synced: syncedCount,
     mode: syncType.insertOnly ? "insert_only" : "upsert",
+    ...(attachmentInfo ? { attachments: attachmentInfo } : {}),
   };
 }
 

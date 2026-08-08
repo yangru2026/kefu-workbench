@@ -1850,7 +1850,7 @@ async function syncFromFeishu() {
     showToast('⚠️ 请先配置飞书同步参数（联系管理员在代码中设置 SYNC_AUTH_TOKEN）');
     return;
   }
-  if (!confirm('确定从飞书多维表格同步花色素材？\n\n同步规则：\n• 飞书中新款花色会新增到工作台\n• 已有花色完全不动（图片、下架标记等全部保留）\n• 新款花色自动排在最前面（带 🆕 标签）\n• 同步完成后自动刷新')) return;
+  if (!confirm('确定从飞书多维表格同步花色素材？\n\n同步规则：\n• 飞书中新款花色会新增到工作台\n• 花色图/上眼图支持附件上传，自动下载存储\n• 已有花色完全不动（图片、下架标记等全部保留）\n• 新款花色自动排在最前面（带 🆕 标签）\n• 同步完成后自动刷新')) return;
 
   btn.disabled = true;
   btn.classList.add('syncing');
@@ -1877,6 +1877,12 @@ async function syncFromFeishu() {
         if (skippedCount > 0) msg += `，跳过 ${skippedCount} 条已有`;
       } else {
         msg += `，写入 ${syncedCount} 条`;
+      }
+      // 附件下载信息
+      if (r.attachments) {
+        const a = r.attachments;
+        if (a.downloaded > 0) msg += `，图片下载 ${a.downloaded} 张`;
+        if (a.failed > 0) msg += `，失败 ${a.failed} 张`;
       }
       showToast(msg);
       // Realtime 会自动刷新，这里兜底手动刷新一次
