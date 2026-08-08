@@ -590,7 +590,7 @@ body {
 .lightbox-img-wrap { position:relative; display:flex; align-items:center; justify-content:center; width:min(92vw, 900px); max-height:82vh; }
 .lightbox-img-stack { position:relative; display:flex; align-items:center; justify-content:center; width:100%; max-height:78vh; }
 .lightbox-img-stack img { max-width:min(92vw, 900px); max-height:78vh; object-fit:contain; border-radius:6px; box-shadow:0 8px 40px rgba(0,0,0,0.5); cursor:default; transition:opacity 0.35s ease; }
-.lightbox-thumb { filter:blur(8px) brightness(0.75); transform:scale(1); }
+.lightbox-thumb { filter:blur(2px) brightness(0.9); transform:scale(1); }
 .lightbox-hd { position:absolute; top:0; left:0; opacity:0; }
 .lightbox-hd.loaded { opacity:1; }
 .lightbox-thumb.hidden { opacity:0; }
@@ -3023,16 +3023,16 @@ function renderPatterns() {
     const images = [];  // [{thumb, large, hd, type, hint}] - lightbox 用 thumb 占位 + large 中图 + hd 原图 fallback
     const hasEye = p.eyeImg && p.eyeImg.trim() !== '';
     const hasLens = p.lensImg && p.lensImg.trim() !== '';
-    // 缩略图优先，没有则回退到原图；加版本号避免缓存旧资源
+    // 缩略图优先，没有则回退到原图；统一走 jsDelivr CDN 加速，并加版本号避免缓存旧资源
     const rawEyeSrc = (p.thumbEye && p.thumbEye.trim() !== '') ? p.thumbEye : p.eyeImg;
-    const eyeSrc = addCacheBuster(rawEyeSrc);
+    const eyeSrc = addCacheBuster(toCdnUrl(rawEyeSrc));
     const rawEyeHd = p.eyeImg || p.thumbEye || '';
-    const eyeHd = addCacheBuster(rawEyeHd);
+    const eyeHd = addCacheBuster(toCdnUrl(rawEyeHd));
     const eyeLarge = rawEyeHd ? toLargeImageUrl(rawEyeHd) : '';
     const rawLensThumbSrc = (p.thumbLens && p.thumbLens.trim() !== '') ? p.thumbLens : p.lensImg;
-    const lensThumbSrc = addCacheBuster(rawLensThumbSrc);
+    const lensThumbSrc = addCacheBuster(toCdnUrl(rawLensThumbSrc));
     const rawLensHd = p.lensImg || p.thumbLens || '';
-    const lensHd = addCacheBuster(rawLensHd);
+    const lensHd = addCacheBuster(toCdnUrl(rawLensHd));
     const lensLarge = rawLensHd ? toLargeImageUrl(rawLensHd) : '';
 
     if (hasEye) {
@@ -3166,12 +3166,29 @@ function toLargeImageUrl(url) {
   if (!m) return '';
   const base = m[1];
   const name = m[2];
-  return addCacheBuster(base + 'patterns/large/' + name + '.webp');
+  return toCdnUrl(base + 'patterns/large/' + name + '.webp');
+}
+
+// 统一将 GitHub Pages 本地图片 URL 转成 jsDelivr CDN 加速地址
+function toCdnUrl(url) {
+  if (!url) return '';
+  // 已经是 CDN / Supabase / 带参数的 URL 不再转换
+  if (url.includes('cdn.jsdelivr.net') || url.includes('supabase.co') || url.includes('?')) return url;
+  // 把 https://yangru2026.github.io/kefu-workbench/... 转成 jsDelivr
+  const gh = url.replace(/^https?:\/\/yangru2026\.github\.io\/kefu-workbench\//, '');
+  if (gh !== url) {
+    return 'https://cdn.jsdelivr.net/gh/yangru2026/kefu-workbench@main/' + gh;
+  }
+  // 相对路径：假设部署在 kefu-workbench/ 下
+  if (!url.startsWith('http')) {
+    return 'https://cdn.jsdelivr.net/gh/yangru2026/kefu-workbench@main/' + url.replace(/^\.?\/?/, '');
+  }
+  return url;
 }
 
 // 给本地图片 URL 加版本号，避免浏览器/缓存层返回旧资源
 function addCacheBuster(url) {
-  if (!url || url.includes('supabase.co') || url.includes('?')) return url;
+  if (!url || url.includes('supabase.co') || url.includes('cdn.jsdelivr.net') || url.includes('?')) return url;
   return url + '?v=2';
 }
 
@@ -3430,17 +3447,15 @@ function showLightboxImage() {
 
   // 重置状态
   resetLightboxStatus();
-  if (lightboxCurrentPreload) {
-    lightboxCurrentPreload.onload = null;
-    lightboxCurrentPreload.onerror = null;
-    lightboxCurrentPreload = null;
-  }
+  cancelLightboxPreload();
+
   hdEl.classList.remove('loaded');
   thumbEl.classList.remove('hidden');
-  thumbEl.src = img.thumb;
+  thumbEl.src = img.thumb || '';
   hdEl.src = '';
   hdEl.removeAttribute('data-hd');
-  loader.classList.add('show');
+  // 关键：先不显示 loader，缩略图已经加载过，可立即展示；高清图后台静默加载
+  loader.classList.remove('show');
 
   document.getElementById('lightbox-counter').textContent =
     lightboxImages.length > 1 ? (lightboxIdx + 1) + ' / ' + lightboxImages.length : '';
@@ -3449,15 +3464,24 @@ function showLightboxImage() {
   document.getElementById('lightbox-next').disabled = lightboxIdx === lightboxImages.length - 1;
   lightboxImgSrc = img.large;
 
-  // 1.5秒后若仍未加载完成，给出友好提示（中图通常更快，缩短等待）
+  // 如果缩略图本身就是 CDN 且已缓存，1.5 秒后还未加载出高清图再显示极淡提示
   lightboxLoadTimer = setTimeout(() => {
     if (!hdEl.classList.contains('loaded')) {
-      setLightboxStatus('正在加载高清图…');
+      // 只在真正卡住时显示一个很不显眼的状态，不遮挡图片
+      setLightboxStatus('正在优化清晰度…');
     }
   }, 1500);
 
-  // 异步加载中图；失败则回退原图
+  // 异步加载中图；失败则回退原图；再失败保持缩略图
   loadLightboxHd(img.large, img.hd);
+}
+
+function cancelLightboxPreload() {
+  if (lightboxCurrentPreload) {
+    lightboxCurrentPreload.onload = null;
+    lightboxCurrentPreload.onerror = null;
+    lightboxCurrentPreload = null;
+  }
 }
 
 function loadLightboxHd(largeUrl, fallbackUrl) {
@@ -3465,10 +3489,7 @@ function loadLightboxHd(largeUrl, fallbackUrl) {
   const hdEl = document.getElementById('lightbox-img');
   const loader = document.getElementById('lightbox-loader');
 
-  if (lightboxCurrentPreload) {
-    lightboxCurrentPreload.onload = null;
-    lightboxCurrentPreload.onerror = null;
-  }
+  cancelLightboxPreload();
   const preload = new Image();
   lightboxCurrentPreload = preload;
 
@@ -3487,23 +3508,22 @@ function loadLightboxHd(largeUrl, fallbackUrl) {
   };
   preload.onerror = function() {
     if (fallbackUrl && fallbackUrl !== largeUrl) {
-      // 中图失败，尝试原图
-      setLightboxStatus('中图加载失败，尝试加载原图…');
+      // 中图 CDN 失败，尝试原图 CDN
       const fallbackPreload = new Image();
       lightboxCurrentPreload = fallbackPreload;
       fallbackPreload.onload = function() {
         applyLoaded(fallbackUrl);
       };
       fallbackPreload.onerror = function() {
+        // 彻底失败：保持缩略图可见，不弹错误，用户体验不会中断
         resetLightboxStatus();
-        setLightboxStatus('图片加载失败，可点击重试', true);
-        loader.classList.add('show');
+        loader.classList.remove('show');
+        console.warn('lightbox 高清图加载失败:', largeUrl, fallbackUrl);
       };
       fallbackPreload.src = fallbackUrl;
     } else {
       resetLightboxStatus();
-      setLightboxStatus('图片加载失败，可点击重试', true);
-      loader.classList.add('show');
+      loader.classList.remove('show');
     }
   };
   preload.src = largeUrl;
@@ -3512,9 +3532,6 @@ function loadLightboxHd(largeUrl, fallbackUrl) {
 function retryLightboxHd() {
   const img = lightboxImages[lightboxIdx];
   if (!img) return;
-  const loader = document.getElementById('lightbox-loader');
-  loader.classList.add('show');
-  setLightboxStatus('正在重新加载…');
   loadLightboxHd(img.large, img.hd);
 }
 
@@ -3523,7 +3540,7 @@ function navLightbox(dir) {
   if (newIdx < 0 || newIdx >= lightboxImages.length) return;
   lightboxIdx = newIdx;
   showLightboxImage();
-  // 预加载下一张（先中图）
+  // 预加载下一张（先中图，再原图）
   const preloadIdx = lightboxIdx + dir;
   if (preloadIdx >= 0 && preloadIdx < lightboxImages.length) {
     const next = lightboxImages[preloadIdx];

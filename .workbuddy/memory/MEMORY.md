@@ -10,6 +10,9 @@
 - **花色下架标记** (2026-07-31): pattern_assets 新增 is_discontinued 字段，管理员可标记下架/取消下架，自动生成「📦 下架花色」分类。
 - **飞书多维表格同步** (2026-07-31): Supabase Edge Function (feishu-sync) 接收飞书事件订阅/手动触发，拉取多维表格记录同步到 pattern_assets。工作台花色素材页新增「🔄 从飞书同步」按钮(admin-only)。需执行 feishu_sync_migration.sql，部署指南见 feishu-sync-deploy-guide.md。
 - **花色素材页加载性能优化** (2026-08-08): 三层方案全做。**A 修代码bug**：`app.js` 第14行 onSupabaseReady 重复调 loadPatternsFromDB+render，进入花色页重复 render 2 遍；**B 缩略图**（核心，357张原图 66.3MB → WebP 缩略图 11.3MB 节省 83%）：`generate_thumbnails.py` 批量生成 + 数据库加 `thumb_eye_url` / `thumb_lens_url` + renderPatterns 默认用缩略图 + hover 用 `data-lens-src` 延迟加载 + 前6张 `fetchpriority="high"` + `decoding="async"`；**C 分页**：每页20个 + "加载更多"按钮 + 切换筛选自动重置。**预期首屏从 8秒 → 1-1.5秒**。需执行 add_thumb_columns.sql。
+- **花色素材四项改进** (2026-08-08): ①Lightbox大图加载优化（限制900px+超时提示+重试按钮）；②卡片下架标记（meta-row标签+名称删除线）；③直径分类维度（第5维度，品牌>抛型>直径>系列>色系>状态，add_diameter_category.sql）；④色系分类合并整理（merge_color_categories.sql 将60+非标准值归一到9个标准分类，前端删除色系时弹出合并对话框支持"合并到其他色系"）。
+- **花色素材继续优化** (2026-08-08): ①Lightbox中图加速（900px WebP，357张27.9MB，优先加载中图失败回退原图，generate_large_images.py）；②直径值去重归一（normalize_diameter.sql 把14.5mm/14.5统一为14.5）；③删除分类通用合并对话框（直径/抛型/系列/色系删除时都支持合并到其他分类）；④卡片管理按钮对管理员默认可见（无需先开"管理模式"即可标记下架/编辑/删除）。
+- **花色素材问题修复** (2026-08-08): ①提供 add_discontinued_column.sql 添加 is_discontinued 字段解决下架标记失败；②修复 normalize_diameter.sql 的 CHECK 约束错误；③图片 URL 统一加 `?v=2` 缓存版本号强制刷新，hover lens 优先加载中图。
 
 ## 待开发功能清单
 
