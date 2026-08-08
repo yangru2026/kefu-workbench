@@ -1419,8 +1419,10 @@ body {
     <div class="pattern-filters-card">
       <div class="filter-row" id="pattern-filter-type"></div>
       <div class="filter-row" id="pattern-filter-diameter"></div>
+      <div class="filter-row" id="pattern-filter-basecurve"></div>
       <div class="filter-row" id="pattern-filter-series"></div>
       <div class="filter-row" id="pattern-filter-color"></div>
+      <div class="filter-row" id="pattern-filter-fixedaxis"></div>
       <div class="filter-row" id="pattern-filter-status"></div>
       <div class="pattern-search-row">
         <input type="text" id="pattern-search" placeholder="🔍 搜索花色名称..." oninput="onPatternSearch()">
@@ -2592,6 +2594,8 @@ function buildPatternTree(flatData) {
       thumbEye: p.thumb_eye_url || '',
       thumbLens: p.thumb_lens_url || '',
       description: p.description || '',
+      baseCurve: p.base_curve || '',
+      fixedAxis: p.fixed_axis || '',
       createdAt: p.created_at || '',
       _id: p.id,
       _brand: p.brand,
@@ -3139,8 +3143,10 @@ document.addEventListener('DOMContentLoaded', function() {
 let patternBrand = '弥生';
 let patternType = '全部';
 let patternDiameter = '全部';
+let patternBaseCurve = '全部';
 let patternSeries = '全部';
 let patternColor = '全部';
+let patternFixedAxis = '全部'; // '全部' | '定轴' | '非定轴'
 let patternStatusFilter = '全部'; // '全部' | '在售' | '下架'
 let patternCategories = []; // [{id, category_type:'brand'|'type'|'diameter'|'series'|'color', name, sort_order}]
 
@@ -3151,10 +3157,31 @@ function setPatternStatus(status) {
   renderPatterns();
 }
 
-function setPatternDiameter(d) {
-  patternDiameter = d;
+function setPatternBaseCurve(bc) {
+  patternBaseCurve = bc;
   patternSeries = '全部';
   patternColor = '全部';
+  patternFixedAxis = '全部';
+  patternStatusFilter = '全部';
+  patternPage = 1;
+  renderPatternFilters();
+  renderPatterns();
+}
+
+function setPatternFixedAxis(fa) {
+  patternFixedAxis = fa;
+  patternStatusFilter = '全部';
+  patternPage = 1;
+  renderPatternFilters();
+  renderPatterns();
+}
+
+function setPatternDiameter(d) {
+  patternDiameter = d;
+  patternBaseCurve = '全部';
+  patternSeries = '全部';
+  patternColor = '全部';
+  patternFixedAxis = '全部';
   patternStatusFilter = '全部';
   patternPage = 1;
   renderPatternFilters();
@@ -3208,16 +3235,21 @@ function getPatternDiameters(brand, type) {
 }
 
 function getPatternSeries(brand, type, diameter) {
-  const items = getFilteredItems(brand, type, '全部', diameter);
+  const items = getFilteredItems(brand, type, '全部', diameter, patternBaseCurve);
   return [...new Set(items.map(p => p.series).filter(Boolean))];
 }
 
 function getPatternColors(brand, type, series, diameter) {
-  const items = getFilteredItems(brand, type, series, diameter);
+  const items = getFilteredItems(brand, type, series, diameter, patternBaseCurve);
   return [...new Set(items.map(p => p.color).filter(Boolean))];
 }
 
-function getFilteredItems(brand, type, series, diameter) {
+function getPatternBaseCurves(brand, type, diameter) {
+  const items = getFilteredItems(brand, type, '全部', diameter, '全部');
+  return [...new Set(items.map(p => p.baseCurve).filter(Boolean))].sort();
+}
+
+function getFilteredItems(brand, type, series, diameter, baseCurve) {
   const b = (patternData.brands || {})[brand] || {};
   let items = [];
   if (type === '全部') {
@@ -3230,6 +3262,9 @@ function getFilteredItems(brand, type, series, diameter) {
   }
   if (diameter && diameter !== '全部') {
     items = items.filter(p => p.diameter === diameter);
+  }
+  if (baseCurve && baseCurve !== '全部') {
+    items = items.filter(p => p.baseCurve === baseCurve);
   }
   return items;
 }
@@ -3320,6 +3355,22 @@ function renderPatternFilters() {
     diameterRow.style.display = diameterRow.innerHTML ? 'flex' : 'none';
   }
 
+  // 基弧 filter — 数据驱动分类（不托管，从花色数据中提取）
+  const baseCurveData = getPatternBaseCurves(patternBrand, patternType, patternDiameter);
+  const baseCurveRow = document.getElementById('pattern-filter-basecurve');
+  if (baseCurveData.length > 0) {
+    let bcHtml = '<span class="flabel">基弧</span>' +
+      '<button class="flink' + (patternBaseCurve === '全部' ? ' active' : '') + '" onclick="setPatternBaseCurve(\'全部\')">全部</button>';
+    baseCurveData.forEach(bc => {
+      bcHtml += `<button class="flink${patternBaseCurve === bc ? ' active' : ''}" onclick="setPatternBaseCurve('${escapeAttr(bc)}')">${escapeHtml(bc)}</button>`;
+    });
+    baseCurveRow.innerHTML = bcHtml;
+    baseCurveRow.style.display = 'flex';
+  } else {
+    baseCurveRow.innerHTML = '';
+    baseCurveRow.style.display = 'none';
+  }
+
   // 系列 filter — 右键菜单触发编辑/删除
   const seriesData = getMergedCats('series', getPatternSeries(patternBrand, patternType, patternDiameter));
   const seriesRow = document.getElementById('pattern-filter-series');
@@ -3373,14 +3424,35 @@ function renderPatternFilters() {
     colorRow.innerHTML = isAdmin ? '<span class="flabel">色系</span><button class="pcat-add-mini" onclick="addPatCat(\'color\')">＋ 添加色系</button>' : '';
     colorRow.style.display = colorRow.innerHTML ? 'flex' : 'none';
   }
+
+  // 定轴 filter — 数据驱动（从花色数据中判断是否有定轴值）
+  const allItemsForAxis = getFilteredItems(patternBrand, patternType, patternSeries, patternDiameter, patternBaseCurve);
+  const fixedAxisCount = allItemsForAxis.filter(p => p.fixedAxis && p.fixedAxis.trim()).length;
+  const fixedAxisRow = document.getElementById('pattern-filter-fixedaxis');
+  if (fixedAxisCount > 0) {
+    const axisOptions = [
+      { key: '全部', label: '全部' },
+      { key: '定轴', label: '定轴 (' + fixedAxisCount + ')' },
+      { key: '非定轴', label: '非定轴' }
+    ];
+    let axisHtml = '<span class="flabel">定轴</span>' +
+      axisOptions.map(o => `<button class="flink${patternFixedAxis === o.key ? ' active' : ''}" onclick="setPatternFixedAxis('${escapeAttr(o.key)}')">${escapeHtml(o.label)}</button>`).join('');
+    fixedAxisRow.innerHTML = axisHtml;
+    fixedAxisRow.style.display = 'flex';
+  } else {
+    fixedAxisRow.innerHTML = '';
+    fixedAxisRow.style.display = 'none';
+  }
 }
 
 function switchPatternBrand(b) {
   patternBrand = b;
   patternType = '全部';
   patternDiameter = '全部';
+  patternBaseCurve = '全部';
   patternSeries = '全部';
   patternColor = '全部';
+  patternFixedAxis = '全部';
   patternStatusFilter = '全部';
   patternPage = 1;
   renderPatternFilters();
@@ -3390,8 +3462,10 @@ function switchPatternBrand(b) {
 function setPatternType(t) {
   patternType = t;
   patternDiameter = '全部';
+  patternBaseCurve = '全部';
   patternSeries = '全部';
   patternColor = '全部';
+  patternFixedAxis = '全部';
   patternStatusFilter = '全部';
   patternPage = 1;
   renderPatternFilters();
@@ -3401,6 +3475,7 @@ function setPatternType(t) {
 function setPatternSeries(s) {
   patternSeries = s;
   patternColor = '全部';
+  patternFixedAxis = '全部';
   patternStatusFilter = '全部';
   patternPage = 1;
   renderPatternFilters();
@@ -3409,6 +3484,7 @@ function setPatternSeries(s) {
 
 function setPatternColor(c) {
   patternColor = c;
+  patternFixedAxis = '全部';
   patternStatusFilter = '全部';
   patternPage = 1;
   renderPatternFilters();
@@ -3683,10 +3759,16 @@ const PATTERN_PAGE_SIZE = 20;
 
 function renderPatterns() {
   // patternData already loaded from Supabase, no localStorage merge needed
-  let items = getFilteredItems(patternBrand, patternType, patternSeries, patternDiameter);
+  let items = getFilteredItems(patternBrand, patternType, patternSeries, patternDiameter, patternBaseCurve);
   // 色系筛选
   if (patternColor !== '全部') {
     items = items.filter(p => p.color === patternColor);
+  }
+  // 定轴筛选
+  if (patternFixedAxis === '定轴') {
+    items = items.filter(p => p.fixedAxis && p.fixedAxis.trim());
+  } else if (patternFixedAxis === '非定轴') {
+    items = items.filter(p => !p.fixedAxis || !p.fixedAxis.trim());
   }
   // 状态筛选：全部 / 在售 / 下架
   if (patternStatusFilter === '在售') {
@@ -3798,9 +3880,11 @@ function renderPatterns() {
     const specs = [];
     if (p.material) specs.push('<span class="pcard-spec-mini">' + escapeHtml(p.material) + '</span>');
     if (p.diameter) specs.push('<span class="pcard-spec-mini">' + escapeHtml(p.diameter) + '</span>');
+    if (p.baseCurve) specs.push('<span class="pcard-spec-mini">基弧 ' + escapeHtml(p.baseCurve) + '</span>');
     if (p.colorDiameter) specs.push('<span class="pcard-spec-mini">着色 ' + escapeHtml(p.colorDiameter) + '</span>');
     if (p.oxygen) specs.push('<span class="pcard-spec-mini">透氧 ' + escapeHtml(p.oxygen) + '</span>');
     if (p.water) specs.push('<span class="pcard-spec-mini">含水 ' + escapeHtml(p.water) + '</span>');
+    if (p.fixedAxis) specs.push('<span class="pcard-spec-mini" style="color:var(--primary);font-weight:600;">定轴 ' + escapeHtml(p.fixedAxis) + '</span>');
     if (p.spec) specs.push('<span class="pcard-spec-mini">' + escapeHtml(p.spec) + '</span>');
     const specsHtml = specs.length ? specs.join('') : '';
 
@@ -3843,6 +3927,7 @@ function renderPatterns() {
         <div class="pcard-meta-row">
           ${discMetaTag}
           ${newMetaTag}
+          ${p.fixedAxis ? '<span style="color:var(--primary);font-weight:600;">定轴</span>' : ''}
           <span>${escapeHtml(p.color || '')}</span>
           ${p.diameter ? '<span>' + escapeHtml(p.diameter) + '</span>' : ''}
           ${specsHtml}
@@ -4019,6 +4104,8 @@ function renderEditorForm(pattern) {
     + '</select></div></div>'
     + '<div class="modal-field-row"><div class="modal-field"><label>直径</label><input id="ef-diameter" value="' + escapeHtml(t.diameter || '') + '" placeholder="14.2mm"></div>'
     + '<div class="modal-field"><label>着色直径</label><input id="ef-cdiam" value="' + escapeHtml(t.colorDiameter || '') + '" placeholder="13.5"></div></div>'
+    + '<div class="modal-field-row"><div class="modal-field"><label>基弧</label><input id="ef-basecurve" value="' + escapeHtml(t.baseCurve || '') + '" placeholder="8.6"></div>'
+    + '<div class="modal-field"><label>定轴</label><input id="ef-fixedaxis" value="' + escapeHtml(t.fixedAxis || '') + '" placeholder="如 90°（留空表示非定轴）"></div></div>'
     + '<div class="modal-field-row"><div class="modal-field"><label>材质</label><input id="ef-material" value="' + escapeHtml(t.material || '') + '" placeholder="硅水凝胶"></div>'
     + '<div class="modal-field"><label>透氧量</label><input id="ef-oxygen" value="' + escapeHtml(t.oxygen || '') + '" placeholder="100dk"></div></div>'
     + '<div class="modal-field-row"><div class="modal-field"><label>含水量</label><input id="ef-water" value="' + escapeHtml(t.water || '') + '" placeholder="58%"></div>'
@@ -4093,6 +4180,8 @@ async function savePattern() {
     series: document.getElementById('ef-series').value.trim(),
     color: document.getElementById('ef-color').value,
     diameter: document.getElementById('ef-diameter').value.trim(),
+    base_curve: document.getElementById('ef-basecurve').value.trim(),
+    fixed_axis: document.getElementById('ef-fixedaxis').value.trim(),
     color_diameter: document.getElementById('ef-cdiam').value.trim(),
     material: document.getElementById('ef-material').value.trim(),
     oxygen: document.getElementById('ef-oxygen').value.trim(),

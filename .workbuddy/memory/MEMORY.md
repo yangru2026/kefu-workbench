@@ -21,6 +21,7 @@
 - **客服排名 & 售前月度 Excel 导入** (2026-08-08): 引入 SheetJS 解析 `.xlsx/.xls/.csv`，客服排名页和售前月度汇总页新增「📥 导入Excel」按钮(admin-only)。自动识别中/英文表头，支持多种月份格式，导入后按唯一键 upsert 到 Supabase 并刷新页面。
 - **飞书多表同步上线** (2026-08-08): 飞书自建应用(App ID: cli_aafc447873a1dbc3) + Edge Function 部署完成。飞书多维表格(app_token: GQBkbeK4raE8k6s1zQOcGgHlnZf)含排班表/客服排名/售前月度数据3张表。Supabase secrets 已配置 7 个环境变量。前端 authToken 已填入。排班表同步测试通过(18条)。工作流：飞书表格编辑→工作台点「🔄 从飞书同步」→自动更新。FEISHU_PATTERN_TABLE_ID 未设置（花色素材在另一个 bitable）。
 - **花色素材飞书同步 insert-only + 新款置顶** (2026-08-08): 花色素材同步改为只新增不覆盖（ignore-duplicates），移除标记下架逻辑。前端按 created_at 降序排列新款置顶，30天内新增花色显示🆕标签。需执行 `add_created_at_column.sql`。待用户提供花色素材飞书表格 table_id 配置 FEISHU_PATTERN_TABLE_ID secret。
+- **花色图附件字段支持** (2026-08-08): 飞书表格花色图/上眼图改为附件字段，同步时自动从飞书下载图片→上传到 Supabase Storage（`pattern-images` bucket）→存储公开URL。同时兼容文本URL字段。需执行 `create_pattern_images_bucket.sql`。
 
 ## 待开发功能清单
 

@@ -293,6 +293,8 @@ function mapPatternRecord(record: Record<string, unknown>) {
     ["series", "系列"],
     ["color", "色系"],
     ["diameter", "直径"],
+    ["base_curve", "基弧"],
+    ["fixed_axis", "定轴"],
     ["color_diameter", "着色直径"],
     ["material", "材质"],
     ["oxygen", "氧透率"],
