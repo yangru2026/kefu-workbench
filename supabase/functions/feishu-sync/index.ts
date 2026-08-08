@@ -248,7 +248,14 @@ async function supabaseUpsert(
   table: string,
   rows: Record<string, unknown>[],
   onConflict: string,
+  insertOnly = false,
 ) {
+  // insertOnly 模式：已存在的记录跳过（ignore-duplicates），不覆盖任何已有数据
+  // 普通 upsert 模式：已存在的记录更新（merge-duplicates）
+  const prefer = insertOnly
+    ? "resolution=ignore-duplicates,return=representation"
+    : "resolution=merge-duplicates,return=representation";
+
   const resp = await fetch(
     `${supabaseUrl}/rest/v1/${table}?on_conflict=${onConflict}`,
     {
@@ -257,7 +264,7 @@ async function supabaseUpsert(
         "apikey": serviceKey,
         "Authorization": `Bearer ${serviceKey}`,
         "Content-Type": "application/json",
-        "Prefer": "resolution=merge-duplicates,return=representation",
+        "Prefer": prefer,
       },
       body: JSON.stringify(rows),
     },
@@ -317,7 +324,9 @@ interface SyncType {
   supabaseTable: string;
   onConflict: string;
   filterFn: (row: Record<string, unknown>) => boolean;
-  // 花色素材特殊的删除处理
+  // insertOnly: true = 只插入新记录，已存在的跳过（不覆盖任何已有数据）
+  insertOnly?: boolean;
+  // 花色素材特殊的删除处理（仅非 insertOnly 模式生效）
   postSyncFn?: (
     supabaseUrl: string,
     serviceKey: string,
@@ -333,13 +342,9 @@ const SYNC_TYPES: Record<string, SyncType> = {
     supabaseTable: "pattern_assets",
     onConflict: "name,brand",
     filterFn: (row) => !!row.name,
-    postSyncFn: async (supabaseUrl, serviceKey, rows) => {
-      const feishuIds = rows
-        .map((r) => r.feishu_record_id)
-        .filter(Boolean) as string[];
-      const count = await markStalePatternsDiscontinued(supabaseUrl, serviceKey, feishuIds);
-      if (count > 0) console.log(`花色素材: 标记 ${count} 条飞书已删除记录为下架`);
-    },
+    // 只插入新花色，已有的完全不动（图片、下架标记等全部保留）
+    insertOnly: true,
+    // 不再标记下架 —— 飞书表格只放新款，不能用来判断哪些花色该下架
   },
   schedule: {
     name: "排班表",
@@ -399,17 +404,23 @@ async function doSync(
     syncType.supabaseTable,
     mappedRows,
     syncType.onConflict,
+    syncType.insertOnly || false,
   );
 
   const syncedCount = Array.isArray(upserted) ? upserted.length : 0;
-  console.log(`${syncType.name}: 成功写入 ${syncedCount} 条`);
+  const mode = syncType.insertOnly ? "新增" : "写入";
+  console.log(`${syncType.name}: 成功${mode} ${syncedCount} 条`);
 
-  // 后处理（花色素材标记下架等）
-  if (syncType.postSyncFn) {
+  // 后处理（仅非 insertOnly 模式才执行，如标记下架等）
+  if (syncType.postSyncFn && !syncType.insertOnly) {
     await syncType.postSyncFn(supabaseUrl, serviceKey, mappedRows);
   }
 
-  return { total_in_feishu: records.length, synced: syncedCount };
+  return {
+    total_in_feishu: records.length,
+    synced: syncedCount,
+    mode: syncType.insertOnly ? "insert_only" : "upsert",
+  };
 }
 
 // ============================================

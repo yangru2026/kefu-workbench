@@ -1850,7 +1850,7 @@ async function syncFromFeishu() {
     showToast('⚠️ 请先配置飞书同步参数（联系管理员在代码中设置 SYNC_AUTH_TOKEN）');
     return;
   }
-  if (!confirm('确定从飞书多维表格同步花色素材？\n\n同步规则：\n• 飞书中的记录会覆盖工作台同名数据\n• 飞书中已删除的记录会标记为下架\n• 同步完成后自动刷新')) return;
+  if (!confirm('确定从飞书多维表格同步花色素材？\n\n同步规则：\n• 飞书中新款花色会新增到工作台\n• 已有花色完全不动（图片、下架标记等全部保留）\n• 新款花色自动排在最前面（带 🆕 标签）\n• 同步完成后自动刷新')) return;
 
   btn.disabled = true;
   btn.classList.add('syncing');
@@ -1867,7 +1867,18 @@ async function syncFromFeishu() {
     });
     const data = await resp.json();
     if (data.ok) {
-      showToast('✅ 同步完成！飞书 ' + data.total_in_feishu + ' 条，写入 ' + data.synced + ' 条');
+      const r = data.results?.patterns || {};
+      const feishuCount = r.total_in_feishu ?? 0;
+      const syncedCount = r.synced ?? 0;
+      const skippedCount = feishuCount - syncedCount;
+      let msg = `✅ 同步完成！飞书 ${feishuCount} 条`;
+      if (r.mode === 'insert_only') {
+        msg += `，新增 ${syncedCount} 条`;
+        if (skippedCount > 0) msg += `，跳过 ${skippedCount} 条已有`;
+      } else {
+        msg += `，写入 ${syncedCount} 条`;
+      }
+      showToast(msg);
       // Realtime 会自动刷新，这里兜底手动刷新一次
       loadPatternsFromDB();
     } else {
@@ -2575,6 +2586,7 @@ function buildPatternTree(flatData) {
       thumbEye: p.thumb_eye_url || '',
       thumbLens: p.thumb_lens_url || '',
       description: p.description || '',
+      createdAt: p.created_at || '',
       _id: p.id,
       _brand: p.brand,
       _type: p.type,
@@ -3688,6 +3700,14 @@ function renderPatterns() {
     );
   }
 
+  // 新款置顶：先复制数组再排序（避免修改原始树数据），按 created_at 降序排列
+  items = [...items].sort((a, b) => {
+    const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    if (tb !== ta) return tb - ta;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+
   // 切换筛选/搜索时重置到第 1 页
   const total = items.length;
   if (patternPage > Math.ceil(total / PATTERN_PAGE_SIZE) && total > 0) {
@@ -3789,12 +3809,22 @@ function renderPatterns() {
       <button class="btn-del" title="删除" onclick="event.stopPropagation();deletePattern('${escapeAttr(p._id)}','${escapeAttr(p.name)}')">🗑️</button>
     </div>` : '';
     const discBadge = p.isDiscontinued ? `<div style="position:absolute;top:8px;left:8px;background:#d97706;color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;z-index:2;">已下架</div>` : '';
+    // 新款标签：30天内添加的花色显示 🆕
+    const isNewPattern = (() => {
+      if (!p.createdAt) return false;
+      const created = new Date(p.createdAt).getTime();
+      if (isNaN(created)) return false;
+      return (Date.now() - created) < 30 * 24 * 60 * 60 * 1000; // 30天
+    })();
+    const newBadge = (!p.isDiscontinued && isNewPattern) ? `<div style="position:absolute;top:8px;right:8px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;z-index:2;box-shadow:0 1px 4px rgba(16,185,129,.4);">🆕 新款</div>` : '';
     const discMetaTag = p.isDiscontinued ? '<span class="pcard-disc-tag">已下架</span>' : '';
+    const newMetaTag = (!p.isDiscontinued && isNewPattern) ? '<span style="color:#10b981;font-weight:600;">🆕 新款</span>' : '';
     const nameStyle = p.isDiscontinued ? ' style="text-decoration:line-through;opacity:.65;"' : '';
 
     return `<div class="pattern-card"${p.isDiscontinued ? ' style="opacity:.7;"' : ''}>
       <div class="pcard-img"${images.length ? ` onclick="openLightbox(window._lbImages['${lbKey}'])" style="cursor:pointer"` : ''}>
         ${discBadge}
+        ${newBadge}
         ${imgHtml}
         <div class="pcard-brand-tag">${escapeHtml(p._brand || patternBrand)}</div>
       </div>
@@ -3806,6 +3836,7 @@ function renderPatterns() {
         </div>
         <div class="pcard-meta-row">
           ${discMetaTag}
+          ${newMetaTag}
           <span>${escapeHtml(p.color || '')}</span>
           ${p.diameter ? '<span>' + escapeHtml(p.diameter) + '</span>' : ''}
           ${specsHtml}

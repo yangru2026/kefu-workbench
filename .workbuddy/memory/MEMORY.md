@@ -16,13 +16,17 @@
 - **Lightbox 高清图加载慢彻底解决** (2026-08-08): 三管齐下：①中图从 900px/quality82 降到 600px/quality70，357张从 27.9MB → 11.8MB（平均34KB）；②全站花色图片 URL 走 jsDelivr CDN 加速（国内节点快于 GitHub Pages）；③lightbox 交互重构：点击瞬间直接显示已缓存缩略图，后台静默加载高清中图，加载完淡入替换，失败保持缩略图不转圈。
 - **Lightbox 大图清晰度修复** (2026-08-08): 600px 中图在 900px lightbox 容器内被放大导致模糊。重新生成 **1200px/quality 82** 高清中图，357张共36.3MB（平均104KB），1200px 超过容器尺寸保证高清不模糊；中图 URL 加 `?v=3` 版本号强制刷新 jsDelivr 旧缓存。
 - **Lightbox 最终修复** (2026-08-08): ①中图目录从 `large/` 改为 `hd/` 彻底避开 jsDelivr CDN 旧缓存；②lightbox 不再用缩略图占位，直接 spinner→加载完 1200px 中图淡入；③图片加 `crossOrigin=anonymous` 修复 canvas 跨域复制；④复制功能不再 `window.open` 跳转网页，改为 canvas→fetch→下载文件。
+- **Lightbox 居中修复** (2026-08-08): 移除 absolute 定位的高清图叠加结构，改为普通 flex 布局自然居中，删除废弃的 lightbox-thumb 模糊占位图。
+- **飞书多表同步** (2026-08-08): Edge Function 改造为多表同步（花色素材/排班表/客服排名/售前月度），通过 action 参数区分。排班表改为 Supabase 数据驱动（schedule_data 表）+ Realtime + 单元格编辑保存。客服排名改为 Supabase 数据驱动（ranking_data 表）+ 月份切换 + 编辑保存。售前数据新增月度汇总 tab（presale_monthly 表），A/B/C 三组按月存档/补录/编辑。需执行 `feishu_multi_sync_migration.sql`，部署指南见 `feishu-multi-sync-deploy-guide.md`，飞书表格设计见 `feishu-tables-design.md`。
+- **客服排名 & 售前月度 Excel 导入** (2026-08-08): 引入 SheetJS 解析 `.xlsx/.xls/.csv`，客服排名页和售前月度汇总页新增「📥 导入Excel」按钮(admin-only)。自动识别中/英文表头，支持多种月份格式，导入后按唯一键 upsert 到 Supabase 并刷新页面。
+- **飞书多表同步上线** (2026-08-08): 飞书自建应用(App ID: cli_aafc447873a1dbc3) + Edge Function 部署完成。飞书多维表格(app_token: GQBkbeK4raE8k6s1zQOcGgHlnZf)含排班表/客服排名/售前月度数据3张表。Supabase secrets 已配置 7 个环境变量。前端 authToken 已填入。排班表同步测试通过(18条)。工作流：飞书表格编辑→工作台点「🔄 从飞书同步」→自动更新。FEISHU_PATTERN_TABLE_ID 未设置（花色素材在另一个 bitable）。
 
 ## 待开发功能清单
 
 以下功能已规划，待后续逐一开发完善：
 
 1. **周报** - 每周数据汇总报告
-2. **售前月度数据汇总** - 月度售前数据统计与分析
+2. ~~**售前月度数据汇总** - 月度售前数据统计与分析~~ ✅ 已完成
 3. **积分卡** - 客服积分/绩效卡
 4. ~~**质检工具接入** - 接入质检相关工具或系统~~ ✅ 已完成
 5. **权限开放功能** - 更细粒度的权限控制
