@@ -587,7 +587,16 @@ body {
 .lightbox { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.88); z-index:3000; align-items:center; justify-content:center; }
 .lightbox.show { display:flex; }
 .lightbox-img-wrap { position:relative; display:flex; align-items:center; justify-content:center; max-width:92vw; max-height:82vh; }
-.lightbox-img-wrap img { max-width:92vw; max-height:80vh; object-fit:contain; border-radius:6px; box-shadow:0 8px 40px rgba(0,0,0,0.5); cursor:default; }
+.lightbox-img-stack { position:relative; display:flex; align-items:center; justify-content:center; max-width:92vw; max-height:80vh; }
+.lightbox-img-stack img { max-width:92vw; max-height:80vh; object-fit:contain; border-radius:6px; box-shadow:0 8px 40px rgba(0,0,0,0.5); cursor:default; transition:opacity 0.35s ease; }
+.lightbox-thumb { filter:blur(10px) brightness(0.85); transform:scale(1.02); }
+.lightbox-hd { position:absolute; top:0; left:0; opacity:0; }
+.lightbox-hd.loaded { opacity:1; }
+.lightbox-thumb.hidden { opacity:0; }
+.lightbox-loader { position:absolute; display:none; align-items:center; justify-content:center; }
+.lightbox-loader.show { display:flex; }
+.lightbox-loader span { display:inline-block; width:36px; height:36px; border:3px solid rgba(255,255,255,0.2); border-top-color:#fff; border-radius:50%; animation:lb-spin 0.8s linear infinite; }
+@keyframes lb-spin { to { transform:rotate(360deg); } }
 .lightbox-nav { position:absolute; top:50%; transform:translateY(-50%); width:44px; height:44px; border:none; background:rgba(255,255,255,0.18); color:#fff; font-size:24px; border-radius:50%; cursor:pointer; z-index:3002; display:flex; align-items:center; justify-content:center; transition:background 0.15s; -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
 .lightbox-nav:hover { background:rgba(255,255,255,0.35); }
 .lightbox-nav:disabled { opacity:0.25; cursor:default; }
@@ -1355,6 +1364,7 @@ body {
       <div class="filter-row" id="pattern-filter-type"></div>
       <div class="filter-row" id="pattern-filter-series"></div>
       <div class="filter-row" id="pattern-filter-color"></div>
+      <div class="filter-row" id="pattern-filter-status"></div>
       <div class="pattern-search-row">
         <input type="text" id="pattern-search" placeholder="🔍 搜索花色名称..." oninput="onPatternSearch()">
         <span class="pattern-stats" id="pattern-stats"></span>
@@ -2402,22 +2412,19 @@ let patternBrand = '弥生';
 let patternType = '全部';
 let patternSeries = '全部';
 let patternColor = '全部';
+let patternStatusFilter = '全部'; // '全部' | '在售' | '下架'
 let patternCategories = []; // [{id, category_type:'brand'|'type'|'series'|'color', name, sort_order}]
-let patternShowDiscontinued = false; // 是否只看下架花色
 
-function showDiscontinuedPatterns() {
-  patternShowDiscontinued = true;
+function setPatternStatus(status) {
+  patternStatusFilter = status;
   patternPage = 1;
   renderPatternFilters();
   renderPatterns();
 }
 
-function hideDiscontinuedPatterns() {
-  patternShowDiscontinued = false;
-  patternPage = 1;
-  renderPatternFilters();
-  renderPatterns();
-}
+// 保留兼容函数（旧调用入口）
+function showDiscontinuedPatterns() { setPatternStatus('下架'); }
+function hideDiscontinuedPatterns() { setPatternStatus('全部'); }
 
 function getPatternBrands() {
   return Object.keys(patternData.brands || {});
@@ -2499,15 +2506,24 @@ function renderPatternFilters() {
   const brandData = getMergedCats('brand', getPatternBrands());
   const brandTabs = document.getElementById('pattern-brand-tabs');
   brandTabs.innerHTML = brandData.map(b => {
-    const isActive = !patternShowDiscontinued && patternBrand === b.name;
+    const isActive = patternBrand === b.name;
     return `<button class="brand-tab${isActive ? ' active' : ''}" onclick="switchPatternBrand('${escapeAttr(b.name)}')">${escapeHtml(b.name)}</button>`;
   }).join('');
-  // 下架花色分类入口
-  const discCount = countDiscontinued();
-  brandTabs.innerHTML += `<button class="brand-tab${patternShowDiscontinued ? ' active' : ''}" onclick="showDiscontinuedPatterns()" style="flex:none;color:#b45309;">📦 下架花色${discCount > 0 ? '<span style="margin-left:4px;font-size:11px;background:#fef3c7;color:#d97706;padding:1px 6px;border-radius:8px;">' + discCount + '</span>' : ''}</button>`;
   if (isAdmin) {
     brandTabs.innerHTML += `<button class="brand-tab pcat-add-mini" onclick="addPatCat('brand')" style="flex:none;min-width:auto;padding:12px 14px;font-size:16px;border:none;">＋</button>`;
   }
+
+  // 状态筛选 — 和抛型/系列/色系一样的小分类
+  const discCount = countDiscontinued();
+  const statusRow = document.getElementById('pattern-filter-status');
+  const statusOptions = [
+    { key: '全部', label: '全部' },
+    { key: '在售', label: '在售' },
+    { key: '下架', label: '下架' + (discCount > 0 ? ` (${discCount})` : '') }
+  ];
+  let statusHtml = '<span class="flabel">状态</span>' +
+    statusOptions.map(s => `<button class="flink${patternStatusFilter === s.key ? ' active' : ''}" onclick="setPatternStatus('${escapeAttr(s.key)}')">${escapeHtml(s.label)}</button>`).join('');
+  statusRow.innerHTML = statusHtml;
 
   // 抛型 filter — 右键菜单触发编辑/删除
   const typeData = getMergedCats('type', getPatternTypes(patternBrand));
@@ -2590,7 +2606,7 @@ function switchPatternBrand(b) {
   patternType = '全部';
   patternSeries = '全部';
   patternColor = '全部';
-  patternShowDiscontinued = false;
+  patternStatusFilter = '全部';
   patternPage = 1;
   renderPatternFilters();
   renderPatterns();
@@ -2600,6 +2616,7 @@ function setPatternType(t) {
   patternType = t;
   patternSeries = '全部';
   patternColor = '全部';
+  patternStatusFilter = '全部';
   patternPage = 1;
   renderPatternFilters();
   renderPatterns();
@@ -2608,6 +2625,7 @@ function setPatternType(t) {
 function setPatternSeries(s) {
   patternSeries = s;
   patternColor = '全部';
+  patternStatusFilter = '全部';
   patternPage = 1;
   renderPatternFilters();
   renderPatterns();
@@ -2615,6 +2633,7 @@ function setPatternSeries(s) {
 
 function setPatternColor(c) {
   patternColor = c;
+  patternStatusFilter = '全部';
   patternPage = 1;
   renderPatternFilters();
   renderPatterns();
@@ -2771,15 +2790,16 @@ const PATTERN_PAGE_SIZE = 20;
 
 function renderPatterns() {
   // patternData already loaded from Supabase, no localStorage merge needed
-  let items;
-  if (patternShowDiscontinued) {
-    items = getAllPatternItems().filter(p => p.isDiscontinued);
-  } else {
-    items = getFilteredItems(patternBrand, patternType, patternSeries);
-    // 色系筛选
-    if (patternColor !== '全部') {
-      items = items.filter(p => p.color === patternColor);
-    }
+  let items = getFilteredItems(patternBrand, patternType, patternSeries);
+  // 色系筛选
+  if (patternColor !== '全部') {
+    items = items.filter(p => p.color === patternColor);
+  }
+  // 状态筛选：全部 / 在售 / 下架
+  if (patternStatusFilter === '在售') {
+    items = items.filter(p => !p.isDiscontinued);
+  } else if (patternStatusFilter === '下架') {
+    items = items.filter(p => p.isDiscontinued);
   }
 
   // 搜索
@@ -2802,7 +2822,8 @@ function renderPatterns() {
   // Stats
   const statsEl = document.getElementById('pattern-stats');
   if (statsEl) {
-    const totalText = (patternShowDiscontinued ? '下架花色共 ' : '共 ') + '<b>' + total + '</b> 款花色';
+    const statusText = patternStatusFilter === '下架' ? '下架花色共 ' : (patternStatusFilter === '在售' ? '在售花色共 ' : '共 ');
+    const totalText = statusText + '<b>' + total + '</b> 款花色';
     if (total > PATTERN_PAGE_SIZE) {
       const showing = Math.min(patternPage * PATTERN_PAGE_SIZE, total);
       statsEl.innerHTML = totalText + '  ·  <span style="color:var(--primary)">已显示前 ' + showing + ' 款</span>';
@@ -2827,18 +2848,20 @@ function renderPatterns() {
 
   grid.innerHTML = visibleItems.map((p, idx) => {
     let imgHtml = '';
-    const images = [];  // [{src, type, hint}] - lightbox 用原图
+    const images = [];  // [{thumb, hd, type, hint}] - lightbox 用 thumb 占位 + hd 原图
     const hasEye = p.eyeImg && p.eyeImg.trim() !== '';
     const hasLens = p.lensImg && p.lensImg.trim() !== '';
     // 缩略图优先，没有则回退到原图
     const eyeSrc = (p.thumbEye && p.thumbEye.trim() !== '') ? p.thumbEye : p.eyeImg;
+    const eyeHd = p.eyeImg || p.thumbEye || '';
     const lensThumbSrc = (p.thumbLens && p.thumbLens.trim() !== '') ? p.thumbLens : p.lensImg;
+    const lensHd = p.lensImg || p.thumbLens || '';
 
     if (hasEye) {
-      images.push({ src: p.eyeImg, type: 'eye', hint: '上眼效果' });
+      images.push({ thumb: p.thumbEye || p.eyeImg, hd: eyeHd, type: 'eye', hint: '上眼效果' });
     }
     if (hasLens) {
-      images.push({ src: p.lensImg, type: 'lens', hint: '镜片图' });
+      images.push({ thumb: p.thumbLens || p.lensImg, hd: lensHd, type: 'lens', hint: '镜片图' });
     }
 
     // 首屏前 6 张加 fetchpriority="high"，提升首屏感知速度
@@ -3174,7 +3197,7 @@ let lightboxImgSrc = '';
 
 function openLightbox(images) {
   if (!Array.isArray(images) || images.length === 0) return;
-  lightboxImages = images;
+  lightboxImages = images.map(img => ({ thumb: img.thumb || img.src, hd: img.hd || img.src, type: img.type, hint: img.hint }));
   lightboxIdx = 0;
   showLightboxImage();
   document.getElementById('lightbox').classList.add('show');
@@ -3183,13 +3206,37 @@ function openLightbox(images) {
 
 function showLightboxImage() {
   const img = lightboxImages[lightboxIdx];
-  document.getElementById('lightbox-img').src = img.src;
+  const thumbEl = document.getElementById('lightbox-thumb');
+  const hdEl = document.getElementById('lightbox-img');
+  const loader = document.getElementById('lightbox-loader');
+
+  // 重置状态
+  hdEl.classList.remove('loaded');
+  thumbEl.classList.remove('hidden');
+  thumbEl.src = img.thumb;
+  hdEl.src = '';
+  loader.classList.add('show');
+
   document.getElementById('lightbox-counter').textContent =
     lightboxImages.length > 1 ? (lightboxIdx + 1) + ' / ' + lightboxImages.length : '';
   document.getElementById('lightbox-type-tag').textContent = img.hint || '';
   document.getElementById('lightbox-prev').disabled = lightboxIdx === 0;
   document.getElementById('lightbox-next').disabled = lightboxIdx === lightboxImages.length - 1;
-  lightboxImgSrc = img.src;
+  lightboxImgSrc = img.hd;
+
+  // 异步加载高清原图
+  const preload = new Image();
+  preload.onload = function() {
+    hdEl.src = img.hd;
+    hdEl.classList.add('loaded');
+    thumbEl.classList.add('hidden');
+    loader.classList.remove('show');
+  };
+  preload.onerror = function() {
+    loader.classList.remove('show');
+    // 高清图加载失败时仍保留模糊的缩略图可见
+  };
+  preload.src = img.hd;
 }
 
 function navLightbox(dir) {
@@ -3197,6 +3244,12 @@ function navLightbox(dir) {
   if (newIdx < 0 || newIdx >= lightboxImages.length) return;
   lightboxIdx = newIdx;
   showLightboxImage();
+  // 预加载下一张
+  const preloadIdx = lightboxIdx + dir;
+  if (preloadIdx >= 0 && preloadIdx < lightboxImages.length) {
+    const nextImg = new Image();
+    nextImg.src = lightboxImages[preloadIdx].hd;
+  }
 }
 
 function closeLightbox() {
@@ -4441,7 +4494,11 @@ init();
   <div class="lightbox-type-tag" id="lightbox-type-tag"></div>
   <div class="lightbox-img-wrap" onclick="event.stopPropagation()">
     <button class="lightbox-nav lightbox-prev" id="lightbox-prev" onclick="event.stopPropagation();navLightbox(-1)">‹</button>
-    <img id="lightbox-img" src="" alt="" />
+    <div class="lightbox-img-stack">
+      <img id="lightbox-thumb" class="lightbox-thumb" src="" alt="" />
+      <img id="lightbox-img" class="lightbox-hd" src="" alt="" />
+      <div class="lightbox-loader" id="lightbox-loader"><span></span></div>
+    </div>
     <button class="lightbox-nav lightbox-next" id="lightbox-next" onclick="event.stopPropagation();navLightbox(1)">›</button>
   </div>
   <button class="lightbox-close" onclick="closeLightbox()">✕</button>

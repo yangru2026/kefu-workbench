@@ -9,6 +9,7 @@
 - **性能优化** (2026-07-31): 首屏懒加载（tesseract.js 改为按需加载）、页面切换按需加载数据、花色搜索防抖 250ms、质检页复用父窗口 supabase client。
 - **花色下架标记** (2026-07-31): pattern_assets 新增 is_discontinued 字段，管理员可标记下架/取消下架，自动生成「📦 下架花色」分类。
 - **飞书多维表格同步** (2026-07-31): Supabase Edge Function (feishu-sync) 接收飞书事件订阅/手动触发，拉取多维表格记录同步到 pattern_assets。工作台花色素材页新增「🔄 从飞书同步」按钮(admin-only)。需执行 feishu_sync_migration.sql，部署指南见 feishu-sync-deploy-guide.md。
+- **花色素材页加载性能优化** (2026-08-08): 三层方案全做。**A 修代码bug**：`app.js` 第14行 onSupabaseReady 重复调 loadPatternsFromDB+render，进入花色页重复 render 2 遍；**B 缩略图**（核心，357张原图 66.3MB → WebP 缩略图 11.3MB 节省 83%）：`generate_thumbnails.py` 批量生成 + 数据库加 `thumb_eye_url` / `thumb_lens_url` + renderPatterns 默认用缩略图 + hover 用 `data-lens-src` 延迟加载 + 前6张 `fetchpriority="high"` + `decoding="async"`；**C 分页**：每页20个 + "加载更多"按钮 + 切换筛选自动重置。**预期首屏从 8秒 → 1-1.5秒**。需执行 add_thumb_columns.sql。
 
 ## 待开发功能清单
 
