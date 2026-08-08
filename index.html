@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://ienmejlxukhrxjjxvfqf.supabase.co" crossorigin>
 <link rel="dns-prefetch" href="https://ienmejlxukhrxjjxvfqf.supabase.co">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -1108,6 +1109,7 @@ body {
         <button class="btn btn-outline" onclick="nextPresaleMonth()">下月 ▶</button>
         <div style="flex:1;"></div>
         <button class="feishu-sync-btn admin-only-nav" id="presale-monthly-sync-btn" onclick="syncPresaleFromFeishu()" style="display:none;">🔄 从飞书同步</button>
+        <button class="btn-sm outline admin-only" id="presale-monthly-import-btn" onclick="openExcelImport('presale_monthly')">📥 导入Excel</button>
         <button class="btn-sm outline admin-only" id="presale-monthly-edit-btn" onclick="togglePresaleMonthlyEdit()">✎ 编辑/补录</button>
         <button class="btn-sm primary admin-only" id="presale-monthly-save-btn" onclick="savePresaleMonthly()" style="display:none;">💾 保存</button>
       </div>
@@ -1509,6 +1511,7 @@ body {
       <div class="ranking-actions">
         <input type="month" id="ranking-month-input" style="padding:4px 8px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;" onchange="onRankingMonthChange()">
         <button class="feishu-sync-btn admin-only-nav" id="ranking-sync-btn" onclick="syncRankingFromFeishu()" style="display:none;">🔄 从飞书同步</button>
+        <button class="rank-action-btn admin-only" id="rank-import-btn" onclick="openExcelImport('ranking')">📥 导入Excel</button>
         <button class="rank-action-btn" id="rank-edit-btn" onclick="toggleRankEdit()">✎ 编辑数据</button>
         <button class="rank-action-btn primary" id="rank-save-btn" onclick="saveRankingToDB()" style="display:none;">💾 保存</button>
       </div>
@@ -2305,6 +2308,206 @@ function nextPresaleMonth() {
   const d = new Date(y, m, 1);
   presaleMonthlyMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
   renderPresaleMonthly();
+}
+
+// ==================== Excel/CSV 导入 ====================
+let excelImportTarget = null; // 'ranking' | 'presale_monthly'
+
+function openExcelImport(target) {
+  excelImportTarget = target;
+  document.getElementById('excel-import-input').click();
+}
+
+function handleExcelImport(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+
+      if (!rows || rows.length < 2) {
+        showToast('⚠️ 文件为空或没有数据');
+        return;
+      }
+
+      if (excelImportTarget === 'ranking') {
+        importRankingFromSheet(rows);
+      } else if (excelImportTarget === 'presale_monthly') {
+        importPresaleMonthlyFromSheet(rows);
+      }
+    } catch (err) {
+      showToast('❌ 解析失败: ' + err.message);
+      console.error('Excel import error:', err);
+    } finally {
+      input.value = ''; // 允许重复导入同一文件
+    }
+  };
+  reader.onerror = () => showToast('❌ 文件读取失败');
+  reader.readAsArrayBuffer(file);
+}
+
+// 通用：将表头行标准化为 key
+function normalizeHeader(name) {
+  return String(name).replace(/\s+/g, '').replace(/[\(\)（）]/g, '').toLowerCase();
+}
+
+function buildHeaderMap(headerRow) {
+  const map = {};
+  headerRow.forEach((cell, idx) => {
+    const key = normalizeHeader(cell);
+    if (key) map[key] = idx;
+  });
+  return map;
+}
+
+function getCell(row, map, keys) {
+  for (const k of keys) {
+    if (map[k] !== undefined) return row[map[k]];
+  }
+  return '';
+}
+
+function parseNumber(val) {
+  if (val === '' || val === null || val === undefined) return 0;
+  const str = String(val).replace(/[¥,%元]/g, '').trim();
+  const num = parseFloat(str);
+  return isNaN(num) ? 0 : num;
+}
+
+function parseMonth(val) {
+  const str = String(val).trim();
+  if (!str) return null;
+  // 支持 2026-08 / 2026/08 / 2026年08月 / 2026.08
+  const m = str.match(/^(\d{4})\s*[-/\.年]\s*(\d{1,2})/);
+  if (m) return m[1] + '-' + String(m[2]).padStart(2, '0');
+  // 尝试直接解析日期对象
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  return null;
+}
+
+async function importRankingFromSheet(rows) {
+  const header = buildHeaderMap(rows[0]);
+  const required = ['姓名', 'group', 'name'];
+  const hasName = required.some(k => header[normalizeHeader(k)] !== undefined);
+  if (!hasName) {
+    showToast('⚠️ Excel 缺少「姓名」列，无法导入');
+    return;
+  }
+
+  const imported = [];
+  const skipped = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.every(c => c === '' || c === null || c === undefined)) continue;
+
+    const name = String(getCell(row, header, ['姓名', 'name', '姓名name']) || '').trim();
+    const groupRaw = String(getCell(row, header, ['组别', 'group', '组', 'group_name']) || 'A组').trim();
+    const period = parseMonth(getCell(row, header, ['月份', 'period', '月份period', '年月']));
+
+    if (!name) { skipped.push(`第${i + 1}行：缺少姓名`); continue; }
+    if (!period) { skipped.push(`第${i + 1}行：月份格式不正确`); continue; }
+
+    const groupName = ['A组', 'B组', 'C组'].includes(groupRaw) ? groupRaw : 'A组';
+
+    imported.push({
+      staff_name: name,
+      group_name: groupName,
+      period: period,
+      conversion_rate: parseNumber(getCell(row, header, ['转化率', 'conversion', 'conversion_rate'])),
+      cross_sales: parseNumber(getCell(row, header, ['连带销售额', 'crosssales', 'cross_sales', '连带销售'])),
+      satisfaction: parseNumber(getCell(row, header, ['满意度', 'satisfaction'])),
+      response_time: parseNumber(getCell(row, header, ['响应时间', 'responsetime', 'response_time', '响应']))
+    });
+  }
+
+  if (imported.length === 0) {
+    showToast('⚠️ 没有可导入的有效数据' + (skipped.length ? '（' + skipped.slice(0, 3).join('；') + '）' : ''));
+    return;
+  }
+
+  try {
+    const { error } = await supabase
+      .from('ranking_data')
+      .upsert(imported, { onConflict: 'staff_name,period' });
+    if (error) { showToast('❌ 导入失败: ' + error.message); return; }
+    showToast(`✅ 已导入 ${imported.length} 条排名数据` + (skipped.length ? `，跳过 ${skipped.length} 行` : ''));
+
+    // 如果导入的数据包含当前查看月份，刷新；否则切到第一个导入月份
+    const firstPeriod = imported[0].period;
+    if (firstPeriod !== rankingPeriod) {
+      rankingPeriod = firstPeriod;
+      const monthInput = document.getElementById('ranking-month-input');
+      if (monthInput) monthInput.value = rankingPeriod;
+    }
+    loadRankingFromDB();
+  } catch(e) { showToast('❌ 导入异常: ' + e.message); }
+}
+
+async function importPresaleMonthlyFromSheet(rows) {
+  const header = buildHeaderMap(rows[0]);
+  const required = ['组别', 'group', 'group_name'];
+  const hasGroup = required.some(k => header[normalizeHeader(k)] !== undefined);
+  if (!hasGroup) {
+    showToast('⚠️ Excel 缺少「组别」列，无法导入');
+    return;
+  }
+
+  const imported = [];
+  const skipped = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.every(c => c === '' || c === null || c === undefined)) continue;
+
+    const groupRaw = String(getCell(row, header, ['组别', 'group', '组', 'group_name']) || '').trim();
+    const period = parseMonth(getCell(row, header, ['月份', 'period', 'period_month', '年月']));
+
+    if (!groupRaw) { skipped.push(`第${i + 1}行：缺少组别`); continue; }
+    if (!period) { skipped.push(`第${i + 1}行：月份格式不正确`); continue; }
+
+    const groupName = ['A组', 'B组', 'C组'].includes(groupRaw) ? groupRaw : 'A组';
+
+    imported.push({
+      period_month: period,
+      group_name: groupName,
+      visitors: parseNumber(getCell(row, header, ['接待量', 'visitors', 'visitor'])),
+      orders: parseNumber(getCell(row, header, ['成交单数', 'orders', '成交单'])),
+      revenue: parseNumber(getCell(row, header, ['销售额', 'revenue', '销售'])),
+      conversion: parseNumber(getCell(row, header, ['转化率', 'conversion'])),
+      avg_response: parseNumber(getCell(row, header, ['响应时间', 'avg_response', '响应'])),
+      satisfaction: parseNumber(getCell(row, header, ['满意度', 'satisfaction'])),
+      cross_sales: parseNumber(getCell(row, header, ['连带销售额', 'cross_sales', 'crosssales', '连带销售'])),
+      visitor_count: parseNumber(getCell(row, header, ['接待人数', 'visitor_count', 'visitorcount'])),
+      inquiry_count: parseNumber(getCell(row, header, ['询单人数', 'inquiry_count', 'inquirycount', '询单'])),
+      payment_count: parseNumber(getCell(row, header, ['付款人数', 'payment_count', 'paymentcount', '付款']))
+    });
+  }
+
+  if (imported.length === 0) {
+    showToast('⚠️ 没有可导入的有效数据' + (skipped.length ? '（' + skipped.slice(0, 3).join('；') + '）' : ''));
+    return;
+  }
+
+  try {
+    const { error } = await supabase
+      .from('presale_monthly')
+      .upsert(imported, { onConflict: 'period_month,group_name' });
+    if (error) { showToast('❌ 导入失败: ' + error.message); return; }
+    showToast(`✅ 已导入 ${imported.length} 条售前月度数据` + (skipped.length ? `，跳过 ${skipped.length} 行` : ''));
+
+    const firstPeriod = imported[0].period_month;
+    if (firstPeriod !== presaleMonthlyMonth) {
+      presaleMonthlyMonth = firstPeriod;
+    }
+    loadPresaleMonthly();
+  } catch(e) { showToast('❌ 导入异常: ' + e.message); }
 }
 
 // ---------- 花色分类管理 ----------
@@ -5368,6 +5571,9 @@ init();
     </div>
   </div>
 </div>
+
+<!-- 隐藏的文件上传 input，用于 Excel/CSV 导入 -->
+<input type="file" id="excel-import-input" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleExcelImport(this)">
 
 </body>
 </html>
