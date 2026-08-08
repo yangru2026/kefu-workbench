@@ -140,21 +140,27 @@ function boolValue(val: unknown): boolean {
 
 // 从飞书字段值中提取附件的 file_token（附件字段返回 [{file_token, name, type, size}]）
 function extractFileToken(val: unknown): string | null {
-  if (!val) return null;
-  if (typeof val === "string") return null; // 纯文本 URL，不是附件
+  const tokens = extractAllFileTokens(val);
+  return tokens.length > 0 ? tokens[0] : null;
+}
+
+// 从飞书字段值中提取所有附件的 file_token（支持一个字段含多张图片）
+function extractAllFileTokens(val: unknown): string[] {
+  if (!val) return [];
+  if (typeof val === "string") return []; // 纯文本 URL，不是附件
+  const tokens: string[] = [];
   if (Array.isArray(val)) {
     for (const item of val) {
       if (item && typeof item === "object") {
         const token = (item as Record<string, unknown>).file_token;
-        if (token && typeof token === "string") return token;
+        if (token && typeof token === "string") tokens.push(token);
       }
     }
-  }
-  if (typeof val === "object" && val !== null) {
+  } else if (typeof val === "object" && val !== null) {
     const token = (val as Record<string, unknown>).file_token;
-    if (token && typeof token === "string") return token;
+    if (token && typeof token === "string") tokens.push(token);
   }
-  return null;
+  return tokens;
 }
 
 // 从 content-type 获取文件扩展名
@@ -231,36 +237,50 @@ async function processPatternAttachments(
     const f = (rawRecords[i]?.fields || {}) as Record<string, unknown>;
 
     // 花色图（镜片图）：支持附件字段 "花色图" 或文本字段 "花色图URL"
-    const lensToken = extractFileToken(f["花色图"]);
-    if (lensToken) {
-      try {
-        const { data, contentType } = await downloadFeishuFile(feishuToken, lensToken);
-        const ext = extFromContentType(contentType);
-        const path = `lens/${crypto.randomUUID()}.${ext}`;
-        const url = await uploadToStorage(supabaseUrl, serviceKey, BUCKET, path, data, contentType);
-        row.lens_img = url;
-        downloaded++;
-        console.log(`花色图下载成功: ${row.name} → ${path}`);
-      } catch (e) {
-        console.error(`花色图下载失败(${row.name}):`, e.message);
-        failed++;
+    const lensTokens = extractAllFileTokens(f["花色图"]);
+    if (lensTokens.length > 0) {
+      const urls: string[] = [];
+      for (const token of lensTokens) {
+        try {
+          const { data, contentType } = await downloadFeishuFile(feishuToken, token);
+          const ext = extFromContentType(contentType);
+          const path = `lens/${crypto.randomUUID()}.${ext}`;
+          const url = await uploadToStorage(supabaseUrl, serviceKey, BUCKET, path, data, contentType);
+          urls.push(url);
+          downloaded++;
+          console.log(`花色图下载成功: ${row.name} → ${path}`);
+        } catch (e) {
+          console.error(`花色图下载失败(${row.name}):`, e.message);
+          failed++;
+        }
+      }
+      if (urls.length > 0) {
+        row.lens_img = urls[0];      // 兼容：第一张存 lens_img
+        row.lens_imgs = urls;        // 所有花色图存 lens_imgs 数组
       }
     }
 
     // 上眼图：支持附件字段 "上眼图" 或文本字段 "上眼图URL"
-    const eyeToken = extractFileToken(f["上眼图"]);
-    if (eyeToken) {
-      try {
-        const { data, contentType } = await downloadFeishuFile(feishuToken, eyeToken);
-        const ext = extFromContentType(contentType);
-        const path = `eye/${crypto.randomUUID()}.${ext}`;
-        const url = await uploadToStorage(supabaseUrl, serviceKey, BUCKET, path, data, contentType);
-        row.eye_img = url;
-        downloaded++;
-        console.log(`上眼图下载成功: ${row.name} → ${path}`);
-      } catch (e) {
-        console.error(`上眼图下载失败(${row.name}):`, e.message);
-        failed++;
+    const eyeTokens = extractAllFileTokens(f["上眼图"]);
+    if (eyeTokens.length > 0) {
+      const urls: string[] = [];
+      for (const token of eyeTokens) {
+        try {
+          const { data, contentType } = await downloadFeishuFile(feishuToken, token);
+          const ext = extFromContentType(contentType);
+          const path = `eye/${crypto.randomUUID()}.${ext}`;
+          const url = await uploadToStorage(supabaseUrl, serviceKey, BUCKET, path, data, contentType);
+          urls.push(url);
+          downloaded++;
+          console.log(`上眼图下载成功: ${row.name} → ${path}`);
+        } catch (e) {
+          console.error(`上眼图下载失败(${row.name}):`, e.message);
+          failed++;
+        }
+      }
+      if (urls.length > 0) {
+        row.eye_img = urls[0];       // 兼容：第一张存 eye_img
+        row.eye_imgs = urls;         // 所有上眼图存 eye_imgs 数组
       }
     }
   }
@@ -478,10 +498,12 @@ async function fillEmptyPatternFields(
 ): Promise<{ checked: number; filled: number; fields: number }> {
   if (mappedRows.length === 0) return { checked: 0, filled: 0, fields: 0 };
 
-  // 用于补录的字段（图片、下架标记、创建时间永远不碰）
+  // 用于补录的字段（原始图片URL、下架标记、创建时间永远不碰）
+  // lens_imgs/eye_imgs 可补录：已有花色首次同步时没多图，后续补充后可补上
   const fillableDbFields = [
     "type", "series", "color", "diameter", "base_curve", "fixed_axis",
     "color_diameter", "material", "oxygen", "water", "spec", "description",
+    "lens_imgs", "eye_imgs",
   ];
 
   // 按 (name, brand) 查询已存在的记录
@@ -517,8 +539,10 @@ async function fillEmptyPatternFields(
     for (const field of fillableDbFields) {
       const dbVal = existing[field];
       const fsVal = mapped[field];
-      const isDbEmpty = dbVal === null || dbVal === undefined || dbVal === "";
-      const isFsValue = fsVal !== null && fsVal !== undefined && fsVal !== "";
+      const isDbEmpty = dbVal === null || dbVal === undefined || dbVal === "" ||
+        (Array.isArray(dbVal) && dbVal.length === 0);
+      const isFsValue = fsVal !== null && fsVal !== undefined && fsVal !== "" &&
+        !(Array.isArray(fsVal) && fsVal.length === 0);
       if (isDbEmpty && isFsValue) {
         updates[field] = fsVal;
         fieldCount++;

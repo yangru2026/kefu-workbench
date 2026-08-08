@@ -2593,6 +2593,8 @@ function buildPatternTree(flatData) {
       spec: p.spec || '',
       lensImg: p.lens_img || '',
       eyeImg: p.eye_img || '',
+      lensImgs: Array.isArray(p.lens_imgs) ? p.lens_imgs : (p.lens_imgs ? (typeof p.lens_imgs === 'string' ? JSON.parse(p.lens_imgs) : []) : []),
+      eyeImgs: Array.isArray(p.eye_imgs) ? p.eye_imgs : (p.eye_imgs ? (typeof p.eye_imgs === 'string' ? JSON.parse(p.eye_imgs) : []) : []),
       thumbEye: p.thumb_eye_url || '',
       thumbLens: p.thumb_lens_url || '',
       description: p.description || '',
@@ -3830,26 +3832,37 @@ function renderPatterns() {
   grid.innerHTML = visibleItems.map((p, idx) => {
     let imgHtml = '';
     const images = [];  // [{thumb, large, hd, type, hint}] - lightbox 用 thumb 占位 + large 中图 + hd 原图 fallback
-    const hasEye = p.eyeImg && p.eyeImg.trim() !== '';
-    const hasLens = p.lensImg && p.lensImg.trim() !== '';
-    // 缩略图优先，没有则回退到原图；统一走 jsDelivr CDN 加速，并加版本号避免缓存旧资源
-    const rawEyeSrc = (p.thumbEye && p.thumbEye.trim() !== '') ? p.thumbEye : p.eyeImg;
-    const eyeSrc = addCacheBuster(toCdnUrl(rawEyeSrc));
-    const rawEyeHd = p.eyeImg || p.thumbEye || '';
-    const eyeHd = addCacheBuster(toCdnUrl(rawEyeHd));
-    const eyeLarge = rawEyeHd ? toLargeImageUrl(rawEyeHd) : '';
-    const rawLensThumbSrc = (p.thumbLens && p.thumbLens.trim() !== '') ? p.thumbLens : p.lensImg;
-    const lensThumbSrc = addCacheBuster(toCdnUrl(rawLensThumbSrc));
-    const rawLensHd = p.lensImg || p.thumbLens || '';
-    const lensHd = addCacheBuster(toCdnUrl(rawLensHd));
-    const lensLarge = rawLensHd ? toLargeImageUrl(rawLensHd) : '';
 
-    if (hasEye) {
-      images.push({ thumb: eyeSrc, large: eyeLarge, hd: eyeHd, type: 'eye', hint: '上眼效果' });
-    }
-    if (hasLens) {
-      images.push({ thumb: lensThumbSrc, large: lensLarge, hd: lensHd, type: 'lens', hint: '镜片图' });
-    }
+    // 构建上眼图列表：优先用 eyeImgs 数组，回退到单个 eyeImg
+    const eyeUrlList = (p.eyeImgs && p.eyeImgs.length > 0) ? p.eyeImgs : (p.eyeImg ? [p.eyeImg] : []);
+    // 构建花色图列表：优先用 lensImgs 数组，回退到单个 lensImg
+    const lensUrlList = (p.lensImgs && p.lensImgs.length > 0) ? p.lensImgs : (p.lensImg ? [p.lensImg] : []);
+
+    const hasEye = eyeUrlList.length > 0;
+    const hasLens = lensUrlList.length > 0;
+
+    // 所有上眼图加入 lightbox images
+    eyeUrlList.forEach((url, i) => {
+      const cdnUrl = addCacheBuster(toCdnUrl(url));
+      const largeUrl = url ? toLargeImageUrl(url) : '';
+      images.push({ thumb: cdnUrl, large: largeUrl, hd: cdnUrl, type: 'eye', hint: i > 0 ? `上眼效果 ${i + 1}` : '上眼效果' });
+    });
+    // 所有花色图加入 lightbox images
+    lensUrlList.forEach((url, i) => {
+      const thumbSrc = addCacheBuster(toCdnUrl(url));
+      const largeUrl = url ? toLargeImageUrl(url) : '';
+      images.push({ thumb: thumbSrc, large: largeUrl, hd: thumbSrc, type: 'lens', hint: i > 0 ? `镜片图 ${i + 1}` : '镜片图' });
+    });
+
+    // 卡片显示用第一张上眼图 + 第一张花色图
+    const firstEyeUrl = eyeUrlList[0] || '';
+    const firstLensUrl = lensUrlList[0] || '';
+    const rawEyeSrc = (p.thumbEye && p.thumbEye.trim() !== '') ? p.thumbEye : firstEyeUrl;
+    const eyeSrc = addCacheBuster(toCdnUrl(rawEyeSrc));
+    const rawLensThumbSrc = (p.thumbLens && p.thumbLens.trim() !== '') ? p.thumbLens : firstLensUrl;
+    const lensThumbSrc = addCacheBuster(toCdnUrl(rawLensThumbSrc));
+    const lensLarge = firstLensUrl ? toLargeImageUrl(firstLensUrl) : '';
+    const lensHd = addCacheBuster(toCdnUrl(firstLensUrl));
 
     // 首屏前 6 张加 fetchpriority="high"，提升首屏感知速度
     const isFirstScreen = idx < 6;
@@ -3866,6 +3879,10 @@ function renderPatterns() {
     } else {
       imgHtml = `<div class="img-placeholder"><span>👁️</span>暂无图片</div>`;
     }
+
+    // 多图标记：如果总图数 > 2，在卡片上显示图数
+    const totalImgCount = eyeUrlList.length + lensUrlList.length;
+    const multiImgBadge = totalImgCount > 2 ? `<div style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);color:#fff;font-size:11px;padding:2px 6px;border-radius:10px;z-index:2;">🖼️ ${totalImgCount}</div>` : '';
 
     const lbKey = 'pi' + idx;
     window._lbImages[lbKey] = images;
@@ -3917,6 +3934,7 @@ function renderPatterns() {
       <div class="pcard-img"${images.length ? ` onclick="openLightbox(window._lbImages['${lbKey}'])" style="cursor:pointer"` : ''}>
         ${discBadge}
         ${newBadge}
+        ${multiImgBadge}
         ${imgHtml}
         <div class="pcard-brand-tag">${escapeHtml(p._brand || patternBrand)}</div>
       </div>
@@ -4051,9 +4069,12 @@ function openPatternEditor(pattern) {
     brand: pattern.brand, type: pattern.type, name: pattern.name, isNew: false, _id: pattern._id || null
   } : { brand: '', type: '', name: '', isNew: true, _id: null };
   window._editImages = [];
-  if (!isNew) {
-    if (pattern.eyeImg && pattern.eyeImg.trim()) window._editImages.push({ type: 'eye', url: pattern.eyeImg, hint: '上眼效果' });
-    if (pattern.lensImg && pattern.lensImg.trim()) window._editImages.push({ type: 'lens', url: pattern.lensImg, hint: '镜片图' });
+  if (!isNew && pattern) {
+    // 优先用多图数组，回退到单个图片
+    const eyeList = (pattern.eyeImgs && pattern.eyeImgs.length > 0) ? pattern.eyeImgs : (pattern.eyeImg ? [pattern.eyeImg] : []);
+    const lensList = (pattern.lensImgs && pattern.lensImgs.length > 0) ? pattern.lensImgs : (pattern.lensImg ? [pattern.lensImg] : []);
+    eyeList.forEach((url, i) => { if (url && url.trim()) window._editImages.push({ type: 'eye', url, hint: i > 0 ? `上眼效果 ${i + 1}` : '上眼效果' }); });
+    lensList.forEach((url, i) => { if (url && url.trim()) window._editImages.push({ type: 'lens', url, hint: i > 0 ? `镜片图 ${i + 1}` : '镜片图' }); });
   }
   renderEditorForm(pattern);
   document.getElementById('mod-pattern').classList.add('show');
@@ -4192,6 +4213,8 @@ async function savePattern() {
     description: document.getElementById('ef-desc').value.trim(),
     eye_img: window._editImages.filter(i => i.type === 'eye').map(i => i.url)[0] || '',
     lens_img: window._editImages.filter(i => i.type === 'lens').map(i => i.url)[0] || '',
+    eye_imgs: window._editImages.filter(i => i.type === 'eye').map(i => i.url),
+    lens_imgs: window._editImages.filter(i => i.type === 'lens').map(i => i.url),
   };
   if (!data.name) { alert('请输入花色名称'); return; }
   if (b.isNew) {
