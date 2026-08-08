@@ -568,11 +568,20 @@ async function doSync(
     console.log(`${syncType.name}: 附件处理完成`, JSON.stringify(attachmentInfo));
   }
 
+  // 统一所有行的字段：PostgREST 批量插入要求所有对象 key 一致
+  const allKeys = new Set<string>();
+  mappedRows.forEach((r) => Object.keys(r).forEach((k) => allKeys.add(k)));
+  const normalizedRows = mappedRows.map((r) => {
+    const nr: Record<string, unknown> = {};
+    allKeys.forEach((k) => { nr[k] = r[k] ?? null; });
+    return nr;
+  });
+
   const upserted = await supabaseUpsert(
     supabaseUrl,
     serviceKey,
     syncType.supabaseTable,
-    mappedRows,
+    normalizedRows,
     syncType.onConflict,
     syncType.insertOnly || false,
   );
