@@ -6,6 +6,9 @@
 - **培训资料分类管理** (2026-07-30): training_categories 表，管理员可增删改分类，级联更新资料 category 字段，实时同步。
 - **花色素材分类管理** (2026-07-30): pattern_categories 表，四种维度（品牌/抛型/系列/色系）均可管理，级联更新 pattern_assets 对应字段，实时同步。右侧菜单改为右键触发。
 - **质检工具接入** (2026-07-31): 侧边栏「🔍 质检工具」入口，独立 qc.html (iframe 内嵌)，数据存储升级到 Supabase（qc_records 表 + qc-images Storage bucket），全员可查看、管理员可增删改。功能：录入/筛选/标记讲解/编辑/删除/讲解模式/质检分析/导出CSV/图片粘贴预览缩放。
+- **性能优化** (2026-07-31): 首屏懒加载（tesseract.js 改为按需加载）、页面切换按需加载数据、花色搜索防抖 250ms、质检页复用父窗口 supabase client。
+- **花色下架标记** (2026-07-31): pattern_assets 新增 is_discontinued 字段，管理员可标记下架/取消下架，自动生成「📦 下架花色」分类。
+- **飞书多维表格同步** (2026-07-31): Supabase Edge Function (feishu-sync) 接收飞书事件订阅/手动触发，拉取多维表格记录同步到 pattern_assets。工作台花色素材页新增「🔄 从飞书同步」按钮(admin-only)。需执行 feishu_sync_migration.sql，部署指南见 feishu-sync-deploy-guide.md。
 
 ## 待开发功能清单
 

@@ -11,7 +11,13 @@ window.onSupabaseReady = function() {
   if (currentPage === 'staff-info') { loadStaffInfo(); subscribeStaffInfo(); }
   if (currentPage === 'templates') { loadTemplates().then(() => renderTemplates()); subscribeTemplates(); }
   if (currentPage === 'training') { if (window.loadTrainingCategories) loadTrainingCategories(); if (window.loadTrainingFromDB) loadTrainingFromDB(); if (window.renderTraining) renderTraining(); }
-  if (currentPage === 'patterns') { if (window.loadPatternCategories) loadPatternCategories(); if (window.loadPatternsFromDB) loadPatternsFromDB(); if (window.renderPatternFilters) renderPatternFilters(); if (window.renderPatterns) renderPatterns(); }
+  if (currentPage === 'patterns') {
+    // 修复: switchPage 内部已处理首次加载和数据存在时的渲染，这里只兜底，不要重复调 loadPatternsFromDB
+    if (window.getPatternBrands && window.getPatternBrands().length === 0) {
+      if (window.loadPatternCategories) window.loadPatternCategories();
+      if (window.loadPatternsFromDB) window.loadPatternsFromDB();
+    }
+  }
 };
 
 // ---------- 公告栏 ----------

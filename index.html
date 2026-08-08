@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>尤赫售前客服工作台</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%236C5CE7'/%3E%3Ccircle cx='50' cy='50' r='26' fill='none' stroke='%23fff' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='12' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://yangru2026.github.io" crossorigin>
+<link rel="dns-prefetch" href="https://yangru2026.github.io">
+<link rel="preconnect" href="https://ienmejlxukhrxjjxvfqf.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://ienmejlxukhrxjjxvfqf.supabase.co">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -303,6 +307,25 @@ body {
 .pcard-img .pcard-brand-tag { position:absolute; top:8px; left:8px; font-size:10px; padding:2px 8px; border-radius:8px; background:rgba(123,155,106,0.85); color:#fff; font-weight:600; z-index:3; backdrop-filter:blur(4px); }
 .pcard-img .img-placeholder { display:flex; flex-direction:column; align-items:center; gap:6px; color:#C4CCBF; font-size:13px; }
 .pcard-img .img-placeholder span { font-size:36px; opacity:0.5; }
+
+/* 加载更多按钮 */
+.pattern-loadmore-wrap { grid-column: 1 / -1; display:flex; justify-content:center; padding:24px 0 12px; }
+.pattern-loadmore { padding:12px 36px; border:1px solid var(--primary); background:#fff; color:var(--primary); border-radius:24px; font-size:14px; cursor:pointer; font-family:inherit; font-weight:500; transition:all 0.15s; }
+.pattern-loadmore:hover { background:var(--primary); color:#fff; transform:translateY(-1px); box-shadow:0 4px 12px rgba(123,155,106,0.25); }
+.pattern-loadmore:active { transform:translateY(0); }
+.pattern-loadmore:disabled { opacity:0.5; cursor:wait; }
+
+/* 缩略图加载中占位 - 渐变闪烁 */
+.pcard-img img { background:linear-gradient(110deg, #f0ede6 8%, #f7f5f0 18%, #f0ede6 33%); background-size:200% 100%; animation:thumbShimmer 1.4s linear infinite; }
+.pcard-img img[data-loaded="true"] { background:none; animation:none; }
+
+@keyframes thumbShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 已下架卡片禁用 hover 切换 lens */
+.pattern-card[style*="opacity:.7"] .pcard-img .img-lens { display:none; }
 .pcard-body { padding:12px 14px 14px; flex:1; display:flex; flex-direction:column; }
 .pcard-title-row { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:4px; gap:8px; }
 .pcard-name { font-size:16px; font-weight:700; color:var(--text); flex-shrink:0; }
@@ -1830,6 +1853,8 @@ function buildPatternTree(flatData) {
       spec: p.spec || '',
       lensImg: p.lens_img || '',
       eyeImg: p.eye_img || '',
+      thumbEye: p.thumb_eye_url || '',
+      thumbLens: p.thumb_lens_url || '',
       description: p.description || '',
       _id: p.id,
       _brand: p.brand,
@@ -2382,12 +2407,14 @@ let patternShowDiscontinued = false; // 是否只看下架花色
 
 function showDiscontinuedPatterns() {
   patternShowDiscontinued = true;
+  patternPage = 1;
   renderPatternFilters();
   renderPatterns();
 }
 
 function hideDiscontinuedPatterns() {
   patternShowDiscontinued = false;
+  patternPage = 1;
   renderPatternFilters();
   renderPatterns();
 }
@@ -2564,6 +2591,7 @@ function switchPatternBrand(b) {
   patternSeries = '全部';
   patternColor = '全部';
   patternShowDiscontinued = false;
+  patternPage = 1;
   renderPatternFilters();
   renderPatterns();
 }
@@ -2572,6 +2600,7 @@ function setPatternType(t) {
   patternType = t;
   patternSeries = '全部';
   patternColor = '全部';
+  patternPage = 1;
   renderPatternFilters();
   renderPatterns();
 }
@@ -2579,12 +2608,14 @@ function setPatternType(t) {
 function setPatternSeries(s) {
   patternSeries = s;
   patternColor = '全部';
+  patternPage = 1;
   renderPatternFilters();
   renderPatterns();
 }
 
 function setPatternColor(c) {
   patternColor = c;
+  patternPage = 1;
   renderPatternFilters();
   renderPatterns();
 }
@@ -2732,7 +2763,11 @@ function _debounce(fn, delay) {
     t = setTimeout(() => fn.apply(this, arguments), delay);
   };
 }
-const onPatternSearch = _debounce(() => renderPatterns(), 250);
+const onPatternSearch = _debounce(() => { patternPage = 1; renderPatterns(); }, 250);
+
+// ---------- 花色分页状态 ----------
+let patternPage = 1;
+const PATTERN_PAGE_SIZE = 20;
 
 function renderPatterns() {
   // patternData already loaded from Supabase, no localStorage merge needed
@@ -2758,13 +2793,27 @@ function renderPatterns() {
     );
   }
 
+  // 切换筛选/搜索时重置到第 1 页
+  const total = items.length;
+  if (patternPage > Math.ceil(total / PATTERN_PAGE_SIZE) && total > 0) {
+    patternPage = Math.max(1, Math.ceil(total / PATTERN_PAGE_SIZE));
+  }
+
   // Stats
   const statsEl = document.getElementById('pattern-stats');
-  if (statsEl) statsEl.innerHTML = (patternShowDiscontinued ? '下架花色共 ' : '共 ') + '<b>' + items.length + '</b> 款花色';
+  if (statsEl) {
+    const totalText = (patternShowDiscontinued ? '下架花色共 ' : '共 ') + '<b>' + total + '</b> 款花色';
+    if (total > PATTERN_PAGE_SIZE) {
+      const showing = Math.min(patternPage * PATTERN_PAGE_SIZE, total);
+      statsEl.innerHTML = totalText + '  ·  <span style="color:var(--primary)">已显示前 ' + showing + ' 款</span>';
+    } else {
+      statsEl.innerHTML = totalText;
+    }
+  }
 
   // Render
   const grid = document.getElementById('pattern-grid');
-  if (items.length === 0) {
+  if (total === 0) {
     grid.innerHTML = '<div class="pattern-empty">😕 没有找到匹配的花色，换个筛选条件试试</div>';
     return;
   }
@@ -2772,12 +2821,19 @@ function renderPatterns() {
   // Build image data for lightbox
   window._lbImages = {};
 
-  grid.innerHTML = items.map((p, idx) => {
+  const endIdx = Math.min(patternPage * PATTERN_PAGE_SIZE, total);
+  const visibleItems = items.slice(0, endIdx);
+  const hasMore = endIdx < total;
+
+  grid.innerHTML = visibleItems.map((p, idx) => {
     let imgHtml = '';
-    const images = [];  // [{src, type, hint}]
+    const images = [];  // [{src, type, hint}] - lightbox 用原图
     const hasEye = p.eyeImg && p.eyeImg.trim() !== '';
     const hasLens = p.lensImg && p.lensImg.trim() !== '';
-    
+    // 缩略图优先，没有则回退到原图
+    const eyeSrc = (p.thumbEye && p.thumbEye.trim() !== '') ? p.thumbEye : p.eyeImg;
+    const lensThumbSrc = (p.thumbLens && p.thumbLens.trim() !== '') ? p.thumbLens : p.lensImg;
+
     if (hasEye) {
       images.push({ src: p.eyeImg, type: 'eye', hint: '上眼效果' });
     }
@@ -2785,13 +2841,18 @@ function renderPatterns() {
       images.push({ src: p.lensImg, type: 'lens', hint: '镜片图' });
     }
 
+    // 首屏前 6 张加 fetchpriority="high"，提升首屏感知速度
+    const isFirstScreen = idx < 6;
+    const fpAttr = isFirstScreen ? ' fetchpriority="high"' : '';
+
     if (hasEye && hasLens) {
-      imgHtml = `<img src="${escapeHtml(p.eyeImg)}" class="img-eye" alt="${escapeHtml(p.name)} 上眼图" loading="lazy">
-                 <img src="${escapeHtml(p.lensImg)}" class="img-lens" alt="${escapeHtml(p.name)} 镜片图" loading="lazy">`;
+      // 主图用缩略图，hover 切换的 lens 用 data-lens-src 存原图，hover 时 JS 加载
+      imgHtml = `<img src="${escapeHtml(eyeSrc)}" class="img-eye" alt="${escapeHtml(p.name)} 上眼图" loading="lazy" decoding="async"${fpAttr}>
+                 <img src="${escapeHtml(lensThumbSrc)}" data-lens-src="${escapeHtml(p.lensImg)}" class="img-lens" alt="${escapeHtml(p.name)} 镜片图" loading="lazy" decoding="async">`;
     } else if (hasEye) {
-      imgHtml = `<img src="${escapeHtml(p.eyeImg)}" alt="${escapeHtml(p.name)} 上眼图" loading="lazy">`;
+      imgHtml = `<img src="${escapeHtml(eyeSrc)}" alt="${escapeHtml(p.name)} 上眼图" loading="lazy" decoding="async"${fpAttr}>`;
     } else if (hasLens) {
-      imgHtml = `<img src="${escapeHtml(p.lensImg)}" alt="${escapeHtml(p.name)} 镜片图" loading="lazy">`;
+      imgHtml = `<img src="${escapeHtml(lensThumbSrc)}" alt="${escapeHtml(p.name)} 镜片图" loading="lazy" decoding="async"${fpAttr}>`;
     } else {
       imgHtml = `<div class="img-placeholder"><span>👁️</span>暂无图片</div>`;
     }
@@ -2848,8 +2909,42 @@ function renderPatterns() {
         </div>
       </div>
     </div>`;
-  }).join('');
+  }).join('') + (hasMore ? `<div class="pattern-loadmore-wrap" id="pattern-loadmore-wrap">
+      <button class="pattern-loadmore" id="pattern-loadmore-btn" onclick="loadMorePatterns()">加载更多 ↓  （还有 ${total - endIdx} 款）</button>
+    </div>` : '');
+
+  // 绑定 hover 时加载 lens 原图（data-lens-src 替换为 src）
+  bindLazyLens();
 }
+
+function bindLazyLens() {
+  document.querySelectorAll('.pcard-img .img-lens[data-lens-src]').forEach(function(img) {
+    var parent = img.closest('.pcard-img');
+    if (!parent) return;
+    var loaded = false;
+    var loadLens = function() {
+      if (loaded) return;
+      var src = img.getAttribute('data-lens-src');
+      if (src) {
+        img.src = src;
+        img.removeAttribute('data-lens-src');
+        loaded = true;
+      }
+    };
+    parent.addEventListener('mouseenter', loadLens, { once: true });
+  });
+}
+
+function loadMorePatterns() {
+  patternPage++;
+  renderPatterns();
+  // 滚动到新加载内容附近（体验优化）
+  setTimeout(function() {
+    var wrap = document.getElementById('pattern-loadmore-wrap');
+    if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 50);
+}
+
 
 function escapeHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
