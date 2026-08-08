@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>花色素材路径诊断</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, 'Segoe UI', sans-serif; background:#f5f5f5; color:#333; padding:20px; }
+h1 { font-size:20px; margin-bottom:16px; }
+.card { background:#fff; border-radius:12px; padding:20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+.stat { display:inline-block; margin-right:20px; vertical-align:top; }
+.stat b { font-size:24px; color:#6C5CE7; }
+.stat span { font-size:12px; color:#999; }
+table { width:100%; border-collapse:collapse; font-size:13px; margin-top:12px; }
+th { background:#f0f0f0; padding:8px; text-align:left; border-bottom:2px solid #ddd; }
+td { padding:6px 8px; border-bottom:1px solid #eee; word-break:break-all; }
+.bad { color:#e74c3c; }
+.good { color:#27ae60; }
+.warn { color:#f39c12; }
+.btn { display:inline-block; padding:8px 20px; background:#6C5CE7; color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:14px; }
+.btn:hover { background:#5b4bd5; }
+pre { background:#1e1e1e; color:#d4d4d4; padding:16px; border-radius:8px; overflow-x:auto; font-size:12px; max-height:400px; white-space:pre-wrap; }
+.loading { text-align:center; padding:40px; color:#999; }
+.mismatch { background:#fff3f3; }
+</style>
+</head>
+<body>
+<h1>花色素材路径诊断工具</h1>
+
+<div id="status" class="card">
+  <div class="loading">正在连接数据库...</div>
+</div>
+
+<div id="report" style="display:none;">
+  <div class="card">
+    <h2 style="font-size:16px;margin-bottom:12px;">诊断结果</h2>
+    <div id="stats"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:16px;margin-bottom:12px;">路径前缀分布</h2>
+    <div id="prefix-table"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:16px;margin-bottom:12px;">不匹配的记录 <span id="mismatch-count" style="color:#e74c3c"></span></h2>
+    <div id="mismatch-table"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:16px;margin-bottom:12px;">修复 SQL <span style="font-size:12px;color:#999">(复制到 Supabase SQL Editor 执行)</span></h2>
+    <button class="btn" onclick="copySQL()">复制修复 SQL</button>
+    <pre id="sql-output" style="margin-top:12px;"></pre>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const LOCAL_FILES = ["misho_daily_一夜鲍富_extra.jpg", "misho_daily_一夜鲍富_eye.jpg", "misho_daily_一夜鲍富_lens.jpg", "misho_daily_企鹅妮妮_eye.jpg", "misho_daily_妮妮千金_eye.jpg", "misho_daily_小棕环pro_eye.jpg", "misho_daily_小棕环pro_lens.jpg", "misho_daily_小黑环pro_eye.jpg", "misho_daily_小黑环pro_lens.jpg", "misho_daily_微醺海浪_eye.jpg", "misho_daily_微醺海浪_lens.jpg", "misho_daily_快乐小狗_eye.jpg", "misho_daily_快乐小狗_lens.jpg", "misho_daily_摆烂海星_eye.jpg", "misho_daily_摆烂海星_lens.jpg", "misho_daily_泡沫挽歌_eye.jpg", "misho_daily_泡沫挽歌_lens.jpg", "misho_daily_浮游记忆_eye.jpg", "misho_daily_浮游记忆_lens.jpg", "misho_daily_海想豹豹_extra.jpg", "misho_daily_海想豹豹_eye.jpg", "misho_daily_海想豹豹_lens.jpg", "misho_daily_焦糖熔岩_eye.jpg", "misho_daily_焦糖熔岩_lens.jpg", "misho_daily_玻璃娃娃_lens.jpg", "misho_daily_糖霜可可_eye.jpg", "misho_daily_糖霜可可_lens.jpg", "misho_daily_绿野仙棕_extra.jpg", "misho_daily_绿野仙棕_lens.jpg", "misho_daily_草莓大福_eye.jpg", "misho_daily_草莓大福_lens.jpg", "misho_daily_蔚蓝契约_eye.jpg", "misho_daily_蔚蓝契约_lens.jpg", "misho_daily_蜂蜜罐罐_extra.jpg", "misho_daily_蜂蜜罐罐_eye.jpg", "misho_daily_蜂蜜罐罐_lens.jpg", "misho_daily_黄油小熊_eye.jpg", "misho_daily_黄油小熊_lens.jpg", "misho_halfyear_39°巡光_eye.jpg", "misho_halfyear_39°巡光_lens.jpg", "misho_halfyear_乌托邦幻想_eye.jpg", "misho_halfyear_乌托邦幻想_lens.jpg", "misho_halfyear_仲夏夜探戈_eye.jpg", "misho_halfyear_仲夏夜探戈_lens.jpg", "misho_halfyear_伦敦碎片_eye.jpg", "misho_halfyear_伦敦碎片_lens.jpg", "misho_halfyear_你的名字_eye.jpg", "misho_halfyear_你的名字_lens.jpg", "misho_halfyear_停止幻想_eye.jpg", "misho_halfyear_停止幻想_lens.jpg", "misho_halfyear_偷吻珊瑚_eye.jpg", "misho_halfyear_偷吻珊瑚_lens.jpg", "misho_halfyear_偷心布朗尼_eye.jpg", "misho_halfyear_偷心布朗尼_lens.jpg", "misho_halfyear_偷藏月光_extra.jpg", "misho_halfyear_偷藏月光_eye.jpg", "misho_halfyear_偷藏月光_lens.jpg", "misho_halfyear_元气女高_extra.jpg", "misho_halfyear_元气女高_eye.jpg", "misho_halfyear_元气女高_lens.jpg", "misho_halfyear_全息悸动_eye.jpg", "misho_halfyear_全息悸动_lens.jpg", "misho_halfyear_冰岛日记_extra.jpg", "misho_halfyear_冰岛日记_eye.jpg", "misho_halfyear_冰岛日记_lens.jpg", "misho_halfyear_冰摇海葡萄_eye.jpg", "misho_halfyear_冰摇海葡萄_lens.jpg", "misho_halfyear_冷雾茶棕_extra.jpg", "misho_halfyear_冷雾茶棕_eye.jpg", "misho_halfyear_冷雾茶棕_lens.jpg", "misho_halfyear_冷雾茶黑_extra.jpg", "misho_halfyear_冷雾茶黑_eye.jpg", "misho_halfyear_冷雾茶黑_lens.jpg", "misho_halfyear_初恋小事_eye.jpg", "misho_halfyear_初恋小事_lens.jpg", "misho_halfyear_初生玫瑰_extra.jpg", "misho_halfyear_初生玫瑰_eye.jpg", "misho_halfyear_初生玫瑰_lens.jpg", "misho_halfyear_加州校园_eye.jpg", "misho_halfyear_加州校园_lens.jpg", "misho_halfyear_千禧校花_eye.jpg", "misho_halfyear_千禧校花_lens.jpg", "misho_halfyear_千禧莓莓_eye.jpg", "misho_halfyear_千禧莓莓_lens.jpg", "misho_halfyear_半熟幻想_eye.jpg", "misho_halfyear_半熟幻想_lens.jpg", "misho_halfyear_南洋水珠pro_eye.jpg", "misho_halfyear_南洋水珠pro_lens.jpg", "misho_halfyear_南韩千金_extra.jpg", "misho_halfyear_南韩千金_lens.jpg", "misho_halfyear_反骨甜心_extra.jpg", "misho_halfyear_反骨甜心_eye.jpg", "misho_halfyear_反骨甜心_lens.jpg", "misho_halfyear_告白汽水_extra.jpg", "misho_halfyear_告白汽水_eye.jpg", "misho_halfyear_告白汽水_lens.jpg", "misho_halfyear_国民初恋_eye.jpg", "misho_halfyear_国民初恋_lens.jpg", "misho_halfyear_在逃公主pro_extra.jpg", "misho_halfyear_在逃公主pro_eye.jpg", "misho_halfyear_在逃公主pro_lens.jpg", "misho_halfyear_夏吻野火_extra.jpg", "misho_halfyear_夏吻野火_eye.jpg", "misho_halfyear_夏吻野火_lens.jpg", "misho_halfyear_夜与法兰西_eye.jpg", "misho_halfyear_夜与法兰西_lens.jpg", "misho_halfyear_天菜女友_eye.jpg", "misho_halfyear_天菜女友_lens.jpg", "misho_halfyear_奶油噗噗_eye.jpg", "misho_halfyear_奶油噗噗_lens.jpg", "misho_halfyear_奶油黑客_eye.jpg", "misho_halfyear_奶油黑客_lens.jpg", "misho_halfyear_她的梨涡_eye.jpg", "misho_halfyear_她的梨涡_lens.jpg", "misho_halfyear_妮妮千金_extra.jpg", "misho_halfyear_妮妮千金_eye.jpg", "misho_halfyear_妮妮千金_lens.jpg", "misho_halfyear_富婆人生_eye.jpg", "misho_halfyear_富婆人生_lens.jpg", "misho_halfyear_小野猫_eye.jpg", "misho_halfyear_小野猫_lens.jpg", "misho_halfyear_少女心事_eye.jpg", "misho_halfyear_少女心事_lens.jpg", "misho_halfyear_巴洛克玫瑰_eye.jpg", "misho_halfyear_巴洛克玫瑰_lens.jpg", "misho_halfyear_心动信号_eye.jpg", "misho_halfyear_心动信号_lens.jpg", "misho_halfyear_心动降临_lens.jpg", "misho_halfyear_快乐小狗_eye.jpg", "misho_halfyear_快乐小狗_lens.jpg", "misho_halfyear_恋爱循环_eye.jpg", "misho_halfyear_恋爱循环_lens.jpg", "misho_halfyear_恶女千金_eye.jpg", "misho_halfyear_恶女千金_lens.jpg", "misho_halfyear_情绪玩家_extra.jpg", "misho_halfyear_情绪玩家_eye.jpg", "misho_halfyear_情绪玩家_lens.jpg", "misho_halfyear_成为自己_eye.jpg", "misho_halfyear_成为自己_lens.jpg", "misho_halfyear_我喜欢你_eye.jpg", "misho_halfyear_我喜欢你_lens.jpg", "misho_halfyear_指尖蝶舞_extra.jpg", "misho_halfyear_指尖蝶舞_eye.jpg", "misho_halfyear_指尖蝶舞_lens.jpg", "misho_halfyear_指尖魔法_extra.jpg", "misho_halfyear_指尖魔法_eye.jpg", "misho_halfyear_指尖魔法_lens.jpg", "misho_halfyear_换乘恋爱_eye.jpg", "misho_halfyear_换乘恋爱_lens.jpg", "misho_halfyear_摩卡奶茶_eye.jpg", "misho_halfyear_摩卡奶茶_lens.jpg", "misho_halfyear_无人区玫瑰_extra.jpg", "misho_halfyear_无人区玫瑰_eye.jpg", "misho_halfyear_无人区玫瑰_lens.jpg", "misho_halfyear_星光降落_eye.jpg", "misho_halfyear_星光降落_lens.jpg", "misho_halfyear_晚熟游戏_extra.jpg", "misho_halfyear_晚熟游戏_eye.jpg", "misho_halfyear_晚熟游戏_lens.jpg", "misho_halfyear_暗恋无果_eye.jpg", "misho_halfyear_暗恋无果_lens.jpg", "misho_halfyear_暧昧戏法_eye.jpg", "misho_halfyear_暧昧戏法_lens.jpg", "misho_halfyear_曲奇饼派对_extra.jpg", "misho_halfyear_曲奇饼派对_eye.jpg", "misho_halfyear_曲奇饼派对_lens.jpg", "misho_halfyear_月亮危机_eye.jpg", "misho_halfyear_月亮危机_lens.jpg", "misho_halfyear_月光恋人_extra.jpg", "misho_halfyear_月光恋人_lens.jpg", "misho_halfyear_月光骑士_extra.jpg", "misho_halfyear_月光骑士_eye.jpg", "misho_halfyear_月光骑士_lens.jpg", "misho_halfyear_月光鸣奏曲_lens.jpg", "misho_halfyear_柏林热吻_eye.jpg", "misho_halfyear_柏林热吻_lens.jpg", "misho_halfyear_栗栗在逃_extra.jpg", "misho_halfyear_栗栗在逃_eye.jpg", "misho_halfyear_栗栗在逃_lens.jpg", "misho_halfyear_校花指南_extra.jpg", "misho_halfyear_校花指南_eye.jpg", "misho_halfyear_校花指南_lens.jpg", "misho_halfyear_桃气闪闪_extra.jpg", "misho_halfyear_桃气闪闪_eye.jpg", "misho_halfyear_桃气闪闪_lens.jpg", "misho_halfyear_气泡葡萄_extra.jpg", "misho_halfyear_气泡葡萄_eye.jpg", "misho_halfyear_气泡葡萄_lens.jpg", "misho_halfyear_水星记_eye.jpg", "misho_halfyear_水星记_lens.jpg", "misho_halfyear_水漾狂想曲_extra.jpg", "misho_halfyear_水漾狂想曲_eye.jpg", "misho_halfyear_水漾狂想曲_lens.jpg", "misho_halfyear_汪汪队_eye.jpg", "misho_halfyear_汪汪队_lens.jpg", "misho_halfyear_海豚恋人_eye.jpg", "misho_halfyear_海豚恋人_lens.jpg", "misho_halfyear_深海之泪_eye.jpg", "misho_halfyear_深海之泪_lens.jpg", "misho_halfyear_清晨解药_eye.jpg", "misho_halfyear_清晨解药_lens.jpg", "misho_halfyear_灰熊奶霜_eye.jpg", "misho_halfyear_灰熊奶霜_lens.jpg", "misho_halfyear_爱的无限曲_eye.jpg", "misho_halfyear_爱的无限曲_lens.jpg", "misho_halfyear_爱神降临_eye.jpg", "misho_halfyear_爱神降临_lens.jpg", "misho_halfyear_爽文女主_extra.jpg", "misho_halfyear_爽文女主_eye.jpg", "misho_halfyear_爽文女主_lens.jpg", "misho_halfyear_牛仔布偶_eye.jpg", "misho_halfyear_牛仔布偶_lens.jpg", "misho_halfyear_玛丽皇后_eye.jpg", "misho_halfyear_玛丽皇后_lens.jpg", "misho_halfyear_甜宠学妹_extra.jpg", "misho_halfyear_甜宠学妹_eye.jpg", "misho_halfyear_甜宠学妹_lens.jpg", "misho_halfyear_甜心主唱_eye.jpg", "misho_halfyear_甜心主唱_lens.jpg", "misho_halfyear_甜断记忆_eye.jpg", "misho_halfyear_甜断记忆_lens.jpg", "misho_halfyear_甜蜜暗号_eye.jpg", "misho_halfyear_甜蜜暗号_lens.jpg", "misho_halfyear_白月光_extra.jpg", "misho_halfyear_白月光_eye.jpg", "misho_halfyear_白月光_lens.jpg", "misho_halfyear_窗外樱花_eye.jpg", "misho_halfyear_窗外樱花_lens.jpg", "misho_halfyear_笨蛋美女_extra.jpg", "misho_halfyear_笨蛋美女_eye.jpg", "misho_halfyear_笨蛋美女_lens.jpg", "misho_halfyear_等你下课_extra.jpg", "misho_halfyear_等你下课_eye.jpg", "misho_halfyear_等你下课_lens.jpg", "misho_halfyear_绝情玫瑰烧_eye.jpg", "misho_halfyear_绝情玫瑰烧_lens.jpg", "misho_halfyear_航海日记_eye.jpg", "misho_halfyear_航海日记_lens.jpg", "misho_halfyear_落日橘子海_eye.jpg", "misho_halfyear_落日橘子海_lens.jpg", "misho_halfyear_落日漫游_eye.jpg", "misho_halfyear_落日漫游_lens.jpg", "misho_halfyear_落日熔金_eye.jpg", "misho_halfyear_落日熔金_lens.jpg", "misho_halfyear_蓝岛时刻_eye.jpg", "misho_halfyear_蓝岛时刻_lens.jpg", "misho_halfyear_蓝朋友_extra.jpg", "misho_halfyear_蓝朋友_eye.jpg", "misho_halfyear_蓝朋友_lens.jpg", "misho_halfyear_蓝色圆舞曲_eye.jpg", "misho_halfyear_蓝色圆舞曲_lens.jpg", "misho_halfyear_蓝调时分_eye.jpg", "misho_halfyear_蓝调时分_lens.jpg", "misho_halfyear_薄荷微光_eye.jpg", "misho_halfyear_薄荷微光_lens.jpg", "misho_halfyear_虚拟泪光_eye.jpg", "misho_halfyear_虚拟泪光_lens.jpg", "misho_halfyear_虚空蔷薇_eye.jpg", "misho_halfyear_虚空蔷薇_lens.jpg", "misho_halfyear_记忆吐司_extra.jpg", "misho_halfyear_记忆吐司_eye.jpg", "misho_halfyear_记忆吐司_lens.jpg", "misho_halfyear_贝母光晕_extra.jpg", "misho_halfyear_贝母光晕_eye.jpg", "misho_halfyear_贝母光晕_lens.jpg", "misho_halfyear_超大奶芙芙_eye.jpg", "misho_halfyear_超大奶芙芙_lens.jpg", "misho_halfyear_超大宝宝棕_extra.jpg", "misho_halfyear_超大宝宝棕_eye.jpg", "misho_halfyear_超大宝宝棕_lens.jpg", "misho_halfyear_超大椰椰灰_eye.jpg", "misho_halfyear_超大椰椰灰_lens.jpg", "misho_halfyear_超大渣渣黑_eye.jpg", "misho_halfyear_超大渣渣黑_lens.jpg", "misho_halfyear_超大荧光水母_eye.jpg", "misho_halfyear_超大荧光水母_lens.jpg", "misho_halfyear_超大酥酥绿_extra.jpg", "misho_halfyear_超大酥酥绿_eye.jpg", "misho_halfyear_超大酥酥绿_lens.jpg", "misho_halfyear_转校千金_extra.jpg", "misho_halfyear_转校千金_eye.jpg", "misho_halfyear_转校千金_lens.jpg", "misho_halfyear_造梦乐园_extra.jpg", "misho_halfyear_造梦乐园_eye.jpg", "misho_halfyear_造梦乐园_lens.jpg", "misho_halfyear_钓系美人_eye.jpg", "misho_halfyear_钓系美人_lens.jpg", "misho_halfyear_闪闪自信_extra.jpg", "misho_halfyear_闪闪自信_eye.jpg", "misho_halfyear_闪闪自信_lens.jpg", "misho_halfyear_雾面珍珠_eye.jpg", "misho_halfyear_雾面珍珠_lens.jpg", "misho_halfyear_魔女眼泪_eye.jpg", "misho_halfyear_鲛人泪滴_eye.jpg", "misho_halfyear_黄油小熊_extra.jpg", "misho_halfyear_黄油小熊_eye.jpg", "misho_halfyear_黄油小熊_lens.jpg", "misho_halfyear_黄油流心_eye.jpg", "misho_halfyear_黄油流心_lens.jpg", "misho_halfyear_黑莓缪斯_eye.jpg", "misho_halfyear_黑莓缪斯_lens.jpg", "misho_halfyear_龙颜芭比_eye.jpg", "misho_halfyear_龙颜芭比_lens.jpg", "季抛_凌晨三点_lens.jpg", "季抛_富士山雾_eye.jpg", "季抛_富士山雾_lens.jpg", "季抛_月亮情诗_lens.jpg", "季抛_月光拿铁_lens.jpg", "季抛_松涧小鹿_lens.jpg", "季抛_极光金棕_eye.jpg", "季抛_极光金棕_lens.jpg", "季抛_极光黑灰_eye.jpg", "季抛_极光黑灰_lens.jpg", "季抛_椰影摇光_lens.jpg", "季抛_榛果灰棕_eye.jpg", "季抛_榛果灰棕_lens.jpg", "季抛_糖霜日落_lens.jpg", "季抛_花漾甜梦_lens.jpg", "季抛_酒心巧克力_eye.jpg", "季抛_酒心巧克力_lens.jpg", "日抛_坠眼青花_eye.jpg", "日抛_扶光云梦_eye.jpg", "日抛_扶光云梦_eye2.jpg", "日抛_春野鹿鸣_eye.jpg", "日抛_春野鹿鸣_lens.jpg", "日抛_晴空飞鸟_eye.jpg", "日抛_暮色回响_eye.jpg", "日抛_暮色回响_eye2.jpg", "日抛_枫糖戚风_eye.jpg", "日抛_枫糖戚风_eye2.jpg", "日抛_梦蝶晚窗_eye.jpg", "日抛_梦蝶晚窗_lens.jpg", "日抛_梨漫花岛_eye.jpg", "日抛_梨漫花岛_eye2.jpg", "日抛_梨漫花岛_lens.jpg", "日抛_梨花慢慢_eye.jpg", "日抛_梨花杏雨_eye.jpg", "日抛_梨花杏雨_lens.jpg", "日抛_樱落半夏_eye.jpg", "日抛_樱落半夏_lens.jpg", "日抛_清欢水漾_eye.jpg", "日抛_清欢水漾_eye2.jpg", "日抛_溪山晚风_eye.jpg", "日抛_溪山晚风_eye2.jpg", "日抛_琥珀柔光_eye.jpg", "日抛_琥珀柔光_lens.jpg", "日抛_糖霜日落_eye.jpg", "日抛_糖霜日落_eye2.jpg", "日抛_糖霜日落_lens.jpg", "日抛_莫奈花园_eye.jpg", "日抛_莫奈花园_eye2.jpg", "日抛_邂逅洱海_eye.jpg", "日抛_雪落松香_eye.jpg", "日抛_雪落松香_eye2.jpg", "日抛_雪落松香_lens.jpg", "日抛_风摇南枝_eye.jpg", "日抛_风摇南枝_lens.jpg"];
+const LOCAL_THUMBS = ["misho_daily_一夜鲍富_extra.webp", "misho_daily_一夜鲍富_eye.webp", "misho_daily_一夜鲍富_lens.webp", "misho_daily_企鹅妮妮_eye.webp", "misho_daily_妮妮千金_eye.webp", "misho_daily_小棕环pro_eye.webp", "misho_daily_小棕环pro_lens.webp", "misho_daily_小黑环pro_eye.webp", "misho_daily_小黑环pro_lens.webp", "misho_daily_微醺海浪_eye.webp", "misho_daily_微醺海浪_lens.webp", "misho_daily_快乐小狗_eye.webp", "misho_daily_快乐小狗_lens.webp", "misho_daily_摆烂海星_eye.webp", "misho_daily_摆烂海星_lens.webp", "misho_daily_泡沫挽歌_eye.webp", "misho_daily_泡沫挽歌_lens.webp", "misho_daily_浮游记忆_eye.webp", "misho_daily_浮游记忆_lens.webp", "misho_daily_海想豹豹_extra.webp", "misho_daily_海想豹豹_eye.webp", "misho_daily_海想豹豹_lens.webp", "misho_daily_焦糖熔岩_eye.webp", "misho_daily_焦糖熔岩_lens.webp", "misho_daily_玻璃娃娃_lens.webp", "misho_daily_糖霜可可_eye.webp", "misho_daily_糖霜可可_lens.webp", "misho_daily_绿野仙棕_extra.webp", "misho_daily_绿野仙棕_lens.webp", "misho_daily_草莓大福_eye.webp", "misho_daily_草莓大福_lens.webp", "misho_daily_蔚蓝契约_eye.webp", "misho_daily_蔚蓝契约_lens.webp", "misho_daily_蜂蜜罐罐_extra.webp", "misho_daily_蜂蜜罐罐_eye.webp", "misho_daily_蜂蜜罐罐_lens.webp", "misho_daily_黄油小熊_eye.webp", "misho_daily_黄油小熊_lens.webp", "misho_halfyear_39°巡光_eye.webp", "misho_halfyear_39°巡光_lens.webp", "misho_halfyear_乌托邦幻想_eye.webp", "misho_halfyear_乌托邦幻想_lens.webp", "misho_halfyear_仲夏夜探戈_eye.webp", "misho_halfyear_仲夏夜探戈_lens.webp", "misho_halfyear_伦敦碎片_eye.webp", "misho_halfyear_伦敦碎片_lens.webp", "misho_halfyear_你的名字_eye.webp", "misho_halfyear_你的名字_lens.webp", "misho_halfyear_停止幻想_eye.webp", "misho_halfyear_停止幻想_lens.webp", "misho_halfyear_偷吻珊瑚_eye.webp", "misho_halfyear_偷吻珊瑚_lens.webp", "misho_halfyear_偷心布朗尼_eye.webp", "misho_halfyear_偷心布朗尼_lens.webp", "misho_halfyear_偷藏月光_extra.webp", "misho_halfyear_偷藏月光_eye.webp", "misho_halfyear_偷藏月光_lens.webp", "misho_halfyear_元气女高_extra.webp", "misho_halfyear_元气女高_eye.webp", "misho_halfyear_元气女高_lens.webp", "misho_halfyear_全息悸动_eye.webp", "misho_halfyear_全息悸动_lens.webp", "misho_halfyear_冰岛日记_extra.webp", "misho_halfyear_冰岛日记_eye.webp", "misho_halfyear_冰岛日记_lens.webp", "misho_halfyear_冰摇海葡萄_eye.webp", "misho_halfyear_冰摇海葡萄_lens.webp", "misho_halfyear_冷雾茶棕_extra.webp", "misho_halfyear_冷雾茶棕_eye.webp", "misho_halfyear_冷雾茶棕_lens.webp", "misho_halfyear_冷雾茶黑_extra.webp", "misho_halfyear_冷雾茶黑_eye.webp", "misho_halfyear_冷雾茶黑_lens.webp", "misho_halfyear_初恋小事_eye.webp", "misho_halfyear_初恋小事_lens.webp", "misho_halfyear_初生玫瑰_extra.webp", "misho_halfyear_初生玫瑰_eye.webp", "misho_halfyear_初生玫瑰_lens.webp", "misho_halfyear_加州校园_eye.webp", "misho_halfyear_加州校园_lens.webp", "misho_halfyear_千禧校花_eye.webp", "misho_halfyear_千禧校花_lens.webp", "misho_halfyear_千禧莓莓_eye.webp", "misho_halfyear_千禧莓莓_lens.webp", "misho_halfyear_半熟幻想_eye.webp", "misho_halfyear_半熟幻想_lens.webp", "misho_halfyear_南洋水珠pro_eye.webp", "misho_halfyear_南洋水珠pro_lens.webp", "misho_halfyear_南韩千金_extra.webp", "misho_halfyear_南韩千金_lens.webp", "misho_halfyear_反骨甜心_extra.webp", "misho_halfyear_反骨甜心_eye.webp", "misho_halfyear_反骨甜心_lens.webp", "misho_halfyear_告白汽水_extra.webp", "misho_halfyear_告白汽水_eye.webp", "misho_halfyear_告白汽水_lens.webp", "misho_halfyear_国民初恋_eye.webp", "misho_halfyear_国民初恋_lens.webp", "misho_halfyear_在逃公主pro_extra.webp", "misho_halfyear_在逃公主pro_eye.webp", "misho_halfyear_在逃公主pro_lens.webp", "misho_halfyear_夏吻野火_extra.webp", "misho_halfyear_夏吻野火_eye.webp", "misho_halfyear_夏吻野火_lens.webp", "misho_halfyear_夜与法兰西_eye.webp", "misho_halfyear_夜与法兰西_lens.webp", "misho_halfyear_天菜女友_eye.webp", "misho_halfyear_天菜女友_lens.webp", "misho_halfyear_奶油噗噗_eye.webp", "misho_halfyear_奶油噗噗_lens.webp", "misho_halfyear_奶油黑客_eye.webp", "misho_halfyear_奶油黑客_lens.webp", "misho_halfyear_她的梨涡_eye.webp", "misho_halfyear_她的梨涡_lens.webp", "misho_halfyear_妮妮千金_extra.webp", "misho_halfyear_妮妮千金_eye.webp", "misho_halfyear_妮妮千金_lens.webp", "misho_halfyear_富婆人生_eye.webp", "misho_halfyear_富婆人生_lens.webp", "misho_halfyear_小野猫_eye.webp", "misho_halfyear_小野猫_lens.webp", "misho_halfyear_少女心事_eye.webp", "misho_halfyear_少女心事_lens.webp", "misho_halfyear_巴洛克玫瑰_eye.webp", "misho_halfyear_巴洛克玫瑰_lens.webp", "misho_halfyear_心动信号_eye.webp", "misho_halfyear_心动信号_lens.webp", "misho_halfyear_心动降临_lens.webp", "misho_halfyear_快乐小狗_eye.webp", "misho_halfyear_快乐小狗_lens.webp", "misho_halfyear_恋爱循环_eye.webp", "misho_halfyear_恋爱循环_lens.webp", "misho_halfyear_恶女千金_eye.webp", "misho_halfyear_恶女千金_lens.webp", "misho_halfyear_情绪玩家_extra.webp", "misho_halfyear_情绪玩家_eye.webp", "misho_halfyear_情绪玩家_lens.webp", "misho_halfyear_成为自己_eye.webp", "misho_halfyear_成为自己_lens.webp", "misho_halfyear_我喜欢你_eye.webp", "misho_halfyear_我喜欢你_lens.webp", "misho_halfyear_指尖蝶舞_extra.webp", "misho_halfyear_指尖蝶舞_eye.webp", "misho_halfyear_指尖蝶舞_lens.webp", "misho_halfyear_指尖魔法_extra.webp", "misho_halfyear_指尖魔法_eye.webp", "misho_halfyear_指尖魔法_lens.webp", "misho_halfyear_换乘恋爱_eye.webp", "misho_halfyear_换乘恋爱_lens.webp", "misho_halfyear_摩卡奶茶_eye.webp", "misho_halfyear_摩卡奶茶_lens.webp", "misho_halfyear_无人区玫瑰_extra.webp", "misho_halfyear_无人区玫瑰_eye.webp", "misho_halfyear_无人区玫瑰_lens.webp", "misho_halfyear_星光降落_eye.webp", "misho_halfyear_星光降落_lens.webp", "misho_halfyear_晚熟游戏_extra.webp", "misho_halfyear_晚熟游戏_eye.webp", "misho_halfyear_晚熟游戏_lens.webp", "misho_halfyear_暗恋无果_eye.webp", "misho_halfyear_暗恋无果_lens.webp", "misho_halfyear_暧昧戏法_eye.webp", "misho_halfyear_暧昧戏法_lens.webp", "misho_halfyear_曲奇饼派对_extra.webp", "misho_halfyear_曲奇饼派对_eye.webp", "misho_halfyear_曲奇饼派对_lens.webp", "misho_halfyear_月亮危机_eye.webp", "misho_halfyear_月亮危机_lens.webp", "misho_halfyear_月光恋人_extra.webp", "misho_halfyear_月光恋人_lens.webp", "misho_halfyear_月光骑士_extra.webp", "misho_halfyear_月光骑士_eye.webp", "misho_halfyear_月光骑士_lens.webp", "misho_halfyear_月光鸣奏曲_lens.webp", "misho_halfyear_柏林热吻_eye.webp", "misho_halfyear_柏林热吻_lens.webp", "misho_halfyear_栗栗在逃_extra.webp", "misho_halfyear_栗栗在逃_eye.webp", "misho_halfyear_栗栗在逃_lens.webp", "misho_halfyear_校花指南_extra.webp", "misho_halfyear_校花指南_eye.webp", "misho_halfyear_校花指南_lens.webp", "misho_halfyear_桃气闪闪_extra.webp", "misho_halfyear_桃气闪闪_eye.webp", "misho_halfyear_桃气闪闪_lens.webp", "misho_halfyear_气泡葡萄_extra.webp", "misho_halfyear_气泡葡萄_eye.webp", "misho_halfyear_气泡葡萄_lens.webp", "misho_halfyear_水星记_eye.webp", "misho_halfyear_水星记_lens.webp", "misho_halfyear_水漾狂想曲_extra.webp", "misho_halfyear_水漾狂想曲_eye.webp", "misho_halfyear_水漾狂想曲_lens.webp", "misho_halfyear_汪汪队_eye.webp", "misho_halfyear_汪汪队_lens.webp", "misho_halfyear_海豚恋人_eye.webp", "misho_halfyear_海豚恋人_lens.webp", "misho_halfyear_深海之泪_eye.webp", "misho_halfyear_深海之泪_lens.webp", "misho_halfyear_清晨解药_eye.webp", "misho_halfyear_清晨解药_lens.webp", "misho_halfyear_灰熊奶霜_eye.webp", "misho_halfyear_灰熊奶霜_lens.webp", "misho_halfyear_爱的无限曲_eye.webp", "misho_halfyear_爱的无限曲_lens.webp", "misho_halfyear_爱神降临_eye.webp", "misho_halfyear_爱神降临_lens.webp", "misho_halfyear_爽文女主_extra.webp", "misho_halfyear_爽文女主_eye.webp", "misho_halfyear_爽文女主_lens.webp", "misho_halfyear_牛仔布偶_eye.webp", "misho_halfyear_牛仔布偶_lens.webp", "misho_halfyear_玛丽皇后_eye.webp", "misho_halfyear_玛丽皇后_lens.webp", "misho_halfyear_甜宠学妹_extra.webp", "misho_halfyear_甜宠学妹_eye.webp", "misho_halfyear_甜宠学妹_lens.webp", "misho_halfyear_甜心主唱_eye.webp", "misho_halfyear_甜心主唱_lens.webp", "misho_halfyear_甜断记忆_eye.webp", "misho_halfyear_甜断记忆_lens.webp", "misho_halfyear_甜蜜暗号_eye.webp", "misho_halfyear_甜蜜暗号_lens.webp", "misho_halfyear_白月光_extra.webp", "misho_halfyear_白月光_eye.webp", "misho_halfyear_白月光_lens.webp", "misho_halfyear_窗外樱花_eye.webp", "misho_halfyear_窗外樱花_lens.webp", "misho_halfyear_笨蛋美女_extra.webp", "misho_halfyear_笨蛋美女_eye.webp", "misho_halfyear_笨蛋美女_lens.webp", "misho_halfyear_等你下课_extra.webp", "misho_halfyear_等你下课_eye.webp", "misho_halfyear_等你下课_lens.webp", "misho_halfyear_绝情玫瑰烧_eye.webp", "misho_halfyear_绝情玫瑰烧_lens.webp", "misho_halfyear_航海日记_eye.webp", "misho_halfyear_航海日记_lens.webp", "misho_halfyear_落日橘子海_eye.webp", "misho_halfyear_落日橘子海_lens.webp", "misho_halfyear_落日漫游_eye.webp", "misho_halfyear_落日漫游_lens.webp", "misho_halfyear_落日熔金_eye.webp", "misho_halfyear_落日熔金_lens.webp", "misho_halfyear_蓝岛时刻_eye.webp", "misho_halfyear_蓝岛时刻_lens.webp", "misho_halfyear_蓝朋友_extra.webp", "misho_halfyear_蓝朋友_eye.webp", "misho_halfyear_蓝朋友_lens.webp", "misho_halfyear_蓝色圆舞曲_eye.webp", "misho_halfyear_蓝色圆舞曲_lens.webp", "misho_halfyear_蓝调时分_eye.webp", "misho_halfyear_蓝调时分_lens.webp", "misho_halfyear_薄荷微光_eye.webp", "misho_halfyear_薄荷微光_lens.webp", "misho_halfyear_虚拟泪光_eye.webp", "misho_halfyear_虚拟泪光_lens.webp", "misho_halfyear_虚空蔷薇_eye.webp", "misho_halfyear_虚空蔷薇_lens.webp", "misho_halfyear_记忆吐司_extra.webp", "misho_halfyear_记忆吐司_eye.webp", "misho_halfyear_记忆吐司_lens.webp", "misho_halfyear_贝母光晕_extra.webp", "misho_halfyear_贝母光晕_eye.webp", "misho_halfyear_贝母光晕_lens.webp", "misho_halfyear_超大奶芙芙_eye.webp", "misho_halfyear_超大奶芙芙_lens.webp", "misho_halfyear_超大宝宝棕_extra.webp", "misho_halfyear_超大宝宝棕_eye.webp", "misho_halfyear_超大宝宝棕_lens.webp", "misho_halfyear_超大椰椰灰_eye.webp", "misho_halfyear_超大椰椰灰_lens.webp", "misho_halfyear_超大渣渣黑_eye.webp", "misho_halfyear_超大渣渣黑_lens.webp", "misho_halfyear_超大荧光水母_eye.webp", "misho_halfyear_超大荧光水母_lens.webp", "misho_halfyear_超大酥酥绿_extra.webp", "misho_halfyear_超大酥酥绿_eye.webp", "misho_halfyear_超大酥酥绿_lens.webp", "misho_halfyear_转校千金_extra.webp", "misho_halfyear_转校千金_eye.webp", "misho_halfyear_转校千金_lens.webp", "misho_halfyear_造梦乐园_extra.webp", "misho_halfyear_造梦乐园_eye.webp", "misho_halfyear_造梦乐园_lens.webp", "misho_halfyear_钓系美人_eye.webp", "misho_halfyear_钓系美人_lens.webp", "misho_halfyear_闪闪自信_extra.webp", "misho_halfyear_闪闪自信_eye.webp", "misho_halfyear_闪闪自信_lens.webp", "misho_halfyear_雾面珍珠_eye.webp", "misho_halfyear_雾面珍珠_lens.webp", "misho_halfyear_魔女眼泪_eye.webp", "misho_halfyear_鲛人泪滴_eye.webp", "misho_halfyear_黄油小熊_extra.webp", "misho_halfyear_黄油小熊_eye.webp", "misho_halfyear_黄油小熊_lens.webp", "misho_halfyear_黄油流心_eye.webp", "misho_halfyear_黄油流心_lens.webp", "misho_halfyear_黑莓缪斯_eye.webp", "misho_halfyear_黑莓缪斯_lens.webp", "misho_halfyear_龙颜芭比_eye.webp", "misho_halfyear_龙颜芭比_lens.webp", "季抛_凌晨三点_lens.webp", "季抛_富士山雾_eye.webp", "季抛_富士山雾_lens.webp", "季抛_月亮情诗_lens.webp", "季抛_月光拿铁_lens.webp", "季抛_松涧小鹿_lens.webp", "季抛_极光金棕_eye.webp", "季抛_极光金棕_lens.webp", "季抛_极光黑灰_eye.webp", "季抛_极光黑灰_lens.webp", "季抛_椰影摇光_lens.webp", "季抛_榛果灰棕_eye.webp", "季抛_榛果灰棕_lens.webp", "季抛_糖霜日落_lens.webp", "季抛_花漾甜梦_lens.webp", "季抛_酒心巧克力_eye.webp", "季抛_酒心巧克力_lens.webp", "日抛_坠眼青花_eye.webp", "日抛_扶光云梦_eye.webp", "日抛_扶光云梦_eye2.webp", "日抛_春野鹿鸣_eye.webp", "日抛_春野鹿鸣_lens.webp", "日抛_晴空飞鸟_eye.webp", "日抛_暮色回响_eye.webp", "日抛_暮色回响_eye2.webp", "日抛_枫糖戚风_eye.webp", "日抛_枫糖戚风_eye2.webp", "日抛_梦蝶晚窗_eye.webp", "日抛_梦蝶晚窗_lens.webp", "日抛_梨漫花岛_eye.webp", "日抛_梨漫花岛_eye2.webp", "日抛_梨漫花岛_lens.webp", "日抛_梨花慢慢_eye.webp", "日抛_梨花杏雨_eye.webp", "日抛_梨花杏雨_lens.webp", "日抛_樱落半夏_eye.webp", "日抛_樱落半夏_lens.webp", "日抛_清欢水漾_eye.webp", "日抛_清欢水漾_eye2.webp", "日抛_溪山晚风_eye.webp", "日抛_溪山晚风_eye2.webp", "日抛_琥珀柔光_eye.webp", "日抛_琥珀柔光_lens.webp", "日抛_糖霜日落_eye.webp", "日抛_糖霜日落_eye2.webp", "日抛_糖霜日落_lens.webp", "日抛_莫奈花园_eye.webp", "日抛_莫奈花园_eye2.webp", "日抛_邂逅洱海_eye.webp", "日抛_雪落松香_eye.webp", "日抛_雪落松香_eye2.webp", "日抛_雪落松香_lens.webp", "日抛_风摇南枝_eye.webp", "日抛_风摇南枝_lens.webp"];
+
+const SUPABASE_URL = 'https://ienmejlxukhrxjjxvfqf.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imllbm1lamx4dWtoeHJ4amp4dmZxZiIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzQ5NzU5NjgyLCJleHAiOjIwNjUzMzU2ODJ9.ABuL_Bn3o4Jp3gN1CFn8_FqFzSmS5xKQHj5jcE-akMk';
+
+const localFileSet = new Set(LOCAL_FILES);
+const localThumbSet = new Set(LOCAL_THUMBS);
+
+function basename(path) {
+  if (!path) return null;
+  const parts = path.split('/');
+  return parts[parts.length - 1];
+}
+
+function findSimilar(filename, fileSet) {
+  const nameNoExt = filename.replace(/\.(jpg|jpeg|png|webp)$/i, '');
+  if (fileSet.has(filename)) return filename;
+  for (const f of fileSet) {
+    const fNoExt = f.replace(/\.(jpg|jpeg|png|webp)$/i, '');
+    if (fNoExt === nameNoExt) return f;
+    if (nameNoExt.includes(fNoExt) || fNoExt.includes(nameNoExt)) return f;
+  }
+  return null;
+}
+
+async function main() {
+  try {
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    let allRecords = [];
+    let offset = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data, error } = await sb
+        .from('pattern_assets')
+        .select('id,name,brand,type,eye_img,lens_img,thumb_eye_url,thumb_lens_url')
+        .range(offset, offset + pageSize - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      allRecords = allRecords.concat(data);
+      if (data.length < pageSize) break;
+      offset += pageSize;
+    }
+
+    document.getElementById('status').style.display = 'none';
+    document.getElementById('report').style.display = 'block';
+
+    let chinesePrefix = 0, englishPrefix = 0, otherPrefix = 0, nullCount = 0;
+    let eyeMismatch = [], lensMismatch = [], thumbMismatch = [];
+    let eyeFixable = {}, lensFixable = {};
+
+    allRecords.forEach(r => {
+      const eye = r.eye_img || '';
+      const lens = r.lens_img || '';
+
+      if (eye.startsWith('图片/') || lens.startsWith('图片/')) chinesePrefix++;
+      else if (eye.startsWith('images/') || lens.startsWith('images/')) englishPrefix++;
+      else if (!eye && !lens) nullCount++;
+      else otherPrefix++;
+
+      if (eye) {
+        const bn = basename(eye);
+        if (bn && !localFileSet.has(bn)) {
+          eyeMismatch.push({ ...r, _eyeBasename: bn });
+          const sim = findSimilar(bn, localFileSet);
+          if (sim) eyeFixable[r.id] = { old: eye, fix: 'images/patterns/' + sim };
+        }
+      }
+      if (lens) {
+        const bn = basename(lens);
+        if (bn && !localFileSet.has(bn)) {
+          lensMismatch.push({ ...r, _lensBasename: bn });
+          const sim = findSimilar(bn, localFileSet);
+          if (sim) lensFixable[r.id] = { old: lens, fix: 'images/patterns/' + sim };
+        }
+      }
+      const te = r.thumb_eye_url || '';
+      const tl = r.thumb_lens_url || '';
+      if (te) {
+        const bn = basename(te);
+        if (bn && !localThumbSet.has(bn)) thumbMismatch.push({ id: r.id, name: r.name, type: 'thumb_eye', basename: bn });
+      }
+      if (tl) {
+        const bn = basename(tl);
+        if (bn && !localThumbSet.has(bn)) thumbMismatch.push({ id: r.id, name: r.name, type: 'thumb_lens', basename: bn });
+      }
+    });
+
+    document.getElementById('stats').innerHTML =
+      '<div class="stat"><b>' + allRecords.length + '</b><br><span>数据库记录</span></div>' +
+      '<div class="stat"><b>' + LOCAL_FILES.length + '</b><br><span>本地原图</span></div>' +
+      '<div class="stat"><b>' + LOCAL_THUMBS.length + '</b><br><span>本地缩略图</span></div>' +
+      '<div class="stat"><b style="color:#e74c3c">' + eyeMismatch.length + '</b><br><span>eye_img 缺失</span></div>' +
+      '<div class="stat"><b style="color:#e74c3c">' + lensMismatch.length + '</b><br><span>lens_img 缺失</span></div>' +
+      '<div class="stat"><b style="color:#f39c12">' + thumbMismatch.length + '</b><br><span>缩略图缺失</span></div>';
+
+    let prefixHtml = '<table><tr><th>路径前缀</th><th>记录数</th></tr>';
+    if (chinesePrefix) prefixHtml += '<tr class="mismatch"><td class="bad">图片/... (中文)</td><td>' + chinesePrefix + '</td></tr>';
+    if (englishPrefix) prefixHtml += '<tr><td class="good">images/... (英文)</td><td>' + englishPrefix + '</td></tr>';
+    if (otherPrefix) prefixHtml += '<tr><td class="warn">其他</td><td>' + otherPrefix + '</td></tr>';
+    if (nullCount) prefixHtml += '<tr><td>无图片</td><td>' + nullCount + '</td></tr>';
+    prefixHtml += '</table>';
+    document.getElementById('prefix-table').innerHTML = prefixHtml;
+
+    document.getElementById('mismatch-count').textContent = '(' + (eyeMismatch.length + lensMismatch.length) + ' 条)';
+
+    let mmHtml = '<table><tr><th>花色</th><th>品牌</th><th>字段</th><th>数据库路径</th><th>缺失文件</th><th>可修复为</th></tr>';
+    eyeMismatch.forEach(r => {
+      const fix = eyeFixable[r.id];
+      mmHtml += '<tr class="mismatch"><td>' + (r.name||'') + '</td><td>' + (r.brand||'') + '</td><td>eye_img</td><td class="bad">' + (r.eye_img||'') + '</td><td>' + r._eyeBasename + '</td><td class="' + (fix?'good':'bad') + '">' + (fix ? fix.fix : '无法匹配') + '</td></tr>';
+    });
+    lensMismatch.forEach(r => {
+      const fix = lensFixable[r.id];
+      mmHtml += '<tr class="mismatch"><td>' + (r.name||'') + '</td><td>' + (r.brand||'') + '</td><td>lens_img</td><td class="bad">' + (r.lens_img||'') + '</td><td>' + r._lensBasename + '</td><td class="' + (fix?'good':'bad') + '">' + (fix ? fix.fix : '无法匹配') + '</td></tr>';
+    });
+    if (eyeMismatch.length === 0 && lensMismatch.length === 0) {
+      mmHtml += '<tr><td colspan="6" style="text-align:center;color:#27ae60;padding:20px;">所有路径都匹配!</td></tr>';
+    }
+    mmHtml += '</table>';
+    document.getElementById('mismatch-table').innerHTML = mmHtml;
+
+    // 生成修复 SQL
+    let sql = '-- 花色素材路径修复 SQL\n';
+    sql += '-- 生成时间: ' + new Date().toLocaleString('zh-CN') + '\n\n';
+
+    if (chinesePrefix > 0) {
+      sql += '-- 1. 修复中文路径前缀 -> 英文\n';
+      sql += 'UPDATE pattern_assets\nSET\n';
+      sql += '  eye_img = CASE\n';
+      sql += '    WHEN eye_img LIKE \'图片/图案/%\' THEN REPLACE(eye_img, \'图片/图案/\', \'images/patterns/\')\n';
+      sql += '    WHEN eye_img LIKE \'图片/模式/%\' THEN REPLACE(eye_img, \'图片/模式/\', \'images/patterns/\')\n';
+      sql += '    WHEN eye_img LIKE \'图片/%\' THEN REPLACE(eye_img, \'图片/\', \'images/\')\n';
+      sql += '    ELSE eye_img\n  END,\n';
+      sql += '  lens_img = CASE\n';
+      sql += '    WHEN lens_img LIKE \'图片/图案/%\' THEN REPLACE(lens_img, \'图片/图案/\', \'images/patterns/\')\n';
+      sql += '    WHEN lens_img LIKE \'图片/模式/%\' THEN REPLACE(lens_img, \'图片/模式/\', \'images/patterns/\')\n';
+      sql += '    WHEN lens_img LIKE \'图片/%\' THEN REPLACE(lens_img, \'图片/\', \'images/\')\n';
+      sql += '    ELSE lens_img\n  END;\n\n';
+    }
+
+    const eyeKeys = Object.keys(eyeFixable);
+    const lensKeys = Object.keys(lensFixable);
+    if (eyeKeys.length > 0 || lensKeys.length > 0) {
+      sql += '-- 2. 修复文件名不匹配的记录\n';
+      eyeKeys.forEach(id => {
+        sql += 'UPDATE pattern_assets SET eye_img = \'' + eyeFixable[id].fix + '\' WHERE id = ' + id + ';\n';
+      });
+      lensKeys.forEach(id => {
+        sql += 'UPDATE pattern_assets SET lens_img = \'' + lensFixable[id].fix + '\' WHERE id = ' + id + ';\n';
+      });
+      sql += '\n';
+    }
+
+    sql += '-- 3. 重新生成缩略图 URL\n';
+    sql += 'UPDATE pattern_assets\nSET\n';
+    sql += '  thumb_eye_url = CASE\n';
+    sql += '    WHEN eye_img IS NOT NULL AND eye_img != \'\'\n';
+    sql += '    THEN REGEXP_REPLACE(\n';
+    sql += '      REGEXP_REPLACE(eye_img, \'^images/patterns/\', \'images/patterns/thumb/\'),\n';
+    sql += '      \'\\.(jpg|jpeg|png|JPG|JPEG|PNG)$\', \'.webp\'\n';
+    sql += '    )\n    ELSE NULL\n  END,\n';
+    sql += '  thumb_lens_url = CASE\n';
+    sql += '    WHEN lens_img IS NOT NULL AND lens_img != \'\'\n';
+    sql += '    THEN REGEXP_REPLACE(\n';
+    sql += '      REGEXP_REPLACE(lens_img, \'^images/patterns/\', \'images/patterns/thumb/\'),\n';
+    sql += '      \'\\.(jpg|jpeg|png|JPG|JPEG|PNG)$\', \'.webp\'\n';
+    sql += '    )\n    ELSE NULL\n  END;\n\n';
+    sql += '-- 4. 验证\n';
+    sql += 'SELECT name, brand, eye_img, thumb_eye_url FROM pattern_assets LIMIT 10;\n';
+
+    document.getElementById('sql-output').textContent = sql;
+    window._fixSQL = sql;
+
+  } catch(e) {
+    document.getElementById('status').innerHTML = '<div style="color:#e74c3c;padding:20px;">错误: ' + e.message + '</div>';
+  }
+}
+
+function copySQL() {
+  navigator.clipboard.writeText(window._fixSQL || '').then(() => {
+    alert('SQL 已复制! 粘贴到 Supabase SQL Editor 执行即可');
+  });
+}
+
+main();
+</script>
+</body>
+</html>
