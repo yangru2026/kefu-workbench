@@ -139,26 +139,45 @@ function boolValue(val: unknown): boolean {
 // ============================================
 
 // 花色素材 → pattern_assets
+// 空值字段不写入，避免覆盖数据库已有数据（如图片URL）
 function mapPatternRecord(record: Record<string, unknown>) {
   const f = (record.fields || {}) as Record<string, unknown>;
-  return {
+
+  // name 和 brand 是 upsert 冲突键，必须包含
+  const row: Record<string, unknown> = {
     name: fieldValue(f["花色名称"]),
     brand: fieldValue(f["品牌"]),
-    type: fieldValue(f["抛型"]),
-    series: fieldValue(f["系列"]),
-    color: fieldValue(f["色系"]),
-    diameter: fieldValue(f["直径"]),
-    color_diameter: fieldValue(f["着色直径"]),
-    material: fieldValue(f["材质"]),
-    oxygen: fieldValue(f["氧透率"]),
-    water: fieldValue(f["含水量"]),
-    spec: fieldValue(f["规格"]),
-    lens_img: fieldValue(f["花色图URL"]),
-    eye_img: fieldValue(f["上眼图URL"]),
-    description: fieldValue(f["推荐话术"]),
-    is_discontinued: boolValue(f["是否下架"]),
     feishu_record_id: String(record.record_id || ""),
   };
+
+  // 以下字段：飞书有值才写入，空值不覆盖数据库已有数据
+  const optionalFields: [string, string][] = [
+    ["type", "抛型"],
+    ["series", "系列"],
+    ["color", "色系"],
+    ["diameter", "直径"],
+    ["color_diameter", "着色直径"],
+    ["material", "材质"],
+    ["oxygen", "氧透率"],
+    ["water", "含水量"],
+    ["spec", "规格"],
+    ["lens_img", "花色图URL"],
+    ["eye_img", "上眼图URL"],
+    ["description", "推荐话术"],
+  ];
+
+  for (const [dbField, feishuField] of optionalFields) {
+    const val = fieldValue(f[feishuField]);
+    if (val) row[dbField] = val;
+  }
+
+  // 是否下架：飞书有值才写入（避免空值覆盖已有的下架标记）
+  const discVal = f["是否下架"];
+  if (discVal !== null && discVal !== undefined && discVal !== "") {
+    row.is_discontinued = boolValue(discVal);
+  }
+
+  return row;
 }
 
 // 排班表 → schedule_data
