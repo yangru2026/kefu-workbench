@@ -42,8 +42,17 @@ CREATE POLICY "管理员可管理排班数据" ON schedule_data
 -- 索引
 CREATE INDEX IF NOT EXISTS idx_schedule_data_month ON schedule_data(month_key);
 
--- Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE schedule_data;
+-- Realtime（安全写法：已存在则跳过）
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'schedule_data'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE schedule_data;
+  END IF;
+END
+$$;
 
 
 -- ============================================
@@ -86,8 +95,17 @@ CREATE POLICY "管理员可管理售前月度数据" ON presale_monthly
 -- 索引
 CREATE INDEX IF NOT EXISTS idx_presale_monthly_period ON presale_monthly(period_month);
 
--- Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE presale_monthly;
+-- Realtime（安全写法：已存在则跳过）
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'presale_monthly'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE presale_monthly;
+  END IF;
+END
+$$;
 
 
 -- ============================================
@@ -122,5 +140,14 @@ CREATE POLICY "管理员可管理排名数据" ON ranking_data
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','leader'))
   );
 
--- 3.7 Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE ranking_data;
+-- 3.7 Realtime（安全写法：已存在则跳过）
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'ranking_data'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE ranking_data;
+  END IF;
+END
+$$;
