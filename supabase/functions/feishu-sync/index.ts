@@ -301,10 +301,12 @@ function mapPatternRecord(record: Record<string, unknown>) {
   const f = (record.fields || {}) as Record<string, unknown>;
 
   // name 和 brand 是 upsert 冲突键，必须包含
+  // is_discontinued 有 NOT NULL 约束，新记录默认 false
   const row: Record<string, unknown> = {
     name: fieldValue(f["花色名称"]),
     brand: fieldValue(f["品牌"]),
     feishu_record_id: String(record.record_id || ""),
+    is_discontinued: false,
   };
 
   // 以下字段：飞书有值才写入，空值不覆盖数据库已有数据
