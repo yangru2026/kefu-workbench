@@ -717,6 +717,10 @@ body {
 .ranking-table td .rank-cell-input:focus { outline:none; border-color:var(--primary); }
 .ranking-table td .rank-name-input { width:80px; padding:6px 8px; border:1.5px solid var(--border); border-radius:8px; font-size:14px; text-align:center; font-family:inherit; }
 .ranking-table td .rank-name-input:focus { outline:none; border-color:var(--primary); }
+.ranking-table tr.group-header-row td { background:linear-gradient(90deg,#f3f0ff,#faf8ff); font-weight:700; font-size:15px; color:var(--primary); padding:10px 12px; border-top:2px solid var(--border); }
+.ranking-table tr.group-summary-row td { background:#f8f6fd; font-weight:700; color:var(--text); border-top:1.5px dashed var(--border); border-bottom:1.5px solid var(--border); }
+.ranking-table tr.grand-total-row td { background:linear-gradient(90deg,#ede8ff,#e8e3ff); font-weight:800; font-size:15px; color:var(--primary); border-top:2px solid var(--primary); border-bottom:2px solid var(--primary); }
+.ranking-groups { display:none; }
 .rank-export-area { margin-top:20px; padding:20px; background:#fff; border-radius:14px; border:1px solid var(--border); }
 .rank-export-title { font-size:14px; font-weight:600; color:var(--text); margin-bottom:10px; }
 .rank-export-text { width:100%; min-height:120px; padding:12px; border:1.5px solid var(--border); border-radius:10px; font-size:12px; font-family:monospace; background:#faf8ff; resize:vertical; margin-bottom:10px; }
@@ -1518,15 +1522,18 @@ body {
     </div>
     <div class="ranking-meta" id="ranking-meta"></div>
     <div class="ranking-table-wrap">
-      <table class="ranking-table">
+      <table class="ranking-table" style="min-width:900px;">
         <thead>
           <tr>
             <th class="col-rank">排名</th>
-            <th class="col-name">姓名</th>
+            <th class="col-name">花名</th>
+            <th class="sortable" data-key="visitors">接待量 <span class="sort-arrow"></span></th>
+            <th class="sortable" data-key="inquiryCount">询单人数 <span class="sort-arrow"></span></th>
+            <th class="sortable" data-key="paymentCount">付款人数 <span class="sort-arrow"></span></th>
             <th class="sortable" data-key="conversion">转化率 <span class="sort-arrow"></span></th>
             <th class="sortable" data-key="crossSales">连带销售额 <span class="sort-arrow"></span></th>
+            <th class="sortable" data-key="response">响应(秒) <span class="sort-arrow"></span></th>
             <th class="sortable" data-key="satisfaction">满意度 <span class="sort-arrow"></span></th>
-            <th class="sortable active asc" data-key="response">响应(秒) <span class="sort-arrow">▲</span></th>
           </tr>
         </thead>
         <tbody id="ranking-tbody"></tbody>
@@ -1991,6 +1998,9 @@ function updateRankingDataFromRows() {
     if (idx >= 0) {
       groups[idx].members.push({
         name: row.staff_name || '',
+        visitors: row.visitors || 0,
+        inquiryCount: row.inquiry_count || 0,
+        paymentCount: row.payment_count || 0,
         conversion: row.conversion_rate || 0,
         crossSales: row.cross_sales || 0,
         satisfaction: row.satisfaction || 0,
@@ -2055,6 +2065,9 @@ async function saveRankingToDB() {
         rows.push({
           staff_name: m.name,
           group_name: group.name,
+          visitors: m.visitors || 0,
+          inquiry_count: m.inquiryCount || 0,
+          payment_count: m.paymentCount || 0,
           conversion_rate: m.conversion,
           cross_sales: m.crossSales,
           satisfaction: m.satisfaction,
@@ -2420,6 +2433,9 @@ async function importRankingFromSheet(rows) {
       staff_name: name,
       group_name: groupName,
       period: period,
+      visitors: parseNumber(getCell(row, header, ['接待量', 'visitors', 'visitor'])),
+      inquiry_count: parseNumber(getCell(row, header, ['询单人数', 'inquiry_count', 'inquirycount', '询单'])),
+      payment_count: parseNumber(getCell(row, header, ['付款人数', 'payment_count', 'paymentcount', '付款'])),
       conversion_rate: parseNumber(getCell(row, header, ['转化率', 'conversion', 'conversion_rate'])),
       cross_sales: parseNumber(getCell(row, header, ['连带销售额', 'crosssales', 'cross_sales', '连带销售'])),
       satisfaction: parseNumber(getCell(row, header, ['满意度', 'satisfaction'])),
@@ -4916,49 +4932,12 @@ function queryLogistics() {
 // ==================== RANKING ====================
 function renderRanking() {
   if (!rankingData.groups || rankingData.groups.length === 0) {
-    document.getElementById('ranking-tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-secondary);">暂未配置排名数据，杨茹快来添加吧！</td></tr>';
+    document.getElementById('ranking-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-secondary);">暂无排名数据，点击「编辑数据」录入吧！</td></tr>';
     document.getElementById('ranking-meta').textContent = '';
     return;
   }
 
-  // Group tab listeners
-  document.querySelectorAll('.rank-group-btn').forEach(btn => {
-    btn.classList.toggle('active', parseInt(btn.dataset.group) === rankGroupIdx);
-    btn.onclick = () => {
-      rankGroupIdx = parseInt(btn.dataset.group);
-      rankSortKey = 'response';
-      rankSortAsc = true;
-      renderRanking();
-    };
-  });
-
-  const group = rankingData.groups[rankGroupIdx];
-  if (!group) return;
-
-  // Sort members (only in view mode)
-  let sorted = [...group.members];
-  if (!rankEditMode) {
-    sorted.sort((a, b) => {
-      const va = a[rankSortKey];
-      const vb = b[rankSortKey];
-      if (rankSortKey === 'response') return rankSortAsc ? va - vb : vb - va;
-      return rankSortAsc ? vb - va : va - vb;
-    });
-  }
-
-  // Update table header sort indicators
-  document.querySelectorAll('.ranking-table th.sortable').forEach(th => {
-    th.classList.remove('active', 'asc', 'desc');
-    const key = th.dataset.key;
-    if (!rankEditMode && key === rankSortKey) {
-      th.classList.add('active', rankSortAsc ? 'asc' : 'desc');
-      th.querySelector('.sort-arrow').textContent = rankSortAsc ? '▲' : '▼';
-    } else {
-      th.querySelector('.sort-arrow').textContent = '';
-    }
-  });
-
-  // Column sort click handlers
+  // Sort header click handlers
   document.querySelectorAll('.ranking-table th.sortable').forEach(th => {
     th.onclick = () => {
       if (rankEditMode) return;
@@ -4973,48 +4952,139 @@ function renderRanking() {
     };
   });
 
-  // Render metadata
-  const avgConv = (sorted.reduce((s, m) => s + m.conversion, 0) / sorted.length).toFixed(1);
-  const avgSat = (sorted.reduce((s, m) => s + m.satisfaction, 0) / sorted.length).toFixed(0);
-  const avgResp = Math.round(sorted.reduce((s, m) => s + m.response, 0) / sorted.length);
-  document.getElementById('ranking-meta').innerHTML =
-    `共<b>${sorted.length}人</b> · 组均转化率 <b>${avgConv}%</b> · 组均满意度 <b>${avgSat}%</b> · 组均响应 <b>${avgResp}秒</b>`;
+  // Update sort indicators
+  document.querySelectorAll('.ranking-table th.sortable').forEach(th => {
+    th.classList.remove('active', 'asc', 'desc');
+    const key = th.dataset.key;
+    if (!rankEditMode && key === rankSortKey) {
+      th.classList.add('active', rankSortAsc ? 'asc' : 'desc');
+      th.querySelector('.sort-arrow').textContent = rankSortAsc ? '▲' : '▼';
+    } else {
+      th.querySelector('.sort-arrow').textContent = '';
+    }
+  });
 
-  // Render table rows
   const tbody = document.getElementById('ranking-tbody');
-  tbody.innerHTML = sorted.map((m, i) => {
-    const rank = i + 1;
-    let rankClass = '';
-    if (rank === 1) rankClass = 'top1';
-    else if (rank === 2) rankClass = 'top2';
-    else if (rank === 3) rankClass = 'top3';
+  let html = '';
+  let grandVisitors = 0, grandInquiry = 0, grandPayment = 0, grandSales = 0;
+  let grandConv = 0, grandSat = 0, grandResp = 0, grandCount = 0;
+  let globalRank = 0;
 
-    const isTop3 = rank <= 3 ? ' top-row' : '';
-    const convHighlight = rankSortKey === 'conversion' && rank <= 1 ? ' highlight' : '';
-    const salesHighlight = rankSortKey === 'crossSales' && rank <= 1 ? ' highlight' : '';
-    const satHighlight = rankSortKey === 'satisfaction' && rank <= 1 ? ' highlight' : '';
-    const respClass = m.response <= 30 ? ' fast' : '';
+  rankingData.groups.forEach((group, gIdx) => {
+    if (!group.members || group.members.length === 0) return;
 
-    if (rankEditMode) {
-      return `<tr class="${isTop3}">
-        <td class="col-rank"><span class="rank-badge ${rankClass}">${rank}</span></td>
-        <td class="col-name"><input class="rank-name-input" data-idx="${i}" data-field="name" value="${m.name || ''}" placeholder="姓名" onchange="updateRankCell(${rankGroupIdx},${i},'name',this.value)"></td>
-        <td><input class="rank-cell-input" data-idx="${i}" data-field="conversion" value="${m.conversion}" onchange="updateRankCell(${rankGroupIdx},${i},'conversion',this.value)">%</td>
-        <td>¥<input class="rank-cell-input" data-idx="${i}" data-field="crossSales" value="${m.crossSales}" onchange="updateRankCell(${rankGroupIdx},${i},'crossSales',this.value)"></td>
-        <td><input class="rank-cell-input" data-idx="${i}" data-field="satisfaction" value="${m.satisfaction}" onchange="updateRankCell(${rankGroupIdx},${i},'satisfaction',this.value)">%</td>
-        <td><input class="rank-cell-input" data-idx="${i}" data-field="response" value="${m.response}" onchange="updateRankCell(${rankGroupIdx},${i},'response',this.value)">秒</td>
-      </tr>`;
+    // Group header row
+    html += `<tr class="group-header-row"><td colspan="9">${group.name}</td></tr>`;
+
+    // Sort members (view mode only)
+    let sorted = [...group.members];
+    if (!rankEditMode) {
+      sorted.sort((a, b) => {
+        const va = a[rankSortKey];
+        const vb = b[rankSortKey];
+        if (rankSortKey === 'response') return rankSortAsc ? va - vb : vb - va;
+        return rankSortAsc ? vb - va : va - vb;
+      });
     }
 
-    return `<tr class="${isTop3}">
-      <td class="col-rank"><span class="rank-badge ${rankClass}">${rank}</span></td>
-      <td class="col-name">${m.name || '<span style="color:#ccc">—</span>'}</td>
-      <td class="${convHighlight}">${m.conversion}%</td>
-      <td class="col-crossSales${salesHighlight}">¥${m.crossSales.toLocaleString()}</td>
-      <td class="${satHighlight}">${m.satisfaction}%</td>
-      <td class="col-response${respClass}">${m.response}秒</td>
+    let gVisitors = 0, gInquiry = 0, gPayment = 0, gSales = 0;
+    let gConv = 0, gSat = 0, gResp = 0;
+
+    sorted.forEach((m, i) => {
+      globalRank++;
+      const rank = i + 1;
+      let rankClass = '';
+      if (rank === 1) rankClass = 'top1';
+      else if (rank === 2) rankClass = 'top2';
+      else if (rank === 3) rankClass = 'top3';
+
+      const isTop3 = rank <= 3 ? ' top-row' : '';
+      gVisitors += m.visitors || 0;
+      gInquiry += m.inquiryCount || 0;
+      gPayment += m.paymentCount || 0;
+      gSales += m.crossSales || 0;
+      gConv += m.conversion || 0;
+      gSat += m.satisfaction || 0;
+      gResp += m.response || 0;
+
+      const respClass = (m.response || 0) <= 30 ? ' fast' : '';
+
+      if (rankEditMode) {
+        html += `<tr class="${isTop3}">
+          <td class="col-rank"><span class="rank-badge ${rankClass}">${rank}</span></td>
+          <td class="col-name"><input class="rank-name-input" data-gidx="${gIdx}" data-midx="${i}" data-field="name" value="${m.name || ''}" placeholder="姓名" onchange="updateRankCell(${gIdx},${i},'name',this.value)"></td>
+          <td><input class="rank-cell-input" data-gidx="${gIdx}" data-midx="${i}" data-field="visitors" value="${m.visitors || 0}" onchange="updateRankCell(${gIdx},${i},'visitors',this.value)"></td>
+          <td><input class="rank-cell-input" data-gidx="${gIdx}" data-midx="${i}" data-field="inquiryCount" value="${m.inquiryCount || 0}" onchange="updateRankCell(${gIdx},${i},'inquiryCount',this.value)"></td>
+          <td><input class="rank-cell-input" data-gidx="${gIdx}" data-midx="${i}" data-field="paymentCount" value="${m.paymentCount || 0}" onchange="updateRankCell(${gIdx},${i},'paymentCount',this.value)"></td>
+          <td><input class="rank-cell-input" data-gidx="${gIdx}" data-midx="${i}" data-field="conversion" value="${m.conversion}" onchange="updateRankCell(${gIdx},${i},'conversion',this.value)">%</td>
+          <td>¥<input class="rank-cell-input" data-gidx="${gIdx}" data-midx="${i}" data-field="crossSales" value="${m.crossSales}" onchange="updateRankCell(${gIdx},${i},'crossSales',this.value)"></td>
+          <td><input class="rank-cell-input" data-gidx="${gIdx}" data-midx="${i}" data-field="response" value="${m.response}" onchange="updateRankCell(${gIdx},${i},'response',this.value)">秒</td>
+          <td><input class="rank-cell-input" data-gidx="${gIdx}" data-midx="${i}" data-field="satisfaction" value="${m.satisfaction}" onchange="updateRankCell(${gIdx},${i},'satisfaction',this.value)">%</td>
+        </tr>`;
+      } else {
+        html += `<tr class="${isTop3}">
+          <td class="col-rank"><span class="rank-badge ${rankClass}">${rank}</span></td>
+          <td class="col-name">${m.name || '<span style="color:#ccc">—</span>'}</td>
+          <td>${(m.visitors || 0).toLocaleString()}</td>
+          <td>${(m.inquiryCount || 0).toLocaleString()}</td>
+          <td>${(m.paymentCount || 0).toLocaleString()}</td>
+          <td>${m.conversion}%</td>
+          <td class="col-crossSales">¥${(m.crossSales || 0).toLocaleString()}</td>
+          <td class="col-response${respClass}">${m.response}秒</td>
+          <td>${m.satisfaction}%</td>
+        </tr>`;
+      }
+    });
+
+    // Group summary row
+    const gN = sorted.length;
+    grandVisitors += gVisitors;
+    grandInquiry += gInquiry;
+    grandPayment += gPayment;
+    grandSales += gSales;
+    grandConv += gConv;
+    grandSat += gSat;
+    grandResp += gResp;
+    grandCount += gN;
+
+    const gAvgConv = gN ? (gConv / gN).toFixed(1) : '0';
+    const gAvgSat = gN ? (gSat / gN).toFixed(1) : '0';
+    const gAvgResp = gN ? Math.round(gResp / gN) : 0;
+
+    html += `<tr class="group-summary-row">
+      <td colspan="2">${group.name}汇总</td>
+      <td>${gVisitors.toLocaleString()}</td>
+      <td>${gInquiry.toLocaleString()}</td>
+      <td>${gPayment.toLocaleString()}</td>
+      <td>${gAvgConv}%</td>
+      <td>¥${gSales.toLocaleString()}</td>
+      <td>${gAvgResp}秒</td>
+      <td>${gAvgSat}%</td>
     </tr>`;
-  }).join('');
+  });
+
+  // Grand total row
+  if (grandCount > 0) {
+    const grandAvgConv = (grandConv / grandCount).toFixed(1);
+    const grandAvgSat = (grandSat / grandCount).toFixed(1);
+    const grandAvgResp = Math.round(grandResp / grandCount);
+    html += `<tr class="grand-total-row">
+      <td colspan="2">总计 (${grandCount}人)</td>
+      <td>${grandVisitors.toLocaleString()}</td>
+      <td>${grandInquiry.toLocaleString()}</td>
+      <td>${grandPayment.toLocaleString()}</td>
+      <td>${grandAvgConv}%</td>
+      <td>¥${grandSales.toLocaleString()}</td>
+      <td>${grandAvgResp}秒</td>
+      <td>${grandAvgSat}%</td>
+    </tr>`;
+  }
+
+  tbody.innerHTML = html;
+
+  // Metadata
+  document.getElementById('ranking-meta').innerHTML =
+    `共<b>${grandCount}人</b> · 总接待 <b>${grandVisitors.toLocaleString()}</b> · 总成交 <b>¥${grandSales.toLocaleString()}</b> · 平均转化率 <b>${grandCount ? (grandConv/grandCount).toFixed(1) : 0}%</b>`;
 }
 
 function updateRankCell(groupIdx, memberIdx, field, value) {
