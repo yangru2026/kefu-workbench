@@ -7,6 +7,13 @@
 -- 并清理 pattern_categories 中的重复直径分类
 -- ============================================
 
+-- 0. 先确保 CHECK 约束支持 diameter 类型
+ALTER TABLE pattern_categories
+  DROP CONSTRAINT IF EXISTS pattern_categories_category_type_check;
+ALTER TABLE pattern_categories
+  ADD CONSTRAINT pattern_categories_category_type_check
+  CHECK (category_type IN ('brand', 'type', 'diameter', 'series', 'color'));
+
 -- 1. 归一化所有非空 diameter 值
 UPDATE pattern_assets
 SET diameter = TRIM(REPLACE(REPLACE(REPLACE(diameter, 'mm', ''), 'MM', ''), ' ', ''))

@@ -3023,19 +3023,23 @@ function renderPatterns() {
     const images = [];  // [{thumb, large, hd, type, hint}] - lightbox 用 thumb 占位 + large 中图 + hd 原图 fallback
     const hasEye = p.eyeImg && p.eyeImg.trim() !== '';
     const hasLens = p.lensImg && p.lensImg.trim() !== '';
-    // 缩略图优先，没有则回退到原图
-    const eyeSrc = (p.thumbEye && p.thumbEye.trim() !== '') ? p.thumbEye : p.eyeImg;
-    const eyeHd = p.eyeImg || p.thumbEye || '';
-    const eyeLarge = eyeHd ? eyeHd.replace('/patterns/', '/patterns/large/').replace(/\.(jpg|jpeg|png|webp)$/i, '.webp') : '';
-    const lensThumbSrc = (p.thumbLens && p.thumbLens.trim() !== '') ? p.thumbLens : p.lensImg;
-    const lensHd = p.lensImg || p.thumbLens || '';
-    const lensLarge = lensHd ? lensHd.replace('/patterns/', '/patterns/large/').replace(/\.(jpg|jpeg|png|webp)$/i, '.webp') : '';
+    // 缩略图优先，没有则回退到原图；加版本号避免缓存旧资源
+    const rawEyeSrc = (p.thumbEye && p.thumbEye.trim() !== '') ? p.thumbEye : p.eyeImg;
+    const eyeSrc = addCacheBuster(rawEyeSrc);
+    const rawEyeHd = p.eyeImg || p.thumbEye || '';
+    const eyeHd = addCacheBuster(rawEyeHd);
+    const eyeLarge = rawEyeHd ? toLargeImageUrl(rawEyeHd) : '';
+    const rawLensThumbSrc = (p.thumbLens && p.thumbLens.trim() !== '') ? p.thumbLens : p.lensImg;
+    const lensThumbSrc = addCacheBuster(rawLensThumbSrc);
+    const rawLensHd = p.lensImg || p.thumbLens || '';
+    const lensHd = addCacheBuster(rawLensHd);
+    const lensLarge = rawLensHd ? toLargeImageUrl(rawLensHd) : '';
 
     if (hasEye) {
-      images.push({ thumb: p.thumbEye || p.eyeImg, large: eyeLarge, hd: eyeHd, type: 'eye', hint: '上眼效果' });
+      images.push({ thumb: eyeSrc, large: eyeLarge, hd: eyeHd, type: 'eye', hint: '上眼效果' });
     }
     if (hasLens) {
-      images.push({ thumb: p.thumbLens || p.lensImg, large: lensLarge, hd: lensHd, type: 'lens', hint: '镜片图' });
+      images.push({ thumb: lensThumbSrc, large: lensLarge, hd: lensHd, type: 'lens', hint: '镜片图' });
     }
 
     // 首屏前 6 张加 fetchpriority="high"，提升首屏感知速度
@@ -3043,9 +3047,9 @@ function renderPatterns() {
     const fpAttr = isFirstScreen ? ' fetchpriority="high"' : '';
 
     if (hasEye && hasLens) {
-      // 主图用缩略图，hover 切换的 lens 用 data-lens-src 存原图，hover 时 JS 加载
+      // 主图用缩略图，hover 切换的 lens 用 data-lens-src 存中图，hover 时 JS 加载中图替换缩略图
       imgHtml = `<img src="${escapeHtml(eyeSrc)}" class="img-eye" alt="${escapeHtml(p.name)} 上眼图" loading="lazy" decoding="async"${fpAttr}>
-                 <img src="${escapeHtml(lensThumbSrc)}" data-lens-src="${escapeHtml(p.lensImg)}" class="img-lens" alt="${escapeHtml(p.name)} 镜片图" loading="lazy" decoding="async">`;
+                 <img src="${escapeHtml(lensThumbSrc)}" data-lens-src="${escapeHtml(lensLarge || lensHd)}" class="img-lens" alt="${escapeHtml(p.name)} 镜片图" loading="lazy" decoding="async">`;
     } else if (hasEye) {
       imgHtml = `<img src="${escapeHtml(eyeSrc)}" alt="${escapeHtml(p.name)} 上眼图" loading="lazy" decoding="async"${fpAttr}>`;
     } else if (hasLens) {
@@ -3113,7 +3117,7 @@ function renderPatterns() {
       <button class="pattern-loadmore" id="pattern-loadmore-btn" onclick="loadMorePatterns()">加载更多 ↓  （还有 ${total - endIdx} 款）</button>
     </div>` : '');
 
-  // 绑定 hover 时加载 lens 原图（data-lens-src 替换为 src）
+  // 绑定 hover 时加载 lens 中图（data-lens-src 替换为 src）
   bindLazyLens();
 }
 
@@ -3152,6 +3156,23 @@ function escapeHtml(s) {
 
 function escapeAttr(s) {
   return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// 将原图 URL 转换为中图 URL（用于 lightbox / hover）
+// 支持绝对路径和相对路径：.../patterns/xxx.jpg => .../patterns/large/xxx.webp
+function toLargeImageUrl(url) {
+  if (!url || url.includes('/patterns/thumb/')) return '';
+  const m = url.match(/^(.*\/)patterns\/(.+?)(?:\.(jpg|jpeg|png|webp))?$/i);
+  if (!m) return '';
+  const base = m[1];
+  const name = m[2];
+  return addCacheBuster(base + 'patterns/large/' + name + '.webp');
+}
+
+// 给本地图片 URL 加版本号，避免浏览器/缓存层返回旧资源
+function addCacheBuster(url) {
+  if (!url || url.includes('supabase.co') || url.includes('?')) return url;
+  return url + '?v=2';
 }
 
 function copyPatternScript(btn, text) {
