@@ -1,36 +1,24 @@
 // ============================================
-// 飞书多维表格 → Supabase 花色素材同步 Edge Function
+// 飞书多维表格 → Supabase 多表同步 Edge Function
 // ============================================
 // 功能：
 //   1. 手动触发同步（工作台「从飞书同步」按钮调用）
 //   2. 接收飞书事件订阅 webhook（自动同步）
-//   3. 拉取飞书多维表格全部记录，upsert 到 pattern_assets 表
-//   4. 飞书中已删除的记录 → 在 Supabase 中标记下架
+//   3. 支持四种数据表同步：
+//      - patterns  花色素材 → pattern_assets
+//      - schedule  排班表   → schedule_data
+//      - ranking   客服排名 → ranking_data
+//      - presale   售前月度 → presale_monthly
 //
 // 环境变量（在 Supabase Dashboard → Edge Functions → Secrets 中配置）：
-//   FEISHU_APP_ID          飞书自建应用 App ID
-//   FEISHU_APP_SECRET      飞书自建应用 App Secret
-//   FEISHU_BITABLE_APP_TOKEN  多维表格 app_token（URL 中 /base/ 后面的部分）
-//   FEISHU_BITABLE_TABLE_ID  多维表格 table_id（URL 中 ?table= 后面的部分）
-//   SYNC_AUTH_TOKEN        手动触发的鉴权 token（自定义，前端请求时需带上）
-//
-// 飞书多维表格字段名 → pattern_assets 列映射：
-//   花色名称   → name
-//   品牌       → brand
-//   抛型       → type
-//   系列       → series
-//   色系       → color
-//   直径       → diameter
-//   着色直径   → color_diameter
-//   材质       → material
-//   氧透率     → oxygen
-//   含水量     → water
-//   规格       → spec
-//   花色图URL  → lens_img
-//   上眼图URL  → eye_img
-//   推荐话术   → description
-//   是否下架   → is_discontinued
-//   飞书记录ID → feishu_record_id（用于增量同步匹配）
+//   FEISHU_APP_ID               飞书自建应用 App ID
+//   FEISHU_APP_SECRET           飞书自建应用 App Secret
+//   FEISHU_BITABLE_APP_TOKEN    多维表格 app_token（URL 中 /base/ 后面的部分）
+//   FEISHU_PATTERN_TABLE_ID     花色素材 table_id
+//   FEISHU_SCHEDULE_TABLE_ID    排班表 table_id
+//   FEISHU_RANKING_TABLE_ID     客服排名 table_id
+//   FEISHU_PRESALE_TABLE_ID     售前月度 table_id
+//   SYNC_AUTH_TOKEN             手动触发的鉴权 token
 // ============================================
 
 const FEISHU_BASE = "https://open.feishu.cn/open-apis";
@@ -111,7 +99,6 @@ function fieldValue(val: unknown): string {
   if (typeof val === "string") return val;
   if (typeof val === "number") return String(val);
   if (Array.isArray(val)) {
-    // 多选/附件等字段，取文本
     const texts = val
       .map((v) => {
         if (typeof v === "string") return v;
@@ -124,7 +111,6 @@ function fieldValue(val: unknown): string {
     return texts.join(", ");
   }
   if (typeof val === "object" && val !== null) {
-    // 富文本/附件对象
     const obj = val as Record<string, unknown>;
     if (obj.text) return String(obj.text);
     if (obj.name) return String(obj.name);
@@ -133,18 +119,11 @@ function fieldValue(val: unknown): string {
   return String(val);
 }
 
-// 从附件字段提取图片URL（飞书附件返回 file_token，需用下载API；这里直接用原始URL或留空）
-function attachmentUrl(val: unknown): string {
-  if (!val || !Array.isArray(val) || val.length === 0) return "";
-  const first = val[0] as Record<string, unknown>;
-  // 如果字段直接是 URL 文本类型
-  if (typeof first === "string") return first;
-  // 如果是附件类型，返回 file_token（前端需要用飞书API下载）
-  // 但由于前端无法直接访问飞书API，这里建议多维表格中直接存图片URL文本
-  if (first.file_token) return String(first.file_token);
-  if (first.url) return String(first.url);
-  if (first.text) return String(first.text);
-  return "";
+// 数字值转换
+function numValue(val: unknown): number {
+  const s = fieldValue(val);
+  const n = parseFloat(s.replace(/[,，¥元秒%]/g, "").trim());
+  return isNaN(n) ? 0 : n;
 }
 
 // 布尔值转换
@@ -155,8 +134,12 @@ function boolValue(val: unknown): boolean {
   return false;
 }
 
-// 映射飞书记录 → pattern_assets 行
-function mapRecord(record: Record<string, unknown>) {
+// ============================================
+// 字段映射函数 - 每种表一个
+// ============================================
+
+// 花色素材 → pattern_assets
+function mapPatternRecord(record: Record<string, unknown>) {
   const f = (record.fields || {}) as Record<string, unknown>;
   return {
     name: fieldValue(f["花色名称"]),
@@ -178,6 +161,242 @@ function mapRecord(record: Record<string, unknown>) {
   };
 }
 
+// 排班表 → schedule_data
+function mapScheduleRecord(record: Record<string, unknown>) {
+  const f = (record.fields || {}) as Record<string, unknown>;
+  const monthKey = fieldValue(f["月份"]);
+  const staffName = fieldValue(f["姓名"]);
+  const groupName = fieldValue(f["组别"]);
+
+  // 构建 schedule JSON：1日~31日
+  const schedule: Record<string, string> = {};
+  for (let day = 1; day <= 31; day++) {
+    const val = fieldValue(f[`${day}日`]);
+    if (val) schedule[String(day)] = val;
+  }
+
+  return {
+    month_key: monthKey,
+    staff_name: staffName,
+    group_name: groupName,
+    schedule: schedule,
+    feishu_record_id: String(record.record_id || ""),
+  };
+}
+
+// 客服排名 → ranking_data
+function mapRankingRecord(record: Record<string, unknown>) {
+  const f = (record.fields || {}) as Record<string, unknown>;
+  return {
+    staff_name: fieldValue(f["姓名"]),
+    group_name: fieldValue(f["组别"]),
+    conversion_rate: numValue(f["转化率"]),
+    cross_sales: numValue(f["连带销售额"]),
+    satisfaction: numValue(f["满意度"]),
+    response_time: numValue(f["响应时间"]),
+    period: fieldValue(f["月份"]),
+    feishu_record_id: String(record.record_id || ""),
+  };
+}
+
+// 售前月度 → presale_monthly
+function mapPresaleMonthlyRecord(record: Record<string, unknown>) {
+  const f = (record.fields || {}) as Record<string, unknown>;
+  return {
+    period_month: fieldValue(f["月份"]),
+    group_name: fieldValue(f["组别"]),
+    visitors: numValue(f["接待量"]),
+    orders: numValue(f["成交单数"]),
+    revenue: numValue(f["销售额"]),
+    conversion: numValue(f["转化率"]),
+    avg_response: numValue(f["响应时间"]),
+    satisfaction: numValue(f["满意度"]),
+    cross_sales: numValue(f["连带销售额"]),
+    visitor_count: numValue(f["接待人数"]),
+    inquiry_count: numValue(f["询单人数"]),
+    payment_count: numValue(f["付款人数"]),
+    feishu_record_id: String(record.record_id || ""),
+  };
+}
+
+// ============================================
+// Supabase REST API 工具函数
+// ============================================
+
+async function supabaseUpsert(
+  supabaseUrl: string,
+  serviceKey: string,
+  table: string,
+  rows: Record<string, unknown>[],
+  onConflict: string,
+) {
+  const resp = await fetch(
+    `${supabaseUrl}/rest/v1/${table}?on_conflict=${onConflict}`,
+    {
+      method: "POST",
+      headers: {
+        "apikey": serviceKey,
+        "Authorization": `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates,return=representation",
+      },
+      body: JSON.stringify(rows),
+    },
+  );
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`写入 ${table} 失败: ${errText}`);
+  }
+  return await resp.json();
+}
+
+// 标记飞书已删除的花色为下架
+async function markStalePatternsDiscontinued(
+  supabaseUrl: string,
+  serviceKey: string,
+  feishuIds: string[],
+) {
+  if (feishuIds.length === 0) return 0;
+  const notInFilter = `feishu_record_id=not.in.(${feishuIds.join(",")})`;
+  const markResp = await fetch(
+    `${supabaseUrl}/rest/v1/pattern_assets?${notInFilter}&select=id,feishu_record_id`,
+    {
+      headers: {
+        "apikey": serviceKey,
+        "Authorization": `Bearer ${serviceKey}`,
+      },
+    },
+  );
+  if (!markResp.ok) return 0;
+  const staleRecords = await markResp.json();
+  if (!Array.isArray(staleRecords) || staleRecords.length === 0) return 0;
+  const staleIds = staleRecords.map((r: { id: string }) => r.id);
+  await fetch(
+    `${supabaseUrl}/rest/v1/pattern_assets?id=in.(${staleIds.join(",")})`,
+    {
+      method: "PATCH",
+      headers: {
+        "apikey": serviceKey,
+        "Authorization": `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal",
+      },
+      body: JSON.stringify({ is_discontinued: true }),
+    },
+  );
+  return staleIds.length;
+}
+
+// ============================================
+// 同步类型定义
+// ============================================
+
+interface SyncType {
+  name: string;
+  tableIdEnv: string;
+  mapFn: (record: Record<string, unknown>) => Record<string, unknown>;
+  supabaseTable: string;
+  onConflict: string;
+  filterFn: (row: Record<string, unknown>) => boolean;
+  // 花色素材特殊的删除处理
+  postSyncFn?: (
+    supabaseUrl: string,
+    serviceKey: string,
+    rows: Record<string, unknown>[],
+  ) => Promise<void>;
+}
+
+const SYNC_TYPES: Record<string, SyncType> = {
+  patterns: {
+    name: "花色素材",
+    tableIdEnv: "FEISHU_PATTERN_TABLE_ID",
+    mapFn: mapPatternRecord,
+    supabaseTable: "pattern_assets",
+    onConflict: "name,brand",
+    filterFn: (row) => !!row.name,
+    postSyncFn: async (supabaseUrl, serviceKey, rows) => {
+      const feishuIds = rows
+        .map((r) => r.feishu_record_id)
+        .filter(Boolean) as string[];
+      const count = await markStalePatternsDiscontinued(supabaseUrl, serviceKey, feishuIds);
+      if (count > 0) console.log(`花色素材: 标记 ${count} 条飞书已删除记录为下架`);
+    },
+  },
+  schedule: {
+    name: "排班表",
+    tableIdEnv: "FEISHU_SCHEDULE_TABLE_ID",
+    mapFn: mapScheduleRecord,
+    supabaseTable: "schedule_data",
+    onConflict: "month_key,staff_name",
+    filterFn: (row) => !!row.month_key && !!row.staff_name,
+  },
+  ranking: {
+    name: "客服排名",
+    tableIdEnv: "FEISHU_RANKING_TABLE_ID",
+    mapFn: mapRankingRecord,
+    supabaseTable: "ranking_data",
+    onConflict: "staff_name,period",
+    filterFn: (row) => !!row.staff_name && !!row.period,
+  },
+  presale: {
+    name: "售前月度",
+    tableIdEnv: "FEISHU_PRESALE_TABLE_ID",
+    mapFn: mapPresaleMonthlyRecord,
+    supabaseTable: "presale_monthly",
+    onConflict: "period_month,group_name",
+    filterFn: (row) => !!row.period_month && !!row.group_name,
+  },
+};
+
+// 执行单种类型的同步
+async function doSync(
+  syncType: SyncType,
+  token: string,
+  appToken: string,
+  tableId: string,
+  supabaseUrl: string,
+  serviceKey: string,
+) {
+  const records = await fetchAllBitableRecords(token, appToken, tableId);
+  console.log(`${syncType.name}: 飞书共 ${records.length} 条记录`);
+
+  if (records.length === 0) {
+    return { total_in_feishu: 0, synced: 0 };
+  }
+
+  const mappedRows = records
+    .map(syncType.mapFn)
+    .filter(syncType.filterFn);
+
+  console.log(`${syncType.name}: 有效记录 ${mappedRows.length} 条`);
+
+  if (mappedRows.length === 0) {
+    return { total_in_feishu: records.length, synced: 0 };
+  }
+
+  const upserted = await supabaseUpsert(
+    supabaseUrl,
+    serviceKey,
+    syncType.supabaseTable,
+    mappedRows,
+    syncType.onConflict,
+  );
+
+  const syncedCount = Array.isArray(upserted) ? upserted.length : 0;
+  console.log(`${syncType.name}: 成功写入 ${syncedCount} 条`);
+
+  // 后处理（花色素材标记下架等）
+  if (syncType.postSyncFn) {
+    await syncType.postSyncFn(supabaseUrl, serviceKey, mappedRows);
+  }
+
+  return { total_in_feishu: records.length, synced: syncedCount };
+}
+
+// ============================================
+// 主入口
+// ============================================
+
 Deno.serve(async (req: Request) => {
   // CORS preflight
   if (req.method === "OPTIONS") {
@@ -188,12 +407,11 @@ Deno.serve(async (req: Request) => {
     const appId = Deno.env.get("FEISHU_APP_ID");
     const appSecret = Deno.env.get("FEISHU_APP_SECRET");
     const appToken = Deno.env.get("FEISHU_BITABLE_APP_TOKEN");
-    const tableId = Deno.env.get("FEISHU_BITABLE_TABLE_ID");
     const authToken = Deno.env.get("SYNC_AUTH_TOKEN");
 
-    if (!appId || !appSecret || !appToken || !tableId) {
+    if (!appId || !appSecret || !appToken) {
       return json(
-        { ok: false, error: "缺少飞书环境变量配置，请在 Supabase Edge Function Secrets 中设置" },
+        { ok: false, error: "缺少飞书环境变量配置（FEISHU_APP_ID / FEISHU_APP_SECRET / FEISHU_BITABLE_APP_TOKEN）" },
         500,
       );
     }
@@ -201,122 +419,78 @@ Deno.serve(async (req: Request) => {
     // 解析请求
     const body = await req.json().catch(() => ({}));
 
-    // ===== 飞书事件订阅验证（challenge）=====
+    // 飞书事件订阅验证
     if (body.type === "url_verification" && body.challenge) {
       return json({ challenge: body.challenge });
     }
 
-    // ===== 鉴权 =====
-    // 手动触发：Authorization: Bearer <SYNC_AUTH_TOKEN>
-    // 飞书 webhook：header 中带 x-lark-request-timestamp / x-lark-signature
+    // 鉴权
     const authHeader = req.headers.get("authorization") || "";
     const isFeishuWebhook = req.headers.get("x-lark-request-timestamp") !== null;
-    const isManualTrigger = authHeader.replace("Bearer ", "") === authToken;
+    const isManualTrigger = authToken && authHeader.replace("Bearer ", "") === authToken;
 
     if (!isFeishuWebhook && !isManualTrigger) {
       return json({ ok: false, error: "未授权" }, 401);
     }
 
-    // 飞书事件订阅：事件体可能是加密的，这里暂不处理加密
-    // 事件格式: { event: { ... } } 或 { header: { event_type: "drive.file.bitable_record_changed_v1" } }
-    // 收到事件后直接执行全量同步
-    console.log("收到同步请求，开始执行...");
+    // 确定要同步的类型
+    // action: 'sync_patterns' | 'sync_schedule' | 'sync_ranking' | 'sync_presale' | 'sync_all'
+    // 默认 'sync_all'（飞书 webhook 触发时全量同步）
+    // 向后兼容：action='sync' 也视为花色素材同步
+    const action = body.action || "sync_all";
 
-    // ===== 获取飞书 token =====
-    const token = await getTenantAccessToken(appId, appSecret);
-
-    // ===== 拉取全部记录 =====
-    const records = await fetchAllBitableRecords(token, appToken, tableId);
-    console.log(`飞书多维表格共 ${records.length} 条记录`);
-
-    if (records.length === 0) {
-      return json({ ok: true, message: "飞书多维表格无记录", synced: 0 });
-    }
-
-    // ===== 映射数据 =====
-    const mappedRows = records.map(mapRecord).filter((r) => r.name); // 必须有花色名称
-    console.log(`有效记录 ${mappedRows.length} 条（已过滤无名称记录）`);
-
-    // ===== 写入 Supabase =====
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // 收集飞书记录 ID
-    const feishuIds = mappedRows.map((r) => r.feishu_record_id).filter(Boolean);
+    // 获取飞书 token
+    const token = await getTenantAccessToken(appId, appSecret);
 
-    // Upsert：按 name + brand 匹配（同品牌同名称视为同一条）
-    const upsertResp = await fetch(
-      `${supabaseUrl}/rest/v1/pattern_assets?on_conflict=name,brand`,
-      {
-        method: "POST",
-        headers: {
-          "apikey": serviceKey,
-          "Authorization": `Bearer ${serviceKey}`,
-          "Content-Type": "application/json",
-          "Prefer": "resolution=merge-duplicates,return=representation",
-        },
-        body: JSON.stringify(mappedRows),
-      },
-    );
-
-    if (!upsertResp.ok) {
-      const errText = await upsertResp.text();
-      console.error("Supabase upsert 失败:", errText);
-      return json(
-        { ok: false, error: "写入 Supabase 失败: " + errText },
-        500,
-      );
+    // 确定要执行的同步类型列表
+    let typesToSync: string[];
+    if (action === "sync_all") {
+      typesToSync = Object.keys(SYNC_TYPES);
+    } else if (action === "sync" || action === "sync_patterns") {
+      typesToSync = ["patterns"];
+    } else if (action === "sync_schedule") {
+      typesToSync = ["schedule"];
+    } else if (action === "sync_ranking") {
+      typesToSync = ["ranking"];
+    } else if (action === "sync_presale") {
+      typesToSync = ["presale"];
+    } else {
+      return json({ ok: false, error: `未知的 action: ${action}` }, 400);
     }
 
-    const upserted = await upsertResp.json();
-    console.log(`成功 upsert ${Array.isArray(upserted) ? upserted.length : 0} 条`);
+    // 依次执行同步
+    const results: Record<string, unknown> = {};
 
-    // ===== 处理删除：飞书中不再存在的记录 → 标记下架 =====
-    if (feishuIds.length > 0) {
-      // 查询 Supabase 中所有有 feishu_record_id 但不在本次飞书记录列表中的
-      const notInFilter = `feishu_record_id=not.in.(${feishuIds.join(",")})`;
-      const markResp = await fetch(
-        `${supabaseUrl}/rest/v1/pattern_assets?${notInFilter}&select=id,feishu_record_id`,
-        {
-          headers: {
-            "apikey": serviceKey,
-            "Authorization": `Bearer ${serviceKey}`,
-          },
-        },
-      );
-      if (markResp.ok) {
-        const staleRecords = await markResp.json();
-        if (Array.isArray(staleRecords) && staleRecords.length > 0) {
-          // 标记这些记录为下架
-          const staleIds = staleRecords.map((r: { id: string }) => r.id);
-          const updateResp = await fetch(
-            `${supabaseUrl}/rest/v1/pattern_assets?id=in.(${staleIds.join(",")})`,
-            {
-              method: "PATCH",
-              headers: {
-                "apikey": serviceKey,
-                "Authorization": `Bearer ${serviceKey}`,
-                "Content-Type": "application/json",
-                "Prefer": "return=minimal",
-              },
-              body: JSON.stringify({ is_discontinued: true }),
-            },
-          );
-          if (updateResp.ok) {
-            console.log(`标记 ${staleIds.length} 条飞书已删除记录为下架`);
-          }
-        }
+    for (const typeKey of typesToSync) {
+      const syncType = SYNC_TYPES[typeKey];
+      const tableId = Deno.env.get(syncType.tableIdEnv);
+
+      if (!tableId) {
+        console.log(`${syncType.name}: 未配置 ${syncType.tableIdEnv}，跳过`);
+        results[typeKey] = { skipped: true, reason: `未配置 ${syncType.tableIdEnv}` };
+        continue;
+      }
+
+      try {
+        console.log(`开始同步 ${syncType.name}...`);
+        const result = await doSync(syncType, token, appToken, tableId, supabaseUrl, serviceKey);
+        results[typeKey] = result;
+      } catch (err) {
+        console.error(`${syncType.name} 同步失败:`, err);
+        results[typeKey] = { error: err.message || String(err) };
       }
     }
 
     const result = {
       ok: true,
       message: "同步完成",
-      total_in_feishu: records.length,
-      synced: Array.isArray(upserted) ? upserted.length : 0,
+      results,
       timestamp: new Date().toISOString(),
     };
-    console.log("同步结果:", result);
+    console.log("同步结果:", JSON.stringify(result));
 
     return json(result);
   } catch (err) {

@@ -673,7 +673,7 @@ body {
 /* ===== Ranking ===== */
 .ranking-toolbar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
 .ranking-groups { display:flex; gap:10px; }
-.ranking-actions { display:flex; gap:8px; }
+.ranking-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 .rank-action-btn { padding:8px 18px; border:1.5px solid var(--border); border-radius:20px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; background:#fff; color:var(--text-secondary); transition:all 0.15s; }
 .rank-action-btn:hover { border-color:var(--primary); color:var(--primary); }
 .rank-action-btn.primary { background:var(--primary); color:#fff; border-color:var(--primary); }
@@ -684,6 +684,11 @@ body {
 .ranking-meta { font-size:12px; color:var(--text-secondary); margin-bottom:16px; }
 .ranking-table-wrap { background:#fff; border-radius:14px; border:1px solid var(--border); overflow:hidden; }
 .ranking-table { width:100%; border-collapse:collapse; font-size:15px; }
+
+/* ===== Presale Tabs ===== */
+.presale-tab-btn { padding:10px 24px; border:none; background:none; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; color:var(--text-secondary); border-bottom:3px solid transparent; margin-bottom:-2px; transition:all 0.15s; }
+.presale-tab-btn:hover { color:var(--primary); }
+.presale-tab-btn.active { color:var(--primary); border-bottom-color:var(--primary); }
 .ranking-table thead { background:#faf8ff; }
 .ranking-table th { padding:14px 10px; text-align:center; font-weight:700; color:var(--text); font-size:14px; border-bottom:2px solid var(--border); white-space:nowrap; }
 .ranking-table th.sortable { cursor:pointer; user-select:none; }
@@ -1045,7 +1050,15 @@ body {
 
   <!-- ===== 售前数据 ===== -->
   <div class="page" id="page-presale">
-    <div class="page-header"><h1>📈 售前数据汇总</h1><p>每日售前指标 · 趋势分析</p></div>
+    <div class="page-header"><h1>📈 售前数据汇总</h1><p>每日售前指标 · 月度数据存档 · 趋势分析</p></div>
+    <!-- Tab 切换 -->
+    <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border);">
+      <button class="presale-tab-btn active" data-tab="daily" onclick="switchPresaleTab('daily')">📊 每日数据</button>
+      <button class="presale-tab-btn" data-tab="monthly" onclick="switchPresaleTab('monthly')">📅 月度汇总</button>
+    </div>
+
+    <!-- 每日数据 Tab -->
+    <div id="presale-daily-tab">
     <div class="presale-actions admin-only" style="margin-bottom:16px;">
       <button class="btn-sm primary" onclick="openPresaleForm()">✎ 录入今日数据</button>
     </div>
@@ -1085,6 +1098,38 @@ body {
         </div>
       </div>
     </div>
+    </div><!-- end daily tab -->
+
+    <!-- 月度汇总 Tab -->
+    <div id="presale-monthly-tab" style="display:none;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+        <button class="btn btn-outline" onclick="prevPresaleMonth()">◀ 上月</button>
+        <span id="presale-monthly-label" style="font-size:18px;font-weight:700;"></span>
+        <button class="btn btn-outline" onclick="nextPresaleMonth()">下月 ▶</button>
+        <div style="flex:1;"></div>
+        <button class="feishu-sync-btn admin-only-nav" id="presale-monthly-sync-btn" onclick="syncPresaleFromFeishu()" style="display:none;">🔄 从飞书同步</button>
+        <button class="btn-sm outline admin-only" id="presale-monthly-edit-btn" onclick="togglePresaleMonthlyEdit()">✎ 编辑/补录</button>
+        <button class="btn-sm primary admin-only" id="presale-monthly-save-btn" onclick="savePresaleMonthly()" style="display:none;">💾 保存</button>
+      </div>
+      <!-- 三组数据卡片 -->
+      <div id="presale-monthly-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:20px;"></div>
+      <!-- 三组对比表格 -->
+      <div class="card">
+        <h3 style="margin-bottom:16px;">📋 三组数据对比</h3>
+        <div style="overflow-x:auto;">
+          <table class="ranking-table" style="min-width:800px;" id="presale-monthly-table">
+            <thead><tr>
+              <th>组别</th><th>接待量</th><th>成交单数</th><th>销售额</th><th>转化率</th><th>响应(秒)</th><th>满意度</th><th>连带销售额</th><th>接待人数</th><th>询单人数</th><th>付款人数</th>
+            </tr></thead>
+            <tbody id="presale-monthly-tbody"></tbody>
+          </table>
+        </div>
+        <div id="presale-monthly-empty" style="text-align:center;padding:40px;color:var(--text-secondary);display:none;">
+          <div style="font-size:40px;margin-bottom:8px;">📅</div>
+          <p>该月暂无月度数据，点击「从飞书同步」或「编辑/补录」录入</p>
+        </div>
+      </div>
+    </div><!-- end monthly tab -->
   </div>
 
   <!-- ===== 成员管理 ===== -->
@@ -1426,6 +1471,7 @@ body {
       <span id="schedule-month-label" style="font-size:18px;font-weight:700;"></span>
       <button class="btn btn-outline" onclick="nextMonth()">下月 ▶</button>
       <div style="flex:1;"></div>
+      <button class="feishu-sync-btn admin-only-nav" id="sched-sync-btn" onclick="syncScheduleFromFeishu()" style="display:none;">🔄 从飞书同步</button>
       <div class="legend-item"><span class="legend-dot" style="background:var(--primary);"></span> 早班</div>
       <div class="legend-item"><span class="legend-dot" style="background:#fdcb6e;"></span> 中班</div>
       <div class="legend-item"><span class="legend-dot" style="background:#E17055;"></span> 晚班</div>
@@ -1461,8 +1507,10 @@ body {
         <button class="rank-group-btn" data-group="2">C组</button>
       </div>
       <div class="ranking-actions">
+        <input type="month" id="ranking-month-input" style="padding:4px 8px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;" onchange="onRankingMonthChange()">
+        <button class="feishu-sync-btn admin-only-nav" id="ranking-sync-btn" onclick="syncRankingFromFeishu()" style="display:none;">🔄 从飞书同步</button>
         <button class="rank-action-btn" id="rank-edit-btn" onclick="toggleRankEdit()">✎ 编辑数据</button>
-        <button class="rank-action-btn primary" id="rank-export-btn" onclick="exportRankData()" style="display:none;">📋 导出数据</button>
+        <button class="rank-action-btn primary" id="rank-save-btn" onclick="saveRankingToDB()" style="display:none;">💾 保存</button>
       </div>
     </div>
     <div class="ranking-meta" id="ranking-meta"></div>
@@ -1480,11 +1528,6 @@ body {
         </thead>
         <tbody id="ranking-tbody"></tbody>
       </table>
-    </div>
-    <div class="rank-export-area" id="rank-export-area" style="display:none;">
-      <div class="rank-export-title">📋 导出数据（复制下方JSON给我，我帮你更新部署）</div>
-      <textarea class="rank-export-text" id="rank-export-text" readonly onclick="this.select()"></textarea>
-      <button class="btn" onclick="copyRankExport()">📋 复制到剪贴板</button>
     </div>
   </div>
 
@@ -1537,6 +1580,13 @@ async function initSupabase() {
     });
     // Notify app.js that supabase is ready
     if (window.onSupabaseReady) window.onSupabaseReady();
+    // 加载排班/排名/售前月度数据
+    loadScheduleFromDB();
+    loadRankingFromDB();
+    loadPresaleMonthly();
+    subscribeSchedule();
+    subscribeRanking();
+    subscribePresaleMonthly();
   } catch (e) {
     console.error('Supabase 初始化失败', e);
   }
@@ -1823,6 +1873,440 @@ async function syncFromFeishu() {
   }
 }
 
+// ==================== 排班表 Supabase 加载 ====================
+let scheduleSub = null;
+
+async function loadScheduleFromDB() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase
+      .from('schedule_data')
+      .select('*');
+    if (error) { console.warn('排班数据加载失败:', error.message); return; }
+    if (data && data.length > 0) {
+      // 转换为内存格式: { "2026-08": { staff: [{ name, group, schedule }] } }
+      const newScheduleData = {};
+      data.forEach(row => {
+        if (!newScheduleData[row.month_key]) newScheduleData[row.month_key] = { staff: [] };
+        newScheduleData[row.month_key].staff.push({
+          name: row.staff_name,
+          group: row.group_name,
+          schedule: row.schedule || {}
+        });
+      });
+      scheduleData = newScheduleData;
+      if (currentPage === 'schedule') renderSchedule();
+    }
+  } catch(e) { console.error('排班数据加载异常:', e); }
+}
+
+function subscribeSchedule() {
+  if (!supabase || scheduleSub) return;
+  scheduleSub = supabase.channel('schedule-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'schedule_data' }, () => {
+      loadScheduleFromDB();
+    })
+    .subscribe();
+}
+
+async function syncScheduleFromFeishu() {
+  const btn = document.getElementById('sched-sync-btn');
+  if (!FEISHU_SYNC_CONFIG.authToken) {
+    showToast('⚠️ 请先配置飞书同步参数');
+    return;
+  }
+  if (!confirm('确定从飞书同步排班数据？')) return;
+  if (btn) { btn.disabled = true; btn.classList.add('syncing'); btn.textContent = '🔄 同步中...'; }
+  try {
+    const resp = await fetch(FEISHU_SYNC_CONFIG.edgeFunctionUrl, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + FEISHU_SYNC_CONFIG.authToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'sync_schedule' })
+    });
+    const data = await resp.json();
+    if (data.ok && data.results) {
+      const r = data.results.schedule || {};
+      if (r.error) showToast('❌ 排班同步失败: ' + r.error);
+      else showToast('✅ 排班同步完成！飞书 ' + (r.total_in_feishu||0) + ' 条，写入 ' + (r.synced||0) + ' 条');
+      loadScheduleFromDB();
+    } else {
+      showToast('❌ 同步失败: ' + (data.error || '未知错误'));
+    }
+  } catch(e) {
+    showToast('❌ 同步异常: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('syncing'); btn.textContent = '🔄 从飞书同步'; }
+  }
+}
+
+// 排班编辑写入 Supabase
+async function saveScheduleCellToDB(staffName, monthKey, schedule) {
+  if (!supabase) return;
+  try {
+    await supabase
+      .from('schedule_data')
+      .upsert({ month_key: monthKey, staff_name: staffName, schedule: schedule }, { onConflict: 'month_key,staff_name' });
+  } catch(e) { console.error('排班保存失败:', e); }
+}
+
+// ==================== 客服排名 Supabase 加载 ====================
+let rankingSub = null;
+let rankingPeriod = '';  // 当前查看的月份 'YYYY-MM'
+let rankingAllRows = []; // 所有排名数据（用于月份切换）
+const RANK_GROUP_NAMES = ['A组', 'B组', 'C组'];
+
+async function loadRankingFromDB() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase
+      .from('ranking_data')
+      .select('*')
+      .order('period', { ascending: false });
+    if (error) { console.warn('排名数据加载失败:', error.message); return; }
+    rankingAllRows = data || [];
+    // 默认查看最新月份
+    if (!rankingPeriod && rankingAllRows.length > 0) {
+      rankingPeriod = rankingAllRows[0].period;
+    }
+    if (!rankingPeriod) {
+      const now = new Date();
+      rankingPeriod = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    }
+    // 设置月份选择器
+    const monthInput = document.getElementById('ranking-month-input');
+    if (monthInput) monthInput.value = rankingPeriod;
+    updateRankingDataFromRows();
+    if (currentPage === 'ranking') renderRanking();
+  } catch(e) { console.error('排名数据加载异常:', e); }
+}
+
+function updateRankingDataFromRows() {
+  const periodRows = rankingAllRows.filter(r => r.period === rankingPeriod);
+  const groups = RANK_GROUP_NAMES.map(name => ({ name, members: [] }));
+  periodRows.forEach(row => {
+    const idx = RANK_GROUP_NAMES.indexOf(row.group_name);
+    if (idx >= 0) {
+      groups[idx].members.push({
+        name: row.staff_name || '',
+        conversion: row.conversion_rate || 0,
+        crossSales: row.cross_sales || 0,
+        satisfaction: row.satisfaction || 0,
+        response: row.response_time || 0
+      });
+    }
+  });
+  rankingData = { groups, lastUpdate: new Date().toISOString() };
+}
+
+function onRankingMonthChange() {
+  const monthInput = document.getElementById('ranking-month-input');
+  if (monthInput) rankingPeriod = monthInput.value;
+  updateRankingDataFromRows();
+  renderRanking();
+}
+
+function subscribeRanking() {
+  if (!supabase || rankingSub) return;
+  rankingSub = supabase.channel('ranking-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'ranking_data' }, () => {
+      loadRankingFromDB();
+    })
+    .subscribe();
+}
+
+async function syncRankingFromFeishu() {
+  const btn = document.getElementById('ranking-sync-btn');
+  if (!FEISHU_SYNC_CONFIG.authToken) { showToast('⚠️ 请先配置飞书同步参数'); return; }
+  if (!confirm('确定从飞书同步客服排名数据？')) return;
+  if (btn) { btn.disabled = true; btn.classList.add('syncing'); btn.textContent = '🔄 同步中...'; }
+  try {
+    const resp = await fetch(FEISHU_SYNC_CONFIG.edgeFunctionUrl, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + FEISHU_SYNC_CONFIG.authToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'sync_ranking' })
+    });
+    const data = await resp.json();
+    if (data.ok && data.results) {
+      const r = data.results.ranking || {};
+      if (r.error) showToast('❌ 排名同步失败: ' + r.error);
+      else showToast('✅ 排名同步完成！飞书 ' + (r.total_in_feishu||0) + ' 条，写入 ' + (r.synced||0) + ' 条');
+      loadRankingFromDB();
+    } else {
+      showToast('❌ 同步失败: ' + (data.error || '未知错误'));
+    }
+  } catch(e) {
+    showToast('❌ 同步异常: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('syncing'); btn.textContent = '🔄 从飞书同步'; }
+  }
+}
+
+// 保存排名到 Supabase
+async function saveRankingToDB() {
+  if (!supabase) { showToast('⚠️ 数据库未连接'); return; }
+  const period = rankingPeriod;
+  const rows = [];
+  rankingData.groups.forEach(group => {
+    group.members.forEach(m => {
+      if (m.name) {
+        rows.push({
+          staff_name: m.name,
+          group_name: group.name,
+          conversion_rate: m.conversion,
+          cross_sales: m.crossSales,
+          satisfaction: m.satisfaction,
+          response_time: m.response,
+          period: period
+        });
+      }
+    });
+  });
+  if (rows.length === 0) { showToast('⚠️ 没有有效数据可保存'); return; }
+  try {
+    const { error } = await supabase
+      .from('ranking_data')
+      .upsert(rows, { onConflict: 'staff_name,period' });
+    if (error) { showToast('❌ 保存失败: ' + error.message); return; }
+    showToast('✅ 排名数据已保存（' + rows.length + ' 条）');
+    rankEditMode = false;
+    document.getElementById('rank-edit-btn').textContent = '✎ 编辑数据';
+    document.getElementById('rank-save-btn').style.display = 'none';
+    loadRankingFromDB();
+  } catch(e) { showToast('❌ 保存异常: ' + e.message); }
+}
+
+// ==================== 售前月度数据 ====================
+let presaleMonthlyData = []; // 当前月份的数据
+let presaleMonthlyMonth = ''; // 当前查看月份 'YYYY-MM'
+let presaleMonthlyEdit = false;
+let presaleMonthlySub = null;
+let presaleActiveTab = 'daily';
+
+function switchPresaleTab(tab) {
+  presaleActiveTab = tab;
+  document.querySelectorAll('.presale-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  document.getElementById('presale-daily-tab').style.display = tab === 'daily' ? '' : 'none';
+  document.getElementById('presale-monthly-tab').style.display = tab === 'monthly' ? '' : 'none';
+  if (tab === 'monthly') {
+    if (!presaleMonthlyMonth) {
+      const now = new Date();
+      presaleMonthlyMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    }
+    renderPresaleMonthly();
+  }
+}
+
+async function loadPresaleMonthly() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase
+      .from('presale_monthly')
+      .select('*')
+      .order('period_month', { ascending: false });
+    if (error) { console.warn('售前月度数据加载失败:', error.message); return; }
+    presaleMonthlyData = data || [];
+    if (!presaleMonthlyMonth) {
+      presaleMonthlyMonth = presaleMonthlyData.length > 0 ? presaleMonthlyData[0].period_month :
+        new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
+    }
+    if (currentPage === 'presale' && presaleActiveTab === 'monthly') renderPresaleMonthly();
+  } catch(e) { console.error('售前月度数据加载异常:', e); }
+}
+
+function subscribePresaleMonthly() {
+  if (!supabase || presaleMonthlySub) return;
+  presaleMonthlySub = supabase.channel('presale-monthly-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'presale_monthly' }, () => {
+      loadPresaleMonthly();
+    })
+    .subscribe();
+}
+
+const PRESALE_MONTHLY_FIELDS = [
+  { key: 'visitors', label: '接待量', type: 'int' },
+  { key: 'orders', label: '成交单数', type: 'int' },
+  { key: 'revenue', label: '销售额', type: 'currency' },
+  { key: 'conversion', label: '转化率', type: 'percent' },
+  { key: 'avg_response', label: '响应(秒)', type: 'int' },
+  { key: 'satisfaction', label: '满意度', type: 'percent' },
+  { key: 'cross_sales', label: '连带销售额', type: 'currency' },
+  { key: 'visitor_count', label: '接待人数', type: 'int' },
+  { key: 'inquiry_count', label: '询单人数', type: 'int' },
+  { key: 'payment_count', label: '付款人数', type: 'int' },
+];
+
+function getPresaleMonthlyRow(group) {
+  return presaleMonthlyData.find(r => r.period_month === presaleMonthlyMonth && r.group_name === group) || null;
+}
+
+function renderPresaleMonthly() {
+  const label = document.getElementById('presale-monthly-label');
+  if (label) label.textContent = presaleMonthlyMonth.replace('-', '年') + '月';
+
+  const tbody = document.getElementById('presale-monthly-tbody');
+  const empty = document.getElementById('presale-monthly-empty');
+  const cards = document.getElementById('presale-monthly-cards');
+
+  const hasData = RANK_GROUP_NAMES.some(g => getPresaleMonthlyRow(g));
+  if (!hasData) {
+    if (tbody) tbody.innerHTML = '';
+    if (empty) empty.style.display = '';
+    if (cards) cards.innerHTML = '';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  // 渲染三组卡片
+  if (cards) {
+    cards.innerHTML = RANK_GROUP_NAMES.map(group => {
+      const row = getPresaleMonthlyRow(group) || {};
+      const conv = row.conversion || 0;
+      const rev = (row.revenue || 0).toLocaleString();
+      const orders = row.orders || 0;
+      const color = group === 'A组' ? '#7c6cf0' : group === 'B组' ? '#e17055' : '#00b894';
+      return `<div class="card" style="border-top:4px solid ${color};">
+        <h3 style="margin-bottom:12px;color:${color};">${group} · ${presaleMonthlyMonth}</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
+          <div><span style="color:var(--text-secondary);">销售额</span><br><b style="font-size:18px;">¥${rev}</b></div>
+          <div><span style="color:var(--text-secondary);">成交单数</span><br><b style="font-size:18px;">${orders}</b></div>
+          <div><span style="color:var(--text-secondary);">转化率</span><br><b style="font-size:18px;">${conv}%</b></div>
+          <div><span style="color:var(--text-secondary);">满意度</span><br><b style="font-size:18px;">${row.satisfaction||0}%</b></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // 渲染对比表格
+  if (tbody) {
+    tbody.innerHTML = RANK_GROUP_NAMES.map(group => {
+      const row = getPresaleMonthlyRow(group);
+      if (presaleMonthlyEdit) {
+        const vals = PRESALE_MONTHLY_FIELDS.map(f => {
+          const v = row ? (row[f.key] || 0) : 0;
+          return `<td><input type="number" step="${f.type==='percent'?'0.1':'1'}" class="rank-cell-input" style="width:80px;" value="${v}" onchange="updatePresaleMonthlyCell('${group}','${f.key}',this.value)"></td>`;
+        }).join('');
+        return `<tr><td style="font-weight:700;">${group}</td>${vals}</tr>`;
+      }
+      if (!row) return `<tr><td style="font-weight:700;">${group}</td><td colspan="10" style="color:#ccc;text-align:center;">无数据</td></tr>`;
+      return `<tr>
+        <td style="font-weight:700;">${group}</td>
+        <td>${row.visitors||0}</td>
+        <td>${row.orders||0}</td>
+        <td>¥${(row.revenue||0).toLocaleString()}</td>
+        <td>${row.conversion||0}%</td>
+        <td>${row.avg_response||0}</td>
+        <td>${row.satisfaction||0}%</td>
+        <td>¥${(row.cross_sales||0).toLocaleString()}</td>
+        <td>${row.visitor_count||0}</td>
+        <td>${row.inquiry_count||0}</td>
+        <td>${row.payment_count||0}</td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+function updatePresaleMonthlyCell(group, field, value) {
+  let row = presaleMonthlyData.find(r => r.period_month === presaleMonthlyMonth && r.group_name === group);
+  if (!row) {
+    row = { period_month: presaleMonthlyMonth, group_name: group };
+    presaleMonthlyData.push(row);
+  }
+  const num = parseFloat(value);
+  row[field] = isNaN(num) ? 0 : num;
+}
+
+function togglePresaleMonthlyEdit() {
+  presaleMonthlyEdit = !presaleMonthlyEdit;
+  const editBtn = document.getElementById('presale-monthly-edit-btn');
+  const saveBtn = document.getElementById('presale-monthly-save-btn');
+  if (presaleMonthlyEdit) {
+    editBtn.textContent = ' 取消编辑';
+    saveBtn.style.display = '';
+  } else {
+    editBtn.textContent = '✎ 编辑/补录';
+    saveBtn.style.display = 'none';
+  }
+  renderPresaleMonthly();
+}
+
+async function savePresaleMonthly() {
+  if (!supabase) { showToast('⚠️ 数据库未连接'); return; }
+  const rows = RANK_GROUP_NAMES.map(group => {
+    const row = presaleMonthlyData.find(r => r.period_month === presaleMonthlyMonth && r.group_name === group);
+    if (!row) return null;
+    return {
+      period_month: presaleMonthlyMonth,
+      group_name: group,
+      visitors: row.visitors || 0,
+      orders: row.orders || 0,
+      revenue: row.revenue || 0,
+      conversion: row.conversion || 0,
+      avg_response: row.avg_response || 0,
+      satisfaction: row.satisfaction || 0,
+      cross_sales: row.cross_sales || 0,
+      visitor_count: row.visitor_count || 0,
+      inquiry_count: row.inquiry_count || 0,
+      payment_count: row.payment_count || 0
+    };
+  }).filter(Boolean);
+
+  if (rows.length === 0) { showToast('⚠️ 没有数据可保存'); return; }
+  try {
+    const { error } = await supabase
+      .from('presale_monthly')
+      .upsert(rows, { onConflict: 'period_month,group_name' });
+    if (error) { showToast('❌ 保存失败: ' + error.message); return; }
+    showToast('✅ 月度数据已保存（' + rows.length + ' 组）');
+    presaleMonthlyEdit = false;
+    document.getElementById('presale-monthly-edit-btn').textContent = '✎ 编辑/补录';
+    document.getElementById('presale-monthly-save-btn').style.display = 'none';
+    loadPresaleMonthly();
+  } catch(e) { showToast('❌ 保存异常: ' + e.message); }
+}
+
+async function syncPresaleFromFeishu() {
+  const btn = document.getElementById('presale-monthly-sync-btn');
+  if (!FEISHU_SYNC_CONFIG.authToken) { showToast('⚠️ 请先配置飞书同步参数'); return; }
+  if (!confirm('确定从飞书同步售前月度数据？')) return;
+  if (btn) { btn.disabled = true; btn.classList.add('syncing'); btn.textContent = '🔄 同步中...'; }
+  try {
+    const resp = await fetch(FEISHU_SYNC_CONFIG.edgeFunctionUrl, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + FEISHU_SYNC_CONFIG.authToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'sync_presale' })
+    });
+    const data = await resp.json();
+    if (data.ok && data.results) {
+      const r = data.results.presale || {};
+      if (r.error) showToast('❌ 售前同步失败: ' + r.error);
+      else showToast('✅ 售前月度同步完成！飞书 ' + (r.total_in_feishu||0) + ' 条，写入 ' + (r.synced||0) + ' 条');
+      loadPresaleMonthly();
+    } else {
+      showToast('❌ 同步失败: ' + (data.error || '未知错误'));
+    }
+  } catch(e) {
+    showToast('❌ 同步异常: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('syncing'); btn.textContent = '🔄 从飞书同步'; }
+  }
+}
+
+function prevPresaleMonth() {
+  const [y, m] = presaleMonthlyMonth.split('-').map(Number);
+  const d = new Date(y, m - 2, 1);
+  presaleMonthlyMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  renderPresaleMonthly();
+}
+
+function nextPresaleMonth() {
+  const [y, m] = presaleMonthlyMonth.split('-').map(Number);
+  const d = new Date(y, m, 1);
+  presaleMonthlyMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  renderPresaleMonthly();
+}
+
 // ---------- 花色分类管理 ----------
 async function loadPatternCategories() {
   if (!supabase) return;
@@ -1940,7 +2424,8 @@ function switchPage(page) {
   if (page === 'tools') renderTools();
   if (page === 'quiz') renderQuiz();
   if (page === 'schedule') renderSchedule();
-  if (page === 'ranking') renderRanking();
+  if (page === 'ranking') { if (rankingAllRows.length === 0) loadRankingFromDB(); else renderRanking(); }
+  if (page === 'presale' && presaleActiveTab === 'monthly') renderPresaleMonthly();
   if (page === 'staff-info') loadStaffInfo();
   if (page === 'qc') {
     const iframe = document.getElementById('qc-iframe');
@@ -4342,18 +4827,17 @@ function updateRankCell(groupIdx, memberIdx, field, value) {
 function toggleRankEdit() {
   rankEditMode = !rankEditMode;
   const btn = document.getElementById('rank-edit-btn');
-  const exportBtn = document.getElementById('rank-export-btn');
+  const saveBtn = document.getElementById('rank-save-btn');
   if (rankEditMode) {
-    btn.textContent = ' 完成编辑';
+    btn.textContent = ' 取消编辑';
     btn.style.borderColor = 'var(--primary)';
     btn.style.color = 'var(--primary)';
-    exportBtn.style.display = 'inline-block';
+    if (saveBtn) saveBtn.style.display = 'inline-block';
   } else {
     btn.textContent = '✏️ 编辑数据';
     btn.style.borderColor = '';
     btn.style.color = '';
-    exportBtn.style.display = 'none';
-    document.getElementById('rank-export-area').style.display = 'none';
+    if (saveBtn) saveBtn.style.display = 'none';
   }
   renderRanking();
 }
@@ -4586,13 +5070,15 @@ function applyShift(val) {
 
   // Update scheduleData in memory
   const monthData = scheduleData[monthKey];
-  const staffEntry = monthData.staff.find(s => s.name === staff);
+  const staffEntry = monthData?.staff?.find(s => s.name === staff);
   if (staffEntry) {
     if (val) {
       staffEntry.schedule[String(day)] = val;
     } else {
       delete staffEntry.schedule[String(day)];
     }
+    // 写入 Supabase
+    saveScheduleCellToDB(staff, monthKey, staffEntry.schedule);
   }
 
   // Update the cell visually
