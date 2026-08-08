@@ -1418,11 +1418,11 @@ body {
     <div class="brand-tabs" id="pattern-brand-tabs"></div>
     <div class="pattern-filters-card">
       <div class="filter-row" id="pattern-filter-type"></div>
+      <div class="filter-row" id="pattern-filter-fixedaxis"></div>
       <div class="filter-row" id="pattern-filter-diameter"></div>
       <div class="filter-row" id="pattern-filter-basecurve"></div>
       <div class="filter-row" id="pattern-filter-series"></div>
       <div class="filter-row" id="pattern-filter-color"></div>
-      <div class="filter-row" id="pattern-filter-fixedaxis"></div>
       <div class="filter-row" id="pattern-filter-status"></div>
       <div class="pattern-search-row">
         <input type="text" id="pattern-search" placeholder="🔍 搜索花色名称..." oninput="onPatternSearch()">
@@ -3163,7 +3163,6 @@ function setPatternBaseCurve(bc) {
   patternBaseCurve = bc;
   patternSeries = '全部';
   patternColor = '全部';
-  patternFixedAxis = '全部';
   patternStatusFilter = '全部';
   patternPage = 1;
   renderPatternFilters();
@@ -3172,6 +3171,13 @@ function setPatternBaseCurve(bc) {
 
 function setPatternFixedAxis(fa) {
   patternFixedAxis = fa;
+  // 定轴是品牌级筛选，点击定轴时重置下级筛选，让所有系列的定轴花色都能显示
+  if (fa !== '全部') {
+    patternDiameter = '全部';
+    patternBaseCurve = '全部';
+    patternSeries = '全部';
+    patternColor = '全部';
+  }
   patternStatusFilter = '全部';
   patternPage = 1;
   renderPatternFilters();
@@ -3183,7 +3189,6 @@ function setPatternDiameter(d) {
   patternBaseCurve = '全部';
   patternSeries = '全部';
   patternColor = '全部';
-  patternFixedAxis = '全部';
   patternStatusFilter = '全部';
   patternPage = 1;
   renderPatternFilters();
@@ -3226,32 +3231,26 @@ function getPatternTypes(brand) {
 }
 
 function getPatternDiameters(brand, type) {
-  const b = (patternData.brands || {})[brand] || {};
-  let allItems = [];
-  if (type === '全部') {
-    Object.values(b).forEach(arr => { allItems = allItems.concat(arr); });
-  } else {
-    allItems = b[type] || [];
-  }
-  return [...new Set(allItems.map(p => p.diameter).filter(Boolean))].sort();
+  const items = getFilteredItems(brand, type, '全部', '全部', '全部', patternFixedAxis);
+  return [...new Set(items.map(p => p.diameter).filter(Boolean))].sort();
 }
 
 function getPatternSeries(brand, type, diameter) {
-  const items = getFilteredItems(brand, type, '全部', diameter, patternBaseCurve);
+  const items = getFilteredItems(brand, type, '全部', diameter, patternBaseCurve, patternFixedAxis);
   return [...new Set(items.map(p => p.series).filter(Boolean))];
 }
 
 function getPatternColors(brand, type, series, diameter) {
-  const items = getFilteredItems(brand, type, series, diameter, patternBaseCurve);
+  const items = getFilteredItems(brand, type, series, diameter, patternBaseCurve, patternFixedAxis);
   return [...new Set(items.map(p => p.color).filter(Boolean))];
 }
 
 function getPatternBaseCurves(brand, type, diameter) {
-  const items = getFilteredItems(brand, type, '全部', diameter, '全部');
+  const items = getFilteredItems(brand, type, '全部', diameter, '全部', patternFixedAxis);
   return [...new Set(items.map(p => p.baseCurve).filter(Boolean))].sort();
 }
 
-function getFilteredItems(brand, type, series, diameter, baseCurve) {
+function getFilteredItems(brand, type, series, diameter, baseCurve, fixedAxis) {
   const b = (patternData.brands || {})[brand] || {};
   let items = [];
   if (type === '全部') {
@@ -3267,6 +3266,11 @@ function getFilteredItems(brand, type, series, diameter, baseCurve) {
   }
   if (baseCurve && baseCurve !== '全部') {
     items = items.filter(p => p.baseCurve === baseCurve);
+  }
+  if (fixedAxis === '定轴') {
+    items = items.filter(p => p.fixedAxis && p.fixedAxis.trim());
+  } else if (fixedAxis === '非定轴') {
+    items = items.filter(p => !p.fixedAxis || !p.fixedAxis.trim());
   }
   return items;
 }
@@ -3427,8 +3431,8 @@ function renderPatternFilters() {
     colorRow.style.display = colorRow.innerHTML ? 'flex' : 'none';
   }
 
-  // 定轴 filter — 数据驱动（从花色数据中判断是否有定轴值）
-  const allItemsForAxis = getFilteredItems(patternBrand, patternType, patternSeries, patternDiameter, patternBaseCurve);
+  // 定轴 filter — 数据驱动，从品牌+抛型级别统计（不受直径/基弧/系列限制）
+  const allItemsForAxis = getFilteredItems(patternBrand, patternType, '全部', '全部', '全部', '全部');
   const fixedAxisCount = allItemsForAxis.filter(p => p.fixedAxis && p.fixedAxis.trim()).length;
   const fixedAxisRow = document.getElementById('pattern-filter-fixedaxis');
   if (fixedAxisCount > 0) {
@@ -3477,7 +3481,6 @@ function setPatternType(t) {
 function setPatternSeries(s) {
   patternSeries = s;
   patternColor = '全部';
-  patternFixedAxis = '全部';
   patternStatusFilter = '全部';
   patternPage = 1;
   renderPatternFilters();
@@ -3486,7 +3489,6 @@ function setPatternSeries(s) {
 
 function setPatternColor(c) {
   patternColor = c;
-  patternFixedAxis = '全部';
   patternStatusFilter = '全部';
   patternPage = 1;
   renderPatternFilters();
@@ -3761,16 +3763,10 @@ const PATTERN_PAGE_SIZE = 20;
 
 function renderPatterns() {
   // patternData already loaded from Supabase, no localStorage merge needed
-  let items = getFilteredItems(patternBrand, patternType, patternSeries, patternDiameter, patternBaseCurve);
+  let items = getFilteredItems(patternBrand, patternType, patternSeries, patternDiameter, patternBaseCurve, patternFixedAxis);
   // 色系筛选
   if (patternColor !== '全部') {
     items = items.filter(p => p.color === patternColor);
-  }
-  // 定轴筛选
-  if (patternFixedAxis === '定轴') {
-    items = items.filter(p => p.fixedAxis && p.fixedAxis.trim());
-  } else if (patternFixedAxis === '非定轴') {
-    items = items.filter(p => !p.fixedAxis || !p.fixedAxis.trim());
   }
   // 状态筛选：全部 / 在售 / 下架
   if (patternStatusFilter === '在售') {
