@@ -308,6 +308,10 @@ function mapPatternRecord(record: Record<string, unknown>) {
     if (val) row[dbField] = val;
   }
 
+  // 话术字段别名：飞书里可能是"描述话术"也可能是"推荐话术"
+  const descVal = fieldValue(f["描述话术"]) || fieldValue(f["推荐话术"]);
+  if (descVal) row.description = descVal;
+
   // 图片字段：优先检查是否为附件（附件由 processPatternAttachments 处理）
   // 如果不是附件，检查是否为文本 URL
   const lensVal = f["花色图"] || f["花色图URL"];
@@ -464,6 +468,90 @@ async function markStalePatternsDiscontinued(
   return staleIds.length;
 }
 
+// 对已有花色补录空字段（不覆盖任何已有数据）
+// 只在 insertOnly 模式下使用：新记录插入完成后，已有记录中原本为空的字段可以用飞书值填充
+async function fillEmptyPatternFields(
+  supabaseUrl: string,
+  serviceKey: string,
+  rawRecords: Record<string, unknown>[],
+  mappedRows: Record<string, unknown>[],
+): Promise<{ checked: number; filled: number; fields: number }> {
+  if (mappedRows.length === 0) return { checked: 0, filled: 0, fields: 0 };
+
+  // 用于补录的字段（图片、下架标记、创建时间永远不碰）
+  const fillableDbFields = [
+    "type", "series", "color", "diameter", "base_curve", "fixed_axis",
+    "color_diameter", "material", "oxygen", "water", "spec", "description",
+  ];
+
+  // 按 (name, brand) 查询已存在的记录
+  const names = mappedRows.map((r) => r.name).filter(Boolean) as string[];
+  const brands = mappedRows.map((r) => r.brand).filter(Boolean) as string[];
+  const uniqueNames = [...new Set(names)].map((v) => encodeURIComponent(v)).join(",");
+  const uniqueBrands = [...new Set(brands)].map((v) => encodeURIComponent(v)).join(",");
+
+  const query = `${supabaseUrl}/rest/v1/pattern_assets?name=in.(${uniqueNames})&brand=in.(${uniqueBrands})&select=*`;
+  const resp = await fetch(query, {
+    headers: { "apikey": serviceKey, "Authorization": `Bearer ${serviceKey}` },
+  });
+  if (!resp.ok) {
+    console.error("查询已有花色失败:", await resp.text());
+    return { checked: 0, filled: 0, fields: 0 };
+  }
+  const existingRecords = (await resp.json()) as Record<string, unknown>[];
+
+  let filledCount = 0;
+  let fieldCount = 0;
+
+  for (const existing of existingRecords) {
+    const name = existing.name;
+    const brand = existing.brand;
+    if (!name || !brand) continue;
+
+    // 找到对应的飞书记录
+    const idx = mappedRows.findIndex((r) => r.name === name && r.brand === brand);
+    if (idx < 0) continue;
+    const mapped = mappedRows[idx];
+
+    const updates: Record<string, unknown> = {};
+    for (const field of fillableDbFields) {
+      const dbVal = existing[field];
+      const fsVal = mapped[field];
+      const isDbEmpty = dbVal === null || dbVal === undefined || dbVal === "";
+      const isFsValue = fsVal !== null && fsVal !== undefined && fsVal !== "";
+      if (isDbEmpty && isFsValue) {
+        updates[field] = fsVal;
+        fieldCount++;
+      }
+    }
+
+    if (Object.keys(updates).length === 0) continue;
+
+    const id = existing.id;
+    const patchResp = await fetch(
+      `${supabaseUrl}/rest/v1/pattern_assets?id=eq.${id}`,
+      {
+        method: "PATCH",
+        headers: {
+          "apikey": serviceKey,
+          "Authorization": `Bearer ${serviceKey}`,
+          "Content-Type": "application/json",
+          "Prefer": "return=minimal",
+        },
+        body: JSON.stringify(updates),
+      },
+    );
+    if (patchResp.ok) {
+      filledCount++;
+      console.log(`补录 ${name} 字段:`, Object.keys(updates).join(","));
+    } else {
+      console.error(`补录 ${name} 失败:`, await patchResp.text());
+    }
+  }
+
+  return { checked: existingRecords.length, filled: filledCount, fields: fieldCount };
+}
+
 // ============================================
 // 同步类型定义
 // ============================================
@@ -595,11 +683,20 @@ async function doSync(
     await syncType.postSyncFn(supabaseUrl, serviceKey, mappedRows);
   }
 
+  // insertOnly 模式下：已有记录虽不覆盖，但可以为空字段补录（如后续补充的描述话术）
+  let fillInfo: Record<string, unknown> | undefined;
+  if (syncType.insertOnly && syncType.supabaseTable === "pattern_assets") {
+    console.log(`${syncType.name}: 检查已有记录的空字段...`);
+    fillInfo = await fillEmptyPatternFields(supabaseUrl, serviceKey, records, mappedRows);
+    console.log(`${syncType.name}: 补录完成`, JSON.stringify(fillInfo));
+  }
+
   return {
     total_in_feishu: records.length,
     synced: syncedCount,
     mode: syncType.insertOnly ? "insert_only" : "upsert",
     ...(attachmentInfo ? { attachments: attachmentInfo } : {}),
+    ...(fillInfo ? { filled: fillInfo } : {}),
   };
 }
 

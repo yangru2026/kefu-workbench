@@ -1877,6 +1877,8 @@ async function syncFromFeishu() {
       if (r.mode === 'insert_only') {
         msg += `，新增 ${syncedCount} 条`;
         if (skippedCount > 0) msg += `，跳过 ${skippedCount} 条已有`;
+        const filled = r.filled || {};
+        if (filled.fields > 0) msg += `，补录 ${filled.fields} 个空字段`;
       } else {
         msg += `，写入 ${syncedCount} 条`;
       }
@@ -3884,7 +3886,11 @@ function renderPatterns() {
     if (p.colorDiameter) specs.push('<span class="pcard-spec-mini">着色 ' + escapeHtml(p.colorDiameter) + '</span>');
     if (p.oxygen) specs.push('<span class="pcard-spec-mini">透氧 ' + escapeHtml(p.oxygen) + '</span>');
     if (p.water) specs.push('<span class="pcard-spec-mini">含水 ' + escapeHtml(p.water) + '</span>');
-    if (p.fixedAxis) specs.push('<span class="pcard-spec-mini" style="color:var(--primary);font-weight:600;">定轴 ' + escapeHtml(p.fixedAxis) + '</span>');
+    if (p.fixedAxis) {
+      const faText = String(p.fixedAxis);
+      const faDisplay = faText.startsWith('定轴') ? faText : '定轴 ' + faText;
+      specs.push('<span class="pcard-spec-mini" style="color:var(--primary);font-weight:600;">' + escapeHtml(faDisplay) + '</span>');
+    }
     if (p.spec) specs.push('<span class="pcard-spec-mini">' + escapeHtml(p.spec) + '</span>');
     const specsHtml = specs.length ? specs.join('') : '';
 
