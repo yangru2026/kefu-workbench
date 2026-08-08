@@ -15,6 +15,7 @@
 - **花色素材问题修复** (2026-08-08): ①提供 add_discontinued_column.sql 添加 is_discontinued 字段解决下架标记失败；②修复 normalize_diameter.sql 的 CHECK 约束错误；③图片 URL 统一加 `?v=2` 缓存版本号强制刷新，hover lens 优先加载中图。
 - **Lightbox 高清图加载慢彻底解决** (2026-08-08): 三管齐下：①中图从 900px/quality82 降到 600px/quality70，357张从 27.9MB → 11.8MB（平均34KB）；②全站花色图片 URL 走 jsDelivr CDN 加速（国内节点快于 GitHub Pages）；③lightbox 交互重构：点击瞬间直接显示已缓存缩略图，后台静默加载高清中图，加载完淡入替换，失败保持缩略图不转圈。
 - **Lightbox 大图清晰度修复** (2026-08-08): 600px 中图在 900px lightbox 容器内被放大导致模糊。重新生成 **1200px/quality 82** 高清中图，357张共36.3MB（平均104KB），1200px 超过容器尺寸保证高清不模糊；中图 URL 加 `?v=3` 版本号强制刷新 jsDelivr 旧缓存。
+- **Lightbox 最终修复** (2026-08-08): ①中图目录从 `large/` 改为 `hd/` 彻底避开 jsDelivr CDN 旧缓存；②lightbox 不再用缩略图占位，直接 spinner→加载完 1200px 中图淡入；③图片加 `crossOrigin=anonymous` 修复 canvas 跨域复制；④复制功能不再 `window.open` 跳转网页，改为 canvas→fetch→下载文件。
 
 ## 待开发功能清单
 
