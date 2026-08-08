@@ -333,6 +333,7 @@ body {
 .pcard-meta-row { display:flex; align-items:center; gap:6px; margin-bottom:8px; flex-wrap:wrap; }
 .pcard-meta-row span { font-size:10px; padding:2px 8px; border-radius:8px; background:var(--tag-bg); color:var(--primary); font-weight:500; }
 .pcard-meta-row .pcard-spec-mini { background:var(--bg-warm); color:var(--text-secondary); }
+.pcard-meta-row .pcard-disc-tag { background:#d97706; color:#fff; font-weight:600; }
 .pcard-script { background:var(--gradient-card); border-radius:10px; padding:10px 12px; font-size:12px; color:var(--text); line-height:1.65; position:relative; flex:1; border:1px solid var(--border-soft); }
 .pcard-script .script-label { display:none; }
 .pcard-copy { position:absolute; top:6px; right:6px; padding:3px 10px; font-size:11px; border:none; border-radius:10px; background:var(--primary); color:#fff; cursor:pointer; font-family:inherit; transition:all 0.2s; font-weight:500; box-shadow:0 2px 6px rgba(123,155,106,0.2); }
@@ -586,16 +587,20 @@ body {
 /* Lightbox */
 .lightbox { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.88); z-index:3000; align-items:center; justify-content:center; }
 .lightbox.show { display:flex; }
-.lightbox-img-wrap { position:relative; display:flex; align-items:center; justify-content:center; max-width:92vw; max-height:82vh; }
-.lightbox-img-stack { position:relative; display:flex; align-items:center; justify-content:center; max-width:92vw; max-height:80vh; }
-.lightbox-img-stack img { max-width:92vw; max-height:80vh; object-fit:contain; border-radius:6px; box-shadow:0 8px 40px rgba(0,0,0,0.5); cursor:default; transition:opacity 0.35s ease; }
-.lightbox-thumb { filter:blur(10px) brightness(0.85); transform:scale(1.02); }
+.lightbox-img-wrap { position:relative; display:flex; align-items:center; justify-content:center; width:min(92vw, 900px); max-height:82vh; }
+.lightbox-img-stack { position:relative; display:flex; align-items:center; justify-content:center; width:100%; max-height:78vh; }
+.lightbox-img-stack img { max-width:min(92vw, 900px); max-height:78vh; object-fit:contain; border-radius:6px; box-shadow:0 8px 40px rgba(0,0,0,0.5); cursor:default; transition:opacity 0.35s ease; }
+.lightbox-thumb { filter:blur(8px) brightness(0.75); transform:scale(1); }
 .lightbox-hd { position:absolute; top:0; left:0; opacity:0; }
 .lightbox-hd.loaded { opacity:1; }
 .lightbox-thumb.hidden { opacity:0; }
-.lightbox-loader { position:absolute; display:none; align-items:center; justify-content:center; }
+.lightbox-loader { position:absolute; display:none; align-items:center; justify-content:center; flex-direction:column; gap:10px; }
 .lightbox-loader.show { display:flex; }
 .lightbox-loader span { display:inline-block; width:36px; height:36px; border:3px solid rgba(255,255,255,0.2); border-top-color:#fff; border-radius:50%; animation:lb-spin 0.8s linear infinite; }
+.lightbox-status { color:rgba(255,255,255,0.65); font-size:12px; text-align:center; max-width:220px; line-height:1.5; }
+.lightbox-status.error { color:#ff9f9f; }
+.lightbox-retry { margin-top:8px; padding:6px 14px; border:none; border-radius:14px; background:#fff; color:#333; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+.lightbox-retry:hover { background:#f0f0f0; }
 @keyframes lb-spin { to { transform:rotate(360deg); } }
 .lightbox-nav { position:absolute; top:50%; transform:translateY(-50%); width:44px; height:44px; border:none; background:rgba(255,255,255,0.18); color:#fff; font-size:24px; border-radius:50%; cursor:pointer; z-index:3002; display:flex; align-items:center; justify-content:center; transition:background 0.15s; -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
 .lightbox-nav:hover { background:rgba(255,255,255,0.35); }
@@ -1362,6 +1367,7 @@ body {
     <div class="brand-tabs" id="pattern-brand-tabs"></div>
     <div class="pattern-filters-card">
       <div class="filter-row" id="pattern-filter-type"></div>
+      <div class="filter-row" id="pattern-filter-diameter"></div>
       <div class="filter-row" id="pattern-filter-series"></div>
       <div class="filter-row" id="pattern-filter-color"></div>
       <div class="filter-row" id="pattern-filter-status"></div>
@@ -2410,13 +2416,24 @@ document.addEventListener('DOMContentLoaded', function() {
 // ==================== PATTERNS (全新双品牌架构) ====================
 let patternBrand = '弥生';
 let patternType = '全部';
+let patternDiameter = '全部';
 let patternSeries = '全部';
 let patternColor = '全部';
 let patternStatusFilter = '全部'; // '全部' | '在售' | '下架'
-let patternCategories = []; // [{id, category_type:'brand'|'type'|'series'|'color', name, sort_order}]
+let patternCategories = []; // [{id, category_type:'brand'|'type'|'diameter'|'series'|'color', name, sort_order}]
 
 function setPatternStatus(status) {
   patternStatusFilter = status;
+  patternPage = 1;
+  renderPatternFilters();
+  renderPatterns();
+}
+
+function setPatternDiameter(d) {
+  patternDiameter = d;
+  patternSeries = '全部';
+  patternColor = '全部';
+  patternStatusFilter = '全部';
   patternPage = 1;
   renderPatternFilters();
   renderPatterns();
@@ -2457,7 +2474,7 @@ function getPatternTypes(brand) {
   return Object.keys(b).filter(k => b[k].length > 0);
 }
 
-function getPatternSeries(brand, type) {
+function getPatternDiameters(brand, type) {
   const b = (patternData.brands || {})[brand] || {};
   let allItems = [];
   if (type === '全部') {
@@ -2465,15 +2482,20 @@ function getPatternSeries(brand, type) {
   } else {
     allItems = b[type] || [];
   }
-  return [...new Set(allItems.map(p => p.series).filter(Boolean))];
+  return [...new Set(allItems.map(p => p.diameter).filter(Boolean))].sort();
 }
 
-function getPatternColors(brand, type, series) {
-  const items = getFilteredItems(brand, type, series);
+function getPatternSeries(brand, type, diameter) {
+  const items = getFilteredItems(brand, type, '全部', diameter);
+  return [...new Set(items.map(p => p.series).filter(Boolean))];
+}
+
+function getPatternColors(brand, type, series, diameter) {
+  const items = getFilteredItems(brand, type, series, diameter);
   return [...new Set(items.map(p => p.color).filter(Boolean))];
 }
 
-function getFilteredItems(brand, type, series) {
+function getFilteredItems(brand, type, series, diameter) {
   const b = (patternData.brands || {})[brand] || {};
   let items = [];
   if (type === '全部') {
@@ -2481,8 +2503,11 @@ function getFilteredItems(brand, type, series) {
   } else {
     items = b[type] || [];
   }
-  if (series !== '全部') {
+  if (series && series !== '全部') {
     items = items.filter(p => p.series === series);
+  }
+  if (diameter && diameter !== '全部') {
+    items = items.filter(p => p.diameter === diameter);
   }
   return items;
 }
@@ -2546,8 +2571,35 @@ function renderPatternFilters() {
   }
   typeRow.innerHTML = typeHtml;
 
+  // 直径 filter — 右键菜单触发编辑/删除
+  const diameterData = getMergedCats('diameter', getPatternDiameters(patternBrand, patternType));
+  const diameterRow = document.getElementById('pattern-filter-diameter');
+  if (diameterData.length > 0) {
+    let diameterHtml = '<span class="flabel">直径</span>' +
+      '<button class="flink' + (patternDiameter === '全部' ? ' active' : '') + '" onclick="setPatternDiameter(\'全部\')">全部</button>';
+    diameterData.forEach(d => {
+      if (_editingPatCat && _editingPatCat.type === 'diameter' && _editingPatCat.oldName === d.name) {
+        diameterHtml += `<span class="flink active pcat-inline-edit">
+          <input id="pcat-edit-input" value="${escapeHtml(d.name)}" onkeydown="if(event.key==='Enter')confirmEditPatCat();if(event.key==='Escape')cancelEditPatCat();">
+          <button class="btn-sm primary" onclick="confirmEditPatCat()">✓</button>
+          <button class="btn-sm outline" onclick="cancelEditPatCat()">✕</button></span>`;
+      } else {
+        const ctxAttr = isAdmin ? ` oncontextmenu="showPatCatCtxMenu(event,'diameter','${escapeAttr(d.name)}')"` : '';
+        diameterHtml += `<button class="flink${patternDiameter === d.name ? ' active' : ''}" onclick="setPatternDiameter('${escapeAttr(d.name)}')"${ctxAttr}>${escapeHtml(d.name)}</button>`;
+      }
+    });
+    if (isAdmin) {
+      diameterHtml += `<button class="pcat-add-mini" onclick="addPatCat('diameter')">＋</button>`;
+    }
+    diameterRow.innerHTML = diameterHtml;
+    diameterRow.style.display = 'flex';
+  } else {
+    diameterRow.innerHTML = isAdmin ? '<span class="flabel">直径</span><button class="pcat-add-mini" onclick="addPatCat(\'diameter\')">＋ 添加直径</button>' : '';
+    diameterRow.style.display = diameterRow.innerHTML ? 'flex' : 'none';
+  }
+
   // 系列 filter — 右键菜单触发编辑/删除
-  const seriesData = getMergedCats('series', getPatternSeries(patternBrand, patternType));
+  const seriesData = getMergedCats('series', getPatternSeries(patternBrand, patternType, patternDiameter));
   const seriesRow = document.getElementById('pattern-filter-series');
   if (seriesData.length > 0) {
     let seriesHtml = '<span class="flabel">系列</span>' +
@@ -2574,7 +2626,7 @@ function renderPatternFilters() {
   }
 
   // 色系 filter — 右键菜单触发编辑/删除
-  const colorData = getMergedCats('color', getPatternColors(patternBrand, patternType, patternSeries));
+  const colorData = getMergedCats('color', getPatternColors(patternBrand, patternType, patternSeries, patternDiameter));
   const colorRow = document.getElementById('pattern-filter-color');
   if (colorData.length > 0) {
     let colorHtml = '<span class="flabel">色系</span>' +
@@ -2604,6 +2656,7 @@ function renderPatternFilters() {
 function switchPatternBrand(b) {
   patternBrand = b;
   patternType = '全部';
+  patternDiameter = '全部';
   patternSeries = '全部';
   patternColor = '全部';
   patternStatusFilter = '全部';
@@ -2614,6 +2667,7 @@ function switchPatternBrand(b) {
 
 function setPatternType(t) {
   patternType = t;
+  patternDiameter = '全部';
   patternSeries = '全部';
   patternColor = '全部';
   patternStatusFilter = '全部';
@@ -2640,7 +2694,7 @@ function setPatternColor(c) {
 }
 
 // ---------- 花色分类 CRUD ----------
-let _editingPatCat = null; // {type:'brand'|'type'|'series'|'color', oldName}
+let _editingPatCat = null; // {type:'brand'|'type'|'diameter'|'series'|'color', oldName}
 
 function startEditPatCat(type, name) {
   _editingPatCat = { type, oldName: name };
@@ -2670,7 +2724,7 @@ async function confirmEditPatCat() {
     await supabase.from('pattern_categories').insert({ category_type: _editingPatCat.type, name: newName, sort_order: maxOrder + 1 });
   }
   // 级联更新花色数据中对应字段
-  const fieldMap = { brand: 'brand', type: 'type', series: 'series', color: 'color' };
+  const fieldMap = { brand: 'brand', type: 'type', diameter: 'diameter', series: 'series', color: 'color' };
   const field = fieldMap[_editingPatCat.type];
   if (field) {
     const { error: e2 } = await supabase.from('pattern_assets').update({ [field]: newName }).eq(field, _editingPatCat.oldName);
@@ -2679,6 +2733,7 @@ async function confirmEditPatCat() {
   // 同步更新当前筛选状态
   if (_editingPatCat.type === 'brand' && patternBrand === _editingPatCat.oldName) patternBrand = newName;
   else if (_editingPatCat.type === 'type' && patternType === _editingPatCat.oldName) patternType = newName;
+  else if (_editingPatCat.type === 'diameter' && patternDiameter === _editingPatCat.oldName) patternDiameter = newName;
   else if (_editingPatCat.type === 'series' && patternSeries === _editingPatCat.oldName) patternSeries = newName;
   else if (_editingPatCat.type === 'color' && patternColor === _editingPatCat.oldName) patternColor = newName;
   _editingPatCat = null;
@@ -2692,23 +2747,41 @@ async function deletePatCat(type, name) {
   // 也允许删除关联花色字段，并从数据库清掉对应记录（如果存在）
   const cat = patternCategories.find(c => c.category_type === type && c.name === name);
   // 统计受影响的花色数量
-  const fieldMap = { brand: 'brand', type: 'type', series: 'series', color: 'color' };
+  const fieldMap = { brand: 'brand', type: 'type', diameter: 'diameter', series: 'series', color: 'color' };
   const field = fieldMap[type];
   let count = 0;
   if (field) {
     const { count: c, error } = await supabase.from('pattern_assets').select('*', { count: 'exact', head: true }).eq(field, name);
     if (!error) count = c || 0;
   }
+  const typeLabelMap = { brand: '品牌', type: '抛型', diameter: '直径', series: '系列', color: '色系' };
+  const typeLabel = typeLabelMap[type] || type;
   if (type === 'brand' || type === 'type') {
     if (count > 0) {
       if (!confirm(`「${name}」下还有 ${count} 款花色，无法删除。请先将这些花色移入其他${type==='brand'?'品牌':'抛型'}后再操作。`)) return;
       showToast('⚠️ 请先转移花色到其他分类后再删除');
       return;
     }
+  } else if (type === 'color') {
+    // 色系删除：弹出合并对话框
+    if (count === 0) {
+      // 没有关联花色，直接删除
+      if (cat) {
+        await supabase.from('pattern_categories').delete().eq('id', cat.id);
+      }
+      showToast('🗑️ 色系已删除');
+      if (patternColor === name) patternColor = '全部';
+      await loadPatternCategories();
+      await loadPatternsFromDB();
+      return;
+    }
+    // 有关联花色，弹出合并对话框
+    showColorMergeModal(name, count, cat);
+    return;
   } else {
     const confirmMsg = count > 0
-      ? `「${name}」下有 ${count} 款花色使用了该${type==='series'?'系列':'色系'}。\n删除后这些花色的${type==='series'?'系列':'色系'}字段将被清空。\n确定删除吗？`
-      : `确定要删除${type==='series'?'系列':'色系'}「${name}」吗？`;
+      ? `「${name}」下有 ${count} 款花色使用了该${typeLabel}。\n删除后这些花色的${typeLabel}字段将被清空。\n确定删除吗？`
+      : `确定要删除${typeLabel}「${name}」吗？`;
     if (!confirm(confirmMsg)) return;
     if (count > 0) {
       await supabase.from('pattern_assets').update({ [field]: '' }).eq(field, name);
@@ -2723,14 +2796,92 @@ async function deletePatCat(type, name) {
   // 重置筛选
   if (type === 'brand' && patternBrand === name) patternBrand = getPatternBrands()[0] || '';
   else if (type === 'type' && patternType === name) patternType = '全部';
+  else if (type === 'diameter' && patternDiameter === name) patternDiameter = '全部';
   else if (type === 'series' && patternSeries === name) patternSeries = '全部';
   else if (type === 'color' && patternColor === name) patternColor = '全部';
   await loadPatternCategories();
   await loadPatternsFromDB();
 }
 
+// ---------- 色系合并对话框 ----------
+let _colorMergeState = null; // { name, count, cat }
+
+function showColorMergeModal(name, count, cat) {
+  _colorMergeState = { name, count, cat };
+  const modal = document.getElementById('color-merge-modal');
+  const info = document.getElementById('color-merge-info');
+  const targetSelect = document.getElementById('color-merge-target');
+  
+  // 显示信息
+  info.textContent = `「${name}」下有 ${count} 款花色，请选择处理方式：`;
+  
+  // 填充目标色系下拉框（排除当前色系）
+  const allColors = getMergedCats('color', getPatternColors(patternBrand, patternType, patternSeries, patternDiameter))
+    .map(c => c.name)
+    .filter(n => n !== name);
+  // 也加上 pattern_categories 中的标准色系
+  const stdColors = patternCategories.filter(c => c.category_type === 'color' && c.name !== name).map(c => c.name);
+  const allTargets = [...new Set([...stdColors, ...allColors])].sort();
+  
+  targetSelect.innerHTML = allTargets.map(c => `<option value="${c}">${c}</option>`).join('');
+  
+  // 默认选择合并模式
+  document.querySelector('input[name="merge-mode"][value="merge"]').checked = true;
+  targetSelect.style.display = 'block';
+  
+  modal.style.display = 'flex';
+}
+
+function closeColorMergeModal() {
+  document.getElementById('color-merge-modal').style.display = 'none';
+  _colorMergeState = null;
+}
+
+function onMergeModeChange() {
+  const mode = document.querySelector('input[name="merge-mode"]:checked').value;
+  const targetSelect = document.getElementById('color-merge-target');
+  targetSelect.style.display = mode === 'merge' ? 'block' : 'none';
+  // 更新确认按钮文字
+  const btn = document.querySelector('#color-merge-modal .btn-danger');
+  if (btn) {
+    btn.textContent = mode === 'merge' ? '合并并删除' : '确认删除';
+  }
+}
+
+async function executeColorMerge() {
+  if (!_colorMergeState) return;
+  const { name, count, cat } = _colorMergeState;
+  const mode = document.querySelector('input[name="merge-mode"]:checked').value;
+  
+  if (mode === 'merge') {
+    const target = document.getElementById('color-merge-target').value;
+    if (!target) { showToast('请选择目标色系'); return; }
+    // 将该色系下所有花色的 color 字段更新为目标色系
+    const { error } = await supabase.from('pattern_assets').update({ color: target }).eq('color', name);
+    if (error) { showToast('合并失败：' + error.message); return; }
+    showToast(`✅ ${count} 款花色已合并到「${target}」，色系「${name}」已删除`);
+  } else {
+    // 清空色系字段
+    const { error } = await supabase.from('pattern_assets').update({ color: '' }).eq('color', name);
+    if (error) { showToast('操作失败：' + error.message); return; }
+    showToast(`🗑️ ${count} 款花色色系已清空，色系「${name}」已删除`);
+  }
+  
+  // 删除分类记录
+  if (cat) {
+    await supabase.from('pattern_categories').delete().eq('id', cat.id);
+  }
+  
+  // 重置筛选
+  if (patternColor === name) patternColor = '全部';
+  
+  closeColorMergeModal();
+  await loadPatternCategories();
+  await loadPatternsFromDB();
+}
+
 async function addPatCat(type) {
-  const labels = { brand: '品牌', type: '抛型', series: '系列', color: '色系' };
+  const labels = { brand: '品牌', type: '抛型', diameter: '直径', series: '系列', color: '色系' };
   const name = prompt(`请输入新${labels[type]}名称：`);
   if (!name || !name.trim()) return;
   const trimmed = name.trim();
@@ -2790,7 +2941,7 @@ const PATTERN_PAGE_SIZE = 20;
 
 function renderPatterns() {
   // patternData already loaded from Supabase, no localStorage merge needed
-  let items = getFilteredItems(patternBrand, patternType, patternSeries);
+  let items = getFilteredItems(patternBrand, patternType, patternSeries, patternDiameter);
   // 色系筛选
   if (patternColor !== '全部') {
     items = items.filter(p => p.color === patternColor);
@@ -2908,6 +3059,8 @@ function renderPatterns() {
       <button class="btn-del" title="删除" onclick="event.stopPropagation();deletePattern('${escapeAttr(p._id)}','${escapeAttr(p.name)}')">🗑️</button>
     </div>` : '';
     const discBadge = p.isDiscontinued ? `<div style="position:absolute;top:8px;left:8px;background:#d97706;color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;z-index:2;">已下架</div>` : '';
+    const discMetaTag = p.isDiscontinued ? '<span class="pcard-disc-tag">已下架</span>' : '';
+    const nameStyle = p.isDiscontinued ? ' style="text-decoration:line-through;opacity:.65;"' : '';
 
     return `<div class="pattern-card"${p.isDiscontinued ? ' style="opacity:.7;"' : ''}>
       <div class="pcard-img"${images.length ? ` onclick="openLightbox(window._lbImages['${lbKey}'])" style="cursor:pointer"` : ''}>
@@ -2918,10 +3071,11 @@ function renderPatterns() {
       ${mgmtBtns}
       <div class="pcard-body">
         <div class="pcard-title-row">
-          <span class="pcard-name">${escapeHtml(p.name)}</span>
+          <span class="pcard-name"${nameStyle}>${escapeHtml(p.name)}</span>
           <span class="pcard-series">${escapeHtml(p.series || '')}</span>
         </div>
         <div class="pcard-meta-row">
+          ${discMetaTag}
           <span>${escapeHtml(p.color || '')}</span>
           ${p.diameter ? '<span>' + escapeHtml(p.diameter) + '</span>' : ''}
           ${specsHtml}
@@ -3060,7 +3214,7 @@ function renderEditorForm(pattern) {
     + '<input id="ef-name" value="' + escapeHtml(t.name || '') + '"' + (b.isNew ? '' : ' readonly') + '></div>'
     + '<div class="modal-field-row"><div class="modal-field"><label>系列 <span style="font-weight:400;color:var(--text-muted);">(可选已有或输入新系列)</span></label><div class="series-input-wrap"><input id="ef-series" list="ef-series-list" value="' + escapeHtml(t.series || '') + '" placeholder="选择或输入系列..."><datalist id="ef-series-list">' + seriesOptions + '</datalist></div></div>'
     + '<div class="modal-field"><label>色系</label><select id="ef-color">'
-    + (() => { const mc = patternCategories.filter(c => c.category_type === 'color').map(c => c.name); const colors = mc.length > 0 ? mc : ['棕色系','黑灰色系','蓝色系','绿色系','粉色系','紫色系','灰色系','混血色']; return colors.map(c => '<option value="' + c + '"' + ((t.color||'')===c?' selected':'') + '>' + c + '</option>').join(''); })()
+    + (() => { const mc = patternCategories.filter(c => c.category_type === 'color').map(c => c.name); const colors = mc.length > 0 ? mc : ['棕色系','黑灰色系','蓝色系','绿色系','粉色系','紫色系','灰色系','混血色','粉紫色系']; return colors.map(c => '<option value="' + c + '"' + ((t.color||'')===c?' selected':'') + '>' + c + '</option>').join(''); })()
     + '</select></div></div>'
     + '<div class="modal-field-row"><div class="modal-field"><label>直径</label><input id="ef-diameter" value="' + escapeHtml(t.diameter || '') + '" placeholder="14.2mm"></div>'
     + '<div class="modal-field"><label>着色直径</label><input id="ef-cdiam" value="' + escapeHtml(t.colorDiameter || '') + '" placeholder="13.5"></div></div>'
@@ -3191,9 +3345,11 @@ function closeModal(id) {
 }
 
 // ==================== LIGHTBOX ====================
-let lightboxImages = [];  // [{src, type:'eye'|'lens', hint}]
+let lightboxImages = [];  // [{thumb, hd, type:'eye'|'lens', hint}]
 let lightboxIdx = 0;
 let lightboxImgSrc = '';
+let lightboxLoadTimer = null;
+let lightboxCurrentPreload = null;
 
 function openLightbox(images) {
   if (!Array.isArray(images) || images.length === 0) return;
@@ -3204,6 +3360,24 @@ function openLightbox(images) {
   document.body.style.overflow = 'hidden';
 }
 
+function resetLightboxStatus() {
+  const statusEl = document.getElementById('lightbox-status');
+  const retryEl = document.getElementById('lightbox-retry');
+  if (statusEl) { statusEl.textContent = ''; statusEl.classList.remove('error'); }
+  if (retryEl) retryEl.style.display = 'none';
+  if (lightboxLoadTimer) { clearTimeout(lightboxLoadTimer); lightboxLoadTimer = null; }
+}
+
+function setLightboxStatus(text, isError) {
+  const statusEl = document.getElementById('lightbox-status');
+  const retryEl = document.getElementById('lightbox-retry');
+  if (statusEl) {
+    statusEl.textContent = text || '';
+    statusEl.classList.toggle('error', !!isError);
+  }
+  if (retryEl) retryEl.style.display = isError ? '' : 'none';
+}
+
 function showLightboxImage() {
   const img = lightboxImages[lightboxIdx];
   const thumbEl = document.getElementById('lightbox-thumb');
@@ -3211,10 +3385,17 @@ function showLightboxImage() {
   const loader = document.getElementById('lightbox-loader');
 
   // 重置状态
+  resetLightboxStatus();
+  if (lightboxCurrentPreload) {
+    lightboxCurrentPreload.onload = null;
+    lightboxCurrentPreload.onerror = null;
+    lightboxCurrentPreload = null;
+  }
   hdEl.classList.remove('loaded');
   thumbEl.classList.remove('hidden');
   thumbEl.src = img.thumb;
   hdEl.src = '';
+  hdEl.removeAttribute('data-hd');
   loader.classList.add('show');
 
   document.getElementById('lightbox-counter').textContent =
@@ -3224,19 +3405,54 @@ function showLightboxImage() {
   document.getElementById('lightbox-next').disabled = lightboxIdx === lightboxImages.length - 1;
   lightboxImgSrc = img.hd;
 
+  // 2秒后若仍未加载完成，给出友好提示
+  lightboxLoadTimer = setTimeout(() => {
+    if (!hdEl.classList.contains('loaded')) {
+      setLightboxStatus('图片较大，正在加载高清图…');
+    }
+  }, 2000);
+
   // 异步加载高清原图
+  loadLightboxHd(img.hd);
+}
+
+function loadLightboxHd(hdUrl) {
+  const thumbEl = document.getElementById('lightbox-thumb');
+  const hdEl = document.getElementById('lightbox-img');
+  const loader = document.getElementById('lightbox-loader');
+
+  if (lightboxCurrentPreload) {
+    lightboxCurrentPreload.onload = null;
+    lightboxCurrentPreload.onerror = null;
+  }
   const preload = new Image();
+  lightboxCurrentPreload = preload;
+
   preload.onload = function() {
-    hdEl.src = img.hd;
+    resetLightboxStatus();
+    hdEl.src = hdUrl;
+    hdEl.setAttribute('data-hd', hdUrl);
+    void hdEl.offsetWidth; // 强制 reflow，确保过渡生效
     hdEl.classList.add('loaded');
     thumbEl.classList.add('hidden');
     loader.classList.remove('show');
   };
   preload.onerror = function() {
-    loader.classList.remove('show');
-    // 高清图加载失败时仍保留模糊的缩略图可见
+    resetLightboxStatus();
+    setLightboxStatus('高清图加载失败，可点击重试', true);
+    loader.classList.add('show');
+    // 保留缩略图可见作为 fallback
   };
-  preload.src = img.hd;
+  preload.src = hdUrl;
+}
+
+function retryLightboxHd() {
+  const img = lightboxImages[lightboxIdx];
+  if (!img) return;
+  const loader = document.getElementById('lightbox-loader');
+  loader.classList.add('show');
+  setLightboxStatus('正在重新加载…');
+  loadLightboxHd(img.hd);
 }
 
 function navLightbox(dir) {
@@ -3259,7 +3475,10 @@ function closeLightbox() {
 
 async function copyLightboxImg() {
   const img = document.getElementById('lightbox-img');
-  if (!img || !img.complete) { showToast('图片未加载完成，请稍等'); return; }
+  if (!img || !img.classList.contains('loaded') || !img.getAttribute('data-hd')) {
+    showToast('高清图未加载完成，请稍等或点击重试');
+    return;
+  }
   try {
     // Use canvas to convert loaded image to blob (more reliable than fetch)
     const canvas = document.createElement('canvas');
@@ -4497,7 +4716,11 @@ init();
     <div class="lightbox-img-stack">
       <img id="lightbox-thumb" class="lightbox-thumb" src="" alt="" />
       <img id="lightbox-img" class="lightbox-hd" src="" alt="" />
-      <div class="lightbox-loader" id="lightbox-loader"><span></span></div>
+      <div class="lightbox-loader" id="lightbox-loader">
+        <span></span>
+        <div class="lightbox-status" id="lightbox-status"></div>
+        <button class="lightbox-retry" id="lightbox-retry" style="display:none;" onclick="event.stopPropagation();retryLightboxHd()">重试</button>
+      </div>
     </div>
     <button class="lightbox-nav lightbox-next" id="lightbox-next" onclick="event.stopPropagation();navLightbox(1)">›</button>
   </div>
@@ -4551,6 +4774,36 @@ init();
 <div id="pat-cat-ctx-menu" class="ctx-menu" style="display:none;">
   <div class="ctx-item" onclick="ctxEditPatCat()">✎ 编辑</div>
   <div class="ctx-item ctx-danger" onclick="ctxDeletePatCat()">✕ 删除</div>
+</div>
+
+<!-- 色系合并对话框 -->
+<div id="color-merge-modal" class="modal-overlay" style="display:none;z-index:10001;">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-header">
+      <h3>🗑️ 删除色系</h3>
+      <button class="modal-close" onclick="closeColorMergeModal()">×</button>
+    </div>
+    <div class="modal-body" style="padding:20px;">
+      <p id="color-merge-info" style="margin-bottom:16px;font-size:14px;color:var(--text-secondary);"></p>
+      <div style="margin-bottom:16px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:12px;font-size:14px;">
+          <input type="radio" name="merge-mode" value="merge" checked onchange="onMergeModeChange()">
+          <span>合并到其他色系（推荐）</span>
+        </label>
+        <select id="color-merge-target" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg);color:var(--text);margin-left:24px;margin-bottom:8px;"></select>
+      </div>
+      <div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+          <input type="radio" name="merge-mode" value="clear" onchange="onMergeModeChange()">
+          <span>清空色系字段（花色将变为未分类）</span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer" style="padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn btn-secondary" onclick="closeColorMergeModal()" style="padding:8px 20px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;font-size:14px;">取消</button>
+      <button class="btn btn-danger" onclick="executeColorMerge()" style="padding:8px 20px;border-radius:8px;border:none;background:#ef4444;color:#fff;cursor:pointer;font-weight:600;font-size:14px;">确认删除</button>
+    </div>
+  </div>
 </div>
 
 </body>
