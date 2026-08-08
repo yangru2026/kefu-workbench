@@ -3166,7 +3166,7 @@ function toLargeImageUrl(url) {
   if (!m) return '';
   const base = m[1];
   const name = m[2];
-  return addCacheBuster(toCdnUrl(base + 'patterns/large/' + name + '.webp'));
+  return addCacheBuster(toCdnUrl(base + 'patterns/hd/' + name + '.webp'));
 }
 
 // 统一将 GitHub Pages 本地图片 URL 转成 jsDelivr CDN 加速地址
@@ -3450,29 +3450,28 @@ function showLightboxImage() {
   cancelLightboxPreload();
 
   hdEl.classList.remove('loaded');
-  thumbEl.classList.remove('hidden');
-  thumbEl.src = img.thumb || '';
+  thumbEl.classList.add('hidden');
+  thumbEl.src = '';
   hdEl.src = '';
   hdEl.removeAttribute('data-hd');
-  // 关键：先不显示 loader，缩略图已经加载过，可立即展示；高清图后台静默加载
-  loader.classList.remove('show');
+  // 直接显示 spinner，不用模糊缩略图占位
+  loader.classList.add('show');
 
   document.getElementById('lightbox-counter').textContent =
     lightboxImages.length > 1 ? (lightboxIdx + 1) + ' / ' + lightboxImages.length : '';
   document.getElementById('lightbox-type-tag').textContent = img.hint || '';
   document.getElementById('lightbox-prev').disabled = lightboxIdx === 0;
   document.getElementById('lightbox-next').disabled = lightboxIdx === lightboxImages.length - 1;
-  lightboxImgSrc = img.large;
+  lightboxImgSrc = img.large || img.hd;
 
-  // 如果缩略图本身就是 CDN 且已缓存，1.5 秒后还未加载出高清图再显示极淡提示
+  // 3秒后若仍未加载完成，显示提示
   lightboxLoadTimer = setTimeout(() => {
     if (!hdEl.classList.contains('loaded')) {
-      // 只在真正卡住时显示一个很不显眼的状态，不遮挡图片
-      setLightboxStatus('正在优化清晰度…');
+      setLightboxStatus('图片加载中…');
     }
-  }, 1500);
+  }, 3000);
 
-  // 异步加载中图；失败则回退原图；再失败保持缩略图
+  // 直接加载高清中图；失败回退原图
   loadLightboxHd(img.large, img.hd);
 }
 
@@ -3485,21 +3484,21 @@ function cancelLightboxPreload() {
 }
 
 function loadLightboxHd(largeUrl, fallbackUrl) {
-  const thumbEl = document.getElementById('lightbox-thumb');
   const hdEl = document.getElementById('lightbox-img');
   const loader = document.getElementById('lightbox-loader');
 
   cancelLightboxPreload();
   const preload = new Image();
+  preload.crossOrigin = 'anonymous'; // 允许 canvas 复制
   lightboxCurrentPreload = preload;
 
   function applyLoaded(url) {
     resetLightboxStatus();
     hdEl.src = url;
+    hdEl.crossOrigin = 'anonymous';
     hdEl.setAttribute('data-hd', url);
-    void hdEl.offsetWidth; // 强制 reflow，确保过渡生效
+    void hdEl.offsetWidth;
     hdEl.classList.add('loaded');
-    thumbEl.classList.add('hidden');
     loader.classList.remove('show');
   }
 
@@ -3508,22 +3507,22 @@ function loadLightboxHd(largeUrl, fallbackUrl) {
   };
   preload.onerror = function() {
     if (fallbackUrl && fallbackUrl !== largeUrl) {
-      // 中图 CDN 失败，尝试原图 CDN
       const fallbackPreload = new Image();
+      fallbackPreload.crossOrigin = 'anonymous';
       lightboxCurrentPreload = fallbackPreload;
       fallbackPreload.onload = function() {
         applyLoaded(fallbackUrl);
       };
       fallbackPreload.onerror = function() {
-        // 彻底失败：保持缩略图可见，不弹错误，用户体验不会中断
         resetLightboxStatus();
-        loader.classList.remove('show');
-        console.warn('lightbox 高清图加载失败:', largeUrl, fallbackUrl);
+        setLightboxStatus('图片加载失败，可点击重试', true);
+        loader.classList.add('show');
       };
       fallbackPreload.src = fallbackUrl;
     } else {
       resetLightboxStatus();
-      loader.classList.remove('show');
+      setLightboxStatus('图片加载失败，可点击重试', true);
+      loader.classList.add('show');
     }
   };
   preload.src = largeUrl;
@@ -3557,37 +3556,39 @@ function closeLightbox() {
 async function copyLightboxImg() {
   const img = document.getElementById('lightbox-img');
   if (!img || !img.classList.contains('loaded') || !img.getAttribute('data-hd')) {
-    showToast('高清图未加载完成，请稍等或点击重试');
+    showToast('图片未加载完成，请稍等');
     return;
   }
+  // 方案1: canvas 复制到剪贴板（需要 crossOrigin）
   try {
-    // Use canvas to convert loaded image to blob (more reliable than fetch)
     const canvas = document.createElement('canvas');
     canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0);
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-    if (!blob) throw new Error('canvas toBlob failed');
-    await navigator.clipboard.write([
-      new ClipboardItem({ 'image/png': blob })
-    ]);
-    showToast('✅ 图片已复制到剪贴板，可直接粘贴发送');
-  } catch(e) {
-    // Fallback: try fetch approach
-    try {
-      const resp = await fetch(lightboxImgSrc);
-      const blob = await resp.blob();
-      await navigator.clipboard.write([
-        new ClipboardItem({ [blob.type]: blob })
-      ]);
-      showToast('✅ 图片已复制到剪贴板');
-    } catch(e2) {
-      // Last resort: open in new tab so user can right-click copy
-      window.open(lightboxImgSrc, '_blank');
-      showToast('已在新窗口打开图片，请右键复制');
+    if (blob && blob.size > 0) {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      showToast('✅ 图片已复制到剪贴板，可直接粘贴发送');
+      return;
     }
-  }
+  } catch(e) { /* 跨域或浏览器不支持，继续 fallback */ }
+  // 方案2: fetch 图片为 blob 再复制
+  try {
+    const resp = await fetch(img.getAttribute('data-hd'));
+    const blob = await resp.blob();
+    if (blob.size > 0) {
+      await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+      showToast('✅ 图片已复制到剪贴板');
+      return;
+    }
+  } catch(e2) { /* 继续 fallback */ }
+  // 方案3: 下载图片到本地（不跳转网页）
+  const a = document.createElement('a');
+  a.href = img.getAttribute('data-hd');
+  a.download = 'pattern_' + Date.now() + '.webp';
+  a.click();
+  showToast('已下载图片到本地，可手动发送');
 }
 
 function downloadLightboxImg() {

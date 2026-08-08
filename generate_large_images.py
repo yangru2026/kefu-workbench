@@ -13,7 +13,7 @@ from pathlib import Path
 from PIL import Image
 
 SRC_DIR = Path(__file__).parent / 'images' / 'patterns'
-DST_DIR = SRC_DIR / 'large'
+DST_DIR = SRC_DIR / 'hd'
 LARGE_WIDTH = 1200
 QUALITY = 82
 
