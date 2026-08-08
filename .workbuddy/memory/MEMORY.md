@@ -14,6 +14,7 @@
 - **花色素材继续优化** (2026-08-08): ①Lightbox中图加速（900px WebP，357张27.9MB，优先加载中图失败回退原图，generate_large_images.py）；②直径值去重归一（normalize_diameter.sql 把14.5mm/14.5统一为14.5）；③删除分类通用合并对话框（直径/抛型/系列/色系删除时都支持合并到其他分类）；④卡片管理按钮对管理员默认可见（无需先开"管理模式"即可标记下架/编辑/删除）。
 - **花色素材问题修复** (2026-08-08): ①提供 add_discontinued_column.sql 添加 is_discontinued 字段解决下架标记失败；②修复 normalize_diameter.sql 的 CHECK 约束错误；③图片 URL 统一加 `?v=2` 缓存版本号强制刷新，hover lens 优先加载中图。
 - **Lightbox 高清图加载慢彻底解决** (2026-08-08): 三管齐下：①中图从 900px/quality82 降到 600px/quality70，357张从 27.9MB → 11.8MB（平均34KB）；②全站花色图片 URL 走 jsDelivr CDN 加速（国内节点快于 GitHub Pages）；③lightbox 交互重构：点击瞬间直接显示已缓存缩略图，后台静默加载高清中图，加载完淡入替换，失败保持缩略图不转圈。
+- **Lightbox 大图清晰度修复** (2026-08-08): 600px 中图在 900px lightbox 容器内被放大导致模糊。重新生成 **1200px/quality 82** 高清中图，357张共36.3MB（平均104KB），1200px 超过容器尺寸保证高清不模糊；中图 URL 加 `?v=3` 版本号强制刷新 jsDelivr 旧缓存。
 
 ## 待开发功能清单
 
