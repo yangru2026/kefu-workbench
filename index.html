@@ -1259,7 +1259,10 @@ body {
         <div style="font-size:40px;margin-bottom:12px;">⚠️</div>
         <div class="modal-title-cvt">散光度数过高</div>
         <div class="modal-text-cvt" id="astig-modal-text">您输入的散光度数超过150度，本工具仅支持150度以下散光换算。<br><br>建议咨询专业眼科医生，或验配散光专用隐形眼镜。</div>
-        <button class="modal-btn-cvt" onclick="document.getElementById('astig-modal').classList.remove('show')">我知道了</button>
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap;">
+          <button class="modal-btn-cvt" style="background:#7ba7a6;color:#fff;" onclick="capAstigTo150()">按 150 度封顶换算</button>
+          <button class="modal-btn-cvt" onclick="document.getElementById('astig-modal').classList.remove('show')">我知道了</button>
+        </div>
       </div>
     </div>
 
@@ -2798,6 +2801,17 @@ function calculate() {
 
 function showModal() { document.getElementById('astig-modal').classList.add('show'); }
 function closeModal() { document.getElementById('astig-modal').classList.remove('show'); }
+
+// 把超过 150 的散光自动回填为 150 并重新计算
+function capAstigTo150() {
+  const rInput = document.getElementById('r-astigmatism');
+  const lInput = document.getElementById('l-astigmatism');
+  if (parseFloat(rInput.value) > 150) rInput.value = 150;
+  if (parseFloat(lInput.value) > 150) lInput.value = 150;
+  document.getElementById('astig-modal').classList.remove('show');
+  showToast('已将散光封顶到 150 重新换算');
+  calculate();
+}
 
 function copyResult() {
   const text = '宝宝 右眼选' + document.getElementById('final-r').textContent + '度，左眼选' + document.getElementById('final-l').textContent + '度';
