@@ -1258,11 +1258,8 @@ body {
       <div class="modal-box-cvt">
         <div style="font-size:40px;margin-bottom:12px;">⚠️</div>
         <div class="modal-title-cvt">散光度数过高</div>
-        <div class="modal-text-cvt" id="astig-modal-text">您输入的散光度数超过150度，本工具仅支持150度以下散光换算。<br><br>建议咨询专业眼科医生，或验配散光专用隐形眼镜。</div>
-        <div style="display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap;">
-          <button class="modal-btn-cvt" style="background:#7ba7a6;color:#fff;" onclick="capAstigTo150()">按 150 度封顶换算</button>
-          <button class="modal-btn-cvt" style="background:#fff;color:#888;border:1px solid #d0ddd8;" onclick="document.getElementById('astig-modal').classList.remove('show')">我知道了</button>
-        </div>
+        <div class="modal-text-cvt" id="astig-modal-text">您输入的散光度数超过150度，本工具已按最高150度进行换算。<br><br>建议咨询专业眼科医生，或验配散光专用隐形眼镜。</div>
+        <button class="modal-btn-cvt" onclick="closeModal()">我知道了</button>
       </div>
     </div>
 
@@ -2775,21 +2772,40 @@ function getStandardDegree(raw) {
 }
 
 function calculate() {
+  const rInput = document.getElementById('r-astigmatism');
+  const lInput = document.getElementById('l-astigmatism');
   const rMyopia = parseFloat(document.getElementById('r-myopia').value) || 0;
   const lMyopia = parseFloat(document.getElementById('l-myopia').value) || 0;
-  const rAstig = parseFloat(document.getElementById('r-astigmatism').value) || 0;
-  const lAstig = parseFloat(document.getElementById('l-astigmatism').value) || 0;
+  let rAstig = parseFloat(rInput.value) || 0;
+  let lAstig = parseFloat(lInput.value) || 0;
+
+  // 超过 150 直接封顶到 150
+  const rCapped = rAstig > 150;
+  const lCapped = lAstig > 150;
+  if (rCapped) { rInput.value = 150; rAstig = 150; }
+  if (lCapped) { lInput.value = 150; lAstig = 150; }
 
   const rWarn = document.getElementById('r-warning');
   const lWarn = document.getElementById('l-warning');
-  rWarn.style.display = rAstig > 150 ? 'block' : 'none';
-  lWarn.style.display = lAstig > 150 ? 'block' : 'none';
-  if (rAstig > 150) rWarn.textContent = '⚠️ 右眼散光过高，按最高150换算';
-  if (lAstig > 150) lWarn.textContent = '⚠️ 左眼散光过高，按最高150换算';
-  if (rAstig > 150 || lAstig > 150) showModal();
+  rWarn.style.display = rCapped ? 'block' : 'none';
+  lWarn.style.display = lCapped ? 'block' : 'none';
+  if (rCapped) rWarn.textContent = '⚠️ 右眼散光过高，按最高150换算';
+  if (lCapped) lWarn.textContent = '⚠️ 左眼散光过高，按最高150换算';
 
-  let rTotal = rMyopia > 0 ? rMyopia + (rAstig > 0 && rAstig <= 150 ? rAstig / 2 : 0) : 0;
-  let lTotal = lMyopia > 0 ? lMyopia + (lAstig > 0 && lAstig <= 150 ? lAstig / 2 : 0) : 0;
+  // 弹窗提醒客服/客户，并说明是哪只眼
+  if (rCapped || lCapped) {
+    let eyeText = '';
+    if (rCapped && lCapped) eyeText = '双眼';
+    else if (rCapped) eyeText = '右眼';
+    else eyeText = '左眼';
+    document.getElementById('astig-modal-text').innerHTML =
+      eyeText + '散光度数超过150度，<strong style="color:#e74c3c;">已按最高150度进行换算</strong>。<br><br>建议咨询专业眼科医生，或验配散光专用隐形眼镜。';
+    showModal();
+  }
+
+  // 散光已封顶到 150，只要有散光就折半加入球镜
+  let rTotal = rMyopia > 0 ? rMyopia + (rAstig > 0 ? rAstig / 2 : 0) : 0;
+  let lTotal = lMyopia > 0 ? lMyopia + (lAstig > 0 ? lAstig / 2 : 0) : 0;
   const rResult = getStandardDegree(convertDegree(rTotal));
   const lResult = getStandardDegree(convertDegree(lTotal));
 
@@ -2801,17 +2817,6 @@ function calculate() {
 
 function showModal() { document.getElementById('astig-modal').classList.add('show'); }
 function closeModal() { document.getElementById('astig-modal').classList.remove('show'); }
-
-// 把超过 150 的散光自动回填为 150 并重新计算
-function capAstigTo150() {
-  const rInput = document.getElementById('r-astigmatism');
-  const lInput = document.getElementById('l-astigmatism');
-  if (parseFloat(rInput.value) > 150) rInput.value = 150;
-  if (parseFloat(lInput.value) > 150) lInput.value = 150;
-  document.getElementById('astig-modal').classList.remove('show');
-  showToast('已将散光封顶到 150 重新换算');
-  calculate();
-}
 
 function copyResult() {
   const text = '宝宝 右眼选' + document.getElementById('final-r').textContent + '度，左眼选' + document.getElementById('final-l').textContent + '度';
@@ -2838,9 +2843,11 @@ function generateScreenshot() {
   const lMyopia = document.getElementById('l-myopia').value || '0';
   const rAstig = document.getElementById('r-astigmatism').value || '0';
   const lAstig = document.getElementById('l-astigmatism').value || '0';
-  const rAstigNum = parseFloat(rAstig) || 0;
-  const lAstigNum = parseFloat(lAstig) || 0;
-  const highAstig = rAstigNum > 150 || lAstigNum > 150;
+
+  // 以页面警告条为准，判断是否散光被封顶
+  const rCapped = document.getElementById('r-warning').style.display === 'block';
+  const lCapped = document.getElementById('l-warning').style.display === 'block';
+  const highAstig = rCapped || lCapped;
 
   const canvas = document.createElement('canvas');
   canvas.width = 400; canvas.height = highAstig ? 520 : 480;
@@ -2875,7 +2882,7 @@ function generateScreenshot() {
   if (highAstig) {
     ctx.fillStyle = '#e74c3c'; ctx.fillRect(30, 330, 340, 36);
     ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
-    let warnText = rAstigNum > 150 && lAstigNum > 150 ? '⚠️ 双眼散光过高，按最高150换算' : rAstigNum > 150 ? '⚠️ 右眼散光过高，按最高150换算' : '⚠️ 左眼散光过高，按最高150换算';
+    let warnText = rCapped && lCapped ? '⚠️ 双眼散光过高，按最高150换算' : rCapped ? '⚠️ 右眼散光过高，按最高150换算' : '⚠️ 左眼散光过高，按最高150换算';
     ctx.fillText(warnText, 200, 352);
     ctx.fillStyle = '#aaa'; ctx.font = '10px sans-serif';
     ctx.fillText('测算结果仅供参考，建议前往专业眼科机构验光', 200, 450);
