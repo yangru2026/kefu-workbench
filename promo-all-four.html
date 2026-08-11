@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>四档满减 自由混搭</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #eef1f5;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 24px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.card {
+  width: 480px;
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(26,35,50,0.08);
+}
+
+.banner {
+  background: linear-gradient(135deg, #1e3a5f 0%, #2c4a6e 50%, #3d5a80 100%);
+  padding: 28px 24px;
+  text-align: center;
+}
+.banner .tag {
+  display: inline-block;
+  border: 1px solid rgba(212,168,83,0.5);
+  color: #d4a853;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+.banner h1 {
+  color: #fff;
+  font-size: 28px;
+  font-weight: 800;
+}
+.banner h1 span { color: #d4a853; }
+.banner .sub {
+  color: rgba(255,255,255,0.7);
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.highlight {
+  background: #f8fafc;
+  padding: 18px 24px;
+  text-align: center;
+}
+.highlight .text {
+  font-size: 14px;
+  color: #475569;
+}
+.highlight .text strong { color: #1e3a5f; }
+
+.table-wrap { padding: 16px 20px 20px; }
+.table-title {
+  text-align: center;
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+thead th {
+  background: #f1f5f9;
+  color: #64748b;
+  font-weight: 600;
+  padding: 10px 5px;
+  font-size: 11px;
+}
+thead th:first-child { border-radius: 8px 0 0 0; }
+thead th:last-child { border-radius: 0 8px 0 0; }
+tbody td {
+  padding: 14px 5px;
+  text-align: center;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+tbody tr:last-child td { border-bottom: none; }
+
+/* 推荐行 */
+tbody tr.best { background: linear-gradient(90deg, #f0f9ff 0%, #fff 100%); }
+tbody tr.best td { font-weight: 700; }
+tbody tr.best .combo { color: #1e3a5f; }
+tbody tr.best .actual { color: #1e3a5f; font-size: 15px; }
+tbody tr.best .avg { color: #d4a853; font-size: 15px; }
+
+.combo { display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 12px; }
+.best-tag {
+  background: #1e3a5f;
+  color: #fff;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: 700;
+}
+.price { text-decoration: line-through; color: #cbd5e1; font-size: 11px; }
+.actual { color: #1e3a5f; font-weight: 700; font-size: 13px; }
+.avg { color: #3d5a80; font-weight: 700; font-size: 13px; }
+.save { color: #059669; font-weight: 700; font-size: 12px; }
+
+.footer {
+  background: linear-gradient(90deg, #1e3a5f 0%, #2c4a6e 100%);
+  padding: 16px 20px;
+  text-align: center;
+}
+.footer .main {
+  color: #d4a853;
+  font-size: 14px;
+  font-weight: 700;
+}
+.footer .sub {
+  color: rgba(255,255,255,0.5);
+  font-size: 11px;
+  margin-top: 4px;
+}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="banner">
+    <div class="tag">满减活动</div>
+    <h1>买三幅 <span>立减80元</span></h1>
+    <div class="sub">普通款 & 定轴款 自由混搭</div>
+  </div>
+
+  <div class="highlight">
+    <div class="text">
+      1副定轴 + 2副普通 = <strong>¥109.7</strong> &nbsp;|&nbsp;
+      2副定轴 + 1副普通 = <strong>¥119.7</strong> &nbsp;|&nbsp;
+      3副定轴 = <strong>¥129.7</strong>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-title">📋 四档到手价对比</div>
+    <table>
+      <thead>
+        <tr>
+          <th>组合方案</th>
+          <th>原价</th>
+          <th>到手价</th>
+          <th>均价</th>
+          <th>省</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="best">
+          <td>
+            <div class="combo">
+              普通×3
+              <span class="best-tag">推荐</span>
+            </div>
+          </td>
+          <td><span class="price">179.7</span></td>
+          <td><span class="actual">99.7</span></td>
+          <td><span class="avg">33</span></td>
+          <td><span class="save">80</span></td>
+        </tr>
+        <tr>
+          <td><div class="combo">普通×2+定轴</div></td>
+          <td><span class="price">189.7</span></td>
+          <td><span class="actual">109.7</span></td>
+          <td><span class="avg">36.6</span></td>
+          <td><span class="save">80</span></td>
+        </tr>
+        <tr>
+          <td><div class="combo">普通+定轴×2</div></td>
+          <td><span class="price">199.7</span></td>
+          <td><span class="actual">119.7</span></td>
+          <td><span class="avg">39.9</span></td>
+          <td><span class="save">80</span></td>
+        </tr>
+        <tr>
+          <td><div class="combo">定轴×3</div></td>
+          <td><span class="price">209.7</span></td>
+          <td><span class="actual">129.7</span></td>
+          <td><span class="avg">43.2</span></td>
+          <td><span class="save">80</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <div class="main">普通款 & 定轴款 任意组合均享满减80元</div>
+    <div class="sub">不限系列、不限花色，三副即减</div>
+  </div>
+</div>
+</body>
+</html>
