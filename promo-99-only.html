@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三幅99.7 多系列混搭</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #eef1f5;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 24px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.card {
+  width: 460px;
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(26,35,50,0.08);
+}
+
+.banner {
+  background: linear-gradient(135deg, #1e3a5f 0%, #2c4a6e 50%, #3d5a80 100%);
+  padding: 32px 28px;
+  text-align: center;
+  position: relative;
+}
+.banner .tag {
+  display: inline-block;
+  border: 1px solid rgba(212,168,83,0.5);
+  color: #d4a853;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+.banner h1 {
+  color: #fff;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+.banner h1 span {
+  color: #d4a853;
+  font-size: 42px;
+}
+.banner .sub {
+  color: rgba(255,255,255,0.7);
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.price-bar {
+  background: #f8fafc;
+  padding: 24px 28px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+.pb-item {
+  text-align: center;
+}
+.pb-item .num {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1e3a5f;
+}
+.pb-item .num.gold { color: #d4a853; font-size: 32px; }
+.pb-item .label {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+.pb-divider {
+  width: 1px;
+  height: 40px;
+  background: #e2e8f0;
+}
+
+.mix-section {
+  padding: 20px 24px;
+}
+.mix-title {
+  text-align: center;
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 14px;
+}
+.mix-title strong { color: #1e3a5f; }
+.mix-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.mix-item {
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 14px 8px;
+  text-align: center;
+}
+.mix-item .icon { font-size: 24px; margin-bottom: 6px; }
+.mix-item .name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e3a5f;
+}
+.mix-item .desc {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.except-box {
+  margin: 0 24px 20px;
+  background: linear-gradient(90deg, #fef3c7 0%, #fffbeb 100%);
+  border-left: 3px solid #d4a853;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.except-box .icon { font-size: 18px; }
+.except-box .text { font-size: 13px; color: #92400e; }
+.except-box .text strong { color: #b45309; }
+
+.footer {
+  background: #1e3a5f;
+  padding: 16px;
+  text-align: center;
+}
+.footer p {
+  color: #d4a853;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.footer .sub { color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="banner">
+    <div class="tag">限时活动</div>
+    <h1>三幅 <span>¥99.7</span></h1>
+    <div class="sub">多系列花色自由混搭</div>
+  </div>
+
+  <div class="price-bar">
+    <div class="pb-item">
+      <div class="num">¥59.9</div>
+      <div class="label">单副原价</div>
+    </div>
+    <div class="pb-divider"></div>
+    <div class="pb-item">
+      <div class="num gold">¥99.7</div>
+      <div class="label">3副到手价</div>
+    </div>
+    <div class="pb-divider"></div>
+    <div class="pb-item">
+      <div class="num">¥80</div>
+      <div class="label">共省</div>
+    </div>
+  </div>
+
+  <div class="mix-section">
+    <div class="mix-title">✨ <strong>任意系列</strong> 三幅混搭同享优惠</div>
+    <div class="mix-grid">
+      <div class="mix-item">
+        <div class="icon">🌸</div>
+        <div class="name">少女漫</div>
+        <div class="desc">日抛/半年抛</div>
+      </div>
+      <div class="mix-item">
+        <div class="icon">🧜</div>
+        <div class="name">人鱼系列</div>
+        <div class="desc">日抛/半年抛</div>
+      </div>
+      <div class="mix-item">
+        <div class="icon">🐻</div>
+        <div class="name">花厨小熊</div>
+        <div class="desc">日抛/半年抛</div>
+      </div>
+      <div class="mix-item">
+        <div class="icon">💃</div>
+        <div class="name">初音未来</div>
+        <div class="desc">半年抛</div>
+      </div>
+      <div class="mix-item">
+        <div class="icon">📚</div>
+        <div class="name">女高系列</div>
+        <div class="desc">半年抛</div>
+      </div>
+      <div class="mix-item">
+        <div class="icon">✨</div>
+        <div class="name">随便花</div>
+        <div class="desc">半年抛</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="except-box">
+    <div class="icon">⚠️</div>
+    <div class="text"><strong>定轴花色</strong> 不参与本活动，可混搭普通款享其他档位优惠</div>
+  </div>
+
+  <div class="footer">
+    <p>三幅同享 · 任意系列 · 到手 ¥99.7</p>
+    <div class="sub">原价 ¥179.7，立省 ¥80</div>
+  </div>
+</div>
+</body>
+</html>
