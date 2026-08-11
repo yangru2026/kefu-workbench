@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>定轴混搭方案</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #eef1f5;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 24px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.card {
+  width: 460px;
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(26,35,50,0.08);
+}
+
+.banner {
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #4a6278 100%);
+  padding: 32px 28px;
+  text-align: center;
+}
+.banner .tag {
+  display: inline-block;
+  border: 1px solid rgba(212,168,83,0.5);
+  color: #d4a853;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+.banner h1 {
+  color: #fff;
+  font-size: 26px;
+  font-weight: 800;
+}
+.banner h1 span { color: #d4a853; }
+.banner .sub {
+  color: rgba(255,255,255,0.65);
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.scheme-list {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.scheme-item {
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.scheme-item:nth-child(1) { background: linear-gradient(90deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid #bae6fd; }
+.scheme-item:nth-child(2) { background: linear-gradient(90deg, #fff7ed 0%, #ffedd5 100%); border: 1px solid #fed7aa; }
+.scheme-item:nth-child(3) { background: linear-gradient(90deg, #f5f3ff 0%, #ede9fe 100%); border: 1px solid #ddd6fe; }
+
+.scheme-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.scheme-item:nth-child(1) .scheme-icon { background: #e0f2fe; }
+.scheme-item:nth-child(2) .scheme-icon { background: #ffedd5; }
+.scheme-item:nth-child(3) .scheme-icon { background: #ede9fe; }
+
+.scheme-info { flex: 1; }
+.scheme-info .name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+}
+.scheme-info .desc {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.scheme-price {
+  text-align: right;
+}
+.scheme-price .actual {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1e3a5f;
+}
+.scheme-price .actual span { font-size: 14px; font-weight: 600; }
+.scheme-price .original {
+  font-size: 11px;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+.scheme-price .save {
+  font-size: 11px;
+  color: #059669;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.footer {
+  background: linear-gradient(90deg, #2c3e50 0%, #34495e 100%);
+  padding: 18px;
+  text-align: center;
+}
+.footer .main {
+  color: #d4a853;
+  font-size: 15px;
+  font-weight: 700;
+}
+.footer .sub {
+  color: rgba(255,255,255,0.5);
+  font-size: 12px;
+  margin-top: 4px;
+}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="banner">
+    <div class="tag">定轴款混搭</div>
+    <h1>含定轴 <span>三档方案</span></h1>
+    <div class="sub">1副定轴 ~ 3副定轴 自由搭配 均享满减80元</div>
+  </div>
+
+  <div class="scheme-list">
+    <div class="scheme-item">
+      <div class="scheme-icon">1️⃣</div>
+      <div class="scheme-info">
+        <div class="name">1副定轴 + 2副普通</div>
+        <div class="desc">定轴混搭入门方案</div>
+      </div>
+      <div class="scheme-price">
+        <div class="actual">¥109.7</div>
+        <div class="original">原价 ¥189.7</div>
+        <div class="save">省 ¥80</div>
+      </div>
+    </div>
+
+    <div class="scheme-item">
+      <div class="scheme-icon">2️⃣</div>
+      <div class="scheme-info">
+        <div class="name">2副定轴 + 1副普通</div>
+        <div class="desc">定轴混搭进阶方案</div>
+      </div>
+      <div class="scheme-price">
+        <div class="actual">¥119.7</div>
+        <div class="original">原价 ¥199.7</div>
+        <div class="save">省 ¥80</div>
+      </div>
+    </div>
+
+    <div class="scheme-item">
+      <div class="scheme-icon">3️⃣</div>
+      <div class="scheme-info">
+        <div class="name">3副定轴</div>
+        <div class="desc">全定轴尊享方案</div>
+      </div>
+      <div class="scheme-price">
+        <div class="actual">¥129.7</div>
+        <div class="original">原价 ¥209.7</div>
+        <div class="save">省 ¥80</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="main">定轴款 & 普通款 混搭同享满减80元</div>
+    <div class="sub">任意组合三副，到手立减</div>
+  </div>
+</div>
+</body>
+</html>
