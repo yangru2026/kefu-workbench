@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>初音未来 三幅特惠</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #e8e4df;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 24px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.card {
+  width: 400px;
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+}
+.banner {
+  background: linear-gradient(135deg, #7a8b7f 0%, #8fa093 50%, #a3b5a7 100%);
+  padding: 28px 24px;
+  text-align: center;
+}
+.banner .tag {
+  display: inline-block;
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  padding: 3px 12px;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.banner h1 {
+  color: #fff;
+  font-size: 26px;
+  font-weight: 800;
+}
+.banner h1 span { color: #f5e6c8; }
+.banner .sub {
+  color: rgba(255,255,255,0.8);
+  font-size: 13px;
+  margin-top: 6px;
+}
+.price-box {
+  padding: 24px 20px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+.pb-item {
+  text-align: center;
+}
+.pb-item .num {
+  font-size: 28px;
+  font-weight: 800;
+  color: #c45c4a;
+}
+.pb-item .num.gray {
+  color: #bbb;
+  text-decoration: line-through;
+  font-size: 22px;
+}
+.pb-item .label {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+.pb-divider {
+  width: 1px;
+  height: 40px;
+  background: #e2e8f0;
+}
+
+.gift-box {
+  margin: 0 20px 20px;
+  background: linear-gradient(90deg, #fef3c7 0%, #fffbeb 100%);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+.gift-box .title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #92400e;
+  margin-bottom: 10px;
+  text-align: center;
+}
+.gift-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.gift-item {
+  background: #fff;
+  border: 1px solid #fde68a;
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: #92400e;
+  font-weight: 600;
+}
+
+.footer {
+  background: #f5f3f0;
+  padding: 14px 18px;
+  text-align: center;
+}
+.footer .main {
+  color: #5a6b5e;
+  font-size: 14px;
+  font-weight: 700;
+}
+.footer .sub {
+  color: #aaa;
+  font-size: 12px;
+  margin-top: 3px;
+}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="banner">
+    <div class="tag">初音未来联名</div>
+    <h1>三幅特惠 <span>¥139.8</span></h1>
+    <div class="sub">初音系列任选 · 补差价70.8加购2副</div>
+  </div>
+
+  <div class="price-box">
+    <div class="pb-item">
+      <div class="num gray">¥69/副</div>
+      <div class="label">单买/副</div>
+    </div>
+    <div class="pb-divider"></div>
+    <div class="pb-item">
+      <div class="num">¥139.8</div>
+      <div class="label">3副到手价</div>
+    </div>
+    <div class="pb-divider"></div>
+    <div class="pb-item">
+      <div class="num">¥46.6</div>
+      <div class="label">到手均价/副</div>
+    </div>
+  </div>
+
+  <div class="gift-box">
+    <div class="title">🎁 买三幅加赠</div>
+    <div class="gift-list">
+      <span class="gift-item">小卡</span>
+      <span class="gift-item">徽章</span>
+      <span class="gift-item">护理液</span>
+      <span class="gift-item">6联盒</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="main">初音未来联名款 · 三幅到手 ¥139.8</div>
+    <div class="sub">初音系列任选 · 限定赠品数量有限</div>
+  </div>
+</div>
+</body>
+</html>
