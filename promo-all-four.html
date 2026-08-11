@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>四档满减 自由混搭</title>
+<title>买三幅 立减80元</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-  background: #eef1f5;
+  background: #e8e4df;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -16,59 +16,41 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 .card {
-  width: 480px;
+  width: 440px;
   background: #fff;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 24px rgba(26,35,50,0.08);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
 }
 
 .banner {
-  background: linear-gradient(135deg, #1e3a5f 0%, #2c4a6e 50%, #3d5a80 100%);
-  padding: 28px 24px;
+  background: linear-gradient(135deg, #7a8b7f 0%, #8fa093 50%, #a3b5a7 100%);
+  padding: 26px 24px;
   text-align: center;
 }
 .banner .tag {
   display: inline-block;
-  border: 1px solid rgba(212,168,83,0.5);
-  color: #d4a853;
-  padding: 4px 14px;
-  border-radius: 20px;
-  font-size: 12px;
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  padding: 3px 12px;
+  border-radius: 16px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 1px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 .banner h1 {
   color: #fff;
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 800;
 }
-.banner h1 span { color: #d4a853; }
+.banner h1 span { color: #f5e6c8; }
 .banner .sub {
-  color: rgba(255,255,255,0.7);
+  color: rgba(255,255,255,0.85);
   font-size: 13px;
   margin-top: 6px;
 }
 
-.highlight {
-  background: #f8fafc;
-  padding: 18px 24px;
-  text-align: center;
-}
-.highlight .text {
-  font-size: 14px;
-  color: #475569;
-}
-.highlight .text strong { color: #1e3a5f; }
-
-.table-wrap { padding: 16px 20px 20px; }
-.table-title {
-  text-align: center;
-  font-size: 13px;
-  color: #64748b;
-  margin-bottom: 12px;
-}
+.table-wrap { padding: 16px 18px 18px; }
 table {
   width: 100%;
   border-collapse: separate;
@@ -76,64 +58,70 @@ table {
   font-size: 13px;
 }
 thead th {
-  background: #f1f5f9;
-  color: #64748b;
+  background: #f5f3f0;
+  color: #999;
   font-weight: 600;
-  padding: 10px 5px;
+  padding: 8px 4px;
   font-size: 11px;
 }
 thead th:first-child { border-radius: 8px 0 0 0; }
 thead th:last-child { border-radius: 0 8px 0 0; }
 tbody td {
-  padding: 14px 5px;
+  padding: 12px 4px;
   text-align: center;
-  border-bottom: 1px solid #f1f5f9;
-  color: #334155;
+  border-bottom: 1px solid #f0eeeb;
+  color: #555;
 }
 tbody tr:last-child td { border-bottom: none; }
 
 /* 推荐行 */
-tbody tr.best { background: linear-gradient(90deg, #f0f9ff 0%, #fff 100%); }
-tbody tr.best td { font-weight: 700; }
-tbody tr.best .combo { color: #1e3a5f; }
-tbody tr.best .actual { color: #E74C3C; font-size: 15px; }
-tbody tr.best .avg { color: #d4a853; font-size: 15px; }
+tbody tr.best td { font-weight: 700; background: #f9f7f4; }
+tbody tr.best .combo { color: #5a6b5e; }
+tbody tr.best .actual { color: #c45c4a; font-size: 15px; }
+tbody tr.best .avg { color: #7a8b7f; font-size: 14px; }
 
 /* 单买行 */
-tbody tr.single { background: #fafafa; }
-tbody tr.single td { color: #94a3b8; }
-tbody tr.single .combo { color: #64748b; }
-tbody tr.single .actual { color: #64748b; font-size: 13px; }
+tbody tr.single td { color: #bbb; }
+tbody tr.single .combo { color: #999; }
+tbody tr.single .actual { color: #999; }
 
-.combo { display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 12px; }
+.combo { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 12px; }
 .best-tag {
-  background: #1e3a5f;
+  background: #7a8b7f;
   color: #fff;
   font-size: 9px;
-  padding: 2px 6px;
-  border-radius: 6px;
+  padding: 1px 5px;
+  border-radius: 4px;
   font-weight: 700;
 }
-.price { text-decoration: line-through; color: #cbd5e1; font-size: 11px; }
-.actual { color: #E74C3C; font-weight: 700; font-size: 13px; }
-.avg { color: #3d5a80; font-weight: 700; font-size: 13px; }
-.save { color: #059669; font-weight: 700; font-size: 12px; }
-.na { color: #cbd5e1; font-size: 12px; }
+.plus-tag {
+  background: #e8d5c4;
+  color: #8b6914;
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.price { text-decoration: line-through; color: #ccc; font-size: 11px; }
+.actual { color: #c45c4a; font-weight: 700; font-size: 13px; }
+.avg { color: #7a8b7f; font-weight: 700; font-size: 12px; }
+.save { color: #6b9080; font-weight: 700; font-size: 11px; }
+.na { color: #ddd; font-size: 11px; }
 
 .footer {
-  background: linear-gradient(90deg, #1e3a5f 0%, #2c4a6e 100%);
-  padding: 16px 20px;
+  background: #f5f3f0;
+  padding: 14px 18px;
   text-align: center;
 }
 .footer .main {
-  color: #d4a853;
-  font-size: 14px;
+  color: #5a6b5e;
+  font-size: 13px;
   font-weight: 700;
 }
 .footer .sub {
-  color: rgba(255,255,255,0.5);
+  color: #aaa;
   font-size: 11px;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 </style>
 </head>
@@ -145,20 +133,11 @@ tbody tr.single .actual { color: #64748b; font-size: 13px; }
     <div class="sub">普通款 & 定轴款 自由混搭</div>
   </div>
 
-  <div class="highlight">
-    <div class="text">
-      1副定轴 + 2副普通 = <strong>¥109.7</strong> &nbsp;|&nbsp;
-      2副定轴 + 1副普通 = <strong>¥119.7</strong> &nbsp;|&nbsp;
-      3副定轴 = <strong>¥129.7</strong>
-    </div>
-  </div>
-
   <div class="table-wrap">
-    <div class="table-title">📋 到手价对比</div>
     <table>
       <thead>
         <tr>
-          <th>组合方案</th>
+          <th>组合</th>
           <th>原价</th>
           <th>到手价</th>
           <th>均价</th>
@@ -167,8 +146,13 @@ tbody tr.single .actual { color: #64748b; font-size: 13px; }
       </thead>
       <tbody>
         <tr class="single">
-          <td><div class="combo">普通×1</div></td>
-          <td><span class="price">—</span></td>
+          <td>
+            <div class="combo">
+              普通×1
+              <span class="plus-tag">单买</span>
+            </div>
+          </td>
+          <td><span class="na">—</span></td>
           <td><span class="actual">49.9</span></td>
           <td><span class="na">—</span></td>
           <td><span class="na">—</span></td>
@@ -186,21 +170,36 @@ tbody tr.single .actual { color: #64748b; font-size: 13px; }
           <td><span class="save">80</span></td>
         </tr>
         <tr>
-          <td><div class="combo">普通×2+定轴</div></td>
+          <td>
+            <div class="combo">
+              普通×2+定轴
+              <span class="plus-tag">+10</span>
+            </div>
+          </td>
           <td><span class="price">189.7</span></td>
           <td><span class="actual">109.7</span></td>
           <td><span class="avg">36.6</span></td>
           <td><span class="save">80</span></td>
         </tr>
         <tr>
-          <td><div class="combo">普通+定轴×2</div></td>
+          <td>
+            <div class="combo">
+              普通+定轴×2
+              <span class="plus-tag">+20</span>
+            </div>
+          </td>
           <td><span class="price">199.7</span></td>
           <td><span class="actual">119.7</span></td>
           <td><span class="avg">39.9</span></td>
           <td><span class="save">80</span></td>
         </tr>
         <tr>
-          <td><div class="combo">定轴×3</div></td>
+          <td>
+            <div class="combo">
+              定轴×3
+              <span class="plus-tag">+30</span>
+            </div>
+          </td>
           <td><span class="price">209.7</span></td>
           <td><span class="actual">129.7</span></td>
           <td><span class="avg">43.2</span></td>
@@ -212,7 +211,7 @@ tbody tr.single .actual { color: #64748b; font-size: 13px; }
 
   <div class="footer">
     <div class="main">普通款 & 定轴款 任意组合均享满减80元</div>
-    <div class="sub">不限系列、不限花色，三副即减</div>
+    <div class="sub">三副即减，不限系列</div>
   </div>
 </div>
 </body>
