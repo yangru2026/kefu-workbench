@@ -2469,3 +2469,416 @@ function subscribeStaffInfo() {
     })
     .subscribe();
 }
+
+// ========== 申请审批系统 ==========
+
+let allRequests = [];
+let reqCurrentType = 'shift_swap';
+let reqCurrentFilter = 'pending';
+
+const SHIFT_OPTIONS = [
+  { label: '早班', val: '早班' },
+  { label: '中班', val: '中班' },
+  { label: '晚班', val: '晚班' },
+  { label: '休息', val: '休息' },
+  { label: '调休', val: '调休' },
+];
+
+const TYPE_LABELS = {
+  shift_swap: '换班',
+  overtime: '加班',
+  compensatory_leave: '调休',
+};
+
+const STATUS_LABELS = {
+  pending: '待审批',
+  approved: '已通过',
+  rejected: '已拒绝',
+};
+
+function switchReqType(type) {
+  reqCurrentType = type;
+  document.querySelectorAll('.req-tab-btn[data-req-type]').forEach(b => {
+    b.classList.toggle('active', b.dataset.reqType === type);
+  });
+  renderReqForm();
+}
+
+function switchReqFilter(filter) {
+  reqCurrentFilter = filter;
+  document.querySelectorAll('.req-tab-btn[data-req-filter]').forEach(b => {
+    b.classList.toggle('active', b.dataset.reqFilter === filter);
+  });
+  renderReqList();
+}
+
+function renderReqForm() {
+  const container = document.getElementById('req-form-content');
+  const today = new Date().toISOString().split('T')[0];
+
+  if (reqCurrentType === 'shift_swap') {
+    container.innerHTML = `
+      <div class="req-form-row">
+        <label>日期</label>
+        <input type="date" id="req-date" value="${today}" onchange="autoFillShiftFrom()">
+        <label>原班次</label>
+        <input type="text" id="req-shift-from" placeholder="自动获取当前班次" readonly style="min-width:120px;background:#f5f5f5;">
+        <label>换成</label>
+        <select id="req-shift-to">
+          ${SHIFT_OPTIONS.map(s => `<option value="${s.val}">${s.label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="req-form-row">
+        <label>原因</label>
+        <textarea id="req-reason" placeholder="请填写换班原因"></textarea>
+        <button class="req-submit-btn" onclick="submitRequest()">提交申请</button>
+      </div>`;
+  } else if (reqCurrentType === 'overtime') {
+    container.innerHTML = `
+      <div class="req-form-row">
+        <label>日期</label>
+        <input type="date" id="req-date" value="${today}">
+        <label>加班时长</label>
+        <input type="number" id="req-hours" placeholder="小时" min="0.5" step="0.5" style="width:100px;">
+        <span style="color:var(--text-secondary);font-size:12px;">小时</span>
+      </div>
+      <div class="req-form-row">
+        <label>原因</label>
+        <textarea id="req-reason" placeholder="请填写加班原因"></textarea>
+        <button class="req-submit-btn" onclick="submitRequest()">提交申请</button>
+      </div>`;
+  } else {
+    container.innerHTML = `
+      <div class="req-form-row">
+        <label>日期</label>
+        <input type="date" id="req-date" value="${today}">
+        <label>调休时长</label>
+        <input type="number" id="req-hours" placeholder="小时" min="0.5" step="0.5" style="width:100px;">
+        <span style="color:var(--text-secondary);font-size:12px;">小时</span>
+        <span id="req-remain-hint" style="color:var(--text-secondary);font-size:12px;"></span>
+      </div>
+      <div class="req-form-row">
+        <label>原因</label>
+        <textarea id="req-reason" placeholder="请填写调休原因"></textarea>
+        <button class="req-submit-btn" onclick="submitRequest()">提交申请</button>
+      </div>`;
+    setTimeout(() => showReqRemainHours(), 100);
+  }
+}
+
+async function showReqRemainHours() {
+  if (!currentProfile || !supabase) return;
+  try {
+    const { data: otData } = await supabase.from('overtime_records').select('hours').eq('profile_id', currentProfile.id);
+    const { data: lvData } = await supabase.from('compensatory_leave_records').select('hours').eq('profile_id', currentProfile.id);
+    const totalOT = (otData || []).reduce((s, r) => s + (Number(r.hours) || 0), 0);
+    const totalLV = (lvData || []).reduce((s, r) => s + (Number(r.hours) || 0), 0);
+    const remain = Math.max(0, totalOT - totalLV);
+    const hint = document.getElementById('req-remain-hint');
+    if (hint) hint.textContent = '(当前可调休: ' + roundH(remain) + 'h)';
+  } catch(e) {}
+}
+
+async function autoFillShiftFrom() {
+  const dateVal = document.getElementById('req-date')?.value;
+  if (!dateVal || !currentProfile) return;
+  const [y, m, d] = dateVal.split('-').map(Number);
+  const monthKey = y + '-' + String(m).padStart(2, '0');
+  const day = String(d);
+  try {
+    const { data } = await supabase
+      .from('schedule_data')
+      .select('schedule')
+      .eq('month_key', monthKey)
+      .eq('staff_name', currentProfile.name)
+      .single();
+    const shift = data?.schedule?.[day] || '';
+    const el = document.getElementById('req-shift-from');
+    if (el) el.value = shift || '无排班';
+  } catch(e) {
+    const el = document.getElementById('req-shift-from');
+    if (el) el.value = '无排班';
+  }
+}
+
+async function submitRequest() {
+  if (!currentProfile || !supabase) {
+    showToast('请先登录');
+    return;
+  }
+
+  const dateVal = document.getElementById('req-date').value;
+  if (!dateVal) { showToast('请选择日期'); return; }
+
+  const reason = document.getElementById('req-reason').value.trim();
+
+  const row = {
+    type: reqCurrentType,
+    requester_id: currentProfile.id,
+    requester_name: currentProfile.name,
+    status: 'pending',
+    target_date: dateVal,
+    reason: reason || null,
+  };
+
+  if (reqCurrentType === 'shift_swap') {
+    row.shift_from = document.getElementById('req-shift-from').value || null;
+    row.shift_to = document.getElementById('req-shift-to').value;
+    if (!row.shift_to) { showToast('请选择要换成的班次'); return; }
+  } else {
+    const hours = parseFloat(document.getElementById('req-hours').value);
+    if (!hours || hours <= 0) { showToast('请输入有效时长'); return; }
+    row.hours = hours;
+  }
+
+  const { error } = await supabase.from('cs_requests').insert(row);
+  if (error) { showToast('提交失败: ' + error.message); return; }
+
+  showToast('申请已提交，等待审批');
+  document.getElementById('req-reason').value = '';
+  if (reqCurrentType === 'overtime' || reqCurrentType === 'compensatory_leave') {
+    document.getElementById('req-hours').value = '';
+  }
+  loadRequests();
+}
+
+async function loadRequests() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase
+      .from('cs_requests')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) { console.warn('申请加载失败:', error.message); return; }
+    allRequests = data || [];
+    updateReqBadge();
+    renderReqList();
+  } catch(e) { console.error('申请加载异常:', e); }
+}
+
+function updateReqBadge() {
+  const pending = allRequests.filter(r => r.status === 'pending').length;
+  const badge = document.getElementById('req-pending-badge');
+  if (!badge) return;
+  const isAdmin = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  if (isAdmin && pending > 0) {
+    badge.textContent = pending;
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function renderReqList() {
+  const container = document.getElementById('req-list');
+  if (!container) return;
+
+  const isAdmin = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+
+  let filtered = allRequests;
+  if (!isAdmin) {
+    filtered = filtered.filter(r => r.requester_id === currentProfile?.id);
+  }
+  if (reqCurrentFilter !== 'all') {
+    filtered = filtered.filter(r => r.status === reqCurrentFilter);
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="req-empty">暂无申请记录</div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(r => {
+    const typeLabel = TYPE_LABELS[r.type] || r.type;
+    const statusLabel = STATUS_LABELS[r.status] || r.status;
+    const dateStr = r.target_date ? new Date(r.target_date).toLocaleDateString('zh-CN') : '-';
+
+    let body = '';
+    if (r.type === 'shift_swap') {
+      body = `<span class="req-detail"><span>日期</span>${dateStr}</span>` +
+             `<span class="req-detail"><span>原班次</span>${r.shift_from || '-'}</span>` +
+             `<span class="req-detail"><span>换成</span><strong>${r.shift_to || '-'}</strong></span>`;
+    } else {
+      body = `<span class="req-detail"><span>日期</span>${dateStr}</span>` +
+             `<span class="req-detail"><span>时长</span><strong>${r.hours}h</strong></span>`;
+    }
+    if (r.reason) body += `<br><span class="req-detail"><span>原因</span>${escapeHtml(r.reason)}</span>`;
+
+    let footer = '';
+    if (r.status === 'pending' && isAdmin) {
+      footer = `<div class="req-card-footer">
+        <button class="req-approve-btn" onclick="approveRequest('${r.id}')">通过</button>
+        <button class="req-reject-btn" onclick="rejectRequest('${r.id}')">拒绝</button>
+      </div>`;
+    }
+    if (r.status !== 'pending' && r.reviewer_name) {
+      footer = `<div class="req-card-footer"><span style="font-size:12px;color:var(--text-secondary);">审批人: ${escapeHtml(r.reviewer_name)} · ${r.reviewed_at ? new Date(r.reviewed_at).toLocaleString('zh-CN') : ''}</span></div>`;
+    }
+
+    return `<div class="req-card ${r.status}">
+      <div class="req-card-top">
+        <span class="req-type-badge ${r.type}">${typeLabel}</span>
+        <span style="font-size:13px;font-weight:600;">${escapeHtml(r.requester_name)}</span>
+        <span style="font-size:12px;color:var(--text-secondary);">${r.created_at ? new Date(r.created_at).toLocaleString('zh-CN') : ''}</span>
+        <span class="req-status-badge ${r.status}">${statusLabel}</span>
+      </div>
+      <div class="req-card-body">${body}</div>
+      ${footer}
+    </div>`;
+  }).join('');
+}
+
+async function approveRequest(requestId) {
+  if (!supabase || !currentProfile) return;
+
+  const req = allRequests.find(r => r.id === requestId);
+  if (!req || req.status !== 'pending') return;
+
+  const typeLabel = TYPE_LABELS[req.type] || req.type;
+  if (!confirm(`确定通过该${typeLabel}申请？\n审批后将自动生效，不可撤销。`)) return;
+
+  // 1. 更新申请状态
+  const { error: updateErr } = await supabase
+    .from('cs_requests')
+    .update({
+      status: 'approved',
+      reviewer_id: currentProfile.id,
+      reviewer_name: currentProfile.name,
+      reviewed_at: new Date().toISOString()
+    })
+    .eq('id', requestId);
+
+  if (updateErr) { showToast('审批失败: ' + updateErr.message); return; }
+
+  // 2. 自动联动
+  try {
+    if (req.type === 'shift_swap') {
+      await applyShiftSwap(req);
+      showToast(`${typeLabel}申请已通过，排班表已自动更新`);
+    } else if (req.type === 'overtime') {
+      await applyOvertime(req);
+      showToast(`${typeLabel}申请已通过，加班时长已累计`);
+    } else if (req.type === 'compensatory_leave') {
+      await applyCompensatoryLeave(req);
+      showToast(`${typeLabel}申请已通过，调休时长已扣减`);
+    }
+  } catch(e) {
+    showToast('联动更新失败: ' + e.message);
+    console.error('联动失败:', e);
+  }
+
+  loadRequests();
+}
+
+async function rejectRequest(requestId) {
+  if (!supabase || !currentProfile) return;
+  if (!confirm('确定拒绝该申请？')) return;
+
+  const { error } = await supabase
+    .from('cs_requests')
+    .update({
+      status: 'rejected',
+      reviewer_id: currentProfile.id,
+      reviewer_name: currentProfile.name,
+      reviewed_at: new Date().toISOString()
+    })
+    .eq('id', requestId);
+
+  if (error) { showToast('操作失败: ' + error.message); return; }
+  showToast('已拒绝');
+  loadRequests();
+}
+
+// 换班审批通过 → 更新排班表
+async function applyShiftSwap(req) {
+  const [y, m, d] = req.target_date.split('-').map(Number);
+  const monthKey = y + '-' + String(m).padStart(2, '0');
+  const day = String(d);
+
+  // 获取当前排班
+  const { data, error } = await supabase
+    .from('schedule_data')
+    .select('*')
+    .eq('month_key', monthKey)
+    .eq('staff_name', req.requester_name)
+    .single();
+
+  if (error && error.code !== 'PGRST116') throw error;
+
+  let schedule = {};
+  let groupName = '';
+  if (data) {
+    schedule = data.schedule || {};
+    groupName = data.group_name || '';
+  }
+
+  // 更新班次
+  schedule[day] = req.shift_to;
+
+  // 写回数据库
+  await supabase
+    .from('schedule_data')
+    .upsert({
+      month_key: monthKey,
+      staff_name: req.requester_name,
+      group_name: groupName,
+      schedule: schedule
+    }, { onConflict: 'month_key,staff_name' });
+
+  // 更新内存缓存
+  if (typeof scheduleData !== 'undefined' && scheduleData[monthKey]) {
+    const staff = scheduleData[monthKey].staff.find(s => s.name === req.requester_name);
+    if (staff) {
+      staff.schedule[day] = req.shift_to;
+      if (currentPage === 'schedule') renderSchedule();
+    }
+  }
+}
+
+// 加班审批通过 → 新增加班记录
+async function applyOvertime(req) {
+  const { error } = await supabase
+    .from('overtime_records')
+    .insert({
+      profile_id: req.requester_id,
+      date: req.target_date,
+      hours: req.hours,
+      note: '审批通过: ' + (req.reason || '')
+    });
+
+  if (error) throw error;
+
+  // 更新本地缓存
+  if (typeof allOvertimeRecords !== 'undefined') {
+    allOvertimeRecords.unshift({
+      profile_id: req.requester_id,
+      date: req.target_date,
+      hours: req.hours,
+      note: '审批通过: ' + (req.reason || '')
+    });
+  }
+}
+
+// 调休审批通过 → 新增调休记录
+async function applyCompensatoryLeave(req) {
+  const { error } = await supabase
+    .from('compensatory_leave_records')
+    .insert({
+      profile_id: req.requester_id,
+      date: req.target_date,
+      hours: req.hours,
+      note: '审批通过: ' + (req.reason || '')
+    });
+
+  if (error) throw error;
+
+  // 更新本地缓存
+  if (typeof allLeaveRecords !== 'undefined') {
+    allLeaveRecords.unshift({
+      profile_id: req.requester_id,
+      date: req.target_date,
+      hours: req.hours,
+      note: '审批通过: ' + (req.reason || '')
+    });
+  }
+}

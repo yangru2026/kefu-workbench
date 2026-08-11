@@ -922,6 +922,43 @@ body {
   .page { padding: 20px; }
   .stats-row { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ===== 申请审批页 ===== */
+.req-tabs { display:flex; gap:8px; margin-bottom:16px; }
+.req-tab-btn { padding:8px 18px; border:1px solid var(--border); border-radius:20px; background:var(--card-bg); cursor:pointer; font-size:14px; font-family:inherit; transition:all .15s; }
+.req-tab-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+
+.req-form-box { background:var(--card-bg); border-radius:12px; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,0.04); margin-bottom:24px; }
+.req-form-row { display:flex; gap:12px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+.req-form-row label { font-size:13px; color:var(--text-secondary); min-width:70px; }
+.req-form-row input, .req-form-row select, .req-form-row textarea { padding:8px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; font-family:inherit; background:var(--bg); color:var(--text); }
+.req-form-row input[type="date"] { min-width:150px; }
+.req-form-row input[type="number"] { width:100px; }
+.req-form-row textarea { flex:1; min-width:200px; min-height:36px; resize:vertical; }
+.req-submit-btn { background:var(--primary); color:#fff; border:none; padding:10px 28px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; transition:opacity .15s; }
+.req-submit-btn:hover { opacity:.85; }
+
+.req-list { display:flex; flex-direction:column; gap:10px; }
+.req-card { background:var(--card-bg); border-radius:10px; padding:16px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.04); border-left:4px solid var(--border); }
+.req-card.pending { border-left-color:#fdcb6e; }
+.req-card.approved { border-left-color:#00b894; }
+.req-card.rejected { border-left-color:#e74c3c; }
+.req-card-top { display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+.req-type-badge { font-size:12px; font-weight:600; padding:2px 10px; border-radius:10px; }
+.req-type-badge.shift_swap { background:#e8eaf6; color:#3f51b5; }
+.req-type-badge.overtime { background:#fff3e0; color:#e67e22; }
+.req-type-badge.compensatory_leave { background:#e8f5e9; color:#2e7d32; }
+.req-status-badge { font-size:12px; font-weight:600; padding:2px 10px; border-radius:10px; margin-left:auto; }
+.req-status-badge.pending { background:#fff8e1; color:#f57f17; }
+.req-status-badge.approved { background:#e8f5e9; color:#2e7d32; }
+.req-status-badge.rejected { background:#fce4ec; color:#c62828; }
+.req-card-body { font-size:14px; color:var(--text); line-height:1.8; }
+.req-card-body .req-detail { display:inline-block; margin-right:16px; }
+.req-card-body .req-detail span { color:var(--text-secondary); font-size:12px; margin-right:4px; }
+.req-card-footer { display:flex; gap:8px; margin-top:10px; }
+.req-approve-btn { background:#00b894; color:#fff; border:none; padding:6px 18px; border-radius:6px; font-size:13px; cursor:pointer; font-family:inherit; }
+.req-reject-btn { background:#fff; color:#e74c3c; border:1px solid #e74c3c; padding:6px 18px; border-radius:6px; font-size:13px; cursor:pointer; font-family:inherit; }
+.req-empty { text-align:center; padding:40px; color:var(--text-secondary); }
 </style>
 </head>
 <body>
@@ -945,6 +982,7 @@ body {
     <div class="nav-section">运营</div>
     <div class="nav-item" data-page="bulletin"><span class="icon">📢</span><span>每日速报</span></div>
     <div class="nav-item" data-page="schedule"><span class="icon">📅</span><span>排班表</span></div>
+    <div class="nav-item" data-page="requests"><span class="icon">📝</span><span>申请审批</span><span class="badge" id="req-pending-badge" style="display:none;"></span></div>
     <div class="nav-item" data-page="ranking"><span class="icon">🏆</span><span>客服排名</span></div>
     <div class="nav-item" data-page="daily"><span class="icon">🌙</span><span>日报</span></div>
     <div class="nav-item" data-page="presale"><span class="icon">📈</span><span>售前数据</span></div>
@@ -1543,6 +1581,33 @@ body {
     </div>
   </div>
 
+  <!-- ===== 申请审批 ===== -->
+  <div class="page" id="page-requests">
+    <div class="page-header"><h1>📝 申请审批</h1><p>换班 / 加班 / 调休申请，管理员审批后自动生效</p></div>
+
+    <!-- 新建申请 -->
+    <div class="req-form-box">
+      <div class="req-tabs">
+        <button class="req-tab-btn active" data-req-type="shift_swap" onclick="switchReqType('shift_swap')">📅 换班申请</button>
+        <button class="req-tab-btn" data-req-type="overtime" onclick="switchReqType('overtime')">⏰ 加班申请</button>
+        <button class="req-tab-btn" data-req-type="compensatory_leave" onclick="switchReqType('compensatory_leave')">🏖️ 调休申请</button>
+      </div>
+      <div id="req-form-content"></div>
+    </div>
+
+    <!-- 申请列表 -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+      <h3 style="margin:0;font-size:16px;">申请记录</h3>
+      <div style="display:flex;gap:6px;">
+        <button class="req-tab-btn active" data-req-filter="pending" onclick="switchReqFilter('pending')">待审批</button>
+        <button class="req-tab-btn" data-req-filter="approved" onclick="switchReqFilter('approved')">已通过</button>
+        <button class="req-tab-btn" data-req-filter="rejected" onclick="switchReqFilter('rejected')">已拒绝</button>
+        <button class="req-tab-btn" data-req-filter="all" onclick="switchReqFilter('all')">全部</button>
+      </div>
+    </div>
+    <div class="req-list" id="req-list"></div>
+  </div>
+
 </main>
 
 <div class="toast" id="toast"></div>
@@ -1599,6 +1664,7 @@ async function initSupabase() {
     subscribeSchedule();
     subscribeRanking();
     subscribePresaleMonthly();
+    subscribeRequests();
   } catch (e) {
     console.error('Supabase 初始化失败', e);
   }
@@ -1621,6 +1687,8 @@ function updateAuthUI() {
     if (loginNav) loginNav.style.display = '';
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.admin-only-nav').forEach(el => el.style.display = 'none');
+    const reqBadge = document.getElementById('req-pending-badge');
+    if (reqBadge) reqBadge.style.display = 'none';
   }
   refreshAdminUI();
 }
@@ -2117,6 +2185,7 @@ let presaleMonthlyData = []; // 当前月份的数据
 let presaleMonthlyMonth = ''; // 当前查看月份 'YYYY-MM'
 let presaleMonthlyEdit = false;
 let presaleMonthlySub = null;
+let reqSub = null;
 let presaleActiveTab = 'daily';
 
 function switchPresaleTab(tab) {
@@ -2157,6 +2226,15 @@ function subscribePresaleMonthly() {
   presaleMonthlySub = supabase.channel('presale-monthly-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'presale_monthly' }, () => {
       loadPresaleMonthly();
+    })
+    .subscribe();
+}
+
+function subscribeRequests() {
+  if (!supabase || reqSub) return;
+  reqSub = supabase.channel('cs-requests-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'cs_requests' }, () => {
+      if (typeof loadRequests === 'function') loadRequests();
     })
     .subscribe();
 }
@@ -2669,6 +2747,7 @@ function switchPage(page) {
   if (page === 'tools') renderTools();
   if (page === 'quiz') renderQuiz();
   if (page === 'schedule') renderSchedule();
+  if (page === 'requests') { loadRequests(); renderReqForm(); }
   if (page === 'ranking') { if (rankingAllRows.length === 0) loadRankingFromDB(); else renderRanking(); }
   if (page === 'presale' && presaleActiveTab === 'monthly') renderPresaleMonthly();
   if (page === 'staff-info') loadStaffInfo();
