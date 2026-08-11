@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>定轴三幅 均价更低</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #eef1f5;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 24px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.card {
+  width: 460px;
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(26,35,50,0.08);
+}
+
+.banner {
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #4a6278 100%);
+  padding: 32px 28px;
+  text-align: center;
+}
+.banner .tag {
+  display: inline-block;
+  border: 1px solid rgba(212,168,83,0.5);
+  color: #d4a853;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+.banner h1 {
+  color: #fff;
+  font-size: 30px;
+  font-weight: 800;
+}
+.banner h1 span { color: #d4a853; }
+.banner .sub {
+  color: rgba(255,255,255,0.7);
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.compare-box {
+  background: #f8fafc;
+  padding: 24px 28px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+.compare-item {
+  text-align: center;
+}
+.compare-item .num {
+  font-size: 26px;
+  font-weight: 800;
+  color: #64748b;
+}
+.compare-item .num.strike {
+  text-decoration: line-through;
+  color: #cbd5e1;
+  font-size: 22px;
+}
+.compare-item .num.highlight {
+  color: #E74C3C;
+  font-size: 32px;
+}
+.compare-item .label {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+.compare-arrow {
+  font-size: 24px;
+  color: #d4a853;
+}
+
+.price-bar {
+  padding: 20px 28px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  background: #fff;
+}
+.pb-item {
+  text-align: center;
+}
+.pb-item .num {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1e3a5f;
+}
+.pb-item .num.red { color: #E74C3C; }
+.pb-item .label {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+.pb-divider {
+  width: 1px;
+  height: 40px;
+  background: #e2e8f0;
+}
+
+.save-highlight {
+  margin: 0 24px 20px;
+  background: linear-gradient(90deg, #fef3c7 0%, #fffbeb 100%);
+  border-radius: 12px;
+  padding: 16px 20px;
+  text-align: center;
+}
+.save-highlight .main {
+  font-size: 16px;
+  font-weight: 700;
+  color: #92400e;
+}
+.save-highlight .sub {
+  font-size: 13px;
+  color: #b45309;
+  margin-top: 4px;
+}
+
+.footer {
+  background: linear-gradient(90deg, #2c3e50 0%, #34495e 100%);
+  padding: 18px;
+  text-align: center;
+}
+.footer .main {
+  color: #d4a853;
+  font-size: 15px;
+  font-weight: 700;
+}
+.footer .sub {
+  color: rgba(255,255,255,0.5);
+  font-size: 12px;
+  margin-top: 4px;
+}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="banner">
+    <div class="tag">定轴专享</div>
+    <h1>定轴三幅 <span>均价更低</span></h1>
+    <div class="sub">满减80元 · 单副低至43.2元</div>
+  </div>
+
+  <div class="compare-box">
+    <div class="compare-item">
+      <div class="num strike">¥69.9</div>
+      <div class="label">单买/副</div>
+    </div>
+    <div class="compare-arrow">⬇</div>
+    <div class="compare-item">
+      <div class="num highlight">¥43.2</div>
+      <div class="label">三幅均价/副</div>
+    </div>
+  </div>
+
+  <div class="price-bar">
+    <div class="pb-item">
+      <div class="num">¥209.7</div>
+      <div class="label">3副原价</div>
+    </div>
+    <div class="pb-divider"></div>
+    <div class="pb-item">
+      <div class="num red">¥129.7</div>
+      <div class="label">3副到手价</div>
+    </div>
+    <div class="pb-divider"></div>
+    <div class="pb-item">
+      <div class="num red">¥80</div>
+      <div class="label">共省</div>
+    </div>
+  </div>
+
+  <div class="save-highlight">
+    <div class="main">💡 买三幅比单买便宜 ¥80，每副省 ¥26.7</div>
+    <div class="sub">定轴款专属优惠，三幅即享满减</div>
+  </div>
+
+  <div class="footer">
+    <div class="main">定轴款三幅到手 ¥129.7 · 均价仅 ¥43.2/副</div>
+    <div class="sub">原价 ¥69.9/副，三幅立减80元</div>
+  </div>
+</div>
+</body>
+</html>
