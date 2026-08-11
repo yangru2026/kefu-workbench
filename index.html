@@ -5368,12 +5368,12 @@ function renderSchedule() {
       const shift = staff.schedule[String(d)] || '-';
       let shiftClass = '';
       let label = shift;
-      if (shift.includes('早班')) { shiftClass = 'shift-morning'; label = '早'; }
-      else if (shift.includes('中班')) { shiftClass = 'shift-mid'; label = '中'; }
-      else if (shift.includes('晚班')) { shiftClass = 'shift-night'; label = '晚'; }
-      else if (shift === '休息') { shiftClass = 'shift-rest'; label = '休'; }
-      else if (shift === '调休') { shiftClass = 'shift-adjust'; label = '调'; }
-      else if (shift === '加班') { shiftClass = 'shift-adjust'; label = '班'; }
+      if (shift === '早' || shift.includes('早班')) { shiftClass = 'shift-morning'; label = '早'; }
+      else if (shift === '中' || shift.includes('中班')) { shiftClass = 'shift-mid'; label = '中'; }
+      else if (shift === '晚' || shift.includes('晚班')) { shiftClass = 'shift-night'; label = '晚'; }
+      else if (shift === '休' || shift === '休息') { shiftClass = 'shift-rest'; label = '休'; }
+      else if (shift === '调' || shift === '调休') { shiftClass = 'shift-adjust'; label = '调'; }
+      else if (shift === '班' || shift === '加班') { shiftClass = 'shift-adjust'; label = '班'; }
 
       const todayClass = (isCurrentMonth && d === todayDay) ? ' today-col' : '';
       html += '<td class="' + todayClass + ' sched-cell" data-staff="' + staffNameEnc + '" data-day="' + d + '" data-shift="' + shift + '" onclick="editScheduleCell(this)" title="' + staff.name + ' ' + d + '日: ' + shift + '">';
@@ -5528,12 +5528,12 @@ function applyShift(val) {
 
   // Update the cell visually
   let shiftClass = '', label = val || '-';
-  if (val.includes('早班')) { shiftClass = 'shift-morning'; label = '早'; }
-  else if (val.includes('中班')) { shiftClass = 'shift-mid'; label = '中'; }
-  else if (val.includes('晚班')) { shiftClass = 'shift-night'; label = '晚'; }
-  else if (val === '休息') { shiftClass = 'shift-rest'; label = '休'; }
-  else if (val === '调休') { shiftClass = 'shift-adjust'; label = '调'; }
-  else if (val === '加班') { shiftClass = 'shift-adjust'; label = '班'; }
+  if (val === '早' || val.includes('早班')) { shiftClass = 'shift-morning'; label = '早'; }
+  else if (val === '中' || val.includes('中班')) { shiftClass = 'shift-mid'; label = '中'; }
+  else if (val === '晚' || val.includes('晚班')) { shiftClass = 'shift-night'; label = '晚'; }
+  else if (val === '休' || val === '休息') { shiftClass = 'shift-rest'; label = '休'; }
+  else if (val === '调' || val === '调休') { shiftClass = 'shift-adjust'; label = '调'; }
+  else if (val === '班' || val === '加班') { shiftClass = 'shift-adjust'; label = '班'; }
 
   cell.dataset.shift = val || '-';
   cell.innerHTML = val ? ('<span class="' + shiftClass + '"><span class="shift-tag">' + label + '</span></span>') : '<span style="color:#ccc;font-size:11px;">-</span>';
