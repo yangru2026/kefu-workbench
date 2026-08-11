@@ -7,7 +7,7 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-  background: #eef1f5;
+  background: #e8e4df;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -16,82 +16,81 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 .card {
-  width: 460px;
+  width: 440px;
   background: #fff;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 24px rgba(26,35,50,0.08);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
 }
 
 .banner {
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #4a6278 100%);
-  padding: 32px 28px;
+  background: linear-gradient(135deg, #7a8b7f 0%, #8fa093 50%, #a3b5a7 100%);
+  padding: 28px 24px;
   text-align: center;
 }
 .banner .tag {
   display: inline-block;
-  border: 1px solid rgba(212,168,83,0.5);
-  color: #d4a853;
-  padding: 4px 14px;
-  border-radius: 20px;
-  font-size: 12px;
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  padding: 3px 12px;
+  border-radius: 16px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 1px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 .banner h1 {
   color: #fff;
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 800;
 }
-.banner h1 span { color: #d4a853; }
+.banner h1 span { color: #f5e6c8; }
 .banner .sub {
-  color: rgba(255,255,255,0.65);
+  color: rgba(255,255,255,0.8);
   font-size: 13px;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .scheme-list {
-  padding: 20px;
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .scheme-item {
   border-radius: 12px;
-  padding: 18px 20px;
+  padding: 16px 18px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
+  background: #faf9f7;
+  border: 1px solid #f0eeeb;
 }
-.scheme-item:nth-child(1) { background: linear-gradient(90deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid #bae6fd; }
-.scheme-item:nth-child(2) { background: linear-gradient(90deg, #fff7ed 0%, #ffedd5 100%); border: 1px solid #fed7aa; }
-.scheme-item:nth-child(3) { background: linear-gradient(90deg, #f5f3ff 0%, #ede9fe 100%); border: 1px solid #ddd6fe; }
+.scheme-item:nth-child(1) { background: #f5f3f0; }
 
-.scheme-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+.scheme-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #7a8b7f;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 14px;
+  font-weight: 700;
   flex-shrink: 0;
 }
-.scheme-item:nth-child(1) .scheme-icon { background: #e0f2fe; }
-.scheme-item:nth-child(2) .scheme-icon { background: #ffedd5; }
-.scheme-item:nth-child(3) .scheme-icon { background: #ede9fe; }
 
 .scheme-info { flex: 1; }
 .scheme-info .name {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
-  color: #1e293b;
+  color: #555;
 }
 .scheme-info .desc {
-  font-size: 12px;
-  color: #64748b;
+  font-size: 11px;
+  color: #aaa;
   margin-top: 2px;
 }
 
@@ -99,85 +98,85 @@ body {
   text-align: right;
 }
 .scheme-price .actual {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
-  color: #1e3a5f;
+  color: #c45c4a;
 }
-.scheme-price .actual span { font-size: 14px; font-weight: 600; }
 .scheme-price .original {
   font-size: 11px;
-  color: #94a3b8;
+  color: #ccc;
   text-decoration: line-through;
 }
-.scheme-price .save {
-  font-size: 11px;
-  color: #059669;
+.plus-tag-inline {
+  display: inline-block;
+  background: #e8d5c4;
+  color: #8b6914;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 4px;
   font-weight: 600;
-  margin-top: 2px;
+  margin-left: 4px;
 }
 
 .footer {
-  background: linear-gradient(90deg, #2c3e50 0%, #34495e 100%);
-  padding: 18px;
+  background: #f5f3f0;
+  padding: 14px 18px;
   text-align: center;
 }
 .footer .main {
-  color: #d4a853;
-  font-size: 15px;
+  color: #5a6b5e;
+  font-size: 13px;
   font-weight: 700;
 }
 .footer .sub {
-  color: rgba(255,255,255,0.5);
-  font-size: 12px;
-  margin-top: 4px;
+  color: #aaa;
+  font-size: 11px;
+  margin-top: 3px;
 }
 </style>
 </head>
 <body>
 <div class="card">
   <div class="banner">
-    <div class="tag">定轴款混搭</div>
+    <div class="tag">定轴混搭</div>
     <h1>含定轴 <span>三档方案</span></h1>
-    <div class="sub">1副定轴 ~ 3副定轴 自由搭配 均享满减80元</div>
+    <div class="sub">1副定轴 ~ 3副定轴 均享满减80元</div>
   </div>
 
   <div class="scheme-list">
     <div class="scheme-item">
-      <div class="scheme-icon">1️⃣</div>
+      <div class="scheme-num">1</div>
       <div class="scheme-info">
-        <div class="name">1副定轴 + 2副普通</div>
+        <div class="name">1副定轴 + 2副普通<span class="plus-tag-inline">+10</span></div>
         <div class="desc">定轴混搭入门方案</div>
       </div>
       <div class="scheme-price">
         <div class="actual">¥109.7</div>
         <div class="original">原价 ¥189.7</div>
-        <div class="save">省 ¥80</div>
       </div>
     </div>
 
     <div class="scheme-item">
-      <div class="scheme-icon">2️⃣</div>
+      <div class="scheme-num">2</div>
       <div class="scheme-info">
-        <div class="name">2副定轴 + 1副普通</div>
+        <div class="name">2副定轴 + 1副普通<span class="plus-tag-inline">+20</span></div>
         <div class="desc">定轴混搭进阶方案</div>
       </div>
       <div class="scheme-price">
         <div class="actual">¥119.7</div>
         <div class="original">原价 ¥199.7</div>
-        <div class="save">省 ¥80</div>
       </div>
     </div>
 
     <div class="scheme-item">
-      <div class="scheme-icon">3️⃣</div>
+      <div class="scheme-num">3</div>
       <div class="scheme-info">
-        <div class="name">3副定轴</div>
+        <div class="name">3副定轴<span class="plus-tag-inline">+30</span></div>
         <div class="desc">全定轴尊享方案</div>
       </div>
       <div class="scheme-price">
         <div class="actual">¥129.7</div>
         <div class="original">原价 ¥209.7</div>
-        <div class="save">省 ¥80</div>
       </div>
     </div>
   </div>
