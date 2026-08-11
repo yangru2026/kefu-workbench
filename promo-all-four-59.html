@@ -22,7 +22,6 @@ body {
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0,0,0,0.06);
 }
-
 .banner {
   background: linear-gradient(135deg, #7a8b7f 0%, #8fa093 50%, #a3b5a7 100%);
   padding: 26px 24px;
@@ -49,7 +48,6 @@ body {
   font-size: 13px;
   margin-top: 6px;
 }
-
 .table-wrap { padding: 16px 18px 18px; }
 table {
   width: 100%;
@@ -73,55 +71,38 @@ tbody td {
   color: #555;
 }
 tbody tr:last-child td { border-bottom: none; }
-
-/* 推荐行 */
 tbody tr.best td { font-weight: 700; background: #f9f7f4; }
-tbody tr.best .combo { color: #5a6b5e; }
 tbody tr.best .actual { color: #c45c4a; font-size: 15px; }
 tbody tr.best .avg { color: #7a8b7f; font-size: 14px; }
-
-/* 单买行 */
 tbody tr.single td { color: #bbb; }
-tbody tr.single .combo { color: #999; }
 tbody tr.single .actual { color: #999; }
-
 .combo { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 12px; }
 .best-tag {
   background: #7a8b7f;
   color: #fff;
-  font-size: 10px;
-  padding: 2px 7px;
+  font-size: 9px;
+  padding: 2px 5px;
   border-radius: 4px;
   font-weight: 700;
 }
 .plus-tag {
-  background: #ea580c; color: #fff;
-  font-size: 10px;
-  padding: 2px 7px;
+  background: #ea580c;
+  color: #fff;
+  font-size: 9px;
+  padding: 2px 5px;
   border-radius: 4px;
   font-weight: 600;
 }
-.price { text-decoration: line-through; color: #ccc; font-size: 11px; }
 .actual { color: #c45c4a; font-weight: 700; font-size: 13px; }
 .avg { color: #7a8b7f; font-weight: 700; font-size: 12px; }
-.save { color: #6b9080; font-weight: 700; font-size: 11px; }
 .na { color: #ddd; font-size: 11px; }
-
 .footer {
   background: #f5f3f0;
   padding: 14px 18px;
   text-align: center;
 }
-.footer .main {
-  color: #5a6b5e;
-  font-size: 13px;
-  font-weight: 700;
-}
-.footer .sub {
-  color: #aaa;
-  font-size: 11px;
-  margin-top: 3px;
-}
+.footer .main { color: #5a6b5e; font-size: 13px; font-weight: 700; }
+.footer .sub { color: #aaa; font-size: 11px; margin-top: 3px; }
 </style>
 </head>
 <body>
@@ -135,22 +116,30 @@ tbody tr.single .actual { color: #999; }
   <div class="table-wrap">
     <table>
       <thead>
-        <tr>
-          <th>组合</th><th>到手价</th><th>到手均价</th>
-        </tr>
+        <tr><th>组合</th><th>到手价</th><th>到手均价</th></tr>
       </thead>
       <tbody>
-                <tr class="single">
+        <tr class="single">
           <td><div class="combo">普通×1<span class="plus-tag">单买</span></div></td>
           <td><span class="actual">59.9</span></td>
           <td><span class="na">—</span></td>
         </tr>
-                <tr class="best">
+        <tr class="best">
           <td><div class="combo">普通×3<span class="best-tag">推荐</span></div></td>
           <td><span class="actual">99.7</span></td>
           <td><span class="avg">33</span></td>
         </tr>
-                                <tr>
+        <tr>
+          <td><div class="combo">普通×2+定轴<span class="plus-tag">+10元</span></div></td>
+          <td><span class="actual">109.7</span></td>
+          <td><span class="avg">36.6</span></td>
+        </tr>
+        <tr>
+          <td><div class="combo">普通+定轴×2<span class="plus-tag">+20元</span></div></td>
+          <td><span class="actual">119.7</span></td>
+          <td><span class="avg">39.9</span></td>
+        </tr>
+        <tr>
           <td><div class="combo">定轴×3<span class="plus-tag">+30元</span></div></td>
           <td><span class="actual">129.7</span></td>
           <td><span class="avg">43.2</span></td>
