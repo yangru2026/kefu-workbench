@@ -2615,6 +2615,7 @@ let crossSalesTeamFilter = 'all'; // 'all' | 'A组' | 'B组' | 'C组'
 let csOptions = { shop: [], product_type: [], order_status: [] }; // 动态选项缓存
 let csOptionsSub = null;
 let csOptionsLoaded = false;
+let csOptionsFirstLoad = true; // 首次加载时空选项自动填充默认值
 let crossSalesTeamInited = false; // 客服首次进入是否已自动选中本组
 
 function getTodayStr() {
@@ -2640,6 +2641,26 @@ async function loadCrossSalesOptions() {
     (data || []).forEach(t => {
       if (map[t.key]) map[t.key] = Array.isArray(t.options) ? t.options : [];
     });
+
+    // 首次加载且数据库为空时，自动填充默认选项（仅第一次）
+    if (csOptionsFirstLoad) {
+      csOptionsFirstLoad = false;
+      const defaultOptions = {
+        shop: ['淘宝官方旗舰店', '京东旗舰店', '抖音直播间', '小红书店铺', '拼多多旗舰店'],
+        product_type: ['日抛', '月抛', '半年抛', '年抛', '护理液', '伴侣盒'],
+        order_status: ['已付款', '待付款', '已发货', '已完成', '退款中']
+      };
+      const labels = { shop: '店铺', product_type: '产品类型', order_status: '第一单状态' };
+      for (const [key, list] of Object.entries(defaultOptions)) {
+        if (!map[key] || map[key].length === 0) {
+          map[key] = list;
+          supabase.from('option_templates')
+            .upsert({ key, label: labels[key], options: list, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+            .catch(e => console.warn('默认选项保存失败:', e.message));
+        }
+      }
+    }
+
     csOptions = map;
     csOptionsLoaded = true;
     // 如果选项管理弹窗开着则刷新列表
@@ -2791,7 +2812,18 @@ function onCrossSalesDateChange() {
   const input = document.getElementById('cross-sales-date-input');
   if (input) crossSalesDate = input.value;
   crossSalesRankMode = 'day';
+  syncCSNewRowsDate();
   renderCrossSales();
+}
+
+// 切换日期后，同步空白新增行的日期输入
+function syncCSNewRowsDate() {
+  const tbody = document.getElementById('cross-sales-tbody');
+  if (!tbody) return;
+  const dateVal = crossSalesDate || getTodayStr();
+  tbody.querySelectorAll('tr[data-new="true"] input[data-field="record_date"]').forEach(el => {
+    el.value = dateVal;
+  });
 }
 
 function prevCrossSalesDate() {
@@ -2799,6 +2831,7 @@ function prevCrossSalesDate() {
   d.setDate(d.getDate() - 1);
   crossSalesDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   crossSalesRankMode = 'day';
+  syncCSNewRowsDate();
   renderCrossSales();
 }
 
@@ -2807,6 +2840,7 @@ function nextCrossSalesDate() {
   d.setDate(d.getDate() + 1);
   crossSalesDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   crossSalesRankMode = 'day';
+  syncCSNewRowsDate();
   renderCrossSales();
 }
 
@@ -2935,9 +2969,10 @@ function renderCrossSales() {
   if (!isAdminOrLeader && currentProfile?.group_name) {
     rows = rows.filter(r => r.team === currentProfile.group_name);
   }
-  if (rows.length === 0 && !tbody.querySelector('tr[data-new="true"]')) {
+  const hasNewRows = tbody ? tbody.querySelector('tr[data-new="true"]') !== null : false;
+  if (rows.length === 0 && !hasNewRows) {
     if (tbody) tbody.innerHTML = '';
-    if (empty) empty.style.display = 'none';
+    if (empty) empty.style.display = 'block';
   } else {
     if (empty) empty.style.display = 'none';
     if (tbody) renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader);
@@ -2948,6 +2983,7 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
   const staffName = (currentProfile?.name || currentProfile?.real_name) || '';
   const team = currentProfile?.group_name || 'A组';
   const dateVal = crossSalesDate || getTodayStr();
+  const totalFirst = rows.reduce((s, r) => s + Number(r.first_amount || 0), 0);
   const totalSecond = rows.reduce((s, r) => s + Number(r.second_amount || 0), 0);
   const totalAll = rows.reduce((s, r) => s + Number(r.total_amount || 0), 0);
   const teamLabel = crossSalesTeamFilter === 'all' ? '全部' : crossSalesTeamFilter;
@@ -2990,13 +3026,14 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
   html += `
     <tr style="background:linear-gradient(90deg,#ede8ff,#e8e3ff);font-weight:800;font-size:14px;color:var(--primary);">
       <td colspan="7" style="text-align:right;padding:10px;">${teamLabel} 合计</td>
+      <td style="text-align:center;padding:10px;">¥${totalFirst.toLocaleString()}</td>
       <td style="text-align:center;padding:10px;">¥${totalSecond.toLocaleString()}</td>
       <td style="text-align:center;padding:10px;">¥${totalAll.toLocaleString()}</td>
-      <td colspan="3"></td>
+      <td colspan="2"></td>
     </tr>
     ${isAdminOrLeader ? '' : `
     <tr>
-      <td colspan="13" style="padding:10px;background:#f8f8f8;border-top:1px dashed var(--border);">
+      <td colspan="12" style="padding:10px;background:#f8f8f8;border-top:1px dashed var(--border);">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <span style="font-size:13px;color:var(--text-secondary);">📝 填写后自动保存，无需点保存。可批量新增空白行：</span>
           <input type="number" id="cs-add-rows-count" value="10" min="1" max="500" style="width:60px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;">
@@ -3027,9 +3064,11 @@ function updateCSRowTotal(input) {
 // 行内任意控件失焦/变更后，防抖保存该行
 function autoSaveCSRow(el) {
   const tr = el.closest('tr');
-  if (!tr || !tr.id) return; // 仅处理表格行（合计行/新增工具行无 tr.id 保护）
+  if (!tr) return;
+  // 仅处理数据行（已有记录 data-id / 新增行 data-new），跳过合计行和工具行
+  if (!tr.dataset.id && tr.dataset.new !== 'true') return;
   clearTimeout(tr._csSaveTimer);
-  tr._csSaveTimer = setTimeout(() => saveCSRow(tr), 400);
+  tr._csSaveTimer = setTimeout(() => saveCSRow(tr), 500);
 }
 
 async function saveCSRow(tr) {
@@ -3110,10 +3149,16 @@ function addCrossSalesBlankRows() {
       <td style="text-align:center;padding:4px;"><input type="checkbox" data-field="qc_confirmed" onchange="autoSaveCSRow(this)" style="width:16px;height:16px;"></td>
       <td style="text-align:center;padding:4px;"><button class="btn-sm outline" onclick="this.closest('tr').remove()" style="padding:2px 8px;font-size:11px;">🗑️</button></td>
     `;
-    // 插入到合计行/工具行之前
-    const lastTr = tbody.lastElementChild;
-    if (lastTr) tbody.insertBefore(tr, lastTr);
-    else tbody.appendChild(tr);
+    // 插入到数据行末尾、合计行之前
+    const dataRows = tbody.querySelectorAll('tr[data-id], tr[data-new="true"]');
+    const lastDataRow = dataRows[dataRows.length - 1];
+    if (lastDataRow && lastDataRow.nextElementSibling) {
+      tbody.insertBefore(tr, lastDataRow.nextElementSibling);
+    } else if (tbody.firstElementChild) {
+      tbody.insertBefore(tr, tbody.firstElementChild);
+    } else {
+      tbody.appendChild(tr);
+    }
   }
   // 隐藏空提示
   const empty = document.getElementById('cross-sales-empty');
