@@ -1886,6 +1886,12 @@ function updateAuthUI() {
   refreshAdminUI();
 }
 
+function canEdit(pageKey) {
+  if (!currentProfile) return false;
+  if (currentProfile.role === 'admin' || currentProfile.role === 'leader') return true;
+  return false;
+}
+
 function refreshAdminUI() {
   const isAdmin = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
   const canEditPatterns = canEdit('patterns');
