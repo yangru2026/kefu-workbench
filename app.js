@@ -2023,7 +2023,8 @@ let otDrawerProfileId = null;
 
 async function loadStaffInfo() {
   if (!supabase) {
-    document.getElementById('staff-tbody').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">Supabase 未初始化</td></tr>';
+    const tbody = document.getElementById('staff-tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">Supabase 未初始化</td></tr>';
     return;
   }
   try {
@@ -2033,7 +2034,8 @@ async function loadStaffInfo() {
       supabase.from('compensatory_leave_records').select('*').order('date', { ascending: false })
     ]);
     if (profRes.error) {
-      document.getElementById('staff-tbody').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--danger);">加载失败：' + escapeHtml(profRes.error.message) + '</td></tr>';
+      const tbody = document.getElementById('staff-tbody');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--danger);">加载失败：' + escapeHtml(profRes.error.message) + '</td></tr>';
       return;
     }
     allStaffData = profRes.data || [];
@@ -2041,7 +2043,8 @@ async function loadStaffInfo() {
     allLeaveRecords = lvRes.data || [];
     renderStaffTable();
   } catch (e) {
-    document.getElementById('staff-tbody').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--danger);">加载异常</td></tr>';
+    const tbody = document.getElementById('staff-tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--danger);">加载异常</td></tr>';
   }
 }
 
@@ -3026,7 +3029,7 @@ async function applyCompensatoryLeave(req) {
 
 let collabCurrentPage = null;
 
-function openCollabPanel(pageKey) {
+async function openCollabPanel(pageKey) {
   if (!currentProfile || (currentProfile.role !== 'admin' && currentProfile.role !== 'leader')) {
     showToast('仅管理员可管理协作者');
     return;
@@ -3036,6 +3039,10 @@ function openCollabPanel(pageKey) {
   document.getElementById('collab-panel-title').textContent = '👥 协作管理 — ' + label;
   document.getElementById('collab-overlay').classList.add('show');
   document.getElementById('collab-panel').classList.add('show');
+  // 客服列表仅在客服信息页加载，其他页面需先加载
+  if (!allStaffData || allStaffData.length === 0) {
+    await loadStaffInfo();
+  }
   renderCollabList();
 }
 
@@ -3072,7 +3079,7 @@ function renderCollabList() {
     });
 
   const availableHtml = available.length === 0
-    ? '<div style="color:var(--text-secondary);font-size:13px;text-align:center;padding:12px;">所有客服都已是协作者或管理员</div>'
+    ? `<div style="color:var(--text-secondary);font-size:13px;text-align:center;padding:12px;">${(!allStaffData || allStaffData.length === 0) ? '客服数据加载中或加载失败，请稍后重试' : '所有客服都已是协作者或管理员'}</div>`
     : available.map(s => `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border);">
         <span>${escapeHtml(s.name)}${s.real_name ? ' / ' + escapeHtml(s.real_name) : ''}</span>
@@ -3092,16 +3099,16 @@ function renderCollabList() {
 
 async function addCollaborator(profileId, profileName) {
   if (!supabase || !collabCurrentPage || !currentProfile) return;
-  const { error } = await supabase.from('page_collaborators').insert({
+  const { data, error } = await supabase.from('page_collaborators').insert({
     page_key: collabCurrentPage,
     profile_id: profileId,
     profile_name: profileName,
     invited_by: currentProfile.id,
     invited_by_name: currentProfile.name,
-  });
+  }).select().single();
   if (error) { showToast('邀请失败: ' + error.message); return; }
   // 本地更新
-  pageCollaborators.push({
+  pageCollaborators.push(data || {
     page_key: collabCurrentPage,
     profile_id: profileId,
     profile_name: profileName,
