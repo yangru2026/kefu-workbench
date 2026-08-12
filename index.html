@@ -1374,7 +1374,7 @@ body {
   <div class="modal-overlay" id="mod-cs-profile" onclick="closeModal('mod-cs-profile')">
     <div class="modal-box" style="max-width:760px;" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <h3>📊 个人连带率看板</h3>
+        <h3>📊 个人第二单业绩看板</h3>
         <button class="modal-close" onclick="closeModal('mod-cs-profile')">✕</button>
       </div>
       <div class="modal-body" id="cs-profile-body"></div>
@@ -3252,9 +3252,7 @@ function getCSFocusStats(name) {
     filtered = crossSalesData.filter(r => r.record_date && r.record_date.startsWith(monthPrefix) && r.staff_name === name);
   }
   if (crossSalesTeamFilter !== 'all') filtered = filtered.filter(r => r.team === crossSalesTeamFilter);
-  const firstTotal = filtered.reduce((s, r) => s + Number(r.first_amount || 0), 0);
   const secondTotal = filtered.reduce((s, r) => s + Number(r.second_amount || 0), 0);
-  const total = firstTotal + secondTotal;
   const team = filtered[0]?.team || currentProfile?.group_name || '-';
   const rankData = getCrossSalesRankData();
   const rankIdx = rankData.findIndex(x => x.name === name);
@@ -3262,10 +3260,7 @@ function getCSFocusStats(name) {
     name,
     team,
     count: filtered.length,
-    firstTotal,
     secondTotal,
-    total,
-    rate: total > 0 ? (secondTotal / total * 100) : null,
     rank: rankIdx >= 0 ? rankIdx + 1 : '-',
     totalRank: rankData.length,
     periodLabel: crossSalesRankMode === 'day' ? '今日' : '本月'
@@ -3281,12 +3276,10 @@ function renderCSFocusPanel() {
   if (s.count === 0) { panel.style.display = 'none'; return; }
   panel.style.display = 'block';
   document.getElementById('cs-focus-name').textContent = s.name + '（' + s.team + '）';
-  document.getElementById('cs-focus-meta').textContent = s.periodLabel + '连带业绩 · 组内排名 #' + s.rank + ' / ' + s.totalRank + ' · 明细已过滤为 ' + s.name + ' 的记录';
+  document.getElementById('cs-focus-meta').textContent = s.periodLabel + '第二单业绩 · 组内排名 #' + s.rank + ' / ' + s.totalRank + ' · 明细已过滤为 ' + s.name + ' 的记录';
   document.getElementById('cs-focus-stats').innerHTML = `
-    <div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:var(--text);">${s.count}</div><div style="font-size:11px;color:var(--text-secondary);">连带笔数</div></div>
+    <div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:var(--text);">${s.count}</div><div style="font-size:11px;color:var(--text-secondary);">成交单量</div></div>
     <div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:var(--primary);">¥${s.secondTotal.toLocaleString()}</div><div style="font-size:11px;color:var(--text-secondary);">第二单金额</div></div>
-    <div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:var(--text);">${s.rate == null ? '-' : s.rate.toFixed(1) + '%'}</div><div style="font-size:11px;color:var(--text-secondary);">连带率</div></div>
-    <div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:var(--text);">¥${s.total.toLocaleString()}</div><div style="font-size:11px;color:var(--text-secondary);">总成交额</div></div>
   `;
 }
 
@@ -3303,32 +3296,23 @@ function openCSProfile() {
     records = crossSalesData.filter(r => r.record_date && r.record_date.startsWith(monthPrefix) && r.staff_name === crossSalesRankFocus)
       .sort((a, b) => (b.record_date || '').localeCompare(a.record_date || ''));
   }
-  const avgSecond = s.count > 0 ? s.secondTotal / s.count : 0;
   const body = document.getElementById('cs-profile-body');
   body.innerHTML = `
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap;">
       <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#7c5cff,#a78bfa);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;">${escapeHtml((s.name || '?').slice(0, 1))}</div>
       <div>
         <div style="font-size:18px;font-weight:800;color:var(--text);">${escapeHtml(s.name)}</div>
-        <div style="font-size:12px;color:var(--text-secondary);">${escapeHtml(s.team)} · ${s.periodLabel}连带业绩 · 组内排名 #${s.rank} / ${s.totalRank}</div>
+        <div style="font-size:12px;color:var(--text-secondary);">${escapeHtml(s.team)} · ${s.periodLabel}第二单业绩 · 组内排名 #${s.rank} / ${s.totalRank}</div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;">
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
         <div style="font-size:22px;font-weight:800;color:var(--primary);">${s.count}</div>
-        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">连带笔数</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">成交单量</div>
       </div>
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
         <div style="font-size:22px;font-weight:800;color:var(--primary);">¥${s.secondTotal.toLocaleString()}</div>
         <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">第二单金额</div>
-      </div>
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
-        <div style="font-size:22px;font-weight:800;color:var(--text);">${s.rate == null ? '-' : s.rate.toFixed(1) + '%'}</div>
-        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">连带率（第二单/总成交）</div>
-      </div>
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
-        <div style="font-size:22px;font-weight:800;color:var(--text);">¥${avgSecond.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">平均每笔第二单</div>
       </div>
     </div>
     <h4 style="margin-bottom:10px;">📋 成交记录（${s.periodLabel} · 最多显示 50 条）</h4>
