@@ -1252,8 +1252,11 @@ body {
           </tr></thead>
           <tbody id="cross-sales-tbody"></tbody>
         </table>
-        <div style="text-align:center;padding:16px;border-top:1px dashed var(--border);">
-          <button class="btn-sm primary" onclick="document.getElementById('cs-add-rows-count').value=1;addCrossSalesBlankRows();" style="padding:8px 24px;">➕ 新增一行</button>
+        <div style="text-align:center;padding:16px;border-top:1px dashed var(--border);display:flex;align-items:center;justify-content:center;gap:12px;">
+          <span style="font-size:13px;color:var(--text-secondary);">新增</span>
+          <input type="number" id="cs-add-rows-count" value="10" min="1" max="500" style="width:60px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;">
+          <span style="font-size:13px;color:var(--text-secondary);">行</span>
+          <button class="btn-sm primary" onclick="addCrossSalesBlankRows()" style="padding:6px 16px;">➕</button>
         </div>
       </div>
       <div id="cross-sales-empty" style="text-align:center;padding:40px;color:var(--text-secondary);display:none;">
@@ -2850,7 +2853,7 @@ function renderCrossSales() {
   }
   if (rows.length === 0 && !tbody.querySelector('tr[data-new="true"]')) {
     if (tbody) tbody.innerHTML = '';
-    if (empty) empty.style.display = 'block';
+    if (empty) empty.style.display = 'none';
   } else {
     if (empty) empty.style.display = 'none';
     if (tbody) renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader);
