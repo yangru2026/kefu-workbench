@@ -24,6 +24,7 @@
 - **花色素材附件支持** (2026-08-08): 飞书表格「花色图」「上眼图」改为附件字段，Edge Function 自动下载附件→上传到 Supabase Storage→存储公开URL。需执行 `create_pattern_images_bucket.sql` 创建 pattern-images bucket。
 - **花色素材新增基弧和定轴参数** (2026-08-08): pattern_assets 新增 base_curve 和 fixed_axis 字段。基弧为筛选维度（数据驱动，值如8.6/8.7/8.8），定轴为筛选标签（有值=定轴款）。筛选层级：品牌>抛型>直径>基弧>系列>色系>定轴>状态。需执行 `add_base_curve_fixed_axis.sql`。
 - **花色图附件字段支持** (2026-08-08): 飞书表格花色图/上眼图改为附件字段，同步时自动从飞书下载图片→上传到 Supabase Storage（`pattern-images` bucket）→存储公开URL。同时兼容文本URL字段。需执行 `create_pattern_images_bucket.sql`。
+- **客服申请审批系统** (2026-08-11): 客服可提交换班/加班/调休申请，管理员审批通过后自动联动更新排班表/加班时长/调休时长。cs_requests 表（type/status/target_date/shift_from/shift_to/hours/reason），RLS 全员可查看新增、仅管理员可审批。换班通过→自动修改 schedule_data 当天班次；加班通过→自动 insert overtime_records；调休通过→自动 insert compensatory_leave_records。侧边栏「📝 申请审批」入口，待审批 badge。需执行 `create_cs_requests_table.sql`。
 
 ## 待开发功能清单
 
