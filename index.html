@@ -1214,6 +1214,11 @@ body {
       <button class="collab-btn" id="collab-cross-sales-btn" onclick="openCollabPanel('cross-sales')" style="display:none;">👥 协作者</button>
       <button class="feishu-sync-btn admin-only-nav" id="cross-sales-sync-btn" onclick="syncCrossSalesFromFeishu()" style="display:none;">🔄 从飞书同步</button>
       <button class="btn-sm outline" id="cross-sales-month-rank-btn" onclick="toggleCrossSalesRankMode()">📅 按月份排名</button>
+      <div style="width:1px;height:24px;background:var(--border);margin:0 4px;"></div>
+      <input type="date" id="cs-export-start" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:110px;" title="导出开始日期">
+      <span style="color:var(--text-secondary);font-size:12px;">~</span>
+      <input type="date" id="cs-export-end" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:110px;" title="导出结束日期">
+      <button class="btn-sm outline" onclick="exportCrossSalesExcel()" title="导出当前筛选范围内的数据">📤 导出Excel</button>
     </div>
 
     <!-- 排名卡片 -->
@@ -3337,6 +3342,55 @@ async function importCrossSalesFromSheet(rows) {
     }
     loadCrossSalesFromDB();
   } catch(e) { showToast('❌ 导入异常: ' + e.message); }
+}
+
+// ---------- 连带成交导出 ----------
+function exportCrossSalesExcel() {
+  if (!crossSalesData || crossSalesData.length === 0) { showToast('⚠️ 暂无数据可导出'); return; }
+  const startEl = document.getElementById('cs-export-start');
+  const endEl = document.getElementById('cs-export-end');
+  let start = startEl ? startEl.value : '';
+  let end = endEl ? endEl.value : '';
+  // 默认：如果没填日期，按当前查看的日期/月份
+  if (!start && !end) {
+    if (crossSalesRankMode === 'day') {
+      start = crossSalesDate; end = crossSalesDate;
+    } else {
+      const prefix = crossSalesDate.slice(0, 7);
+      start = prefix + '-01';
+      end = prefix + '-31';
+    }
+  }
+  if (!start) start = '2000-01-01';
+  if (!end) end = '2099-12-31';
+
+  let filtered = crossSalesData.filter(r => r.record_date >= start && r.record_date <= end);
+  if (crossSalesTeamFilter !== 'all') {
+    filtered = filtered.filter(r => r.team === crossSalesTeamFilter);
+  }
+  if (filtered.length === 0) { showToast('⚠️ 该范围内无数据'); return; }
+
+  const rows = filtered.map(r => ({
+    '日期': r.record_date,
+    '店铺': r.shop || '',
+    '成交客服': r.staff_name || '',
+    '组别': r.team || '',
+    '产品类型': r.product_type || '',
+    '第一单订单号': r.first_order_no || '',
+    '第二单订单号': r.second_order_no || '',
+    '第一单状态': r.first_order_status || '',
+    '第一单金额': Number(r.first_amount || 0),
+    '第二单金额': Number(r.second_amount || 0),
+    '合计金额': Number(r.total_amount || 0),
+    '质检确认': r.qc_confirmed ? '是' : '否',
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '连带成交');
+  const fileName = `连带成交_${start}_${end}${crossSalesTeamFilter === 'all' ? '' : '_' + crossSalesTeamFilter}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+  showToast(`✅ 已导出 ${filtered.length} 条数据`);
 }
 
 // ---------- 花色分类管理 ----------
