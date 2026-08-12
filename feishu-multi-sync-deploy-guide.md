@@ -53,14 +53,17 @@ https://xxx.feishu.cn/base/XXXXXXXXXXXXXX?table=YYYYYYYYYY
 
 ### 连带成交表额外执行
 
-连带成交表不在 `feishu_multi_sync_migration.sql` 中，需要单独执行 `create_cross_sales_table.sql`：
+连带成交表不在 `feishu_multi_sync_migration.sql` 中，需要单独执行两个脚本：
+
+1. `create_cross_sales_table.sql`：创建 `cross_sales` 表并启用 RLS + Realtime
+2. `add_cross_sales_insert_policy.sql`：放开 INSERT 权限，**所有登录客服可直接在工作台登记**（更新/删除仍仅限管理员）
 
 ```sql
--- 文件位置：create_cross_sales_table.sql
--- 直接粘贴到 Supabase SQL Editor 中执行即可
+-- 文件位置：create_cross_sales_table.sql 和 add_cross_sales_insert_policy.sql
+-- 依次粘贴到 Supabase SQL Editor 中执行即可
 ```
 
-执行后创建 `cross_sales` 表并启用 RLS + Realtime。
+> 权限说明：客服通过页面「➕ 新增登记」自行登记，也能查看全部数据；修改/删除记录仍需管理员（或页面协作者）。
 
 ---
 
@@ -202,12 +205,15 @@ const FEISHU_SYNC_CONFIG = {
 
 ### 连带成交登记
 
-1. 在飞书连带成交登记表中实时录入/修改数据
-2. 工作台点击侧边栏「🛒 连带成交」进入页面
-3. 点击「🔄 从飞书同步」（也可配置飞书事件订阅自动同步）
-4. 页面上方自动显示**第二单销售额排名**（默认按日，可切换按月份）
-5. 下方显示成交明细表格，实时随飞书更新
-6. 管理员可点击「👥 协作者」邀请特定客服协助维护该页面
+> **使用模式：历史数据从飞书一次性同步（或导入 Excel），后续新增由客服直接在工作台登记**
+
+1. **（一次性）历史数据**：管理员点击「🔄 从飞书同步」把飞书历史记录同步进来；如果历史数据在 Excel 里，也可点「📥 导入Excel」（支持 .xlsx/.xls/.csv，自动识别中/英文表头）
+2. **日常登记**：客服进入「🛒 连带成交」页面，点击「➕ 新增登记」填写并提交（日期/客服姓名自动预填，合计金额自动计算）
+3. 页面上方自动显示**第二单销售额排名**（默认按日，可切换按月份），所有客服实时可见
+4. 提交后通过 Realtime 实时同步给所有在线客服
+5. 管理员可点击「👥 协作者」邀请特定客服协助维护该页面
+
+> 说明：客服只能新增登记，不能修改/删除他人记录；错误数据请联系管理员处理。
 
 ---
 
@@ -216,6 +222,7 @@ const FEISHU_SYNC_CONFIG = {
 - [ ] 飞书 4 张多维表格已创建，字段名和文档一致
 - [ ] Supabase SQL 迁移已执行成功
 - [ ] `create_cross_sales_table.sql` 已执行
+- [ ] `add_cross_sales_insert_policy.sql` 已执行（客服可登记）
 - [ ] Edge Function 已部署
 - [ ] 所有环境变量已配置（含 `FEISHU_CROSS_SALES_TABLE_ID`）
 - [ ] 前端 `FEISHU_SYNC_CONFIG.authToken` 已填入
@@ -223,9 +230,11 @@ const FEISHU_SYNC_CONFIG = {
 - [ ] 排班表同步按钮可正常同步
 - [ ] 客服排名同步按钮可正常同步
 - [ ] 售前月度同步按钮可正常同步
-- [ ] 连带成交同步按钮可正常同步
+- [ ] 连带成交同步按钮可正常同步（历史数据一次性导入）
+- [ ] 连带成交「➕ 新增登记」普通客服可正常提交
 - [ ] 连带成交页面显示第二单销售额排名
-- [ ] 连带成交明细随飞书实时更新
+- [ ] 连带成交明细随登记/同步实时更新
+- [ ] 连带成交「📥 导入Excel」可导入历史数据
 - [ ] 排班表单元格编辑可保存
 - [ ] 客服排名编辑保存可正常工作
 - [ ] 售前月度编辑/补录保存可正常工作

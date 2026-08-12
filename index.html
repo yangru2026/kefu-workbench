@@ -1196,7 +1196,7 @@ body {
 
   <!-- ===== 连带成交 ===== -->
   <div class="page" id="page-cross-sales">
-    <div class="page-header"><h1>🛒 连带成交登记</h1><p>飞书实时同步 · 第二单销售额排名 · 按日/按月统计</p></div>
+    <div class="page-header"><h1>🛒 连带成交登记</h1><p>客服自行登记 · 第二单销售额排名 · 按日/按月统计</p></div>
 
     <!-- 日期/月份筛选 -->
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
@@ -1204,6 +1204,8 @@ body {
       <input type="date" id="cross-sales-date-input" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;" onchange="onCrossSalesDateChange()">
       <button class="btn btn-outline" onclick="nextCrossSalesDate()">下一天 ▶</button>
       <div style="flex:1;"></div>
+      <button class="btn-sm primary" id="cross-sales-add-btn" onclick="openCrossSalesForm()">➕ 新增登记</button>
+      <button class="btn-sm outline" id="cross-sales-import-btn" onclick="openExcelImport('cross_sales')" style="display:none;">📥 导入Excel</button>
       <button class="collab-btn" id="collab-cross-sales-btn" onclick="openCollabPanel('cross-sales')" style="display:none;">👥 协作者</button>
       <button class="feishu-sync-btn admin-only-nav" id="cross-sales-sync-btn" onclick="syncCrossSalesFromFeishu()" style="display:none;">🔄 从飞书同步</button>
       <button class="btn-sm outline" id="cross-sales-month-rank-btn" onclick="toggleCrossSalesRankMode()">📅 按月份排名</button>
@@ -1243,6 +1245,79 @@ body {
       <div id="cross-sales-empty" style="text-align:center;padding:40px;color:var(--text-secondary);display:none;">
         <div style="font-size:40px;margin-bottom:8px;">🛒</div>
         <p>暂无连带成交数据</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 连带成交登记弹窗 -->
+  <div class="modal-overlay" id="mod-cross-sales" onclick="closeModal('mod-cross-sales')">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>➕ 新增连带成交登记</h3>
+        <button class="modal-close" onclick="closeModal('mod-cross-sales')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label style="font-size:13px;font-weight:600;color:var(--text);">日期 <span style="color:#e74c3c;">*</span></label>
+            <input type="date" id="cs-form-date" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:var(--text);">店铺</label>
+            <input type="text" id="cs-form-shop" list="cs-shop-options" placeholder="如：旗舰店" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+            <datalist id="cs-shop-options"></datalist>
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:var(--text);">成交客服 <span style="color:#e74c3c;">*</span></label>
+            <input type="text" id="cs-form-staff" list="cs-staff-options" placeholder="登记人姓名" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+            <datalist id="cs-staff-options"></datalist>
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:var(--text);">产品类型</label>
+            <input type="text" id="cs-form-type" list="cs-type-options" placeholder="如：日抛美瞳" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+            <datalist id="cs-type-options"></datalist>
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:var(--text);">第一单订单号 <span style="color:#e74c3c;">*</span></label>
+            <input type="text" id="cs-form-first-no" placeholder="如：202608120001" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:var(--text);">第二单订单号 <span style="color:#e74c3c;">*</span></label>
+            <input type="text" id="cs-form-second-no" placeholder="如：202608120002" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:var(--text);">第一单状态</label>
+            <select id="cs-form-status" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+              <option value="">请选择</option>
+              <option value="已发货">已发货</option>
+              <option value="待发货">待发货</option>
+              <option value="已成交">已成交</option>
+              <option value="已退款">已退款</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:var(--text);">第一单金额（元）</label>
+            <input type="number" id="cs-form-first-amount" min="0" step="0.01" placeholder="0.00" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;" oninput="updateCrossSalesTotal()">
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:var(--text);">第二单金额（元）</label>
+            <input type="number" id="cs-form-second-amount" min="0" step="0.01" placeholder="0.00" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;" oninput="updateCrossSalesTotal()">
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:var(--text);">合计金额（元）<span style="font-weight:400;color:var(--text-secondary);">自动计算</span></label>
+            <input type="number" id="cs-form-total-amount" min="0" step="0.01" placeholder="自动 = 第一 + 第二" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:8px;">
+            <label style="font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px;padding-bottom:8px;cursor:pointer;">
+              <input type="checkbox" id="cs-form-qc" style="width:16px;height:16px;"> 质检已确认
+            </label>
+          </div>
+        </div>
+        <div id="cs-form-tip" style="margin-top:12px;padding:8px 12px;border-radius:8px;font-size:12px;background:var(--bg);color:var(--text-secondary);display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sm outline" onclick="closeModal('mod-cross-sales')">取消</button>
+        <button class="btn-sm primary" onclick="saveCrossSalesRecord()">💾 提交登记</button>
       </div>
     </div>
   </div>
@@ -1846,6 +1921,10 @@ function refreshAdminUI() {
   const presaleSyncBtn = document.getElementById('presale-monthly-sync-btn');
   if (presaleSyncBtn) presaleSyncBtn.style.display = canEditPresale ? '' : 'none';
   // 连带成交编辑权限
+  const crossSalesAddBtn = document.getElementById('cross-sales-add-btn');
+  if (crossSalesAddBtn) crossSalesAddBtn.style.display = currentUser ? '' : 'none';
+  const crossSalesImportBtn = document.getElementById('cross-sales-import-btn');
+  if (crossSalesImportBtn) crossSalesImportBtn.style.display = canEditCrossSales ? '' : 'none';
   const crossSalesSyncBtn = document.getElementById('cross-sales-sync-btn');
   if (crossSalesSyncBtn) crossSalesSyncBtn.style.display = canEditCrossSales ? '' : 'none';
 
@@ -2762,6 +2841,131 @@ async function syncCrossSalesFromFeishu() {
   }
 }
 
+// ==================== 连带成交 · 客服登记 ====================
+
+// 打开登记弹窗
+function openCrossSalesForm() {
+  if (!currentUser) { showToast('⚠️ 请先登录'); return; }
+  // 预填日期：默认当前查看的日期；若查看的是历史日期则用今天
+  const dateInput = document.getElementById('cs-form-date');
+  if (dateInput) dateInput.value = crossSalesDate || getTodayStr();
+  // 预填客服姓名
+  const staffInput = document.getElementById('cs-form-staff');
+  if (staffInput) staffInput.value = (currentProfile && (currentProfile.name || currentProfile.real_name)) || '';
+  // 重置其他字段
+  const ids = ['cs-form-shop', 'cs-form-type', 'cs-form-first-no', 'cs-form-second-no', 'cs-form-first-amount', 'cs-form-second-amount', 'cs-form-total-amount'];
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const statusEl = document.getElementById('cs-form-status'); if (statusEl) statusEl.value = '';
+  const qcEl = document.getElementById('cs-form-qc'); if (qcEl) qcEl.checked = false;
+  const tip = document.getElementById('cs-form-tip'); if (tip) tip.style.display = 'none';
+  // 刷新下拉候选
+  fillCrossSalesDatalists();
+  showModalById('mod-cross-sales');
+}
+
+function showModalById(id) {
+  const el = document.getElementById(id);
+  if (el) { el.classList.add('show'); document.body.style.overflow = 'hidden'; }
+}
+
+// 汇总店铺/客服/产品类型候选（供 datalist 联想）
+function fillCrossSalesDatalists() {
+  const shops = new Set(), staffs = new Set(), types = new Set();
+  (crossSalesData || []).forEach(r => {
+    if (r.shop) shops.add(r.shop);
+    if (r.staff_name) staffs.add(r.staff_name);
+    if (r.product_type) types.add(r.product_type);
+  });
+  const setOptions = (id, set) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = Array.from(set).map(v => `<option value="${escapeAttr(v)}"></option>`).join('');
+  };
+  setOptions('cs-shop-options', shops);
+  setOptions('cs-staff-options', staffs);
+  setOptions('cs-type-options', types);
+}
+
+// 合计金额自动计算（可手动覆盖）
+function updateCrossSalesTotal() {
+  const firstEl = document.getElementById('cs-form-first-amount');
+  const secondEl = document.getElementById('cs-form-second-amount');
+  const totalEl = document.getElementById('cs-form-total-amount');
+  if (!firstEl || !secondEl || !totalEl) return;
+  const f = parseFloat(firstEl.value) || 0;
+  const s = parseFloat(secondEl.value) || 0;
+  totalEl.value = (f + s) ? (f + s).toFixed(2) : '';
+}
+
+// 提交登记
+async function saveCrossSalesRecord() {
+  const dateEl = document.getElementById('cs-form-date');
+  const staffEl = document.getElementById('cs-form-staff');
+  const firstNoEl = document.getElementById('cs-form-first-no');
+  const secondNoEl = document.getElementById('cs-form-second-no');
+  const date = dateEl ? dateEl.value : '';
+  const staff = staffEl ? staffEl.value.trim() : '';
+  const firstNo = firstNoEl ? firstNoEl.value.trim() : '';
+  const secondNo = secondNoEl ? secondNoEl.value.trim() : '';
+
+  // 必填校验
+  if (!date) return showToast('⚠️ 请选择日期');
+  if (!staff) return showToast('⚠️ 请填写成交客服');
+  if (!firstNo && !secondNo) return showToast('⚠️ 请至少填写一个订单号');
+  const firstAmount = parseFloat(document.getElementById('cs-form-first-amount')?.value) || 0;
+  const secondAmount = parseFloat(document.getElementById('cs-form-second-amount')?.value) || 0;
+  const totalEl = document.getElementById('cs-form-total-amount');
+  const totalAmount = (totalEl && totalEl.value !== '') ? (parseFloat(totalEl.value) || 0) : (firstAmount + secondAmount);
+
+  // 重复校验：同一天 + 相同订单号组合
+  const dup = (crossSalesData || []).find(r =>
+    r.record_date === date &&
+    ((firstNo && r.first_order_no === firstNo) || (secondNo && r.second_order_no === secondNo))
+  );
+  if (dup) {
+    const tip = document.getElementById('cs-form-tip');
+    if (tip) {
+      tip.style.display = 'block';
+      tip.textContent = '⚠️ 该日期下已存在相同订单号的记录（' + (dup.staff_name || '') + ' · ' + (dup.first_order_no || '') + ' / ' + (dup.second_order_no || '') + '），请勿重复登记。如需修改请联系管理员。';
+    }
+    return;
+  }
+
+  const record = {
+    record_date: date,
+    shop: document.getElementById('cs-form-shop')?.value.trim() || '',
+    staff_name: staff,
+    product_type: document.getElementById('cs-form-type')?.value.trim() || '',
+    first_order_no: firstNo,
+    second_order_no: secondNo,
+    first_order_status: document.getElementById('cs-form-status')?.value || '',
+    first_amount: firstAmount,
+    second_amount: secondAmount,
+    total_amount: totalAmount,
+    qc_confirmed: !!document.getElementById('cs-form-qc')?.checked,
+  };
+
+  const btn = document.querySelector('#mod-cross-sales .modal-footer .btn-sm.primary');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ 提交中...'; }
+  try {
+    const { error } = await supabase.from('cross_sales').insert([record]);
+    if (error) {
+      if (error.code === '23505') showToast('❌ 该日期下相同订单号已登记过，请勿重复提交');
+      else showToast('❌ 登记失败: ' + error.message);
+      return;
+    }
+    showToast('✅ 登记成功！');
+    closeModal('mod-cross-sales');
+    // 切换到登记的日期，让用户立刻看到
+    crossSalesDate = date;
+    crossSalesRankMode = 'day';
+    loadCrossSalesFromDB();
+  } catch (e) {
+    showToast('❌ 登记异常: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '💾 提交登记'; }
+  }
+}
+
 function prevPresaleMonth() {
   const [y, m] = presaleMonthlyMonth.split('-').map(Number);
   const d = new Date(y, m - 2, 1);
@@ -2777,7 +2981,7 @@ function nextPresaleMonth() {
 }
 
 // ==================== Excel/CSV 导入 ====================
-let excelImportTarget = null; // 'ranking' | 'presale_monthly'
+let excelImportTarget = null; // 'ranking' | 'presale_monthly' | 'cross_sales'
 
 function openExcelImport(target) {
   excelImportTarget = target;
@@ -2805,6 +3009,8 @@ function handleExcelImport(input) {
         importRankingFromSheet(rows);
       } else if (excelImportTarget === 'presale_monthly') {
         importPresaleMonthlyFromSheet(rows);
+      } else if (excelImportTarget === 'cross_sales') {
+        importCrossSalesFromSheet(rows);
       }
     } catch (err) {
       showToast('❌ 解析失败: ' + err.message);
@@ -2976,6 +3182,103 @@ async function importPresaleMonthlyFromSheet(rows) {
       presaleMonthlyMonth = firstPeriod;
     }
     loadPresaleMonthly();
+  } catch(e) { showToast('❌ 导入异常: ' + e.message); }
+}
+
+// 连带成交 Excel 历史数据导入（兼容多种日期/金额格式）
+function parseImportDate(val) {
+  if (val === '' || val === null || val === undefined) return '';
+  if (val instanceof Date && !isNaN(val.getTime())) {
+    return val.getFullYear() + '-' + String(val.getMonth() + 1).padStart(2, '0') + '-' + String(val.getDate()).padStart(2, '0');
+  }
+  if (typeof val === 'number') {
+    // Excel 日期序列号（1900 系统），转日期
+    const d = new Date(Math.round((val - 25569) * 86400000));
+    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    return '';
+  }
+  const s = String(val).trim();
+  if (!s) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const slash = s.match(/^(\d{4})[\/\.\-](\d{1,2})[\/\.\-](\d{1,2})$/);
+  if (slash) return slash[1] + '-' + String(slash[2]).padStart(2, '0') + '-' + String(slash[3]).padStart(2, '0');
+  // 8.1 / 8月1日 / 8/1 → 当年
+  const year = new Date().getFullYear();
+  const m = s.match(/(\d{1,2})\s*[.\/月]\s*(\d{1,2})/);
+  if (m) return year + '-' + String(m[1]).padStart(2, '0') + '-' + String(m[2]).padStart(2, '0');
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  return '';
+}
+
+function parseQcConfirmed(val) {
+  const s = String(val || '').trim().toLowerCase();
+  return ['是', '√', '✓', 'v', 'true', '1', 'y', 'yes', '已确认', '确认'].includes(s) || val === true;
+}
+
+async function importCrossSalesFromSheet(rows) {
+  const header = buildHeaderMap(rows[0]);
+  const reqKeys = ['日期', 'date', '登记日期'];
+  const hasDateCol = reqKeys.some(k => header[normalizeHeader(k)] !== undefined);
+  if (!hasDateCol) {
+    showToast('⚠️ Excel 缺少「日期」列，无法导入');
+    return;
+  }
+
+  const imported = [];
+  const skipped = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.every(c => c === '' || c === null || c === undefined)) continue;
+
+    const date = parseImportDate(getCell(row, header, ['日期', 'date', '登记日期', 'date日期']));
+    const staff = String(getCell(row, header, ['成交客服', '客服', '客服姓名', '姓名', 'staff', 'staffname', 'name']) || '').trim();
+    const firstNo = String(getCell(row, header, ['第一单订单号', '第一单号', '第一单订单', 'firstorder', 'firstorderno', 'firstordernumber']) || '').trim();
+    const secondNo = String(getCell(row, header, ['第二单订单号', '第二单号', '第二单订单', 'secondorder', 'secondorderno', 'secondordernumber']) || '').trim();
+    const firstAmount = parseNumber(getCell(row, header, ['第一单金额', 'firstamount', 'firstamount金额']));
+    const secondAmount = parseNumber(getCell(row, header, ['第二单金额', 'secondamount', 'secondamount金额']));
+    const totalRaw = getCell(row, header, ['合计金额', 'totalamount', 'total', '合计']);
+    const totalAmount = totalRaw !== '' ? parseNumber(totalRaw) : (firstAmount + secondAmount);
+
+    if (!date) { skipped.push(`第${i + 1}行：日期格式不正确`); continue; }
+    if (!staff) { skipped.push(`第${i + 1}行：缺少成交客服`); continue; }
+    if (!firstNo && !secondNo) { skipped.push(`第${i + 1}行：缺少订单号`); continue; }
+
+    imported.push({
+      record_date: date,
+      shop: String(getCell(row, header, ['店铺', 'shop', 'store', '门店']) || '').trim(),
+      staff_name: staff,
+      product_type: String(getCell(row, header, ['产品类型', '类型', '产品', 'product', 'producttype']) || '').trim(),
+      first_order_no: firstNo,
+      second_order_no: secondNo,
+      first_order_status: String(getCell(row, header, ['第一单状态', 'firststatus', '第一单状态status', '状态']) || '').trim(),
+      first_amount: firstAmount,
+      second_amount: secondAmount,
+      total_amount: totalAmount,
+      qc_confirmed: parseQcConfirmed(getCell(row, header, ['质检确认', 'qc', 'qcconfirmed', '质检'])),
+    });
+  }
+
+  if (imported.length === 0) {
+    showToast('⚠️ 没有可导入的有效数据' + (skipped.length ? '（' + skipped.slice(0, 3).join('；') + '）' : ''));
+    return;
+  }
+
+  try {
+    const { error } = await supabase
+      .from('cross_sales')
+      .upsert(imported, { onConflict: 'record_date,first_order_no,second_order_no' });
+    if (error) { showToast('❌ 导入失败: ' + error.message); return; }
+    showToast(`✅ 已导入 ${imported.length} 条连带成交数据` + (skipped.length ? `，跳过 ${skipped.length} 行` : ''));
+
+    // 切换到最早导入的日期，方便核对
+    const dates = imported.map(r => r.record_date).filter(Boolean).sort();
+    if (dates.length) {
+      crossSalesDate = dates[0];
+      crossSalesRankMode = 'day';
+    }
+    loadCrossSalesFromDB();
   } catch(e) { showToast('❌ 导入异常: ' + e.message); }
 }
 
