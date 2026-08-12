@@ -2898,8 +2898,8 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
           <option value="其他" ${r.product_type==='其他'?'selected':''}>其他</option>
         </select>
       </td>
-      <td style="padding:4px;"><input data-field="first_order_no" value="${escapeHtml(r.first_order_no || '')}" style="width:100px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
-      <td style="padding:4px;"><input data-field="second_order_no" value="${escapeHtml(r.second_order_no || '')}" style="width:100px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;"><input data-field="first_order_no" value="${escapeHtml(r.first_order_no || '')}" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;"><input data-field="second_order_no" value="${escapeHtml(r.second_order_no || '')}" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
         <select data-field="first_order_status" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;">
           <option value="已发货" ${r.first_order_status==='已发货'?'selected':''}>已发货</option>
@@ -2992,8 +2992,8 @@ function addCrossSalesBlankRows() {
           <option value="其他">其他</option>
         </select>
       </td>
-      <td style="padding:4px;"><input data-field="first_order_no" placeholder="第一单" style="width:100px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
-      <td style="padding:4px;"><input data-field="second_order_no" placeholder="第二单" style="width:100px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;"><input data-field="first_order_no" placeholder="第一单" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;"><input data-field="second_order_no" placeholder="第二单" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
         <select data-field="first_order_status" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;">
           <option value="已发货" selected>已发货</option>
