@@ -1215,10 +1215,12 @@ body {
       <button class="feishu-sync-btn admin-only-nav" id="cross-sales-sync-btn" onclick="syncCrossSalesFromFeishu()" style="display:none;">🔄 从飞书同步</button>
       <button class="btn-sm outline" id="cross-sales-month-rank-btn" onclick="toggleCrossSalesRankMode()">📅 按月份排名</button>
       <div style="width:1px;height:24px;background:var(--border);margin:0 4px;"></div>
-      <input type="date" id="cs-export-start" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:110px;" title="导出开始日期">
-      <span style="color:var(--text-secondary);font-size:12px;">~</span>
-      <input type="date" id="cs-export-end" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:110px;" title="导出结束日期">
-      <button class="btn-sm outline" onclick="exportCrossSalesExcel()" title="导出当前筛选范围内的数据">📤 导出Excel</button>
+      <span id="cross-sales-export-wrap" style="display:none;align-items:center;gap:6px;">
+        <input type="date" id="cs-export-start" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:110px;" title="导出开始日期">
+        <span style="color:var(--text-secondary);font-size:12px;">~</span>
+        <input type="date" id="cs-export-end" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:110px;" title="导出结束日期">
+        <button class="btn-sm outline" onclick="exportCrossSalesExcel()" title="导出当前筛选范围内的数据">📤 导出Excel</button>
+      </span>
     </div>
 
     <!-- 排名卡片 -->
@@ -1270,7 +1272,6 @@ body {
             <th style="text-align:center;min-width:70px;">第一单金额</th>
             <th style="text-align:center;min-width:70px;">第二单金额</th>
             <th style="text-align:center;min-width:70px;">合计金额</th>
-            <th style="text-align:center;min-width:60px;">质检确认</th>
             <th style="text-align:center;width:60px;">操作</th>
           </tr></thead>
           <tbody id="cross-sales-tbody"></tbody>
@@ -1298,9 +1299,10 @@ body {
           <button class="rank-group-btn cs-opt-tab" data-opt-type="order_status" onclick="switchCsOptionsTab('order_status')">📌 第一单状态</button>
         </div>
         <div id="cs-options-list" style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
-        <div style="display:flex;gap:8px;margin-top:12px;">
+        <div style="display:flex;gap:8px;margin-top:12px;align-items:center;">
+          <input type="color" id="cs-option-new-color" value="#6366f1" title="选项颜色" style="width:42px;height:36px;padding:2px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;">
           <input type="text" id="cs-option-new-value" placeholder="输入新选项名称" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;" onkeydown="if(event.key==='Enter')addCsOption()">
-          <button class="btn-sm primary" onclick="addCsOption()" style="padding:8px 18px;">➕ 添加</button>
+          <button class="btn-sm primary" onclick="addCsOption()" style="padding:8px 18px;white-space:nowrap;">➕ 添加</button>
         </div>
       </div>
       <div class="modal-footer">
@@ -1927,13 +1929,15 @@ function refreshAdminUI() {
   if (presaleSaveBtn) presaleSaveBtn.style.display = canEditPresale ? presaleSaveBtn.style.display : 'none';
   const presaleSyncBtn = document.getElementById('presale-monthly-sync-btn');
   if (presaleSyncBtn) presaleSyncBtn.style.display = canEditPresale ? '' : 'none';
-  // 连带成交编辑权限
-  const crossSalesAddBtn = document.getElementById('cross-sales-add-btn');
-  if (crossSalesAddBtn) crossSalesAddBtn.style.display = currentUser ? '' : 'none';
+  // 连带成交：仅管理员显示管理类按钮（导入选项/飞书同步/协作者/选项管理/导出）；客服只保留登记和看排名
+  const crossSalesOptionsBtn = document.getElementById('cross-sales-options-btn');
+  if (crossSalesOptionsBtn) crossSalesOptionsBtn.style.display = isAdmin ? '' : 'none';
   const crossSalesImportBtn = document.getElementById('cross-sales-import-btn');
-  if (crossSalesImportBtn) crossSalesImportBtn.style.display = canEditCrossSales ? '' : 'none';
+  if (crossSalesImportBtn) crossSalesImportBtn.style.display = isAdmin ? '' : 'none';
   const crossSalesSyncBtn = document.getElementById('cross-sales-sync-btn');
-  if (crossSalesSyncBtn) crossSalesSyncBtn.style.display = canEditCrossSales ? '' : 'none';
+  if (crossSalesSyncBtn) crossSalesSyncBtn.style.display = isAdmin ? '' : 'none';
+  const crossSalesExportWrap = document.getElementById('cross-sales-export-wrap');
+  if (crossSalesExportWrap) crossSalesExportWrap.style.display = isAdmin ? 'flex' : 'none';
 
   // Re-render patterns/training to show/hide mgmt buttons
   if (currentPage === 'patterns' && canEditPatterns !== (window._lastCanEditPatterns !== false)) {
@@ -2685,9 +2689,28 @@ async function loadCrossSalesOptions() {
     if (csOptionsFirstLoad) {
       csOptionsFirstLoad = false;
       const defaultOptions = {
-        shop: ['淘宝官方旗舰店', '京东旗舰店', '抖音直播间', '小红书店铺', '拼多多旗舰店'],
-        product_type: ['日抛', '月抛', '半年抛', '年抛', '护理液', '伴侣盒'],
-        order_status: ['已付款', '待付款', '已发货', '已完成', '退款中']
+        shop: [
+          { value: '淘宝官方旗舰店', color: '#ff6b6b' },
+          { value: '京东旗舰店', color: '#4ecdc4' },
+          { value: '抖音直播间', color: '#1a1a2e' },
+          { value: '小红书店铺', color: '#ff8b94' },
+          { value: '拼多多旗舰店', color: '#e67e22' }
+        ],
+        product_type: [
+          { value: '日抛', color: '#3498db' },
+          { value: '月抛', color: '#9b59b6' },
+          { value: '半年抛', color: '#2ecc71' },
+          { value: '年抛', color: '#f1c40f' },
+          { value: '护理液', color: '#1abc9c' },
+          { value: '伴侣盒', color: '#95a5a6' }
+        ],
+        order_status: [
+          { value: '已付款', color: '#27ae60' },
+          { value: '待付款', color: '#e74c3c' },
+          { value: '已发货', color: '#2980b9' },
+          { value: '已完成', color: '#8e44ad' },
+          { value: '退款中', color: '#7f8c8d' }
+        ]
       };
       const labels = { shop: '店铺', product_type: '产品类型', order_status: '第一单状态' };
       for (const [key, list] of Object.entries(defaultOptions)) {
@@ -2724,11 +2747,28 @@ function subscribeCrossSalesOptions() {
 function csOptionHtml(key, currentVal) {
   const list = csOptions[key] || [];
   const parts = ['<option value="">请选择</option>'];
-  list.forEach(v => {
-    const val = String(v);
-    parts.push(`<option value="${escapeAttr(val)}" ${val === currentVal ? 'selected' : ''}>${escapeHtml(val)}</option>`);
+  list.forEach(item => {
+    const opt = (typeof item === 'object' && item && item.value) ? item : { value: String(item), color: '' };
+    const val = String(opt.value);
+    const color = opt.color || '';
+    const colorTag = color ? `● ` : '';
+    parts.push(`<option value="${escapeAttr(val)}" ${val === currentVal ? 'selected' : ''} data-color="${escapeAttr(color)}">${colorTag}${escapeHtml(val)}</option>`);
   });
   return parts.join('');
+}
+
+// 给选中有颜色的 select 添加背景色
+function applySelectColor(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt) return;
+  const color = opt.dataset.color;
+  if (color) {
+    sel.style.background = color + '22'; // 20% 透明度
+    sel.style.borderColor = color;
+  } else {
+    sel.style.background = '#fff';
+    sel.style.borderColor = 'var(--border)';
+  }
 }
 
 // ==================== 连带成交 · 选项管理（管理员） ====================
@@ -2757,15 +2797,20 @@ function renderCsOptionsList() {
     wrap.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-secondary);font-size:13px;">暂无选项，请在下方添加</div>';
     return;
   }
-  wrap.innerHTML = list.map((v, i) => `
+  wrap.innerHTML = list.map((item, i) => {
+    const opt = (typeof item === 'object' && item && item.value) ? item : { value: String(item), color: '' };
+    const color = opt.color || '';
+    return `
     <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);">
       <span style="width:22px;text-align:center;color:var(--text-secondary);font-size:12px;font-weight:700;">${i + 1}</span>
-      <span style="flex:1;font-size:14px;color:var(--text);">${escapeHtml(v)}</span>
+      <input type="color" value="${escapeAttr(color || '#6366f1')}" onchange="updateCsOptionColor(${i}, this.value)" title="选项颜色" style="width:32px;height:26px;padding:1px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;">
+      <span style="flex:1;font-size:14px;color:var(--text);${color ? 'padding:2px 8px;border-radius:6px;background:' + escapeAttr(color) + '22;' : ''}">${escapeHtml(opt.value)}</span>
       <button class="btn-sm outline" onclick="moveCsOption(${i}, -1)" title="上移" style="padding:2px 8px;font-size:11px;">↑</button>
       <button class="btn-sm outline" onclick="moveCsOption(${i}, 1)" title="下移" style="padding:2px 8px;font-size:11px;">↓</button>
       <button class="btn-sm outline" onclick="removeCsOption(${i})" style="padding:2px 8px;font-size:11px;color:#e74c3c;">🗑️</button>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 // 保存选项数组到 option_templates
@@ -2782,11 +2827,12 @@ async function saveCsOptions(newList) {
 
 async function addCsOption() {
   const input = document.getElementById('cs-option-new-value');
+  const colorInput = document.getElementById('cs-option-new-color');
   const val = (input?.value || '').trim();
   if (!val) { showToast('⚠️ 请输入选项名称'); return; }
-  const list = [...(csOptions[csOptionManageType] || [])];
-  if (list.includes(val)) { showToast('⚠️ 该选项已存在'); return; }
-  list.push(val);
+  const list = normalizeCsOptionList(csOptions[csOptionManageType] || []);
+  if (list.some(o => o.value === val)) { showToast('⚠️ 该选项已存在'); return; }
+  list.push({ value: val, color: colorInput?.value || '' });
   const ok = await saveCsOptions(list);
   if (!ok) return;
   input.value = '';
@@ -2795,9 +2841,9 @@ async function addCsOption() {
 }
 
 async function removeCsOption(idx) {
-  const list = [...(csOptions[csOptionManageType] || [])];
+  const list = normalizeCsOptionList(csOptions[csOptionManageType] || []);
   if (idx < 0 || idx >= list.length) return;
-  const val = list[idx];
+  const val = list[idx].value;
   if (!confirm(`确定删除选项「${val}」？\n已登记数据不受影响。`)) return;
   list.splice(idx, 1);
   const ok = await saveCsOptions(list);
@@ -2807,7 +2853,7 @@ async function removeCsOption(idx) {
 }
 
 async function moveCsOption(idx, dir) {
-  const list = [...(csOptions[csOptionManageType] || [])];
+  const list = normalizeCsOptionList(csOptions[csOptionManageType] || []);
   const target = idx + dir;
   if (idx < 0 || target < 0 || target >= list.length) return;
   const tmp = list[idx];
@@ -2816,6 +2862,23 @@ async function moveCsOption(idx, dir) {
   const ok = await saveCsOptions(list);
   if (!ok) return;
   renderCsOptionsList();
+}
+
+async function updateCsOptionColor(idx, color) {
+  const list = normalizeCsOptionList(csOptions[csOptionManageType] || []);
+  if (idx < 0 || idx >= list.length) return;
+  list[idx].color = color;
+  const ok = await saveCsOptions(list);
+  if (!ok) return;
+  renderCsOptionsList();
+}
+
+// 统一把字符串数组转成 {value, color} 对象数组
+function normalizeCsOptionList(list) {
+  return (list || []).map(item => {
+    if (typeof item === 'object' && item && item.value !== undefined) return { value: String(item.value), color: item.color || '' };
+    return { value: String(item), color: '' };
+  });
 }
 
 async function loadCrossSalesFromDB() {
@@ -3085,9 +3148,11 @@ function getCrossSalesDetailRows() {
 
 function renderCrossSales() {
   const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
-  // 普通客服首次进入默认选中自己组（排名/明细只看本组）
-  if (!isAdminOrLeader && currentProfile?.group_name && !crossSalesTeamInited) {
-    crossSalesTeamFilter = currentProfile.group_name;
+  const staffName = currentProfile?.name || currentProfile?.real_name || '';
+  // 普通客服首次进入默认选中自己组，并自动聚焦到自己
+  if (!isAdminOrLeader && !crossSalesTeamInited) {
+    if (currentProfile?.group_name) crossSalesTeamFilter = currentProfile.group_name;
+    if (staffName) crossSalesFocusStaff = staffName;
   }
   crossSalesTeamInited = true;
   // 同步组按钮高亮
@@ -3192,27 +3257,26 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
     <tr data-id="${r.id || ''}" data-team="${escapeHtml(r.team || '')}">
       <td style="padding:4px;"><input type="date" data-field="record_date" value="${r.record_date || ''}" onchange="autoSaveCSRow(this)" style="width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
-        <select data-field="shop" onchange="autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;">
+        <select data-field="shop" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
           ${csOptionHtml('shop', r.shop)}
         </select>
       </td>
       <td style="padding:4px;"><input data-field="staff_name" value="${escapeHtml(r.staff_name || '')}" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
       <td style="padding:4px;">
-        <select data-field="product_type" onchange="autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;">
+        <select data-field="product_type" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
           ${csOptionHtml('product_type', r.product_type)}
         </select>
       </td>
       <td style="padding:4px;"><input data-field="first_order_no" value="${escapeHtml(r.first_order_no || '')}" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;"><input data-field="second_order_no" value="${escapeHtml(r.second_order_no || '')}" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
-        <select data-field="first_order_status" onchange="autoSaveCSRow(this)" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;">
+        <select data-field="first_order_status" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
           ${csOptionHtml('order_status', r.first_order_status)}
         </select>
       </td>
       <td style="padding:4px;"><input type="number" data-field="first_amount" value="${r.first_amount || ''}" step="0.01" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;"><input type="number" data-field="second_amount" value="${r.second_amount || ''}" data-orig="${r.second_amount || ''}" step="0.01" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;"><input type="number" data-field="total_amount" value="${r.total_amount || ''}" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
-      <td style="text-align:center;padding:4px;"><input type="checkbox" data-field="qc_confirmed" ${r.qc_confirmed ? 'checked' : ''} onchange="autoSaveCSRow(this)" style="width:16px;height:16px;"></td>
       <td style="text-align:center;padding:4px;">
         ${(isAdminOrLeader || r.staff_name === staffName) ? `<button class="btn-sm outline" onclick="deleteCrossSalesRecord(${r.id}, '${escapeHtml(r.staff_name || '')}')" style="padding:2px 8px;font-size:11px;">🗑️</button>` : '-'}
       </td>
@@ -3226,25 +3290,25 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
       <td style="text-align:center;padding:10px;">¥${totalFirst.toLocaleString()}</td>
       <td style="text-align:center;padding:10px;">¥${totalSecond.toLocaleString()}</td>
       <td style="text-align:center;padding:10px;">¥${totalAll.toLocaleString()}</td>
-      <td colspan="2"></td>
+      <td></td>
     </tr>
-    ${isAdminOrLeader ? '' : `
     <tr>
-      <td colspan="12" style="padding:10px;background:#f8f8f8;border-top:1px dashed var(--border);">
+      <td colspan="11" style="padding:10px;background:#f8f8f8;border-top:1px dashed var(--border);">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-          <span style="font-size:13px;color:var(--text-secondary);">📝 填写后自动保存，无需点保存。可批量新增空白行：</span>
+          <span style="font-size:13px;color:var(--text-secondary);">📝 填写后自动保存，无需点保存。</span>
           <input type="number" id="cs-add-rows-count" value="10" min="1" max="500" style="width:60px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;">
           <span style="font-size:13px;color:var(--text-secondary);">行</span>
-          <button class="btn-sm primary" onclick="addCrossSalesBlankRows()" style="font-size:13px;padding:6px 16px;">➕ 新增</button>
+          <button class="btn-sm primary" onclick="addCrossSalesBlankRows()" style="font-size:13px;padding:6px 16px;">➕ 新增一行</button>
         </div>
       </td>
     </tr>
-    `}
   `;
 
   tbody.innerHTML = html;
   // 恢复保留的新增行
   newRows.forEach(tr => tbody.appendChild(tr));
+  // 初始化有颜色标记的下拉框
+  tbody.querySelectorAll('select[data-cs-color-init]').forEach(applySelectColor);
   // 扫描重复订单号并标记
   scanCSDuplicates();
 }
@@ -3421,27 +3485,26 @@ function addCrossSalesBlankRows() {
     tr.innerHTML = `
       <td style="padding:4px;"><input type="date" data-field="record_date" value="${dateVal}" onchange="autoSaveCSRow(this)" style="width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
-        <select data-field="shop" onchange="autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;">
+        <select data-field="shop" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
           ${csOptionHtml('shop', '')}
         </select>
       </td>
       <td style="padding:4px;"><input data-field="staff_name" value="${escapeHtml(staffName)}" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
       <td style="padding:4px;">
-        <select data-field="product_type" onchange="autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;">
+        <select data-field="product_type" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
           ${csOptionHtml('product_type', '')}
         </select>
       </td>
       <td style="padding:4px;"><input data-field="first_order_no" placeholder="第一单" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;"><input data-field="second_order_no" placeholder="第二单" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
-        <select data-field="first_order_status" onchange="autoSaveCSRow(this)" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;">
+        <select data-field="first_order_status" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
           ${csOptionHtml('order_status', '')}
         </select>
       </td>
       <td style="padding:4px;"><input type="number" data-field="first_amount" step="0.01" placeholder="0" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;"><input type="number" data-field="second_amount" step="0.01" placeholder="0" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;"><input type="number" data-field="total_amount" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
-      <td style="text-align:center;padding:4px;"><input type="checkbox" data-field="qc_confirmed" onchange="autoSaveCSRow(this)" style="width:16px;height:16px;"></td>
       <td style="text-align:center;padding:4px;"><button class="btn-sm outline" onclick="this.closest('tr').remove()" style="padding:2px 8px;font-size:11px;">🗑️</button></td>
     `;
     // 插入到数据行末尾、合计行之前
@@ -3651,6 +3714,9 @@ function buildHeaderMap(headerRow) {
 function getCell(row, map, keys) {
   for (const k of keys) {
     if (map[k] !== undefined) return row[map[k]];
+    // 兼容表头带空格/括号/单位的情况：如「第二单金额（元）」也能匹配「第二单金额」
+    const nk = normalizeHeader(k);
+    if (map[nk] !== undefined) return row[map[nk]];
   }
   return '';
 }
