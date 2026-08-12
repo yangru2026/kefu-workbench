@@ -56,7 +56,7 @@ CREATE POLICY "管理员可管理连带成交数据" ON cross_sales
 -- 索引
 CREATE INDEX IF NOT EXISTS idx_cross_sales_date ON cross_sales(record_date);
 CREATE INDEX IF NOT EXISTS idx_cross_sales_staff ON cross_sales(staff_name);
-CREATE INDEX IF NOT EXISTS idx_cross_sales_month ON cross_sales((TO_CHAR(record_date, 'YYYY-MM')));
+CREATE INDEX IF NOT EXISTS idx_cross_sales_month ON cross_sales((date_trunc('month', record_date)));
 
 -- Realtime（安全写法：已存在则跳过）
 DO $$
