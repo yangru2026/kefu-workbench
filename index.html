@@ -1223,7 +1223,9 @@ body {
 
     <!-- 排名卡片 -->
     <div class="card" style="margin-bottom:20px;">
-      <h3 style="margin-bottom:12px;">🏆 第二单销售额排名 <span id="cross-sales-rank-label" style="font-size:13px;color:var(--text-secondary);font-weight:normal;">（今日）</span></h3>
+      <h3 style="margin-bottom:12px;">🏆 第二单销售额排名 <span id="cross-sales-rank-label" style="font-size:13px;color:var(--text-secondary);font-weight:normal;">（今日）</span>
+        <span style="font-size:12px;color:var(--text-secondary);font-weight:normal;margin-left:8px;">💡 点击卡片可聚焦该客服的明细，再次点击取消</span>
+      </h3>
       <div id="cross-sales-rank-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;"></div>
       <div id="cross-sales-rank-empty" style="text-align:center;padding:30px;color:var(--text-secondary);display:none;">
         <div style="font-size:36px;margin-bottom:8px;">🏆</div>
@@ -1231,9 +1233,30 @@ body {
       </div>
     </div>
 
+    <!-- 客服聚焦面板（点击排名卡片后出现） -->
+    <div id="cross-sales-focus-panel" class="card" style="display:none;margin-bottom:20px;padding:16px 18px;border:2px solid var(--primary);background:linear-gradient(90deg,#f3f0ff,#f9f7ff);">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <span style="font-size:28px;">🎯</span>
+        <div style="flex:1;min-width:220px;">
+          <div style="font-weight:800;font-size:16px;color:var(--text);" id="cs-focus-name"></div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-top:2px;" id="cs-focus-meta"></div>
+        </div>
+        <div id="cs-focus-stats" style="display:flex;gap:20px;flex-wrap:wrap;"></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-sm primary" onclick="openCSProfile()">📊 完整看板</button>
+          <button class="btn-sm outline" onclick="toggleCrossSalesFocus('')">✕ 取消聚焦</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 明细表格（表头锁定：容器限高滚动 + thead sticky） -->
     <div class="card">
-      <h3 style="margin-bottom:16px;">📋 成交明细 <span id="cross-sales-team-hint" style="font-size:12px;color:var(--text-secondary);font-weight:normal;"></span></h3>
+      <h3 style="margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">📋 成交明细 <span id="cross-sales-team-hint" style="font-size:12px;color:var(--text-secondary);font-weight:normal;"></span>
+        <span style="flex:1;"></span>
+        <input type="search" id="cross-sales-search" placeholder="🔍 搜索客服 / 订单号" oninput="onCrossSalesSearch()" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;width:200px;font-family:inherit;" onkeydown="if(event.key==='Enter')event.target.blur()">
+        <span id="cross-sales-filter-hint" style="font-size:12px;color:var(--text-secondary);font-weight:normal;display:none;"></span>
+      </h3>
+      <div id="cross-sales-dup-banner" style="display:none;background:#fff5f5;border:1px solid #f3c1c0;color:#c62828;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:10px;"></div>
       <div style="max-height:62vh;overflow:auto;border:1px solid var(--border);border-radius:8px;">
         <table class="ranking-table" style="min-width:1080px;" id="cross-sales-table">
           <thead style="position:sticky;top:0;z-index:10;background:var(--card-bg);"><tr>
@@ -1282,6 +1305,20 @@ body {
       </div>
       <div class="modal-footer">
         <button class="btn-sm outline" onclick="closeModal('mod-cs-options')">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 连带成交 · 客服个人看板弹窗 -->
+  <div class="modal-overlay" id="mod-cs-profile" onclick="closeModal('mod-cs-profile')">
+    <div class="modal-box" style="max-width:760px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>📊 个人连带率看板</h3>
+        <button class="modal-close" onclick="closeModal('mod-cs-profile')">✕</button>
+      </div>
+      <div class="modal-body" id="cs-profile-body"></div>
+      <div class="modal-footer">
+        <button class="btn-sm outline" onclick="closeModal('mod-cs-profile')">关闭</button>
       </div>
     </div>
   </div>
@@ -2617,6 +2654,8 @@ let csOptionsSub = null;
 let csOptionsLoaded = false;
 let csOptionsFirstLoad = true; // 首次加载时空选项自动填充默认值
 let crossSalesTeamInited = false; // 客服首次进入是否已自动选中本组
+let crossSalesSearch = '';      // 明细搜索关键字（客服/订单号）
+let crossSalesRankFocus = '';   // 排名卡片聚焦的客服名（点击穿透过滤明细）
 
 function getTodayStr() {
   const d = new Date();
@@ -2861,6 +2900,134 @@ function setCrossSalesTeam(team) {
   renderCrossSales();
 }
 
+// 点击排名卡片：聚焦该客服的明细（再点取消）
+function toggleCrossSalesFocus(name) {
+  crossSalesRankFocus = (crossSalesRankFocus === name) ? '' : (name || '');
+  renderCrossSales();
+}
+
+// 明细搜索：客服姓名 / 订单号
+function onCrossSalesSearch() {
+  const el = document.getElementById('cross-sales-search');
+  crossSalesSearch = (el?.value || '').trim();
+  renderCrossSales();
+}
+
+// 统计某客服在当前周期（日/月）+ 当前组筛选下的业绩
+function getCSFocusStats(name) {
+  let filtered = [];
+  if (crossSalesRankMode === 'day') {
+    filtered = crossSalesData.filter(r => r.record_date === crossSalesDate && r.staff_name === name);
+  } else {
+    const monthPrefix = crossSalesDate.slice(0, 7);
+    filtered = crossSalesData.filter(r => r.record_date && r.record_date.startsWith(monthPrefix) && r.staff_name === name);
+  }
+  if (crossSalesTeamFilter !== 'all') filtered = filtered.filter(r => r.team === crossSalesTeamFilter);
+  const firstTotal = filtered.reduce((s, r) => s + Number(r.first_amount || 0), 0);
+  const secondTotal = filtered.reduce((s, r) => s + Number(r.second_amount || 0), 0);
+  const total = firstTotal + secondTotal;
+  const team = filtered[0]?.team || currentProfile?.group_name || '-';
+  const rankData = getCrossSalesRankData();
+  const rankIdx = rankData.findIndex(x => x.name === name);
+  return {
+    name,
+    team,
+    count: filtered.length,
+    firstTotal,
+    secondTotal,
+    total,
+    rate: total > 0 ? (secondTotal / total * 100) : null,
+    rank: rankIdx >= 0 ? rankIdx + 1 : '-',
+    totalRank: rankData.length,
+    periodLabel: crossSalesRankMode === 'day' ? '今日' : '本月'
+  };
+}
+
+// 聚焦面板（排名卡片与明细之间的概览条）
+function renderCSFocusPanel() {
+  const panel = document.getElementById('cross-sales-focus-panel');
+  if (!panel) return;
+  if (!crossSalesRankFocus) { panel.style.display = 'none'; return; }
+  const s = getCSFocusStats(crossSalesRankFocus);
+  if (s.count === 0) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  document.getElementById('cs-focus-name').textContent = s.name + '（' + s.team + '）';
+  document.getElementById('cs-focus-meta').textContent = s.periodLabel + '连带业绩 · 组内排名 #' + s.rank + ' / ' + s.totalRank + ' · 明细已过滤为 ' + s.name + ' 的记录';
+  document.getElementById('cs-focus-stats').innerHTML = `
+    <div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:var(--text);">${s.count}</div><div style="font-size:11px;color:var(--text-secondary);">连带笔数</div></div>
+    <div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:var(--primary);">¥${s.secondTotal.toLocaleString()}</div><div style="font-size:11px;color:var(--text-secondary);">第二单金额</div></div>
+    <div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:var(--text);">${s.rate == null ? '-' : s.rate.toFixed(1) + '%'}</div><div style="font-size:11px;color:var(--text-secondary);">连带率</div></div>
+    <div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:var(--text);">¥${s.total.toLocaleString()}</div><div style="font-size:11px;color:var(--text-secondary);">总成交额</div></div>
+  `;
+}
+
+// 客服个人连带率看板（弹窗）
+function openCSProfile() {
+  if (!crossSalesRankFocus) { showToast('⚠️ 请先点击排名卡片选择客服'); return; }
+  const s = getCSFocusStats(crossSalesRankFocus);
+  if (s.count === 0) { showToast('⚠️ 该客服当前周期暂无记录'); return; }
+  let records = [];
+  if (crossSalesRankMode === 'day') {
+    records = crossSalesData.filter(r => r.record_date === crossSalesDate && r.staff_name === crossSalesRankFocus).sort((a, b) => (a.id || 0) - (b.id || 0));
+  } else {
+    const monthPrefix = crossSalesDate.slice(0, 7);
+    records = crossSalesData.filter(r => r.record_date && r.record_date.startsWith(monthPrefix) && r.staff_name === crossSalesRankFocus)
+      .sort((a, b) => (b.record_date || '').localeCompare(a.record_date || ''));
+  }
+  const avgSecond = s.count > 0 ? s.secondTotal / s.count : 0;
+  const body = document.getElementById('cs-profile-body');
+  body.innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap;">
+      <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#7c5cff,#a78bfa);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;">${escapeHtml((s.name || '?').slice(0, 1))}</div>
+      <div>
+        <div style="font-size:18px;font-weight:800;color:var(--text);">${escapeHtml(s.name)}</div>
+        <div style="font-size:12px;color:var(--text-secondary);">${escapeHtml(s.team)} · ${s.periodLabel}连带业绩 · 组内排名 #${s.rank} / ${s.totalRank}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px;">
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:22px;font-weight:800;color:var(--primary);">${s.count}</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">连带笔数</div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:22px;font-weight:800;color:var(--primary);">¥${s.secondTotal.toLocaleString()}</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">第二单金额</div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:22px;font-weight:800;color:var(--text);">${s.rate == null ? '-' : s.rate.toFixed(1) + '%'}</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">连带率（第二单/总成交）</div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:22px;font-weight:800;color:var(--text);">¥${avgSecond.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">平均每笔第二单</div>
+      </div>
+    </div>
+    <h4 style="margin-bottom:10px;">📋 成交记录（${s.periodLabel} · 最多显示 50 条）</h4>
+    ${records.length === 0 ? '<p style="color:var(--text-secondary);font-size:13px;">暂无记录</p>' : `
+    <div style="max-height:280px;overflow:auto;border:1px solid var(--border);border-radius:8px;">
+      <table class="ranking-table" style="min-width:640px;font-size:13px;">
+        <thead style="position:sticky;top:0;background:var(--card-bg);"><tr>
+          <th>日期</th><th>店铺</th><th>产品类型</th><th>第一单订单号</th><th>第二单订单号</th><th>第一单金额</th><th>第二单金额</th><th>合计</th>
+        </tr></thead>
+        <tbody>
+        ${records.slice(0, 50).map(r => `
+          <tr>
+            <td>${escapeHtml(r.record_date || '-')}</td>
+            <td>${escapeHtml(r.shop || '-')}</td>
+            <td>${escapeHtml(r.product_type || '-')}</td>
+            <td style="font-size:12px;">${escapeHtml(r.first_order_no || '-')}</td>
+            <td style="font-size:12px;">${escapeHtml(r.second_order_no || '-')}</td>
+            <td style="text-align:right;">¥${Number(r.first_amount || 0).toLocaleString()}</td>
+            <td style="text-align:right;">¥${Number(r.second_amount || 0).toLocaleString()}</td>
+            <td style="text-align:right;">¥${Number(r.total_amount || 0).toLocaleString()}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`}
+  `;
+  showModalById('mod-cs-profile');
+}
+
 function getCrossSalesRankData() {
   let filtered = [];
   if (crossSalesRankMode === 'day') {
@@ -2899,6 +3066,19 @@ function getCrossSalesDetailRows() {
   }
   if (crossSalesTeamFilter !== 'all') {
     rows = rows.filter(r => r.team === crossSalesTeamFilter);
+  }
+  // 排名卡片聚焦：只显示该客服的记录
+  if (crossSalesRankFocus) {
+    rows = rows.filter(r => r.staff_name === crossSalesRankFocus);
+  }
+  // 搜索过滤：客服姓名 / 第一单订单号 / 第二单订单号
+  if (crossSalesSearch) {
+    const kw = crossSalesSearch.toLowerCase();
+    rows = rows.filter(r =>
+      (r.staff_name || '').toLowerCase().includes(kw) ||
+      (r.first_order_no || '').toLowerCase().includes(kw) ||
+      (r.second_order_no || '').toLowerCase().includes(kw)
+    );
   }
   return rows;
 }
@@ -2945,11 +3125,12 @@ function renderCrossSales() {
     if (rankCards) {
       rankCards.innerHTML = rankData.slice(0, 10).map((item, idx) => {
         const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `<span style="font-weight:700;width:24px;display:inline-block;text-align:center;">${idx + 1}</span>`;
+        const focused = crossSalesRankFocus === item.name;
         return `
-          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card-bg);border:1px solid var(--border);border-radius:12px;">
+          <div onclick="toggleCrossSalesFocus('${escapeAttr(item.name)}')" title="点击聚焦 ${escapeHtml(item.name)} 的记录，再点取消" style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card-bg);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:all .15s;${focused ? 'outline:3px solid var(--primary);background:#f3f0ff;' : ''}">
             <div style="font-size:24px;">${medal}</div>
             <div style="flex:1;min-width:0;">
-              <div style="font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name}</div>
+              <div style="font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name} ${focused ? '🎯' : ''}</div>
               <div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">${item.count} 笔连带</div>
             </div>
             <div style="text-align:right;">
@@ -2962,12 +3143,28 @@ function renderCrossSales() {
     }
   }
 
+  // 聚焦面板
+  renderCSFocusPanel();
+
   // 明细
   const tbody = document.getElementById('cross-sales-tbody');
   const empty = document.getElementById('cross-sales-empty');
   let rows = getCrossSalesDetailRows();
   if (!isAdminOrLeader && currentProfile?.group_name) {
     rows = rows.filter(r => r.team === currentProfile.group_name);
+  }
+  // 搜索/聚焦状态提示
+  const filterHint = document.getElementById('cross-sales-filter-hint');
+  if (filterHint) {
+    const parts = [];
+    if (crossSalesRankFocus) parts.push('🎯 ' + crossSalesRankFocus);
+    if (crossSalesSearch) parts.push('🔍 "' + crossSalesSearch + '"');
+    if (parts.length > 0) {
+      filterHint.style.display = 'inline';
+      filterHint.textContent = '当前筛选：' + parts.join('、') + '（' + rows.length + ' 条）';
+    } else {
+      filterHint.style.display = 'none';
+    }
   }
   const hasNewRows = tbody ? tbody.querySelector('tr[data-new="true"]') !== null : false;
   if (rows.length === 0 && !hasNewRows) {
@@ -3005,15 +3202,15 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
           ${csOptionHtml('product_type', r.product_type)}
         </select>
       </td>
-      <td style="padding:4px;"><input data-field="first_order_no" value="${escapeHtml(r.first_order_no || '')}" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
-      <td style="padding:4px;"><input data-field="second_order_no" value="${escapeHtml(r.second_order_no || '')}" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;"><input data-field="first_order_no" value="${escapeHtml(r.first_order_no || '')}" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;"><input data-field="second_order_no" value="${escapeHtml(r.second_order_no || '')}" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
         <select data-field="first_order_status" onchange="autoSaveCSRow(this)" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;">
           ${csOptionHtml('order_status', r.first_order_status)}
         </select>
       </td>
       <td style="padding:4px;"><input type="number" data-field="first_amount" value="${r.first_amount || ''}" step="0.01" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
-      <td style="padding:4px;"><input type="number" data-field="second_amount" value="${r.second_amount || ''}" step="0.01" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;"><input type="number" data-field="second_amount" value="${r.second_amount || ''}" data-orig="${r.second_amount || ''}" step="0.01" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;"><input type="number" data-field="total_amount" value="${r.total_amount || ''}" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
       <td style="text-align:center;padding:4px;"><input type="checkbox" data-field="qc_confirmed" ${r.qc_confirmed ? 'checked' : ''} onchange="autoSaveCSRow(this)" style="width:16px;height:16px;"></td>
       <td style="text-align:center;padding:4px;">
@@ -3048,6 +3245,96 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
   tbody.innerHTML = html;
   // 恢复保留的新增行
   newRows.forEach(tr => tbody.appendChild(tr));
+  // 扫描重复订单号并标记
+  scanCSDuplicates();
+}
+
+// 实时检查订单号是否与当天已存在记录重复（输入时触发）
+function checkCSOrderDuplicate(el) {
+  const tr = el.closest('tr');
+  if (!tr) return;
+  const val = (el.value || '').trim();
+  const dateVal = tr.querySelector('[data-field="record_date"]')?.value || crossSalesDate;
+  const selfId = tr.dataset.id;
+  let dup = null;
+  if (val) {
+    dup = crossSalesData.find(r =>
+      r.id != selfId &&
+      (!dateVal || r.record_date === dateVal) &&
+      (r.first_order_no === val || r.second_order_no === val)
+    ) || null;
+  }
+  if (dup) {
+    el.style.borderColor = '#e5484d';
+    el.style.background = '#fff5f5';
+    el.title = '⚠️ 当天已存在相同订单号：' + (dup.staff_name || '其他客服') + ' 的 ' + val;
+  } else {
+    el.style.borderColor = '';
+    el.style.background = '';
+    el.title = '';
+  }
+  updateCSDupBanner();
+}
+
+// 渲染后/保存后扫描整个表格，统一标记重复订单号并更新顶部提示条
+function scanCSDuplicates() {
+  const tbody = document.getElementById('cross-sales-tbody');
+  if (!tbody) return;
+  let dupCount = 0;
+  tbody.querySelectorAll('input[data-field="first_order_no"], input[data-field="second_order_no"]').forEach(el => {
+    const val = (el.value || '').trim();
+    if (!val) return;
+    const tr = el.closest('tr');
+    if (!tr) return;
+    const dateVal = tr.querySelector('[data-field="record_date"]')?.value || crossSalesDate;
+    const selfId = tr.dataset.id;
+    const dup = crossSalesData.find(r =>
+      r.id != selfId &&
+      (!dateVal || r.record_date === dateVal) &&
+      (r.first_order_no === val || r.second_order_no === val)
+    );
+    if (dup) {
+      dupCount++;
+      el.style.borderColor = '#e5484d';
+      el.style.background = '#fff5f5';
+      el.title = '⚠️ 当天已存在相同订单号：' + (dup.staff_name || '其他客服') + ' 的 ' + val;
+    } else {
+      el.style.borderColor = '';
+      el.style.background = '';
+      el.title = '';
+    }
+  });
+  updateCSDupBanner(dupCount);
+}
+
+function updateCSDupBanner(count) {
+  const banner = document.getElementById('cross-sales-dup-banner');
+  if (!banner) return;
+  if (count > 0) {
+    banner.style.display = 'block';
+    banner.innerHTML = '⚠️ 检测到 <strong>' + count + '</strong> 处订单号与当天已登记记录重复，保存时将被数据库拦截，请核对后再提交';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+// 保存前的数据校验，返回错误信息或 null
+// isNew：是否新插入行（严格校验第二单金额 > 0）；secondChanged：已有行第二单金额是否被修改
+function validateCSRow(record, isNew, secondChanged) {
+  if (!record.record_date) return '日期不能为空';
+  if (!record.staff_name) return '客服不能为空';
+  if (!record.first_order_no && !record.second_order_no) return '请至少填写一个订单号';
+  if (isNaN(record.first_amount) || record.first_amount < 0) return '第一单金额不能为负数';
+  if (isNaN(record.second_amount) || record.second_amount < 0) return '第二单金额不能为负数';
+  if ((isNew || secondChanged) && record.second_amount <= 0) return '第二单金额必须大于 0（连带成交的核心是第二单有销售额）';
+  return null;
+}
+
+// 校验失败时高亮整行 3 秒
+function markCSRowInvalid(tr) {
+  tr.style.background = '#fff5f5';
+  tr.style.outline = '2px solid #e5484d';
+  setTimeout(() => { tr.style.background = ''; tr.style.outline = ''; }, 3000);
 }
 
 function updateCSRowTotal(input) {
@@ -3077,7 +3364,15 @@ async function saveCSRow(tr) {
   const record = readCSRow(tr);
   // 空白行不保存（没有订单号）
   if (!record.first_order_no && !record.second_order_no) return;
-  if (!record.record_date || !record.staff_name) return;
+  // 基础校验：日期/客服/金额（已有行仅在金额被修改时强制第二单 > 0）
+  const secondEl = tr.querySelector('[data-field="second_amount"]');
+  const secondChanged = secondEl && String(secondEl.dataset.orig || '') !== String(secondEl.value || '');
+  const errMsg = validateCSRow(record, !tr.dataset.id, secondChanged);
+  if (errMsg) {
+    showToast('⚠️ ' + errMsg);
+    markCSRowInvalid(tr);
+    return;
+  }
 
   tr.dataset.saving = '1';
   try {
@@ -3136,8 +3431,8 @@ function addCrossSalesBlankRows() {
           ${csOptionHtml('product_type', '')}
         </select>
       </td>
-      <td style="padding:4px;"><input data-field="first_order_no" placeholder="第一单" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
-      <td style="padding:4px;"><input data-field="second_order_no" placeholder="第二单" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;"><input data-field="first_order_no" placeholder="第一单" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;"><input data-field="second_order_no" placeholder="第二单" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
         <select data-field="first_order_status" onchange="autoSaveCSRow(this)" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;">
           ${csOptionHtml('order_status', '')}
