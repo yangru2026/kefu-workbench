@@ -1234,9 +1234,9 @@ body {
     <!-- 明细表格 -->
     <div class="card">
       <h3 style="margin-bottom:16px;">📋 成交明细</h3>
-      <div style="overflow-x:auto;">
+      <div style="overflow-x:auto;max-height:calc(100vh - 280px);overflow-y:auto;">
         <table class="ranking-table" style="min-width:1000px;" id="cross-sales-table">
-          <thead><tr>
+          <thead style="position:sticky;top:0;z-index:10;background:var(--card-bg);"><tr>
             <th style="text-align:center;">日期</th>
             <th style="text-align:center;">店铺</th>
             <th style="text-align:center;">成交客服</th>
@@ -1248,9 +1248,13 @@ body {
             <th style="text-align:center;">第二单金额</th>
             <th style="text-align:center;">合计金额</th>
             <th style="text-align:center;">质检确认</th>
+            <th style="text-align:center;width:80px;">操作</th>
           </tr></thead>
           <tbody id="cross-sales-tbody"></tbody>
         </table>
+        <div style="text-align:center;padding:16px;border-top:1px dashed var(--border);">
+          <button class="btn-sm primary" onclick="openCrossSalesForm()" style="padding:8px 24px;">➕ 新增一行</button>
+        </div>
       </div>
       <div id="cross-sales-empty" style="text-align:center;padding:40px;color:var(--text-secondary);display:none;">
         <div style="font-size:40px;margin-bottom:8px;">🛒</div>
@@ -2860,13 +2864,16 @@ function renderCrossSales() {
           <td style="text-align:center;font-weight:600;color:var(--primary);">¥${Number(r.second_amount || 0).toLocaleString()}</td>
           <td style="text-align:center;font-weight:700;">¥${Number(r.total_amount || 0).toLocaleString()}</td>
           <td style="text-align:center;">${r.qc_confirmed ? '✅' : '-'}</td>
+          <td style="text-align:center;">
+            ${(isAdminOrLeader || r.staff_name === ((currentProfile?.name || currentProfile?.real_name))) ? `<button class="btn-sm outline" onclick="deleteCrossSalesRecord(${r.id}, '${escapeHtml(r.staff_name || '')}')" style="padding:4px 10px;font-size:12px;">🗑️</button>` : '-'}
+          </td>
         </tr>
       `).join('') + `
         <tr style="background:linear-gradient(90deg,#ede8ff,#e8e3ff);font-weight:800;font-size:15px;color:var(--primary);border-top:2px solid var(--primary);">
           <td colspan="8" style="text-align:right;padding:12px;">${teamLabel} 合计</td>
           <td style="text-align:center;">¥${totalSecond.toLocaleString()}</td>
           <td style="text-align:center;">¥${totalAll.toLocaleString()}</td>
-          <td></td>
+          <td colspan="2"></td>
         </tr>
       `;
     }
@@ -3029,6 +3036,18 @@ async function saveCrossSalesRecord() {
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '💾 提交登记'; }
   }
+}
+
+// 删除连带成交记录
+async function deleteCrossSalesRecord(id, staffName) {
+  if (!supabase) return;
+  if (!confirm(`确定删除 ${staffName || '这条'} 记录？删除后不可恢复。`)) return;
+  try {
+    const { error } = await supabase.from('cross_sales').delete().eq('id', id);
+    if (error) { showToast('❌ 删除失败: ' + error.message); return; }
+    showToast('✅ 已删除');
+    loadCrossSalesFromDB();
+  } catch (e) { showToast('❌ 删除异常: ' + e.message); }
 }
 
 function prevPresaleMonth() {
@@ -3257,10 +3276,15 @@ function parseImportDate(val) {
     return val.getFullYear() + '-' + String(val.getMonth() + 1).padStart(2, '0') + '-' + String(val.getDate()).padStart(2, '0');
   }
   if (typeof val === 'number') {
-    // Excel 日期序列号（1900 系统），转日期
-    const d = new Date(Math.round((val - 25569) * 86400000));
-    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
-    return '';
+    // 小于 100 的数字不可能是 Excel 日期序列号，更可能是 月.日 格式（如 8.1）
+    if (val < 100) {
+      // 转为字符串让后续正则处理
+      val = String(val);
+    } else {
+      const d = new Date(Math.round((val - 25569) * 86400000));
+      if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+      return '';
+    }
   }
   const s = String(val).trim();
   if (!s) return '';
@@ -3311,9 +3335,9 @@ async function importCrossSalesFromSheet(rows) {
       const staff = String(getCell(row, header, ['成交客服', '客服', '客服姓名', '姓名', 'staff', 'staffname', 'name']) || '').trim();
       const firstNo = String(getCell(row, header, ['第一单订单号', '第一单号', '第一单订单', 'firstorder', 'firstorderno', 'firstordernumber']) || '').trim();
       const secondNo = String(getCell(row, header, ['第二单订单号', '第二单号', '第二单订单', 'secondorder', 'secondorderno', 'secondordernumber']) || '').trim();
-      const firstAmount = parseNumber(getCell(row, header, ['第一单金额', 'firstamount', 'firstamount金额']));
-      const secondAmount = parseNumber(getCell(row, header, ['第二单金额', 'secondamount', 'secondamount金额']));
-      const totalRaw = getCell(row, header, ['合计金额', 'totalamount', 'total', '合计']);
+      const firstAmount = parseNumber(getCell(row, header, ['第一单金额', 'firstamount', 'firstamount金额', '第一单金额amount']));
+      const secondAmount = parseNumber(getCell(row, header, ['第二单金额', 'secondamount', 'secondamount金额', '第2单金额', '二单金额', '第二金额', 'second_amount']));
+      const totalRaw = getCell(row, header, ['合计金额', 'totalamount', 'total', '合计', '总金额']);
       const totalAmount = totalRaw !== '' ? parseNumber(totalRaw) : (firstAmount + secondAmount);
       // 读取组别，优先从 Excel，没有则反查 profiles
       let team = String(getCell(row, header, ['组别', '组', 'team', 'group', 'group_name']) || '').trim();
