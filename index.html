@@ -2786,12 +2786,6 @@ function getCrossSalesDetailRows() {
   }
   return rows;
 }
-  const monthPrefix = crossSalesDate.slice(0, 7);
-  return crossSalesData.filter(r => r.record_date && r.record_date.startsWith(monthPrefix)).sort((a, b) => {
-    if (a.record_date !== b.record_date) return (b.record_date || '').localeCompare(a.record_date || '');
-    return (a.id || 0) - (b.id || 0);
-  });
-}
 
 function renderCrossSales() {
   const dateInput = document.getElementById('cross-sales-date-input');
