@@ -1203,6 +1203,11 @@ body {
       <button class="btn btn-outline" onclick="prevCrossSalesDate()">◀ 上一天</button>
       <input type="date" id="cross-sales-date-input" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;" onchange="onCrossSalesDateChange()">
       <button class="btn btn-outline" onclick="nextCrossSalesDate()">下一天 ▶</button>
+      <div style="width:1px;height:24px;background:var(--border);margin:0 4px;"></div>
+      <button class="rank-group-btn active" data-cs-team="all" onclick="setCrossSalesTeam('all')">全部</button>
+      <button class="rank-group-btn" data-cs-team="A组" onclick="setCrossSalesTeam('A组')">A组</button>
+      <button class="rank-group-btn" data-cs-team="B组" onclick="setCrossSalesTeam('B组')">B组</button>
+      <button class="rank-group-btn" data-cs-team="C组" onclick="setCrossSalesTeam('C组')">C组</button>
       <div style="flex:1;"></div>
       <button class="btn-sm primary" id="cross-sales-add-btn" onclick="openCrossSalesForm()">➕ 新增登记</button>
       <button class="btn-sm outline" id="cross-sales-import-btn" onclick="openExcelImport('cross_sales')" style="display:none;">📥 导入Excel</button>
@@ -2641,6 +2646,7 @@ let crossSalesSub = null;
 let crossSalesDate = '';
 let crossSalesRankMode = 'day'; // 'day' 按日排名，'month' 按月份排名
 let crossSalesMonth = '';
+let crossSalesTeamFilter = 'all'; // 'all' | 'A组' | 'B组' | 'C组'
 
 function getTodayStr() {
   const d = new Date();
@@ -2713,6 +2719,14 @@ function toggleCrossSalesRankMode() {
   renderCrossSales();
 }
 
+function setCrossSalesTeam(team) {
+  crossSalesTeamFilter = team;
+  document.querySelectorAll('[data-cs-team]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.csTeam === team);
+  });
+  renderCrossSales();
+}
+
 function getCrossSalesRankData() {
   let filtered = [];
   if (crossSalesRankMode === 'day') {
@@ -2720,6 +2734,9 @@ function getCrossSalesRankData() {
   } else {
     const monthPrefix = crossSalesDate.slice(0, 7);
     filtered = crossSalesData.filter(r => r.record_date && r.record_date.startsWith(monthPrefix));
+  }
+  if (crossSalesTeamFilter !== 'all') {
+    filtered = filtered.filter(r => r.team === crossSalesTeamFilter);
   }
   const map = {};
   filtered.forEach(r => {
@@ -2736,9 +2753,21 @@ function getCrossSalesRankData() {
 }
 
 function getCrossSalesDetailRows() {
+  let rows = [];
   if (crossSalesRankMode === 'day') {
-    return crossSalesData.filter(r => r.record_date === crossSalesDate).sort((a, b) => (a.id || 0) - (b.id || 0));
+    rows = crossSalesData.filter(r => r.record_date === crossSalesDate).sort((a, b) => (a.id || 0) - (b.id || 0));
+  } else {
+    const monthPrefix = crossSalesDate.slice(0, 7);
+    rows = crossSalesData.filter(r => r.record_date && r.record_date.startsWith(monthPrefix)).sort((a, b) => {
+      if (a.record_date !== b.record_date) return (b.record_date || '').localeCompare(a.record_date || '');
+      return (a.id || 0) - (b.id || 0);
+    });
   }
+  if (crossSalesTeamFilter !== 'all') {
+    rows = rows.filter(r => r.team === crossSalesTeamFilter);
+  }
+  return rows;
+}
   const monthPrefix = crossSalesDate.slice(0, 7);
   return crossSalesData.filter(r => r.record_date && r.record_date.startsWith(monthPrefix)).sort((a, b) => {
     if (a.record_date !== b.record_date) return (b.record_date || '').localeCompare(a.record_date || '');
@@ -2757,7 +2786,10 @@ function renderCrossSales() {
   const rankCards = document.getElementById('cross-sales-rank-cards');
   const rankEmpty = document.getElementById('cross-sales-rank-empty');
   const rankLabel = document.getElementById('cross-sales-rank-label');
-  if (rankLabel) rankLabel.textContent = crossSalesRankMode === 'day' ? '（' + formatDateShort(crossSalesDate) + '）' : '（' + crossSalesDate.slice(0, 7) + ' 全月）';
+  if (rankLabel) {
+    const teamLabel = crossSalesTeamFilter === 'all' ? '' : ' · ' + crossSalesTeamFilter;
+    rankLabel.textContent = (crossSalesRankMode === 'day' ? '（' + formatDateShort(crossSalesDate) + '）' : '（' + crossSalesDate.slice(0, 7) + ' 全月）') + teamLabel;
+  }
 
   const rankData = getCrossSalesRankData();
   if (rankData.length === 0) {
@@ -2795,6 +2827,9 @@ function renderCrossSales() {
   } else {
     if (empty) empty.style.display = 'none';
     if (tbody) {
+      const totalSecond = rows.reduce((s, r) => s + Number(r.second_amount || 0), 0);
+      const totalAll = rows.reduce((s, r) => s + Number(r.total_amount || 0), 0);
+      const teamLabel = crossSalesTeamFilter === 'all' ? '全部' : crossSalesTeamFilter;
       tbody.innerHTML = rows.map(r => `
         <tr>
           <td style="text-align:center;white-space:nowrap;">${r.record_date ? formatDateShort(r.record_date) : '-'}</td>
@@ -2809,7 +2844,14 @@ function renderCrossSales() {
           <td style="text-align:center;font-weight:700;">¥${Number(r.total_amount || 0).toLocaleString()}</td>
           <td style="text-align:center;">${r.qc_confirmed ? '✅' : '-'}</td>
         </tr>
-      `).join('');
+      `).join('') + `
+        <tr style="background:linear-gradient(90deg,#ede8ff,#e8e3ff);font-weight:800;font-size:15px;color:var(--primary);border-top:2px solid var(--primary);">
+          <td colspan="8" style="text-align:right;padding:12px;">${teamLabel} 合计</td>
+          <td style="text-align:center;">¥${totalSecond.toLocaleString()}</td>
+          <td style="text-align:center;">¥${totalAll.toLocaleString()}</td>
+          <td></td>
+        </tr>
+      `;
     }
   }
 }
@@ -2942,6 +2984,7 @@ async function saveCrossSalesRecord() {
     second_amount: secondAmount,
     total_amount: totalAmount,
     qc_confirmed: !!document.getElementById('cs-form-qc')?.checked,
+    team: currentProfile?.group_name || 'A组',
   };
 
   const btn = document.querySelector('#mod-cross-sales .modal-footer .btn-sm.primary');
@@ -3217,55 +3260,69 @@ function parseQcConfirmed(val) {
 }
 
 async function importCrossSalesFromSheet(rows) {
-  const header = buildHeaderMap(rows[0]);
-  const reqKeys = ['日期', 'date', '登记日期'];
-  const hasDateCol = reqKeys.some(k => header[normalizeHeader(k)] !== undefined);
-  if (!hasDateCol) {
-    showToast('⚠️ Excel 缺少「日期」列，无法导入');
-    return;
-  }
-
-  const imported = [];
-  const skipped = [];
-
-  for (let i = 1; i < rows.length; i++) {
-    const row = rows[i];
-    if (!row || row.every(c => c === '' || c === null || c === undefined)) continue;
-
-    const date = parseImportDate(getCell(row, header, ['日期', 'date', '登记日期', 'date日期']));
-    const staff = String(getCell(row, header, ['成交客服', '客服', '客服姓名', '姓名', 'staff', 'staffname', 'name']) || '').trim();
-    const firstNo = String(getCell(row, header, ['第一单订单号', '第一单号', '第一单订单', 'firstorder', 'firstorderno', 'firstordernumber']) || '').trim();
-    const secondNo = String(getCell(row, header, ['第二单订单号', '第二单号', '第二单订单', 'secondorder', 'secondorderno', 'secondordernumber']) || '').trim();
-    const firstAmount = parseNumber(getCell(row, header, ['第一单金额', 'firstamount', 'firstamount金额']));
-    const secondAmount = parseNumber(getCell(row, header, ['第二单金额', 'secondamount', 'secondamount金额']));
-    const totalRaw = getCell(row, header, ['合计金额', 'totalamount', 'total', '合计']);
-    const totalAmount = totalRaw !== '' ? parseNumber(totalRaw) : (firstAmount + secondAmount);
-
-    if (!date) { skipped.push(`第${i + 1}行：日期格式不正确`); continue; }
-    if (!staff) { skipped.push(`第${i + 1}行：缺少成交客服`); continue; }
-    if (!firstNo && !secondNo) { skipped.push(`第${i + 1}行：缺少订单号`); continue; }
-
-    imported.push({
-      record_date: date,
-      shop: String(getCell(row, header, ['店铺', 'shop', 'store', '门店']) || '').trim(),
-      staff_name: staff,
-      product_type: String(getCell(row, header, ['产品类型', '类型', '产品', 'product', 'producttype']) || '').trim(),
-      first_order_no: firstNo,
-      second_order_no: secondNo,
-      first_order_status: String(getCell(row, header, ['第一单状态', 'firststatus', '第一单状态status', '状态']) || '').trim(),
-      first_amount: firstAmount,
-      second_amount: secondAmount,
-      total_amount: totalAmount,
-      qc_confirmed: parseQcConfirmed(getCell(row, header, ['质检确认', 'qc', 'qcconfirmed', '质检'])),
-    });
-  }
-
-  if (imported.length === 0) {
-    showToast('⚠️ 没有可导入的有效数据' + (skipped.length ? '（' + skipped.slice(0, 3).join('；') + '）' : ''));
-    return;
-  }
-
+  if (!supabase) return;
   try {
+    // 先加载所有客服的组别信息，用于反查
+    const { data: profilesData } = await supabase.from('profiles').select('name,real_name,group_name');
+    const staffGroupMap = {};
+    (profilesData || []).forEach(p => {
+      if (p.name) staffGroupMap[p.name] = p.group_name;
+      if (p.real_name) staffGroupMap[p.real_name] = p.group_name;
+    });
+
+    const header = buildHeaderMap(rows[0]);
+    const reqKeys = ['日期', 'date', '登记日期'];
+    const hasDateCol = reqKeys.some(k => header[normalizeHeader(k)] !== undefined);
+    if (!hasDateCol) {
+      showToast('⚠️ Excel 缺少「日期」列，无法导入');
+      return;
+    }
+
+    const imported = [];
+    const skipped = [];
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.every(c => c === '' || c === null || c === undefined)) continue;
+
+      const date = parseImportDate(getCell(row, header, ['日期', 'date', '登记日期', 'date日期']));
+      const staff = String(getCell(row, header, ['成交客服', '客服', '客服姓名', '姓名', 'staff', 'staffname', 'name']) || '').trim();
+      const firstNo = String(getCell(row, header, ['第一单订单号', '第一单号', '第一单订单', 'firstorder', 'firstorderno', 'firstordernumber']) || '').trim();
+      const secondNo = String(getCell(row, header, ['第二单订单号', '第二单号', '第二单订单', 'secondorder', 'secondorderno', 'secondordernumber']) || '').trim();
+      const firstAmount = parseNumber(getCell(row, header, ['第一单金额', 'firstamount', 'firstamount金额']));
+      const secondAmount = parseNumber(getCell(row, header, ['第二单金额', 'secondamount', 'secondamount金额']));
+      const totalRaw = getCell(row, header, ['合计金额', 'totalamount', 'total', '合计']);
+      const totalAmount = totalRaw !== '' ? parseNumber(totalRaw) : (firstAmount + secondAmount);
+      // 读取组别，优先从 Excel，没有则反查 profiles
+      let team = String(getCell(row, header, ['组别', '组', 'team', 'group', 'group_name']) || '').trim();
+      if (!team && staff) team = staffGroupMap[staff] || '';
+      if (!team) team = 'A组'; // 默认
+
+      if (!date) { skipped.push(`第${i + 1}行：日期格式不正确`); continue; }
+      if (!staff) { skipped.push(`第${i + 1}行：缺少成交客服`); continue; }
+      if (!firstNo && !secondNo) { skipped.push(`第${i + 1}行：缺少订单号`); continue; }
+
+      imported.push({
+        record_date: date,
+        shop: String(getCell(row, header, ['店铺', 'shop', 'store', '门店']) || '').trim(),
+        staff_name: staff,
+        product_type: String(getCell(row, header, ['产品类型', '类型', '产品', 'product', 'producttype']) || '').trim(),
+        first_order_no: firstNo,
+        second_order_no: secondNo,
+        first_order_status: String(getCell(row, header, ['第一单状态', 'firststatus', '第一单状态status', '状态']) || '').trim(),
+        first_amount: firstAmount,
+        second_amount: secondAmount,
+        total_amount: totalAmount,
+        qc_confirmed: parseQcConfirmed(getCell(row, header, ['质检确认', 'qc', 'qcconfirmed', '质检'])),
+        team: team,
+      });
+    }
+
+    if (imported.length === 0) {
+      showToast('⚠️ 没有可导入的有效数据' + (skipped.length ? '（' + skipped.slice(0, 3).join('；') + '）' : ''));
+      return;
+    }
+
     const { error } = await supabase
       .from('cross_sales')
       .upsert(imported, { onConflict: 'record_date,first_order_no,second_order_no' });
