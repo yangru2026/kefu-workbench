@@ -2517,22 +2517,36 @@ function renderReqForm() {
   const today = new Date().toISOString().split('T')[0];
 
   if (reqCurrentType === 'shift_swap') {
+    const staffOptions = (typeof allStaffData !== 'undefined' ? allStaffData : [])
+      .filter(s => s.id !== (currentProfile?.id || ''))
+      .map(s => `<option value="${s.id}">${escapeHtml(s.name)}${s.real_name ? ' / ' + escapeHtml(s.real_name) : ''}</option>`)
+      .join('');
     container.innerHTML = `
       <div class="req-form-row">
         <label>日期</label>
-        <input type="date" id="req-date" value="${today}" onchange="autoFillShiftFrom()">
-        <label>原班次</label>
-        <input type="text" id="req-shift-from" placeholder="自动获取当前班次" readonly style="min-width:120px;background:#f5f5f5;">
-        <label>换成</label>
-        <select id="req-shift-to">
-          ${SHIFT_OPTIONS.map(s => `<option value="${s.val}">${s.label}</option>`).join('')}
+        <input type="date" id="req-date" value="${today}" onchange="autoFillBothShifts()">
+        <label>对方客服</label>
+        <select id="req-swap-partner" onchange="autoFillBothShifts()" style="min-width:150px;">
+          <option value="">-- 请选择 --</option>
+          ${staffOptions}
         </select>
       </div>
       <div class="req-form-row">
+        <label>我的原班次</label>
+        <input type="text" id="req-shift-from" placeholder="自动获取" readonly style="min-width:100px;background:#f5f5f5;">
+        <label>对方原班次</label>
+        <input type="text" id="req-partner-shift-from" placeholder="自动获取" readonly style="min-width:100px;background:#f5f5f5;">
+      </div>
+      <div class="req-form-row" style="background:#eef6f4;padding:10px;border-radius:6px;font-size:12px;color:var(--primary);">
+        <label style="border:none;background:transparent;">换班说明</label>
+        <span>将通过后：<strong>我的当天</strong>换成 <strong>对方原班次</strong>，<strong>对方当天</strong>换成 <strong>我的原班次</strong>（对调）</span>
+      </div>
+      <div class="req-form-row">
         <label>原因</label>
-        <textarea id="req-reason" placeholder="请填写换班原因"></textarea>
+        <textarea id="req-reason" placeholder="请填写换班原因（如：与xxx协商换班，原因为...）"></textarea>
         <button class="req-submit-btn" onclick="submitRequest()">提交申请</button>
       </div>`;
+    setTimeout(() => autoFillBothShifts(), 50);
   } else if (reqCurrentType === 'overtime') {
     container.innerHTML = `
       <div class="req-form-row">
@@ -2553,17 +2567,26 @@ function renderReqForm() {
         <label>日期</label>
         <input type="date" id="req-date" value="${today}">
         <label>调休时长</label>
-        <input type="number" id="req-hours" placeholder="小时" min="0.5" step="0.5" style="width:100px;">
+        <input type="number" id="req-hours" placeholder="小时" min="0.5" step="0.5" style="width:100px;" disabled>
         <span style="color:var(--text-secondary);font-size:12px;">小时</span>
         <span id="req-remain-hint" style="color:var(--text-secondary);font-size:12px;"></span>
       </div>
       <div class="req-form-row">
         <label>原因</label>
         <textarea id="req-reason" placeholder="请填写调休原因"></textarea>
-        <button class="req-submit-btn" onclick="submitRequest()">提交申请</button>
+        <button class="req-submit-btn" id="req-submit-btn-leave" onclick="submitRequest()" disabled>暂不可申请</button>
       </div>`;
     setTimeout(() => showReqRemainHours(), 100);
   }
+}
+
+async function getRemainHours() {
+  if (!currentProfile || !supabase) return 0;
+  const { data: otData } = await supabase.from('overtime_records').select('hours').eq('profile_id', currentProfile.id);
+  const { data: lvData } = await supabase.from('compensatory_leave_records').select('hours').eq('profile_id', currentProfile.id);
+  const totalOT = (otData || []).reduce((s, r) => s + (Number(r.hours) || 0), 0);
+  const totalLV = (lvData || []).reduce((s, r) => s + (Number(r.hours) || 0), 0);
+  return Math.max(0, totalOT - totalLV);
 }
 
 async function showReqRemainHours() {
@@ -2575,8 +2598,61 @@ async function showReqRemainHours() {
     const totalLV = (lvData || []).reduce((s, r) => s + (Number(r.hours) || 0), 0);
     const remain = Math.max(0, totalOT - totalLV);
     const hint = document.getElementById('req-remain-hint');
-    if (hint) hint.textContent = '(当前可调休: ' + roundH(remain) + 'h)';
+    const hoursInput = document.getElementById('req-hours');
+    const submitBtn = document.getElementById('req-submit-btn-leave');
+    if (remain <= 0) {
+      if (hint) { hint.textContent = '⚠️ 无可调休时长'; hint.style.color = '#e74c3c'; }
+      if (hoursInput) hoursInput.disabled = true;
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '⚠️ 暂无可调休时长'; submitBtn.style.opacity = '0.5'; submitBtn.style.cursor = 'not-allowed'; }
+    } else {
+      if (hint) { hint.textContent = '(当前可调休: ' + roundH(remain) + 'h，最多可申请这么多)'; hint.style.color = ''; }
+      if (hoursInput) { hoursInput.disabled = false; hoursInput.max = remain; }
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '提交申请'; submitBtn.style.opacity = ''; submitBtn.style.cursor = ''; }
+    }
   } catch(e) {}
+}
+
+async function autoFillBothShifts() {
+  const dateVal = document.getElementById('req-date')?.value;
+  const partnerId = document.getElementById('req-swap-partner')?.value;
+  const myEl = document.getElementById('req-shift-from');
+  const partnerEl = document.getElementById('req-partner-shift-from');
+  if (!dateVal || !myEl || !partnerEl) return;
+
+  // 我的班次
+  try {
+    if (currentProfile) {
+      const [y, m, d] = dateVal.split('-').map(Number);
+      const monthKey = y + '-' + String(m).padStart(2, '0');
+      const day = String(d);
+      const { data } = await supabase
+        .from('schedule_data')
+        .select('schedule')
+        .eq('month_key', monthKey)
+        .eq('staff_name', currentProfile.name)
+        .maybeSingle();
+      const shift = data?.schedule?.[day] || '';
+      myEl.value = shift || '无排班';
+    }
+  } catch(e) { myEl.value = '无排班'; }
+
+  // 对方班次
+  if (!partnerId || !allStaffData) { partnerEl.value = ''; return; }
+  const partner = allStaffData.find(s => s.id === partnerId);
+  if (!partner) { partnerEl.value = ''; return; }
+  try {
+    const [y, m, d] = dateVal.split('-').map(Number);
+    const monthKey = y + '-' + String(m).padStart(2, '0');
+    const day = String(d);
+    const { data } = await supabase
+      .from('schedule_data')
+      .select('schedule')
+      .eq('month_key', monthKey)
+      .eq('staff_name', partner.name)
+      .maybeSingle();
+    const shift = data?.schedule?.[day] || '';
+    partnerEl.value = shift || '无排班';
+  } catch(e) { partnerEl.value = '无排班'; }
 }
 
 async function autoFillShiftFrom() {
@@ -2623,11 +2699,28 @@ async function submitRequest() {
 
   if (reqCurrentType === 'shift_swap') {
     row.shift_from = document.getElementById('req-shift-from').value || null;
-    row.shift_to = document.getElementById('req-shift-to').value;
-    if (!row.shift_to) { showToast('请选择要换成的班次'); return; }
+    row.partner_shift_from = document.getElementById('req-partner-shift-from').value || null;
+    const partnerId = document.getElementById('req-swap-partner').value;
+    if (!partnerId) { showToast('请选择对方客服'); return; }
+    const partner = (typeof allStaffData !== 'undefined' ? allStaffData : []).find(s => s.id === partnerId);
+    if (!partner) { showToast('对方客服信息不存在'); return; }
+    row.swap_partner_id = partnerId;
+    row.swap_partner_name = partner.name;
+    row.shift_to = row.partner_shift_from; // 我要变成对方那天的班次
+    row.partner_shift_to = row.shift_from; // 对方要变成我这天的班次
+    if (row.shift_from === '无排班' || row.partner_shift_from === '无排班') {
+      showToast('请确认双方当天都有排班'); return;
+    }
+    if (row.shift_from === row.partner_shift_from) {
+      showToast('双方班次相同，无需换班'); return;
+    }
   } else {
     const hours = parseFloat(document.getElementById('req-hours').value);
     if (!hours || hours <= 0) { showToast('请输入有效时长'); return; }
+    if (reqCurrentType === 'compensatory_leave') {
+      const otRemain = await getRemainHours();
+      if (hours > otRemain) { showToast('调休时长(' + hours + 'h)超过可调余额(' + roundH(otRemain) + 'h)'); return; }
+    }
     row.hours = hours;
   }
 
@@ -2696,8 +2789,10 @@ function renderReqList() {
     let body = '';
     if (r.type === 'shift_swap') {
       body = `<span class="req-detail"><span>日期</span>${dateStr}</span>` +
-             `<span class="req-detail"><span>原班次</span>${r.shift_from || '-'}</span>` +
-             `<span class="req-detail"><span>换成</span><strong>${r.shift_to || '-'}</strong></span>`;
+             `<span class="req-detail"><span>对方</span><strong>${escapeHtml(r.swap_partner_name || '-')}</strong></span>` +
+             `<span class="req-detail"><span>${escapeHtml(r.requester_name)}原班次</span>${r.shift_from || '-'}</span>` +
+             `<span class="req-detail"><span>${escapeHtml(r.swap_partner_name || '-')}原班次</span>${r.partner_shift_from || '-'}</span>` +
+             `<span class="req-detail"><span>对调结果</span><strong>${escapeHtml(r.requester_name)}→${r.shift_to || '-'}，${escapeHtml(r.swap_partner_name || '-')}→${r.partner_shift_to || '-'}</strong></span>`;
     } else {
       body = `<span class="req-detail"><span>日期</span>${dateStr}</span>` +
              `<span class="req-detail"><span>时长</span><strong>${r.hours}h</strong></span>`;
@@ -2789,50 +2884,49 @@ async function rejectRequest(requestId) {
   loadRequests();
 }
 
-// 换班审批通过 → 更新排班表
+// 换班审批通过 → 双方对调排班
 async function applyShiftSwap(req) {
   const [y, m, d] = req.target_date.split('-').map(Number);
   const monthKey = y + '-' + String(m).padStart(2, '0');
   const day = String(d);
 
-  // 获取当前排班
-  const { data, error } = await supabase
+  // 取出申请人 + 对方两人的现有排班，并写入对调后的班次
+  const names = [req.requester_name, req.swap_partner_name].filter(Boolean);
+  const { data: rows, error } = await supabase
     .from('schedule_data')
     .select('*')
     .eq('month_key', monthKey)
-    .eq('staff_name', req.requester_name)
-    .single();
-
+    .in('staff_name', names);
   if (error && error.code !== 'PGRST116') throw error;
 
-  let schedule = {};
-  let groupName = '';
-  if (data) {
-    schedule = data.schedule || {};
-    groupName = data.group_name || '';
-  }
+  const map = {};
+  (rows || []).forEach(r => map[r.staff_name] = r);
 
-  // 更新班次
-  schedule[day] = req.shift_to;
-
-  // 写回数据库
-  await supabase
-    .from('schedule_data')
-    .upsert({
+  // 写回双方
+  for (const name of names) {
+    const oldRow = map[name];
+    const newSchedule = { ...(oldRow?.schedule || {}) };
+    if (name === req.requester_name) {
+      newSchedule[day] = req.shift_to; // 申请人 → 对方原班次
+    } else {
+      newSchedule[day] = req.partner_shift_to; // 对方 → 申请人原班次
+    }
+    await supabase.from('schedule_data').upsert({
       month_key: monthKey,
-      staff_name: req.requester_name,
-      group_name: groupName,
-      schedule: schedule
+      staff_name: name,
+      group_name: oldRow?.group_name || '',
+      schedule: newSchedule,
     }, { onConflict: 'month_key,staff_name' });
 
-  // 更新内存缓存
-  if (typeof scheduleData !== 'undefined' && scheduleData[monthKey]) {
-    const staff = scheduleData[monthKey].staff.find(s => s.name === req.requester_name);
-    if (staff) {
-      staff.schedule[day] = req.shift_to;
-      if (currentPage === 'schedule') renderSchedule();
+    // 更新内存缓存
+    if (typeof scheduleData !== 'undefined' && scheduleData[monthKey]) {
+      const staff = scheduleData[monthKey].staff.find(s => s.name === name);
+      if (staff) {
+        staff.schedule[day] = name === req.requester_name ? req.shift_to : req.partner_shift_to;
+      }
     }
   }
+  if (currentPage === 'schedule') renderSchedule();
 }
 
 // 加班审批通过 → 新增加班记录
