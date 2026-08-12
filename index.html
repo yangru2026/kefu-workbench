@@ -959,6 +959,16 @@ body {
 .req-approve-btn { background:#00b894; color:#fff; border:none; padding:6px 18px; border-radius:6px; font-size:13px; cursor:pointer; font-family:inherit; }
 .req-reject-btn { background:#fff; color:#e74c3c; border:1px solid #e74c3c; padding:6px 18px; border-radius:6px; font-size:13px; cursor:pointer; font-family:inherit; }
 .req-empty { text-align:center; padding:40px; color:var(--text-secondary); }
+
+/* ===== 协作者面板 ===== */
+.collab-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:9998; display:none; }
+.collab-overlay.show { display:block; }
+.collab-panel { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:420px; max-width:90vw; max-height:80vh; overflow-y:auto; background:var(--card-bg,#fff); border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.2); z-index:9999; padding:20px; display:none; }
+.collab-panel.show { display:block; }
+.collab-panel h3 { margin:0 0 16px; font-size:16px; }
+.collab-close { position:absolute; top:12px; right:16px; background:none; border:none; font-size:20px; cursor:pointer; color:var(--text-secondary); }
+.collab-btn { display:inline-flex; align-items:center; gap:4px; padding:6px 12px; border:1px solid var(--primary,#7ba7a6); background:transparent; color:var(--primary,#7ba7a6); border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit; font-weight:500; }
+.collab-btn:hover { background:var(--primary,#7ba7a6); color:#fff; }
 </style>
 </head>
 <body>
@@ -1150,6 +1160,7 @@ body {
         <span id="presale-monthly-label" style="font-size:18px;font-weight:700;"></span>
         <button class="btn btn-outline" onclick="nextPresaleMonth()">下月 ▶</button>
         <div style="flex:1;"></div>
+        <button class="collab-btn" id="collab-presale-btn" onclick="openCollabPanel('presale')" style="display:none;">👥 协作者</button>
         <button class="feishu-sync-btn admin-only-nav" id="presale-monthly-sync-btn" onclick="syncPresaleFromFeishu()" style="display:none;">🔄 从飞书同步</button>
         <button class="btn-sm outline admin-only" id="presale-monthly-import-btn" onclick="openExcelImport('presale_monthly')">📥 导入Excel</button>
         <button class="btn-sm outline admin-only" id="presale-monthly-edit-btn" onclick="togglePresaleMonthlyEdit()">✎ 编辑/补录</button>
@@ -1207,6 +1218,7 @@ body {
     <div class="page-header"><h1>👥 客服信息管理</h1><p>管理客服真实姓名、入职日期、花名、手机号、岗位、加班调休（按小时累计）</p></div>
     <div class="staff-toolbar" style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
       <input type="text" id="staff-search" placeholder="🔍 搜索姓名/花名/手机号..." oninput="filterStaff()" style="flex:1;min-width:200px;padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--card-bg);color:var(--text);">
+      <button class="collab-btn" id="collab-staff-btn" onclick="openCollabPanel('staff-info')" style="display:none;">👥 协作者</button>
       <button class="btn-sm outline" onclick="copyAllStaff()">📋 复制全部</button>
       <button class="btn-sm outline" onclick="exportStaffCSV()">📥 导出CSV</button>
       <button class="btn-sm outline" onclick="loadStaffInfo()">🔄 刷新</button>
@@ -1449,6 +1461,7 @@ body {
       <div><h1>🎨 花色素材库</h1><p>按品牌、抛型、系列、色系筛选，一键复制推荐话术 | 修改实时同步所有客服</p></div>
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="feishu-sync-btn admin-only-nav" id="feishu-sync-btn" onclick="syncFromFeishu()" style="display:none;">🔄 从飞书同步</button>
+        <button class="collab-btn" id="collab-patterns-btn" onclick="openCollabPanel('patterns')" style="display:none;">👥 协作者</button>
         <button class="mgmt-toggle admin-only-nav" id="mgmt-toggle" onclick="toggleMgmtMode()" style="display:none;">📝 管理素材</button>
         <button class="mgmt-add-btn" id="mgmt-add-btn" onclick="openPatternEditor(null)" style="display:none;">＋ 新增花色</button>
       </div>
@@ -1474,7 +1487,10 @@ body {
   <div class="page" id="page-training">
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <div><h1>📚 培训资料中心</h1><p>按品牌和分类查看培训资料，点击链接打开飞书云文档 | 修改实时同步所有客服</p></div>
-      <button class="admin-only-nav" id="train-add-btn" onclick="openTrainingEditor(null)" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">＋ 新增资料</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="collab-btn" id="collab-training-btn" onclick="openCollabPanel('training')" style="display:none;">👥 协作者</button>
+        <button class="admin-only-nav" id="train-add-btn" onclick="openTrainingEditor(null)" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">＋ 新增资料</button>
+      </div>
     </div>
     <!-- 品牌切换 Tab -->
     <div class="brand-tabs" id="training-brand-tabs">
@@ -1517,6 +1533,7 @@ body {
       <span id="schedule-month-label" style="font-size:18px;font-weight:700;"></span>
       <button class="btn btn-outline" onclick="nextMonth()">下月 ▶</button>
       <div style="flex:1;"></div>
+      <button class="collab-btn" id="collab-schedule-btn" onclick="openCollabPanel('schedule')" style="display:none;">👥 协作者</button>
       <button class="feishu-sync-btn admin-only-nav" id="sched-sync-btn" onclick="syncScheduleFromFeishu()" style="display:none;">🔄 从飞书同步</button>
       <div class="legend-item"><span class="legend-dot" style="background:var(--primary);"></span> 早班</div>
       <div class="legend-item"><span class="legend-dot" style="background:#fdcb6e;"></span> 中班</div>
@@ -1554,6 +1571,7 @@ body {
       </div>
       <div class="ranking-actions">
         <input type="month" id="ranking-month-input" style="padding:4px 8px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;" onchange="onRankingMonthChange()">
+        <button class="collab-btn" id="collab-ranking-btn" onclick="openCollabPanel('ranking')" style="display:none;">👥 协作者</button>
         <button class="feishu-sync-btn admin-only-nav" id="ranking-sync-btn" onclick="syncRankingFromFeishu()" style="display:none;">🔄 从飞书同步</button>
         <button class="rank-action-btn admin-only" id="rank-import-btn" onclick="openExcelImport('ranking')">📥 导入Excel</button>
         <button class="rank-action-btn" id="rank-edit-btn" onclick="toggleRankEdit()">✎ 编辑数据</button>
@@ -1609,6 +1627,14 @@ body {
   </div>
 
 </main>
+
+<!-- 协作者管理面板 -->
+<div class="collab-overlay" id="collab-overlay" onclick="closeCollabPanel()"></div>
+<div class="collab-panel" id="collab-panel">
+  <button class="collab-close" onclick="closeCollabPanel()">×</button>
+  <h3 id="collab-panel-title">👥 协作管理</h3>
+  <div id="collab-list"></div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -1681,6 +1707,9 @@ function updateAuthUI() {
     if (loginNav) loginNav.style.display = 'none';
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
     document.querySelectorAll('.admin-only-nav').forEach(el => el.style.display = isAdmin ? '' : 'none');
+    // 加载协作者数据（异步，加载完后 refreshAdminUI 会自动更新权限）
+    if (typeof loadPageCollaborators === 'function') loadPageCollaborators();
+    if (typeof subscribeCollaborators === 'function') subscribeCollaborators();
   } else {
     nameEl.textContent = '未登录';
     userEl.style.cursor = 'pointer';
@@ -1695,19 +1724,69 @@ function updateAuthUI() {
 
 function refreshAdminUI() {
   const isAdmin = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const canEditPatterns = canEdit('patterns');
+  const canEditTraining = canEdit('training');
+  const canEditSchedule = canEdit('schedule');
+  const canEditRanking = canEdit('ranking');
+  const canEditPresale = canEdit('presale');
+  const canEditStaffInfo = canEdit('staff-info');
+
   // 花色素材「新增」按钮
   const addBtn = document.getElementById('mgmt-add-btn');
-  if (addBtn) addBtn.style.display = isAdmin ? '' : 'none';
+  if (addBtn) addBtn.style.display = canEditPatterns ? '' : 'none';
+  // 花色素材「管理素材」按钮
+  const mgmtToggle = document.getElementById('mgmt-toggle');
+  if (mgmtToggle) mgmtToggle.style.display = canEditPatterns ? '' : 'none';
+  // 花色素材「协作者」按钮（仅管理员可见）
+  const collabPatternsBtn = document.getElementById('collab-patterns-btn');
+  if (collabPatternsBtn) collabPatternsBtn.style.display = isAdmin ? '' : 'none';
   // 培训资料「新增」按钮
   const trainBtn = document.getElementById('train-add-btn');
-  if (trainBtn) trainBtn.style.display = isAdmin ? '' : 'none';
+  if (trainBtn) trainBtn.style.display = canEditTraining ? '' : 'none';
+  // 培训资料「协作者」按钮
+  const collabTrainBtn = document.getElementById('collab-training-btn');
+  if (collabTrainBtn) collabTrainBtn.style.display = isAdmin ? '' : 'none';
+  // 排班表「协作者」按钮
+  const collabSchedBtn = document.getElementById('collab-schedule-btn');
+  if (collabSchedBtn) collabSchedBtn.style.display = isAdmin ? '' : 'none';
+  // 客服排名「协作者」按钮
+  const collabRankBtn = document.getElementById('collab-ranking-btn');
+  if (collabRankBtn) collabRankBtn.style.display = isAdmin ? '' : 'none';
+  // 售前月度「协作者」按钮
+  const collabPresaleBtn = document.getElementById('collab-presale-btn');
+  if (collabPresaleBtn) collabPresaleBtn.style.display = isAdmin ? '' : 'none';
+  // 客服信息「协作者」按钮
+  const collabStaffBtn = document.getElementById('collab-staff-btn');
+  if (collabStaffBtn) collabStaffBtn.style.display = isAdmin ? '' : 'none';
+
+  // admin-only-nav 类仍按原逻辑（仅管理员可见的导航项）
+  // 排班表编辑权限
+  const schedSyncBtn = document.getElementById('sched-sync-btn');
+  if (schedSyncBtn) schedSyncBtn.style.display = canEditSchedule ? '' : 'none';
+  // 客服排名编辑权限
+  const rankImportBtn = document.getElementById('rank-import-btn');
+  if (rankImportBtn) rankImportBtn.style.display = canEditRanking ? '' : 'none';
+  const rankEditBtn = document.getElementById('rank-edit-btn');
+  if (rankEditBtn) rankEditBtn.style.display = canEditRanking ? '' : 'none';
+  const rankSyncBtn = document.getElementById('ranking-sync-btn');
+  if (rankSyncBtn) rankSyncBtn.style.display = canEditRanking ? '' : 'none';
+  // 售前月度编辑权限
+  const presaleImportBtn = document.getElementById('presale-monthly-import-btn');
+  if (presaleImportBtn) presaleImportBtn.style.display = canEditPresale ? '' : 'none';
+  const presaleEditBtn = document.getElementById('presale-monthly-edit-btn');
+  if (presaleEditBtn) presaleEditBtn.style.display = canEditPresale ? '' : 'none';
+  const presaleSaveBtn = document.getElementById('presale-monthly-save-btn');
+  if (presaleSaveBtn) presaleSaveBtn.style.display = canEditPresale ? presaleSaveBtn.style.display : 'none';
+  const presaleSyncBtn = document.getElementById('presale-monthly-sync-btn');
+  if (presaleSyncBtn) presaleSyncBtn.style.display = canEditPresale ? '' : 'none';
+
   // Re-render patterns/training to show/hide mgmt buttons
-  if (currentPage === 'patterns' && isAdmin !== (window._lastAdminState !== false)) {
-    window._lastAdminState = isAdmin;
+  if (currentPage === 'patterns' && canEditPatterns !== (window._lastCanEditPatterns !== false)) {
+    window._lastCanEditPatterns = canEditPatterns;
     renderPatterns();
   }
   if (currentPage === 'training') {
-    window._lastAdminState = isAdmin;
+    window._lastCanEditTraining = canEditTraining;
     renderTraining();
   }
 }
@@ -3390,7 +3469,7 @@ function getMergedCats(catType, dataCats) {
 }
 
 function renderPatternFilters() {
-  const isAdmin = currentProfile && currentProfile.role === 'admin';
+  const isAdmin = canEdit('patterns');
 
   // Brand tabs — 品牌大分类不显示编辑/删除，仅保留新增
   const brandData = getMergedCats('brand', getPatternBrands());
@@ -4007,12 +4086,12 @@ function renderPatterns() {
     if (p.spec) specs.push('<span class="pcard-spec-mini">' + escapeHtml(p.spec) + '</span>');
     const specsHtml = specs.length ? specs.join('') : '';
 
-    // Management buttons: only show for admin
-    const isAdmin = currentProfile && currentProfile.role === 'admin';
-    const discBtn = isAdmin
+    // Management buttons: show for admin or collaborators
+    const canManage = canEdit('patterns');
+    const discBtn = canManage
       ? `<button class="btn-disc" title="${p.isDiscontinued ? '取消下架' : '标记下架'}" onclick="event.stopPropagation();toggleDiscontinued('${escapeAttr(p._id)}', ${!p.isDiscontinued})">${p.isDiscontinued ? '↩️' : '📦'}</button>`
       : '';
-    const mgmtBtns = isAdmin ? `<div class="pcard-mgmt">
+    const mgmtBtns = canManage ? `<div class="pcard-mgmt">
       ${discBtn}
       <button class="btn-edit" title="编辑" onclick="event.stopPropagation();openPatternEditor(window._patternRefs['${escapeAttr(pkey)}'])">✏️</button>
       <button class="btn-del" title="删除" onclick="event.stopPropagation();deletePattern('${escapeAttr(p._id)}','${escapeAttr(p.name)}')">🗑️</button>
@@ -4587,7 +4666,7 @@ function setTrainingCat(cat) {
 }
 
 function renderTrainingCatTabs() {
-  const isAdmin = currentProfile && currentProfile.role === 'admin';
+  const canManage = canEdit('training');
   const cats = ['全部', ...trainingCategories.map(c => c.name)];
   let html = cats.map(c => {
     const isActive = trainingCatFilter === c;
@@ -4599,12 +4678,12 @@ function renderTrainingCatTabs() {
         + `<button class="btn-sm outline" style="padding:2px 8px;font-size:11px;" onclick="cancelEditCat()">✕</button>`
         + `</span>`;
     }
-    const mgmtBtns = (isAdmin && c !== '全部')
+    const mgmtBtns = (canManage && c !== '全部')
       ? `<button class="cat-edit-btn" onclick="event.stopPropagation();startEditCat('${c}')" title="编辑">✏️</button><button class="cat-del-btn" onclick="event.stopPropagation();deleteCat('${c}')" title="删除">✕</button>`
       : '';
     return `<button class="training-cat-tab${isActive ? ' active' : ''}" onclick="setTrainingCat('${c}')">${c}${mgmtBtns}</button>`;
   }).join('');
-  if (isAdmin) {
+  if (canManage) {
     html += `<button class="cat-add-btn" onclick="addNewCat()">＋ 新增分类</button>`;
   }
   document.getElementById('training-cat-tabs').innerHTML = html;
@@ -4692,10 +4771,10 @@ function renderTraining() {
     html += '<div class="train-card">';
     html += '<div class="train-card-header"><h3>📁 ' + cat + '</h3><span class="train-card-count">' + items.length + ' 篇</span></div>';
     html += '<ul class="train-link-list">';
-    const isAdmin = currentProfile && currentProfile.role === 'admin';
+    const canManage = canEdit('training');
     items.forEach(d => {
       const brandBadge = trainingBrand === '全部' ? '<span style="font-size:11px;color:var(--text-secondary);margin-right:4px;">[' + (d.brand || '') + ']</span>' : '';
-      const mgmtBtns = isAdmin ? '<span class="train-mgmt-btns">'
+      const mgmtBtns = canManage ? '<span class="train-mgmt-btns">'
         + '<button class="btn-edit" title="编辑" onclick="event.stopPropagation();event.preventDefault();openTrainingEditor(window._trainRefs[\'' + d.id + '\'])">✏️</button>'
         + '<button class="btn-del" title="删除" onclick="event.stopPropagation();event.preventDefault();deleteTraining(\'' + d.id + '\',\'' + escapeAttr(d.title) + '\')">🗑️</button>'
         + '</span>' : '';
@@ -5471,7 +5550,7 @@ let schedEditState = { cell: null, staff: '', day: 0, shift: '' };
 let schedHighlightCol = null; // currently highlighted column number
 
 function isSchedAdmin() {
-  return currentProfile?.role === 'admin' || currentProfile?.role === 'leader';
+  return canEdit('schedule');
 }
 window.isAdminUser = function() {
   return isSchedAdmin();

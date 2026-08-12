@@ -2074,7 +2074,7 @@ function renderStaffTable() {
     return;
   }
 
-  const isAdmin = currentProfile?.role === 'admin';
+  const isAdmin = canEdit('staff-info');
   const groupMap = { 'A组': '🔵 A组', 'B组': '🟠 B组', 'C组': '🟢 C组' };
 
   tbody.innerHTML = filtered.map(s => {
@@ -2127,9 +2127,9 @@ function openOTDrawer(profileId, nickname) {
   document.getElementById('ot-drawer-overlay').classList.add('show');
   document.getElementById('ot-drawer').classList.add('show');
 
-  const isAdmin = currentProfile?.role === 'admin';
-  document.getElementById('ot-add-overtime-btn').style.display = isAdmin ? '' : 'none';
-  document.getElementById('ot-add-leave-btn').style.display = isAdmin ? '' : 'none';
+  const canManage = canEdit('staff-info');
+  document.getElementById('ot-add-overtime-btn').style.display = canManage ? '' : 'none';
+  document.getElementById('ot-add-leave-btn').style.display = canManage ? '' : 'none';
   hideOTAddForm('overtime');
   hideOTAddForm('leave');
 
@@ -2159,7 +2159,7 @@ function renderOTDrawer() {
     otList.innerHTML = '<div class="ot-list-empty">暂无加班记录</div>';
   } else {
     otList.innerHTML = otRecs.map(r => {
-      const isAdmin = currentProfile?.role === 'admin';
+      const isAdmin = canEdit('staff-info');
       return '<div class="ot-record-item overtime-rec">'
         + '<span class="ot-rec-date">' + (r.date || '-') + '</span>'
         + '<span class="ot-rec-hours">+' + roundH(r.hours) + 'h</span>'
@@ -2176,7 +2176,7 @@ function renderOTDrawer() {
     lvList.innerHTML = '<div class="ot-list-empty">暂无调休记录</div>';
   } else {
     lvList.innerHTML = lvRecs.map(r => {
-      const isAdmin = currentProfile?.role === 'admin';
+      const isAdmin = canEdit('staff-info');
       return '<div class="ot-record-item leave-rec">'
         + '<span class="ot-rec-date">' + (r.date || '-') + '</span>'
         + '<span class="ot-rec-hours" style="color:#3498db;">-' + roundH(r.hours) + 'h</span>'
@@ -2468,6 +2468,51 @@ function subscribeStaffInfo() {
       if (currentPage === 'staff-info') loadStaffInfo();
     })
     .subscribe();
+}
+
+// ========== 页面协作权限系统 ==========
+
+let pageCollaborators = [];       // [{page_key, profile_id, profile_name}]
+let collabSub = null;
+
+// 页面标识 → 中文名映射
+const PAGE_LABELS = {
+  patterns: '花色素材',
+  training: '培训资料',
+  schedule: '排班表',
+  ranking: '客服排名',
+  presale: '售前月度',
+  qc: '质检工具',
+  'staff-info': '客服信息',
+  templates: '模板管理',
+};
+
+async function loadPageCollaborators() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase.from('page_collaborators').select('*');
+    if (error) { console.warn('协作者加载失败:', error.message); return; }
+    pageCollaborators = data || [];
+    refreshAdminUI();
+  } catch(e) { console.error('协作者加载异常:', e); }
+}
+
+function subscribeCollaborators() {
+  if (!supabase || collabSub) return;
+  collabSub = supabase.channel('collaborators-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'page_collaborators' }, () => {
+      loadPageCollaborators();
+    })
+    .subscribe();
+}
+
+// 核心权限判断：当前用户能否编辑某页面
+function canEdit(pageKey) {
+  if (!currentProfile) return false;
+  // admin/leader 全权限
+  if (currentProfile.role === 'admin' || currentProfile.role === 'leader') return true;
+  // 检查协作者表
+  return pageCollaborators.some(c => c.page_key === pageKey && c.profile_id === currentProfile.id);
 }
 
 // ========== 申请审批系统 ==========
@@ -2975,4 +3020,105 @@ async function applyCompensatoryLeave(req) {
       note: '审批通过: ' + (req.reason || '')
     });
   }
+}
+
+// ========== 协作者管理面板 ==========
+
+let collabCurrentPage = null;
+
+function openCollabPanel(pageKey) {
+  if (!currentProfile || (currentProfile.role !== 'admin' && currentProfile.role !== 'leader')) {
+    showToast('仅管理员可管理协作者');
+    return;
+  }
+  collabCurrentPage = pageKey;
+  const label = PAGE_LABELS[pageKey] || pageKey;
+  document.getElementById('collab-panel-title').textContent = '👥 协作管理 — ' + label;
+  document.getElementById('collab-overlay').classList.add('show');
+  document.getElementById('collab-panel').classList.add('show');
+  renderCollabList();
+}
+
+function closeCollabPanel() {
+  document.getElementById('collab-overlay').classList.remove('show');
+  document.getElementById('collab-panel').classList.remove('show');
+  collabCurrentPage = null;
+}
+
+function renderCollabList() {
+  if (!collabCurrentPage) return;
+  const container = document.getElementById('collab-list');
+  const currentCollabs = pageCollaborators
+    .filter(c => c.page_key === collabCurrentPage)
+    .map(c => c.profile_id);
+  const currentCollabNames = pageCollaborators
+    .filter(c => c.page_key === collabCurrentPage);
+
+  // 已邀请的
+  const invitedHtml = currentCollabNames.length === 0
+    ? '<div style="color:var(--text-secondary);font-size:13px;text-align:center;padding:20px;">暂无协作者，从下方列表邀请</div>'
+    : currentCollabNames.map(c => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border);">
+        <span>${escapeHtml(c.profile_name || '未知')}</span>
+        <button onclick="removeCollaborator('${c.id}')" style="background:none;border:none;color:var(--danger,#e74c3c);cursor:pointer;font-size:13px;">移除</button>
+      </div>`).join('');
+
+  // 可邀请的（排除已邀请的、排除自己）
+  const available = (typeof allStaffData !== 'undefined' ? allStaffData : [])
+    .filter(s => {
+      if (s.id === currentProfile?.id) return false;
+      if (s.role === 'admin' || s.role === 'leader') return false; // 管理员天生有权限
+      return !currentCollabs.includes(s.id);
+    });
+
+  const availableHtml = available.length === 0
+    ? '<div style="color:var(--text-secondary);font-size:13px;text-align:center;padding:12px;">所有客服都已是协作者或管理员</div>'
+    : available.map(s => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border);">
+        <span>${escapeHtml(s.name)}${s.real_name ? ' / ' + escapeHtml(s.real_name) : ''}</span>
+        <button onclick="addCollaborator('${s.id}','${escapeAttr(s.name)}')" style="background:var(--primary,#7ba7a6);color:#fff;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:13px;">邀请</button>
+      </div>`).join('');
+
+  container.innerHTML = `
+    <div style="margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;">当前协作者</div>
+      <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">${invitedHtml}</div>
+    </div>
+    <div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;">邀请客服协作</div>
+      <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;max-height:300px;overflow-y:auto;">${availableHtml}</div>
+    </div>`;
+}
+
+async function addCollaborator(profileId, profileName) {
+  if (!supabase || !collabCurrentPage || !currentProfile) return;
+  const { error } = await supabase.from('page_collaborators').insert({
+    page_key: collabCurrentPage,
+    profile_id: profileId,
+    profile_name: profileName,
+    invited_by: currentProfile.id,
+    invited_by_name: currentProfile.name,
+  });
+  if (error) { showToast('邀请失败: ' + error.message); return; }
+  // 本地更新
+  pageCollaborators.push({
+    page_key: collabCurrentPage,
+    profile_id: profileId,
+    profile_name: profileName,
+    invited_by: currentProfile.id,
+    invited_by_name: currentProfile.name,
+  });
+  showToast('已邀请 ' + profileName + ' 协作');
+  renderCollabList();
+  refreshAdminUI();
+}
+
+async function removeCollaborator(recordId) {
+  if (!supabase) return;
+  const { error } = await supabase.from('page_collaborators').delete().eq('id', recordId);
+  if (error) { showToast('移除失败: ' + error.message); return; }
+  pageCollaborators = pageCollaborators.filter(c => c.id !== recordId);
+  showToast('已移除');
+  renderCollabList();
+  refreshAdminUI();
 }
