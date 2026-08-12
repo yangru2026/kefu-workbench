@@ -726,6 +726,8 @@ body {
 .ranking-table tr.group-header-row td { background:linear-gradient(90deg,#f3f0ff,#faf8ff); font-weight:700; font-size:15px; color:var(--primary); padding:10px 12px; border-top:2px solid var(--border); }
 .ranking-table tr.group-summary-row td { background:#f8f6fd; font-weight:700; color:var(--text); border-top:1.5px dashed var(--border); border-bottom:1.5px solid var(--border); }
 .ranking-table tr.grand-total-row td { background:linear-gradient(90deg,#ede8ff,#e8e3ff); font-weight:800; font-size:15px; color:var(--primary); border-top:2px solid var(--primary); border-bottom:2px solid var(--primary); }
+.cs-filter-btn { cursor:pointer; font-size:11px; margin-left:2px; opacity:0.4; transition:opacity .15s; }
+.cs-filter-btn:hover { opacity:1; }
 .ranking-groups { display:none; }
 .rank-export-area { margin-top:20px; padding:20px; background:#fff; border-radius:14px; border:1px solid var(--border); }
 .rank-export-title { font-size:14px; font-weight:600; color:var(--text); margin-bottom:10px; }
@@ -1214,6 +1216,8 @@ body {
       <button class="collab-btn" id="collab-cross-sales-btn" onclick="openCollabPanel('cross-sales')" style="display:none;">👥 协作者</button>
       <button class="feishu-sync-btn admin-only-nav" id="cross-sales-sync-btn" onclick="syncCrossSalesFromFeishu()" style="display:none;">🔄 从飞书同步</button>
       <button class="btn-sm outline" id="cross-sales-month-rank-btn" onclick="toggleCrossSalesRankMode()">📅 按月份排名</button>
+      <button class="btn-sm outline" id="cross-sales-archive-btn" onclick="openCsArchivePanel()">📁 历史月份</button>
+      <button class="btn-sm outline admin-only-nav" id="cross-sales-archive-current-btn" onclick="archiveCurrentCsMonth()" style="display:none;">🔒 归档本月</button>
       <div style="width:1px;height:24px;background:var(--border);margin:0 4px;"></div>
       <span id="cross-sales-export-wrap" style="display:none;align-items:center;gap:6px;">
         <input type="date" id="cs-export-start" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:110px;" title="导出开始日期">
@@ -1262,16 +1266,17 @@ body {
       <div style="max-height:62vh;overflow:auto;border:1px solid var(--border);border-radius:8px;">
         <table class="ranking-table" style="min-width:1080px;" id="cross-sales-table">
           <thead style="position:sticky;top:0;z-index:10;background:var(--card-bg);"><tr>
-            <th style="text-align:center;min-width:110px;">日期</th>
-            <th style="text-align:center;min-width:90px;">店铺</th>
-            <th style="text-align:center;min-width:70px;">成交客服</th>
-            <th style="text-align:center;min-width:90px;">产品类型</th>
-            <th style="text-align:center;min-width:150px;">第一单订单号</th>
-            <th style="text-align:center;min-width:150px;">第二单订单号</th>
-            <th style="text-align:center;min-width:80px;">第一单状态</th>
-            <th style="text-align:center;min-width:70px;">第一单金额</th>
-            <th style="text-align:center;min-width:70px;">第二单金额</th>
-            <th style="text-align:center;min-width:70px;">合计金额</th>
+            <th style="text-align:center;width:32px;"><input type="checkbox" id="cs-select-all" title="全选" onclick="toggleCsSelectAll(this)" style="cursor:pointer;"></th>
+            <th style="text-align:center;min-width:110px;">日期 <span class="cs-filter-btn" onclick="openCsColumnFilter('record_date')" title="筛选日期">🔽</span></th>
+            <th style="text-align:center;min-width:90px;">店铺 <span class="cs-filter-btn" onclick="openCsColumnFilter('shop')" title="筛选店铺">🔽</span></th>
+            <th style="text-align:center;min-width:70px;">成交客服 <span class="cs-filter-btn" onclick="openCsColumnFilter('staff_name')" title="筛选客服">🔽</span></th>
+            <th style="text-align:center;min-width:90px;">产品类型 <span class="cs-filter-btn" onclick="openCsColumnFilter('product_type')" title="筛选产品类型">🔽</span></th>
+            <th style="text-align:center;min-width:150px;">第一单订单号 <span class="cs-filter-btn" onclick="openCsColumnFilter('first_order_no')" title="筛选订单号">🔽</span></th>
+            <th style="text-align:center;min-width:150px;">第二单订单号 <span class="cs-filter-btn" onclick="openCsColumnFilter('second_order_no')" title="筛选订单号">🔽</span></th>
+            <th style="text-align:center;min-width:80px;">第一单状态 <span class="cs-filter-btn" onclick="openCsColumnFilter('first_order_status')" title="筛选状态">🔽</span></th>
+            <th style="text-align:center;min-width:70px;">第一单金额 <span class="cs-filter-btn" onclick="openCsColumnFilter('first_amount')" title="筛选金额">🔽</span></th>
+            <th style="text-align:center;min-width:70px;">第二单金额 <span class="cs-filter-btn" onclick="openCsColumnFilter('second_amount')" title="筛选金额">🔽</span></th>
+            <th style="text-align:center;min-width:70px;">合计金额 <span class="cs-filter-btn" onclick="openCsColumnFilter('total_amount')" title="筛选金额">🔽</span></th>
             <th style="text-align:center;width:60px;">操作</th>
           </tr></thead>
           <tbody id="cross-sales-tbody"></tbody>
@@ -1292,21 +1297,75 @@ body {
         <button class="modal-close" onclick="closeModal('mod-cs-options')">✕</button>
       </div>
       <div class="modal-body">
-        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">管理登记表格中的下拉选项，保存后<strong>实时同步</strong>到所有客服的登记页面。</p>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">管理登记表格中的下拉选项。选项按<strong>组别隔离</strong>，A/B/C 组可设置不同店铺/产品类型，保存后实时同步到该组客服。</p>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+          <button class="rank-group-btn cs-opt-team-tab active" data-opt-team="default" onclick="switchCsOptionsTeam('default')">🌐 通用</button>
+          <button class="rank-group-btn cs-opt-team-tab" data-opt-team="A组" onclick="switchCsOptionsTeam('A组')">A组</button>
+          <button class="rank-group-btn cs-opt-team-tab" data-opt-team="B组" onclick="switchCsOptionsTeam('B组')">B组</button>
+          <button class="rank-group-btn cs-opt-team-tab" data-opt-team="C组" onclick="switchCsOptionsTeam('C组')">C组</button>
+        </div>
         <div style="display:flex;gap:8px;margin-bottom:14px;">
           <button class="rank-group-btn cs-opt-tab active" data-opt-type="shop" onclick="switchCsOptionsTab('shop')">🏪 店铺</button>
           <button class="rank-group-btn cs-opt-tab" data-opt-type="product_type" onclick="switchCsOptionsTab('product_type')">📦 产品类型</button>
           <button class="rank-group-btn cs-opt-tab" data-opt-type="order_status" onclick="switchCsOptionsTab('order_status')">📌 第一单状态</button>
         </div>
-        <div id="cs-options-list" style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
+        <div id="cs-options-list" style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
         <div style="display:flex;gap:8px;margin-top:12px;align-items:center;">
           <input type="color" id="cs-option-new-color" value="#6366f1" title="选项颜色" style="width:42px;height:36px;padding:2px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;">
           <input type="text" id="cs-option-new-value" placeholder="输入新选项名称" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;" onkeydown="if(event.key==='Enter')addCsOption()">
-          <button class="btn-sm primary" onclick="addCsOption()" style="padding:8px 18px;white-space:nowrap;">➕ 添加</button>
+          <button class="btn-sm primary" onclick="addCsOption()" style="padding:8px 14px;white-space:nowrap;">➕ 添加</button>
+        </div>
+        <div style="margin-top:12px;">
+          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">📋 批量添加（每行一个选项，支持粘贴多行文本）</div>
+          <textarea id="cs-option-bulk" rows="3" placeholder="例如：&#10;淘宝官方旗舰店&#10;京东旗舰店&#10;抖音直播间" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px;">
+            <button class="btn-sm outline" onclick="document.getElementById('cs-option-bulk').value=''">清空</button>
+            <button class="btn-sm primary" onclick="addCsOptionsBulk()">📥 批量添加</button>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
         <button class="btn-sm outline" onclick="closeModal('mod-cs-options')">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 连带成交 · 表头筛选弹窗 -->
+  <div class="modal-overlay" id="mod-cs-filter" onclick="closeModal('mod-cs-filter')">
+    <div class="modal-box" style="max-width:480px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>🔽 <span id="cs-filter-title">筛选</span></h3>
+        <button class="modal-close" onclick="closeModal('mod-cs-filter')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="search" id="cs-filter-search" placeholder="搜索选项..." oninput="renderCsFilterValues()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;margin-bottom:10px;">
+        <div id="cs-filter-values" style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
+        <div id="cs-filter-text-mode" style="display:none;margin-top:10px;">
+          <input type="text" id="cs-filter-text-input" placeholder="输入筛选关键词，多个用逗号分隔" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sm outline" onclick="clearCsColumnFilter()">清除筛选</button>
+        <button class="btn-sm primary" onclick="applyCsColumnFilter()">应用筛选</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 连带成交 · 历史月份归档弹窗 -->
+  <div class="modal-overlay" id="mod-cs-archive" onclick="closeModal('mod-cs-archive')">
+    <div class="modal-box" style="max-width:520px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>📁 历史月份存档</h3>
+        <button class="modal-close" onclick="closeModal('mod-cs-archive')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">所有历史数据均会保留。归档月份会显示🔒锁标记，客服端进入只读模式，管理员仍可编辑/解档。</p>
+        <div id="cs-archive-list" style="max-height:360px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;">
+          <div style="text-align:center;padding:24px;color:var(--text-secondary);">加载中...</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sm outline" onclick="closeModal('mod-cs-archive')">关闭</button>
       </div>
     </div>
   </div>
@@ -2653,13 +2712,17 @@ let crossSalesDate = '';
 let crossSalesRankMode = 'day'; // 'day' 按日排名，'month' 按月份排名
 let crossSalesMonth = '';
 let crossSalesTeamFilter = 'all'; // 'all' | 'A组' | 'B组' | 'C组'
-let csOptions = { shop: [], product_type: [], order_status: [] }; // 动态选项缓存
+let csOptions = { default: { shop: [], product_type: [], order_status: [] } }; // 按组隔离的动态选项缓存
 let csOptionsSub = null;
 let csOptionsLoaded = false;
 let csOptionsFirstLoad = true; // 首次加载时空选项自动填充默认值
 let crossSalesTeamInited = false; // 客服首次进入是否已自动选中本组
 let crossSalesSearch = '';      // 明细搜索关键字（客服/订单号）
 let crossSalesRankFocus = '';   // 排名卡片聚焦的客服名（点击穿透过滤明细）
+let csOptionManageTeam = 'default'; // 选项管理弹窗当前正在管理的组别
+let csColumnFilters = {};           // 表头列筛选状态：{ record_date: ['2026-08-01'], shop: ['...'], ... }
+let csFilterColumn = null;          // 当前打开的筛选列
+let csArchivedMonths = [];          // 已归档月份列表 [{month, team, archived_at}]
 
 function getTodayStr() {
   const d = new Date();
@@ -2674,15 +2737,17 @@ function formatDateShort(dateStr) {
 
 // ==================== 连带成交 · 动态选项 ====================
 
-// 从 option_templates 加载选项（key → 数组）
+// 从 option_templates 加载选项（按 team 分组：{ team: { key: [...] } }）
 async function loadCrossSalesOptions() {
   if (!supabase) return;
   try {
-    const { data, error } = await supabase.from('option_templates').select('key,options');
+    const { data, error } = await supabase.from('option_templates').select('key,team,options');
     if (error) { console.warn('选项模板加载失败:', error.message); return; }
-    const map = { shop: [], product_type: [], order_status: [] };
+    const map = { default: { shop: [], product_type: [], order_status: [] } };
     (data || []).forEach(t => {
-      if (map[t.key]) map[t.key] = Array.isArray(t.options) ? t.options : [];
+      const team = t.team || 'default';
+      if (!map[team]) map[team] = { shop: [], product_type: [], order_status: [] };
+      if (map[team][t.key] !== undefined) map[team][t.key] = Array.isArray(t.options) ? t.options : [];
     });
 
     // 首次加载且数据库为空时，自动填充默认选项（仅第一次）
@@ -2713,12 +2778,16 @@ async function loadCrossSalesOptions() {
         ]
       };
       const labels = { shop: '店铺', product_type: '产品类型', order_status: '第一单状态' };
-      for (const [key, list] of Object.entries(defaultOptions)) {
-        if (!map[key] || map[key].length === 0) {
-          map[key] = list;
-          supabase.from('option_templates')
-            .upsert({ key, label: labels[key], options: list, updated_at: new Date().toISOString() }, { onConflict: 'key' })
-            .catch(e => console.warn('默认选项保存失败:', e.message));
+      const teams = ['default', 'A组', 'B组', 'C组'];
+      for (const team of teams) {
+        if (!map[team]) map[team] = { shop: [], product_type: [], order_status: [] };
+        for (const [key, list] of Object.entries(defaultOptions)) {
+          if (!map[team][key] || map[team][key].length === 0) {
+            map[team][key] = list;
+            supabase.from('option_templates')
+              .upsert({ key, team, label: labels[key], options: list, updated_at: new Date().toISOString() }, { onConflict: 'key,team' })
+              .catch(e => console.warn('默认选项保存失败:', e.message));
+          }
         }
       }
     }
@@ -2732,6 +2801,13 @@ async function loadCrossSalesOptions() {
   } catch(e) { console.error('选项模板加载异常:', e); }
 }
 
+// 取某组某类型的选项，没有则回退 default
+function csOptionsFor(team, key) {
+  const t = team || 'default';
+  if (csOptions[t] && csOptions[t][key] && csOptions[t][key].length > 0) return csOptions[t][key];
+  return csOptions.default?.[key] || [];
+}
+
 // Realtime 订阅选项变化：管理员改选项 → 所有客服实时同步
 function subscribeCrossSalesOptions() {
   if (!supabase || csOptionsSub) return;
@@ -2743,9 +2819,9 @@ function subscribeCrossSalesOptions() {
     .subscribe();
 }
 
-// 生成下拉选项 HTML（key: shop / product_type / order_status）
-function csOptionHtml(key, currentVal) {
-  const list = csOptions[key] || [];
+// 生成下拉选项 HTML（key: shop / product_type / order_status，team 优先取该组选项）
+function csOptionHtml(key, currentVal, team) {
+  const list = csOptionsFor(team, key);
   const parts = ['<option value="">请选择</option>'];
   list.forEach(item => {
     const opt = (typeof item === 'object' && item && item.value) ? item : { value: String(item), color: '' };
@@ -2777,8 +2853,18 @@ let csOptionManageType = 'shop'; // 当前管理 tab
 
 function openCrossSalesOptions() {
   csOptionManageType = 'shop';
+  csOptionManageTeam = 'default';
+  switchCsOptionsTeam('default');
   switchCsOptionsTab('shop');
   showModalById('mod-cs-options');
+}
+
+function switchCsOptionsTeam(team) {
+  csOptionManageTeam = team;
+  document.querySelectorAll('.cs-opt-team-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.optTeam === team);
+  });
+  renderCsOptionsList();
 }
 
 function switchCsOptionsTab(type) {
@@ -2792,7 +2878,7 @@ function switchCsOptionsTab(type) {
 function renderCsOptionsList() {
   const wrap = document.getElementById('cs-options-list');
   if (!wrap) return;
-  const list = csOptions[csOptionManageType] || [];
+  const list = csOptionsFor(csOptionManageTeam, csOptionManageType);
   if (list.length === 0) {
     wrap.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-secondary);font-size:13px;">暂无选项，请在下方添加</div>';
     return;
@@ -2816,12 +2902,14 @@ function renderCsOptionsList() {
 // 保存选项数组到 option_templates
 async function saveCsOptions(newList) {
   const key = csOptionManageType;
+  const team = csOptionManageTeam;
   const labels = { shop: '店铺', product_type: '产品类型', order_status: '第一单状态' };
   const { error } = await supabase
     .from('option_templates')
-    .upsert({ key, label: labels[key] || key, options: newList, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+    .upsert({ key, team, label: labels[key] || key, options: newList, updated_at: new Date().toISOString() }, { onConflict: 'key,team' });
   if (error) { showToast('❌ 保存选项失败: ' + error.message); return false; }
-  csOptions[key] = newList;
+  if (!csOptions[team]) csOptions[team] = { shop: [], product_type: [], order_status: [] };
+  csOptions[team][key] = newList;
   return true;
 }
 
@@ -2830,18 +2918,44 @@ async function addCsOption() {
   const colorInput = document.getElementById('cs-option-new-color');
   const val = (input?.value || '').trim();
   if (!val) { showToast('⚠️ 请输入选项名称'); return; }
-  const list = normalizeCsOptionList(csOptions[csOptionManageType] || []);
+  const list = normalizeCsOptionList(csOptionsFor(csOptionManageTeam, csOptionManageType));
   if (list.some(o => o.value === val)) { showToast('⚠️ 该选项已存在'); return; }
   list.push({ value: val, color: colorInput?.value || '' });
   const ok = await saveCsOptions(list);
   if (!ok) return;
   input.value = '';
-  showToast('✅ 已添加「' + val + '」，客服端实时同步');
+  showToast('✅ 已添加「' + val + '」到 ' + csOptionManageTeam + '，客服端实时同步');
+  renderCsOptionsList();
+}
+
+async function addCsOptionsBulk() {
+  const textarea = document.getElementById('cs-option-bulk');
+  const colorInput = document.getElementById('cs-option-new-color');
+  const raw = (textarea?.value || '').trim();
+  if (!raw) { showToast('⚠️ 请输入要批量添加的选项'); return; }
+  // 支持换行、逗号、顿号分隔
+  const vals = raw.split(/[\n,，、]/).map(s => s.trim()).filter(Boolean);
+  if (vals.length === 0) { showToast('⚠️ 没有解析到有效选项'); return; }
+  const list = normalizeCsOptionList(csOptionsFor(csOptionManageTeam, csOptionManageType));
+  let added = 0;
+  const baseColor = colorInput?.value || '';
+  const palette = ['#6366f1', '#ec4899', '#8b5cf6', '#14b8a6', '#f59e0b', '#ef4444', '#3b82f6', '#10b981', '#f97316', '#64748b'];
+  vals.forEach((val, idx) => {
+    if (list.some(o => o.value === val)) return;
+    const color = baseColor || palette[idx % palette.length];
+    list.push({ value: val, color });
+    added++;
+  });
+  if (added === 0) { showToast('⚠️ 所有选项都已存在，未添加'); return; }
+  const ok = await saveCsOptions(list);
+  if (!ok) return;
+  textarea.value = '';
+  showToast(`✅ 已向 ${csOptionManageTeam} 批量添加 ${added} 个选项`);
   renderCsOptionsList();
 }
 
 async function removeCsOption(idx) {
-  const list = normalizeCsOptionList(csOptions[csOptionManageType] || []);
+  const list = normalizeCsOptionList(csOptionsFor(csOptionManageTeam, csOptionManageType));
   if (idx < 0 || idx >= list.length) return;
   const val = list[idx].value;
   if (!confirm(`确定删除选项「${val}」？\n已登记数据不受影响。`)) return;
@@ -2853,7 +2967,7 @@ async function removeCsOption(idx) {
 }
 
 async function moveCsOption(idx, dir) {
-  const list = normalizeCsOptionList(csOptions[csOptionManageType] || []);
+  const list = normalizeCsOptionList(csOptionsFor(csOptionManageTeam, csOptionManageType));
   const target = idx + dir;
   if (idx < 0 || target < 0 || target >= list.length) return;
   const tmp = list[idx];
@@ -2865,7 +2979,7 @@ async function moveCsOption(idx, dir) {
 }
 
 async function updateCsOptionColor(idx, color) {
-  const list = normalizeCsOptionList(csOptions[csOptionManageType] || []);
+  const list = normalizeCsOptionList(csOptionsFor(csOptionManageTeam, csOptionManageType));
   if (idx < 0 || idx >= list.length) return;
   list[idx].color = color;
   const ok = await saveCsOptions(list);
@@ -2879,6 +2993,146 @@ function normalizeCsOptionList(list) {
     if (typeof item === 'object' && item && item.value !== undefined) return { value: String(item.value), color: item.color || '' };
     return { value: String(item), color: '' };
   });
+}
+
+// ==================== 连带成交 · 表头筛选 ====================
+
+const CS_FILTERABLE_COLS = {
+  record_date: { label: '日期', type: 'list' },
+  shop: { label: '店铺', type: 'list' },
+  staff_name: { label: '成交客服', type: 'list' },
+  product_type: { label: '产品类型', type: 'list' },
+  first_order_no: { label: '第一单订单号', type: 'text' },
+  second_order_no: { label: '第二单订单号', type: 'text' },
+  first_order_status: { label: '第一单状态', type: 'list' },
+  first_amount: { label: '第一单金额', type: 'text' },
+  second_amount: { label: '第二单金额', type: 'text' },
+  total_amount: { label: '合计金额', type: 'text' }
+};
+
+function openCsColumnFilter(col) {
+  csFilterColumn = col;
+  const meta = CS_FILTERABLE_COLS[col];
+  if (!meta) return;
+  document.getElementById('cs-filter-title').textContent = '筛选：' + meta.label;
+  const searchInput = document.getElementById('cs-filter-search');
+  const textMode = document.getElementById('cs-filter-text-mode');
+  const textInput = document.getElementById('cs-filter-text-input');
+  if (searchInput) searchInput.value = '';
+  if (textInput) textInput.value = (csColumnFilters[col] || []).join(',');
+  if (meta.type === 'text') {
+    textMode.style.display = 'block';
+    if (searchInput) searchInput.style.display = 'none';
+    document.getElementById('cs-filter-values').style.display = 'none';
+  } else {
+    textMode.style.display = 'none';
+    if (searchInput) searchInput.style.display = 'block';
+    document.getElementById('cs-filter-values').style.display = 'block';
+    renderCsFilterValues();
+  }
+  showModalById('mod-cs-filter');
+}
+
+function renderCsFilterValues() {
+  const col = csFilterColumn;
+  const wrap = document.getElementById('cs-filter-values');
+  const searchInput = document.getElementById('cs-filter-search');
+  if (!col || !wrap) return;
+  const meta = CS_FILTERABLE_COLS[col];
+  const kw = (searchInput?.value || '').trim().toLowerCase();
+  const selected = new Set(csColumnFilters[col] || []);
+
+  // 收集所有候选值
+  let values = [];
+  if (col === 'shop') {
+    values = Array.from(new Set([
+      ...crossSalesData.map(r => r.shop).filter(Boolean),
+      ...Object.values(csOptions).flatMap(t => (t.shop || []).map(o => typeof o === 'object' ? o.value : o))
+    ]));
+  } else if (col === 'product_type') {
+    values = Array.from(new Set([
+      ...crossSalesData.map(r => r.product_type).filter(Boolean),
+      ...Object.values(csOptions).flatMap(t => (t.product_type || []).map(o => typeof o === 'object' ? o.value : o))
+    ]));
+  } else if (col === 'first_order_status') {
+    values = Array.from(new Set([
+      ...crossSalesData.map(r => r.first_order_status).filter(Boolean),
+      ...Object.values(csOptions).flatMap(t => (t.order_status || []).map(o => typeof o === 'object' ? o.value : o))
+    ]));
+  } else {
+    values = Array.from(new Set(crossSalesData.map(r => r[col]).filter(v => v !== '' && v !== null && v !== undefined).map(String)));
+  }
+  values.sort((a, b) => String(a).localeCompare(String(b), 'zh'));
+  if (kw) values = values.filter(v => String(v).toLowerCase().includes(kw));
+
+  if (values.length === 0) {
+    wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-secondary);font-size:13px;">无可用选项</div>';
+    return;
+  }
+
+  wrap.innerHTML = `
+    <div style="margin-bottom:8px;">
+      <label style="font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+        <input type="checkbox" id="cs-filter-check-all" onchange="toggleCsFilterCheckAll(this)" ${values.length > 0 && values.every(v => selected.has(String(v))) ? 'checked' : ''}>
+        <span>全选</span>
+      </label>
+    </div>
+    ${values.map(v => `
+      <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;">
+        <input type="checkbox" class="cs-filter-val-check" value="${escapeAttr(String(v))}" ${selected.has(String(v)) ? 'checked' : ''}>
+        <span style="flex:1;">${escapeHtml(String(v))}</span>
+      </label>
+    `).join('')}
+  `;
+}
+
+function toggleCsFilterCheckAll(chk) {
+  document.querySelectorAll('.cs-filter-val-check').forEach(cb => cb.checked = chk.checked);
+}
+
+function applyCsColumnFilter() {
+  const col = csFilterColumn;
+  if (!col) return;
+  const meta = CS_FILTERABLE_COLS[col];
+  let vals = [];
+  if (meta.type === 'text') {
+    const raw = document.getElementById('cs-filter-text-input')?.value || '';
+    vals = raw.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+  } else {
+    vals = Array.from(document.querySelectorAll('.cs-filter-val-check:checked')).map(cb => cb.value);
+  }
+  if (vals.length === 0) {
+    delete csColumnFilters[col];
+  } else {
+    csColumnFilters[col] = vals;
+  }
+  closeModal('mod-cs-filter');
+  renderCrossSales();
+}
+
+function clearCsColumnFilter() {
+  const col = csFilterColumn;
+  if (col) delete csColumnFilters[col];
+  closeModal('mod-cs-filter');
+  renderCrossSales();
+}
+
+// 在 getCrossSalesDetailRows 末尾会调用此函数应用列筛选
+function applyCsColumnFilters(rows) {
+  Object.entries(csColumnFilters).forEach(([col, vals]) => {
+    if (!vals || vals.length === 0) return;
+    const meta = CS_FILTERABLE_COLS[col];
+    rows = rows.filter(r => {
+      let v = r[col];
+      if (v === null || v === undefined) v = '';
+      v = String(v);
+      if (meta && meta.type === 'text') {
+        return vals.some(s => v.includes(s));
+      }
+      return vals.some(s => v === s);
+    });
+  });
+  return rows;
 }
 
 async function loadCrossSalesFromDB() {
@@ -2898,6 +3152,18 @@ async function loadCrossSalesFromDB() {
     }
     if (currentPage === 'cross-sales') renderCrossSales();
   } catch(e) { console.error('连带成交数据加载异常:', e); }
+  // 同时加载归档月份（不影响主数据加载）
+  loadCsArchivedMonths();
+}
+
+async function loadCsArchivedMonths() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase.from('cross_sales_archive_months').select('month,team,archived_at,note').order('month', { ascending: false });
+    if (error) { console.warn('归档月份加载失败:', error.message); return; }
+    csArchivedMonths = data || [];
+    if (currentPage === 'cross-sales') renderCrossSales();
+  } catch(e) { console.error('归档月份加载异常:', e); }
 }
 
 function subscribeCrossSales() {
@@ -3119,11 +3385,15 @@ function getCrossSalesRankData() {
 function getCrossSalesDetailRows() {
   let rows = [];
   if (crossSalesRankMode === 'day') {
-    rows = crossSalesData.filter(r => r.record_date === crossSalesDate).sort((a, b) => (a.id || 0) - (b.id || 0));
+    // 日期升序：1号在最上面
+    rows = crossSalesData.filter(r => r.record_date === crossSalesDate).sort((a, b) => {
+      if (a.record_date !== b.record_date) return (a.record_date || '').localeCompare(b.record_date || '');
+      return (a.id || 0) - (b.id || 0);
+    });
   } else {
     const monthPrefix = crossSalesDate.slice(0, 7);
     rows = crossSalesData.filter(r => r.record_date && r.record_date.startsWith(monthPrefix)).sort((a, b) => {
-      if (a.record_date !== b.record_date) return (b.record_date || '').localeCompare(a.record_date || '');
+      if (a.record_date !== b.record_date) return (a.record_date || '').localeCompare(b.record_date || '');
       return (a.id || 0) - (b.id || 0);
     });
   }
@@ -3143,6 +3413,8 @@ function getCrossSalesDetailRows() {
       (r.second_order_no || '').toLowerCase().includes(kw)
     );
   }
+  // 表头列筛选
+  rows = applyCsColumnFilters(rows);
   return rows;
 }
 
@@ -3159,18 +3431,30 @@ function renderCrossSales() {
   document.querySelectorAll('[data-cs-team]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.csTeam === crossSalesTeamFilter);
   });
-  // 组别提示
+  // 组别提示 + 归档状态
+  const currentMonth = crossSalesDate.slice(0, 7);
+  const isArchived = isCsMonthArchived(currentMonth);
   const teamHint = document.getElementById('cross-sales-team-hint');
   if (teamHint) {
-    teamHint.textContent = isAdminOrLeader
+    let base = isAdminOrLeader
       ? (crossSalesTeamFilter === 'all' ? '· 全部组' : '· 当前组：' + crossSalesTeamFilter)
       : '· 仅显示本组（' + (currentProfile?.group_name || '未分组') + '）记录，排名可切换';
+    if (isArchived) base += ' 🔒 该月已归档';
+    teamHint.textContent = base;
   }
   const dateInput = document.getElementById('cross-sales-date-input');
   if (dateInput) dateInput.value = crossSalesDate;
 
   const rankBtn = document.getElementById('cross-sales-month-rank-btn');
   if (rankBtn) rankBtn.textContent = crossSalesRankMode === 'day' ? '📅 按月份排名' : '📅 按日排名';
+
+  // 归档本月按钮（仅管理员）
+  const archiveBtn = document.getElementById('cross-sales-archive-current-btn');
+  if (archiveBtn) {
+    archiveBtn.style.display = isAdminOrLeader ? 'inline-flex' : 'none';
+    archiveBtn.textContent = isArchived ? '🔓 解档本月' : '🔒 归档本月';
+    archiveBtn.onclick = isArchived ? () => unarchiveCsMonth(currentMonth) : () => archiveCurrentCsMonth();
+  }
 
   // 排名
   const rankCards = document.getElementById('cross-sales-rank-cards');
@@ -3218,12 +3502,17 @@ function renderCrossSales() {
   if (!isAdminOrLeader && currentProfile?.group_name) {
     rows = rows.filter(r => r.team === currentProfile.group_name);
   }
-  // 搜索/聚焦状态提示
+  // 搜索/聚焦/列筛选状态提示
   const filterHint = document.getElementById('cross-sales-filter-hint');
   if (filterHint) {
     const parts = [];
     if (crossSalesRankFocus) parts.push('🎯 ' + crossSalesRankFocus);
     if (crossSalesSearch) parts.push('🔍 "' + crossSalesSearch + '"');
+    Object.entries(csColumnFilters).forEach(([col, vals]) => {
+      if (!vals || vals.length === 0) return;
+      const label = CS_FILTERABLE_COLS[col]?.label || col;
+      parts.push('🔽 ' + label + '（' + vals.length + '）');
+    });
     if (parts.length > 0) {
       filterHint.style.display = 'inline';
       filterHint.textContent = '当前筛选：' + parts.join('、') + '（' + rows.length + ' 条）';
@@ -3255,23 +3544,26 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
 
   let html = rows.map((r, idx) => `
     <tr data-id="${r.id || ''}" data-team="${escapeHtml(r.team || '')}">
+      <td style="padding:4px;text-align:center;">
+        ${isAdminOrLeader ? `<input type="checkbox" class="cs-row-check" data-id="${r.id || ''}" style="cursor:pointer;">` : ''}
+      </td>
       <td style="padding:4px;"><input type="date" data-field="record_date" value="${r.record_date || ''}" onchange="autoSaveCSRow(this)" style="width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
         <select data-field="shop" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
-          ${csOptionHtml('shop', r.shop)}
+          ${csOptionHtml('shop', r.shop, r.team)}
         </select>
       </td>
       <td style="padding:4px;"><input data-field="staff_name" value="${escapeHtml(r.staff_name || '')}" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
       <td style="padding:4px;">
         <select data-field="product_type" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
-          ${csOptionHtml('product_type', r.product_type)}
+          ${csOptionHtml('product_type', r.product_type, r.team)}
         </select>
       </td>
       <td style="padding:4px;"><input data-field="first_order_no" value="${escapeHtml(r.first_order_no || '')}" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;"><input data-field="second_order_no" value="${escapeHtml(r.second_order_no || '')}" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
         <select data-field="first_order_status" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
-          ${csOptionHtml('order_status', r.first_order_status)}
+          ${csOptionHtml('order_status', r.first_order_status, r.team)}
         </select>
       </td>
       <td style="padding:4px;"><input type="number" data-field="first_amount" value="${r.first_amount || ''}" step="0.01" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
@@ -3286,19 +3578,24 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
   // 合计行
   html += `
     <tr style="background:linear-gradient(90deg,#ede8ff,#e8e3ff);font-weight:800;font-size:14px;color:var(--primary);">
-      <td colspan="7" style="text-align:right;padding:10px;">${teamLabel} 合计</td>
+      <td colspan="8" style="text-align:right;padding:10px;">${teamLabel} 合计</td>
       <td style="text-align:center;padding:10px;">¥${totalFirst.toLocaleString()}</td>
       <td style="text-align:center;padding:10px;">¥${totalSecond.toLocaleString()}</td>
       <td style="text-align:center;padding:10px;">¥${totalAll.toLocaleString()}</td>
       <td></td>
     </tr>
     <tr>
-      <td colspan="11" style="padding:10px;background:#f8f8f8;border-top:1px dashed var(--border);">
+      <td colspan="12" style="padding:10px;background:#f8f8f8;border-top:1px dashed var(--border);">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <span style="font-size:13px;color:var(--text-secondary);">📝 填写后自动保存，无需点保存。</span>
           <input type="number" id="cs-add-rows-count" value="10" min="1" max="500" style="width:60px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;">
           <span style="font-size:13px;color:var(--text-secondary);">行</span>
           <button class="btn-sm primary" onclick="addCrossSalesBlankRows()" style="font-size:13px;padding:6px 16px;">➕ 新增一行</button>
+          ${isAdminOrLeader ? `
+            <span style="width:1px;height:20px;background:var(--border);margin:0 4px;"></span>
+            <button class="btn-sm outline" onclick="batchDeleteCsSelected()" style="font-size:13px;padding:6px 14px;color:#e74c3c;">🗑️ 批量删除选中</button>
+            <button class="btn-sm outline" onclick="batchClearCsEmpty()" style="font-size:13px;padding:6px 14px;">🧹 清空未填写的空白行</button>
+          ` : ''}
         </div>
       </td>
     </tr>
@@ -3311,6 +3608,14 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
   tbody.querySelectorAll('select[data-cs-color-init]').forEach(applySelectColor);
   // 扫描重复订单号并标记
   scanCSDuplicates();
+  // 已归档月份对非管理员只读
+  const archived = isCsMonthArchived(crossSalesDate.slice(0, 7));
+  if (archived && !isAdminOrLeader) {
+    tbody.querySelectorAll('tr[data-id] input, tr[data-id] select, tr[data-id] button').forEach(el => {
+      el.disabled = true;
+      el.title = '该月份已归档，仅管理员可编辑';
+    });
+  }
 }
 
 // 实时检查订单号是否与当天已存在记录重复（输入时触发）
@@ -3483,23 +3788,24 @@ function addCrossSalesBlankRows() {
     tr.setAttribute('data-new', 'true');
     tr.setAttribute('data-team', team);
     tr.innerHTML = `
+      <td style="padding:4px;text-align:center;"><input type="checkbox" disabled style="opacity:0;cursor:default;"></td>
       <td style="padding:4px;"><input type="date" data-field="record_date" value="${dateVal}" onchange="autoSaveCSRow(this)" style="width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
         <select data-field="shop" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
-          ${csOptionHtml('shop', '')}
+          ${csOptionHtml('shop', '', team)}
         </select>
       </td>
       <td style="padding:4px;"><input data-field="staff_name" value="${escapeHtml(staffName)}" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
       <td style="padding:4px;">
         <select data-field="product_type" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
-          ${csOptionHtml('product_type', '')}
+          ${csOptionHtml('product_type', '', team)}
         </select>
       </td>
       <td style="padding:4px;"><input data-field="first_order_no" placeholder="第一单" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;"><input data-field="second_order_no" placeholder="第二单" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
         <select data-field="first_order_status" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
-          ${csOptionHtml('order_status', '')}
+          ${csOptionHtml('order_status', '', team)}
         </select>
       </td>
       <td style="padding:4px;"><input type="number" data-field="first_amount" step="0.01" placeholder="0" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
@@ -3640,6 +3946,127 @@ async function deleteCrossSalesRecord(id, staffName) {
   } catch (e) { showToast('❌ 删除异常: ' + e.message); }
 }
 
+// 全选/取消全选当前页数据行（管理员批量操作）
+function toggleCsSelectAll(chk) {
+  document.querySelectorAll('#cross-sales-tbody tr[data-id] .cs-row-check').forEach(cb => cb.checked = chk.checked);
+}
+
+// 批量删除选中的已有记录（仅管理员）
+async function batchDeleteCsSelected() {
+  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  if (!isAdminOrLeader) { showToast('⚠️ 仅管理员可使用批量删除'); return; }
+  const ids = Array.from(document.querySelectorAll('#cross-sales-tbody tr[data-id] .cs-row-check:checked')).map(cb => cb.dataset.id).filter(Boolean);
+  if (ids.length === 0) { showToast('⚠️ 请先勾选要删除的记录'); return; }
+  if (!confirm(`确定批量删除选中的 ${ids.length} 条记录？删除后不可恢复。`)) return;
+  try {
+    const { error } = await supabase.from('cross_sales').delete().in('id', ids);
+    if (error) { showToast('❌ 批量删除失败: ' + error.message); return; }
+    showToast(`✅ 已删除 ${ids.length} 条记录`);
+    document.getElementById('cs-select-all').checked = false;
+    loadCrossSalesFromDB();
+  } catch (e) { showToast('❌ 批量删除异常: ' + e.message); }
+}
+
+// 清空未填写的空白新增行（仅管理员）
+function batchClearCsEmpty() {
+  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  if (!isAdminOrLeader) { showToast('⚠️ 仅管理员可使用清空'); return; }
+  const tbody = document.getElementById('cross-sales-tbody');
+  if (!tbody) return;
+  let removed = 0;
+  tbody.querySelectorAll('tr[data-new="true"]').forEach(tr => {
+    const first = tr.querySelector('[data-field="first_order_no"]')?.value?.trim();
+    const second = tr.querySelector('[data-field="second_order_no"]')?.value?.trim();
+    if (!first && !second) {
+      tr.remove();
+      removed++;
+    }
+  });
+  showToast(removed > 0 ? `✅ 已清空 ${removed} 个空白行` : '没有可清空的空白行');
+}
+
+// ==================== 连带成交 · 历史月份归档 ====================
+
+function isCsMonthArchived(month) {
+  if (!month) return false;
+  return csArchivedMonths.some(a => a.month === month && (a.team === 'all' || a.team === crossSalesTeamFilter));
+}
+
+function openCsArchivePanel() {
+  renderCsArchiveList();
+  showModalById('mod-cs-archive');
+}
+
+function renderCsArchiveList() {
+  const wrap = document.getElementById('cs-archive-list');
+  if (!wrap) return;
+  // 收集所有有数据的月份
+  const months = Array.from(new Set(crossSalesData.map(r => (r.record_date || '').slice(0, 7)).filter(Boolean))).sort().reverse();
+  if (months.length === 0) {
+    wrap.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-secondary);">暂无历史数据</div>';
+    return;
+  }
+  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  wrap.innerHTML = months.map(m => {
+    const archived = csArchivedMonths.some(a => a.month === m && a.team === 'all');
+    const count = crossSalesData.filter(r => (r.record_date || '').startsWith(m)).length;
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid var(--border);">
+        <div style="font-size:20px;">${archived ? '🔒' : '📄'}</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:15px;color:var(--text);">${m}</div>
+          <div style="font-size:12px;color:var(--text-secondary);">${count} 条记录 · ${archived ? '已归档（只读）' : '可编辑'}</div>
+        </div>
+        <button class="btn-sm primary" onclick="switchCsMonth('${m}')">查看</button>
+        ${isAdminOrLeader ? (archived
+          ? `<button class="btn-sm outline" onclick="unarchiveCsMonth('${m}')" style="margin-left:4px;">解档</button>`
+          : `<button class="btn-sm outline" onclick="archiveCsMonth('${m}')" style="margin-left:4px;">归档</button>`) : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+async function archiveCurrentCsMonth() {
+  const month = crossSalesDate.slice(0, 7);
+  await archiveCsMonth(month);
+}
+
+async function archiveCsMonth(month) {
+  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  if (!isAdminOrLeader) { showToast('⚠️ 仅管理员可归档'); return; }
+  if (!month) return;
+  if (!confirm(`确定归档 ${month} 月份数据？\n归档后客服端将进入只读模式，管理员仍可编辑。`)) return;
+  try {
+    const { error } = await supabase.from('cross_sales_archive_months').upsert({
+      month, team: 'all', archived_at: new Date().toISOString()
+    }, { onConflict: 'month' });
+    if (error) { showToast('❌ 归档失败: ' + error.message); return; }
+    showToast(`✅ ${month} 已归档`);
+    loadCsArchivedMonths();
+  } catch(e) { showToast('❌ 归档异常: ' + e.message); }
+}
+
+async function unarchiveCsMonth(month) {
+  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  if (!isAdminOrLeader) { showToast('⚠️ 仅管理员可解档'); return; }
+  if (!month) return;
+  if (!confirm(`确定对 ${month} 月份解档？\n解档后客服可再次编辑该月数据。`)) return;
+  try {
+    const { error } = await supabase.from('cross_sales_archive_months').delete().eq('month', month).eq('team', 'all');
+    if (error) { showToast('❌ 解档失败: ' + error.message); return; }
+    showToast(`✅ ${month} 已解档`);
+    loadCsArchivedMonths();
+  } catch(e) { showToast('❌ 解档异常: ' + e.message); }
+}
+
+function switchCsMonth(month) {
+  if (!month) return;
+  crossSalesDate = month + '-01';
+  crossSalesRankMode = 'month';
+  closeModal('mod-cs-archive');
+  renderCrossSales();
+}
+
 function prevPresaleMonth() {
   const [y, m] = presaleMonthlyMonth.split('-').map(Number);
   const d = new Date(y, m - 2, 1);
@@ -3717,6 +4144,14 @@ function getCell(row, map, keys) {
     // 兼容表头带空格/括号/单位的情况：如「第二单金额（元）」也能匹配「第二单金额」
     const nk = normalizeHeader(k);
     if (map[nk] !== undefined) return row[map[nk]];
+  }
+  // 二次模糊：忽略「元」、amount、金额等常见后缀，进一步兼容「第二单金额（元）」→「第二单金额」
+  for (const k of keys) {
+    const nk = normalizeHeader(k).replace(/(元|amount|金额)/g, '');
+    if (!nk) continue;
+    for (const [mapKey, idx] of Object.entries(map)) {
+      if (mapKey.replace(/(元|amount|金额)/g, '') === nk) return row[idx];
+    }
   }
   return '';
 }
