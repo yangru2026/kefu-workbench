@@ -1253,7 +1253,7 @@ body {
           <tbody id="cross-sales-tbody"></tbody>
         </table>
         <div style="text-align:center;padding:16px;border-top:1px dashed var(--border);">
-          <button class="btn-sm primary" onclick="openCrossSalesForm()" style="padding:8px 24px;">➕ 新增一行</button>
+          <button class="btn-sm primary" onclick="document.getElementById('cs-add-rows-count').value=1;addCrossSalesBlankRows();" style="padding:8px 24px;">➕ 新增一行</button>
         </div>
       </div>
       <div id="cross-sales-empty" style="text-align:center;padding:40px;color:var(--text-secondary);display:none;">
@@ -2844,47 +2844,248 @@ function renderCrossSales() {
   const tbody = document.getElementById('cross-sales-tbody');
   const empty = document.getElementById('cross-sales-empty');
   let rows = getCrossSalesDetailRows();
-  // 普通客服只能看到自己组的明细，管理员/leader看全部
   const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
   if (!isAdminOrLeader && currentProfile?.group_name) {
     rows = rows.filter(r => r.team === currentProfile.group_name);
   }
-  if (rows.length === 0) {
+  if (rows.length === 0 && !tbody.querySelector('tr[data-new="true"]')) {
     if (tbody) tbody.innerHTML = '';
     if (empty) empty.style.display = 'block';
   } else {
     if (empty) empty.style.display = 'none';
-    if (tbody) {
-      const totalSecond = rows.reduce((s, r) => s + Number(r.second_amount || 0), 0);
-      const totalAll = rows.reduce((s, r) => s + Number(r.total_amount || 0), 0);
-      const teamLabel = crossSalesTeamFilter === 'all' ? '全部' : crossSalesTeamFilter;
-      tbody.innerHTML = rows.map(r => `
-        <tr>
-          <td style="text-align:center;white-space:nowrap;">${r.record_date ? formatDateShort(r.record_date) : '-'}</td>
-          <td style="text-align:center;">${r.shop || '-'}</td>
-          <td style="text-align:center;font-weight:600;">${r.staff_name || '-'}</td>
-          <td style="text-align:center;">${r.product_type || '-'}</td>
-          <td style="text-align:center;font-family:monospace;font-size:13px;">${r.first_order_no || '-'}</td>
-          <td style="text-align:center;font-family:monospace;font-size:13px;">${r.second_order_no || '-'}</td>
-          <td style="text-align:center;"><span class="cross-status-tag ${r.first_order_status === '已发货' ? 'shipped' : 'pending'}">${r.first_order_status || '-'}</span></td>
-          <td style="text-align:center;">¥${Number(r.first_amount || 0).toLocaleString()}</td>
-          <td style="text-align:center;font-weight:600;color:var(--primary);">¥${Number(r.second_amount || 0).toLocaleString()}</td>
-          <td style="text-align:center;font-weight:700;">¥${Number(r.total_amount || 0).toLocaleString()}</td>
-          <td style="text-align:center;">${r.qc_confirmed ? '✅' : '-'}</td>
-          <td style="text-align:center;">
-            ${(isAdminOrLeader || r.staff_name === ((currentProfile?.name || currentProfile?.real_name))) ? `<button class="btn-sm outline" onclick="deleteCrossSalesRecord(${r.id}, '${escapeHtml(r.staff_name || '')}')" style="padding:4px 10px;font-size:12px;">🗑️</button>` : '-'}
-          </td>
-        </tr>
-      `).join('') + `
-        <tr style="background:linear-gradient(90deg,#ede8ff,#e8e3ff);font-weight:800;font-size:15px;color:var(--primary);border-top:2px solid var(--primary);">
-          <td colspan="8" style="text-align:right;padding:12px;">${teamLabel} 合计</td>
-          <td style="text-align:center;">¥${totalSecond.toLocaleString()}</td>
-          <td style="text-align:center;">¥${totalAll.toLocaleString()}</td>
-          <td colspan="2"></td>
-        </tr>
-      `;
-    }
+    if (tbody) renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader);
   }
+}
+
+function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
+  const staffName = (currentProfile?.name || currentProfile?.real_name) || '';
+  const team = currentProfile?.group_name || 'A组';
+  const dateVal = crossSalesDate || getTodayStr();
+  const totalSecond = rows.reduce((s, r) => s + Number(r.second_amount || 0), 0);
+  const totalAll = rows.reduce((s, r) => s + Number(r.total_amount || 0), 0);
+  const teamLabel = crossSalesTeamFilter === 'all' ? '全部' : crossSalesTeamFilter;
+
+  // 保留已有的新增行
+  const newRows = Array.from(tbody.querySelectorAll('tr[data-new="true"]'));
+
+  let html = rows.map((r, idx) => `
+    <tr data-id="${r.id || ''}" data-team="${escapeHtml(r.team || '')}">
+      <td style="padding:4px;"><input type="date" data-field="record_date" value="${r.record_date || ''}" style="width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;">
+        <select data-field="shop" style="width:90px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;">
+          <option value="">请选择</option>
+          <option value="旗舰店" ${r.shop==='旗舰店'?'selected':''}>旗舰店</option>
+          <option value="京东店" ${r.shop==='京东店'?'selected':''}>京东店</option>
+          <option value="拼多多店" ${r.shop==='拼多多店'?'selected':''}>拼多多店</option>
+          <option value="抖音店" ${r.shop==='抖音店'?'selected':''}>抖音店</option>
+          <option value="小红书店" ${r.shop==='小红书店'?'selected':''}>小红书店</option>
+        </select>
+      </td>
+      <td style="padding:4px;"><input data-field="staff_name" value="${escapeHtml(r.staff_name || '')}" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
+      <td style="padding:4px;">
+        <select data-field="product_type" style="width:90px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;">
+          <option value="">请选择</option>
+          <option value="日抛美瞳" ${r.product_type==='日抛美瞳'?'selected':''}>日抛美瞳</option>
+          <option value="月抛美瞳" ${r.product_type==='月抛美瞳'?'selected':''}>月抛美瞳</option>
+          <option value="年抛美瞳" ${r.product_type==='年抛美瞳'?'selected':''}>年抛美瞳</option>
+          <option value="半年抛美瞳" ${r.product_type==='半年抛美瞳'?'selected':''}>半年抛美瞳</option>
+          <option value="季抛美瞳" ${r.product_type==='季抛美瞳'?'selected':''}>季抛美瞳</option>
+          <option value="护理液" ${r.product_type==='护理液'?'selected':''}>护理液</option>
+          <option value="眼镜盒" ${r.product_type==='眼镜盒'?'selected':''}>眼镜盒</option>
+          <option value="其他" ${r.product_type==='其他'?'selected':''}>其他</option>
+        </select>
+      </td>
+      <td style="padding:4px;"><input data-field="first_order_no" value="${escapeHtml(r.first_order_no || '')}" style="width:100px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;"><input data-field="second_order_no" value="${escapeHtml(r.second_order_no || '')}" style="width:100px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;">
+        <select data-field="first_order_status" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;">
+          <option value="已发货" ${r.first_order_status==='已发货'?'selected':''}>已发货</option>
+          <option value="待发货" ${r.first_order_status==='待发货'?'selected':''}>待发货</option>
+          <option value="已成交" ${r.first_order_status==='已成交'?'selected':''}>已成交</option>
+          <option value="已退款" ${r.first_order_status==='已退款'?'selected':''}>已退款</option>
+        </select>
+      </td>
+      <td style="padding:4px;"><input type="number" data-field="first_amount" value="${r.first_amount || ''}" step="0.01" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;" oninput="updateCSRowTotal(this)"></td>
+      <td style="padding:4px;"><input type="number" data-field="second_amount" value="${r.second_amount || ''}" step="0.01" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;" oninput="updateCSRowTotal(this)"></td>
+      <td style="padding:4px;"><input type="number" data-field="total_amount" value="${r.total_amount || ''}" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
+      <td style="text-align:center;padding:4px;"><input type="checkbox" data-field="qc_confirmed" ${r.qc_confirmed ? 'checked' : ''} style="width:16px;height:16px;"></td>
+      <td style="text-align:center;padding:4px;">
+        ${(isAdminOrLeader || r.staff_name === staffName) ? `<button class="btn-sm outline" onclick="deleteCrossSalesRecord(${r.id}, '${escapeHtml(r.staff_name || '')}')" style="padding:2px 8px;font-size:11px;">🗑️</button>` : '-'}
+      </td>
+    </tr>
+  `).join('');
+
+  // 合计行
+  html += `
+    <tr style="background:linear-gradient(90deg,#ede8ff,#e8e3ff);font-weight:800;font-size:14px;color:var(--primary);">
+      <td colspan="7" style="text-align:right;padding:10px;">${teamLabel} 合计</td>
+      <td style="text-align:center;padding:10px;">¥${totalSecond.toLocaleString()}</td>
+      <td style="text-align:center;padding:10px;">¥${totalAll.toLocaleString()}</td>
+      <td colspan="3"></td>
+    </tr>
+    <tr>
+      <td colspan="13" style="padding:10px;background:#f8f8f8;border-top:1px dashed var(--border);">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span style="font-size:13px;color:var(--text-secondary);">新增空白行：</span>
+          <input type="number" id="cs-add-rows-count" value="10" min="1" max="500" style="width:60px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;">
+          <button class="btn-sm outline" onclick="addCrossSalesBlankRows()" style="font-size:13px;">➕ 添加</button>
+          <div style="flex:1;"></div>
+          <button class="btn-sm primary" onclick="saveCrossSalesBatch()" style="font-size:13px;padding:6px 20px;">💾 保存所有更改</button>
+        </div>
+      </td>
+    </tr>
+  `;
+
+  tbody.innerHTML = html;
+  // 恢复保留的新增行
+  newRows.forEach(tr => tbody.appendChild(tr));
+}
+
+function updateCSRowTotal(input) {
+  const row = input.closest('tr');
+  if (!row) return;
+  const f = parseFloat(row.querySelector('[data-field="first_amount"]')?.value) || 0;
+  const s = parseFloat(row.querySelector('[data-field="second_amount"]')?.value) || 0;
+  const totalEl = row.querySelector('[data-field="total_amount"]');
+  if (totalEl) totalEl.value = (f + s) > 0 ? (f + s).toFixed(2) : '';
+}
+
+function addCrossSalesBlankRows() {
+  const countInput = document.getElementById('cs-add-rows-count');
+  const count = parseInt(countInput?.value) || 10;
+  const tbody = document.getElementById('cross-sales-tbody');
+  const staffName = (currentProfile?.name || currentProfile?.real_name) || '';
+  const team = currentProfile?.group_name || 'A组';
+  const dateVal = crossSalesDate || getTodayStr();
+  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+
+  for (let i = 0; i < count; i++) {
+    const tr = document.createElement('tr');
+    tr.setAttribute('data-new', 'true');
+    tr.setAttribute('data-team', team);
+    tr.innerHTML = `
+      <td style="padding:4px;"><input type="date" data-field="record_date" value="${dateVal}" style="width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;">
+        <select data-field="shop" style="width:90px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;">
+          <option value="">请选择</option>
+          <option value="旗舰店">旗舰店</option>
+          <option value="京东店">京东店</option>
+          <option value="拼多多店">拼多多店</option>
+          <option value="抖音店">抖音店</option>
+          <option value="小红书店">小红书店</option>
+        </select>
+      </td>
+      <td style="padding:4px;"><input data-field="staff_name" value="${escapeHtml(staffName)}" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
+      <td style="padding:4px;">
+        <select data-field="product_type" style="width:90px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;">
+          <option value="">请选择</option>
+          <option value="日抛美瞳">日抛美瞳</option>
+          <option value="月抛美瞳">月抛美瞳</option>
+          <option value="年抛美瞳">年抛美瞳</option>
+          <option value="半年抛美瞳">半年抛美瞳</option>
+          <option value="季抛美瞳">季抛美瞳</option>
+          <option value="护理液">护理液</option>
+          <option value="眼镜盒">眼镜盒</option>
+          <option value="其他">其他</option>
+        </select>
+      </td>
+      <td style="padding:4px;"><input data-field="first_order_no" placeholder="第一单" style="width:100px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;"><input data-field="second_order_no" placeholder="第二单" style="width:100px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;">
+        <select data-field="first_order_status" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;">
+          <option value="已发货" selected>已发货</option>
+          <option value="待发货">待发货</option>
+          <option value="已成交">已成交</option>
+          <option value="已退款">已退款</option>
+        </select>
+      </td>
+      <td style="padding:4px;"><input type="number" data-field="first_amount" step="0.01" placeholder="0" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;" oninput="updateCSRowTotal(this)"></td>
+      <td style="padding:4px;"><input type="number" data-field="second_amount" step="0.01" placeholder="0" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;" oninput="updateCSRowTotal(this)"></td>
+      <td style="padding:4px;"><input type="number" data-field="total_amount" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
+      <td style="text-align:center;padding:4px;"><input type="checkbox" data-field="qc_confirmed" style="width:16px;height:16px;"></td>
+      <td style="text-align:center;padding:4px;"><button class="btn-sm outline" onclick="this.closest('tr').remove()" style="padding:2px 8px;font-size:11px;">🗑️</button></td>
+    `;
+    // 插入到合计行之前
+    const lastTr = tbody.lastElementChild;
+    if (lastTr) tbody.insertBefore(tr, lastTr);
+    else tbody.appendChild(tr);
+  }
+  // 隐藏空提示
+  const empty = document.getElementById('cross-sales-empty');
+  if (empty) empty.style.display = 'none';
+}
+
+async function saveCrossSalesBatch() {
+  if (!supabase || !currentUser) { showToast('⚠️ 请先登录'); return; }
+  const tbody = document.getElementById('cross-sales-tbody');
+  const staffName = (currentProfile?.name || currentProfile?.real_name) || '';
+  const team = currentProfile?.group_name || 'A组';
+  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+
+  const toInsert = [];
+  const toUpdate = [];
+
+  Array.from(tbody.querySelectorAll('tr[data-id]')).forEach(tr => {
+    const id = tr.dataset.id;
+    const record = readCSRow(tr);
+    if (!record || !record.staff_name) return;
+    // 普通客服只能修改自己的记录
+    if (!isAdminOrLeader && record.staff_name !== staffName) return;
+    if (id) toUpdate.push({ id, ...record });
+  });
+
+  Array.from(tbody.querySelectorAll('tr[data-new="true"]')).forEach(tr => {
+    const record = readCSRow(tr);
+    if (!record || !record.record_date || !record.staff_name) return;
+    toInsert.push(record);
+  });
+
+  if (toInsert.length === 0 && toUpdate.length === 0) { showToast('⚠️ 没有可保存的数据'); return; }
+
+  try {
+    const promises = [];
+    if (toInsert.length > 0) promises.push(supabase.from('cross_sales').insert(toInsert));
+    if (toUpdate.length > 0) {
+      // 逐条upsert
+      for (const rec of toUpdate) {
+        promises.push(supabase.from('cross_sales').update(rec).eq('id', rec.id));
+      }
+    }
+    const results = await Promise.all(promises);
+    const errors = results.filter(r => r.error);
+    if (errors.length > 0) {
+      showToast('❌ 保存失败: ' + errors[0].error.message);
+      return;
+    }
+    showToast(`✅ 已保存：新增 ${toInsert.length} 条，更新 ${toUpdate.length} 条`);
+    loadCrossSalesFromDB();
+  } catch (e) { showToast('❌ 保存异常: ' + e.message); }
+}
+
+function readCSRow(tr) {
+  const getVal = (field) => {
+    const el = tr.querySelector(`[data-field="${field}"]`);
+    if (!el) return '';
+    if (el.type === 'checkbox') return el.checked;
+    if (el.type === 'number') return el.value === '' ? 0 : parseFloat(el.value);
+    return el.value.trim();
+  };
+  const firstAmount = parseFloat(tr.querySelector('[data-field="first_amount"]')?.value) || 0;
+  const secondAmount = parseFloat(tr.querySelector('[data-field="second_amount"]')?.value) || 0;
+  return {
+    record_date: getVal('record_date'),
+    shop: getVal('shop'),
+    staff_name: getVal('staff_name'),
+    product_type: getVal('product_type'),
+    first_order_no: getVal('first_order_no'),
+    second_order_no: getVal('second_order_no'),
+    first_order_status: getVal('first_order_status'),
+    first_amount: firstAmount,
+    second_amount: secondAmount,
+    total_amount: firstAmount + secondAmount,
+    qc_confirmed: !!tr.querySelector('[data-field="qc_confirmed"]')?.checked,
+    team: tr.dataset.team || currentProfile?.group_name || 'A组',
+  };
 }
 
 async function syncCrossSalesFromFeishu() {
