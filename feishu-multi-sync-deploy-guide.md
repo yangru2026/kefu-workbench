@@ -1,7 +1,7 @@
 # 飞书多表同步 - 完整部署指南
 
-> 本指南指导你完成排班表、客服排名、售前月度数据的飞书同步功能部署。
-> 花色素材的飞书同步已有，本指南将其扩展为支持四张表同步。
+> 本指南指导你完成排班表、客服排名、售前月度、连带成交登记的飞书同步功能部署。
+> 花色素材的飞书同步已有，本指南将其扩展为支持五张表同步。
 
 ---
 
@@ -11,10 +11,10 @@
 
 | 步骤 | 操作位置 | 说明 |
 |------|---------|------|
-| 1 | 飞书 | 创建 3 张多维表格（排班/排名/售前月度） |
+| 1 | 飞书 | 创建 4 张多维表格（排班/排名/售前月度/连带成交） |
 | 2 | Supabase | 执行 SQL 迁移脚本（建表） |
 | 3 | Supabase | 部署 Edge Function（多表同步） |
-| 4 | Supabase | 配置环境变量（飞书凭证 + 4个 table_id） |
+| 4 | Supabase | 配置环境变量（飞书凭证 + 5个 table_id） |
 | 5 | 前端代码 | 配置 SYNC_AUTH_TOKEN |
 
 ---
@@ -26,6 +26,7 @@
 1. **排班表** - 月份/姓名/组别/1日~31日
 2. **客服排名** - 月份/姓名/组别/转化率/连带销售额/满意度/响应时间
 3. **售前月度数据** - 月份/组别/接待量/成交单数/销售额/转化率/响应时间/满意度/连带销售额/接待人数/询单人数/付款人数
+4. **连带成交登记** - 日期/店铺/成交客服/产品类型/第一单订单号/第二单订单号/第一单状态/第一单金额/第二单金额/合计金额/质检确认
 
 创建完成后，从浏览器 URL 中记录每张表的 `table_id`：
 
@@ -49,6 +50,17 @@ https://xxx.feishu.cn/base/XXXXXXXXXXXXXX?table=YYYYYYYYYY
 - 创建 `presale_monthly` 表（售前月度数据）
 - 修改 `ranking_data` 表（添加 staff_name、feishu_record_id 字段）
 - 为三个表配置 RLS 策略和 Realtime 发布
+
+### 连带成交表额外执行
+
+连带成交表不在 `feishu_multi_sync_migration.sql` 中，需要单独执行 `create_cross_sales_table.sql`：
+
+```sql
+-- 文件位置：create_cross_sales_table.sql
+-- 直接粘贴到 Supabase SQL Editor 中执行即可
+```
+
+执行后创建 `cross_sales` 表并启用 RLS + Realtime。
 
 ---
 
@@ -92,7 +104,7 @@ supabase functions deploy feishu-sync
 | `FEISHU_BITABLE_APP_TOKEN` | 多维表格 app_token |
 | `SYNC_AUTH_TOKEN` | 自定义鉴权 token（自己设一个随机字符串） |
 
-### 新增变量（排班/排名/售前月度）
+### 新增变量（排班/排名/售前月度/连带成交）
 
 | 变量名 | 说明 |
 |--------|------|
@@ -100,6 +112,7 @@ supabase functions deploy feishu-sync
 | `FEISHU_SCHEDULE_TABLE_ID` | 排班表的 table_id |
 | `FEISHU_RANKING_TABLE_ID` | 客服排名表的 table_id |
 | `FEISHU_PRESALE_TABLE_ID` | 售前月度表的 table_id |
+| `FEISHU_CROSS_SALES_TABLE_ID` | 连带成交登记表的 table_id |
 
 ### 配置命令（CLI 方式）
 
@@ -112,6 +125,7 @@ supabase secrets set \
   FEISHU_SCHEDULE_TABLE_ID=排班表TableID \
   FEISHU_RANKING_TABLE_ID=客服排名TableID \
   FEISHU_PRESALE_TABLE_ID=售前月度TableID \
+  FEISHU_CROSS_SALES_TABLE_ID=连带成交TableID \
   SYNC_AUTH_TOKEN=你的自定义Token
 ```
 
@@ -186,19 +200,32 @@ const FEISHU_SYNC_CONFIG = {
 4. 使用上月/下月按钮切换查看不同月份
 5. 管理员可以点击「✎ 编辑/补录」直接编辑或补录历史数据，完成后点击「💾 保存」
 
+### 连带成交登记
+
+1. 在飞书连带成交登记表中实时录入/修改数据
+2. 工作台点击侧边栏「🛒 连带成交」进入页面
+3. 点击「🔄 从飞书同步」（也可配置飞书事件订阅自动同步）
+4. 页面上方自动显示**第二单销售额排名**（默认按日，可切换按月份）
+5. 下方显示成交明细表格，实时随飞书更新
+6. 管理员可点击「👥 协作者」邀请特定客服协助维护该页面
+
 ---
 
 ## 验证检查清单
 
-- [ ] 飞书 3 张多维表格已创建，字段名和文档一致
+- [ ] 飞书 4 张多维表格已创建，字段名和文档一致
 - [ ] Supabase SQL 迁移已执行成功
+- [ ] `create_cross_sales_table.sql` 已执行
 - [ ] Edge Function 已部署
-- [ ] 所有环境变量已配置
+- [ ] 所有环境变量已配置（含 `FEISHU_CROSS_SALES_TABLE_ID`）
 - [ ] 前端 `FEISHU_SYNC_CONFIG.authToken` 已填入
 - [ ] 飞书自建应用已添加为多维表格协作者
 - [ ] 排班表同步按钮可正常同步
 - [ ] 客服排名同步按钮可正常同步
 - [ ] 售前月度同步按钮可正常同步
+- [ ] 连带成交同步按钮可正常同步
+- [ ] 连带成交页面显示第二单销售额排名
+- [ ] 连带成交明细随飞书实时更新
 - [ ] 排班表单元格编辑可保存
 - [ ] 客服排名编辑保存可正常工作
 - [ ] 售前月度编辑/补录保存可正常工作

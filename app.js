@@ -2485,6 +2485,7 @@ const PAGE_LABELS = {
   schedule: '排班表',
   ranking: '客服排名',
   presale: '售前月度',
+  'cross-sales': '连带成交',
   qc: '质检工具',
   'staff-info': '客服信息',
   templates: '模板管理',

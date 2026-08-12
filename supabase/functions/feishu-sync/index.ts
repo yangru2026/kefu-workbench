@@ -4,21 +4,23 @@
 // 功能：
 //   1. 手动触发同步（工作台「从飞书同步」按钮调用）
 //   2. 接收飞书事件订阅 webhook（自动同步）
-//   3. 支持四种数据表同步：
-//      - patterns  花色素材 → pattern_assets
-//      - schedule  排班表   → schedule_data
-//      - ranking   客服排名 → ranking_data
-//      - presale   售前月度 → presale_monthly
+//   3. 支持五种数据表同步：
+//      - patterns     花色素材 → pattern_assets
+//      - schedule     排班表   → schedule_data
+//      - ranking      客服排名 → ranking_data
+//      - presale      售前月度 → presale_monthly
+//      - cross_sales  连带成交 → cross_sales
 //
 // 环境变量（在 Supabase Dashboard → Edge Functions → Secrets 中配置）：
-//   FEISHU_APP_ID               飞书自建应用 App ID
-//   FEISHU_APP_SECRET           飞书自建应用 App Secret
-//   FEISHU_BITABLE_APP_TOKEN    多维表格 app_token（URL 中 /base/ 后面的部分）
-//   FEISHU_PATTERN_TABLE_ID     花色素材 table_id
-//   FEISHU_SCHEDULE_TABLE_ID    排班表 table_id
-//   FEISHU_RANKING_TABLE_ID     客服排名 table_id
-//   FEISHU_PRESALE_TABLE_ID     售前月度 table_id
-//   SYNC_AUTH_TOKEN             手动触发的鉴权 token
+//   FEISHU_APP_ID                  飞书自建应用 App ID
+//   FEISHU_APP_SECRET              飞书自建应用 App Secret
+//   FEISHU_BITABLE_APP_TOKEN       多维表格 app_token（URL 中 /base/ 后面的部分）
+//   FEISHU_PATTERN_TABLE_ID        花色素材 table_id
+//   FEISHU_SCHEDULE_TABLE_ID       排班表 table_id
+//   FEISHU_RANKING_TABLE_ID        客服排名 table_id
+//   FEISHU_PRESALE_TABLE_ID        售前月度 table_id
+//   FEISHU_CROSS_SALES_TABLE_ID    连带成交 table_id
+//   SYNC_AUTH_TOKEN                手动触发的鉴权 token
 // ============================================
 
 const FEISHU_BASE = "https://open.feishu.cn/open-apis";
@@ -415,6 +417,55 @@ function mapPresaleMonthlyRecord(record: Record<string, unknown>) {
   };
 }
 
+// 连带成交登记 → cross_sales
+// 飞书日期字段可能是纯文本（如 "8.1"）、date 类型或 ISO 时间戳，这里做兼容解析
+function parseRecordDate(val: unknown): string {
+  const s = fieldValue(val).trim();
+  if (!s) return "";
+  // 已经是 YYYY-MM-DD 格式
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // 2026/08/12 或 2026.08.12 格式
+  const slash = s.match(/^(\d{4})[\/\.\-](\d{1,2})[\/\.\-](\d{1,2})$/);
+  if (slash) {
+    return `${slash[1]}-${String(slash[2]).padStart(2, "0")}-${String(slash[3]).padStart(2, "0")}`;
+  }
+  // 兼容 "8.1" / "8月1日" / "8/1" 等格式，默认当年
+  const year = new Date().getFullYear();
+  const m = s.match(/(\d{1,2})\s*[.\/月]\s*(\d{1,2})/);
+  if (m) {
+    const month = String(m[1]).padStart(2, "0");
+    const day = String(m[2]).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+  // ISO 时间戳（如 2026-08-12T00:00:00.000Z）取日期部分
+  const iso = new Date(s);
+  if (!isNaN(iso.getTime())) {
+    return iso.toISOString().slice(0, 10);
+  }
+  return "";
+}
+
+function mapCrossSalesRecord(record: Record<string, unknown>) {
+  const f = (record.fields || {}) as Record<string, unknown>;
+  const recordDate = parseRecordDate(f["日期"]);
+  const firstAmount = numValue(f["第一单金额"]);
+  const secondAmount = numValue(f["第二单金额"]);
+  return {
+    record_date: recordDate,
+    shop: fieldValue(f["店铺"]),
+    staff_name: fieldValue(f["成交客服"]),
+    product_type: fieldValue(f["产品类型"]),
+    first_order_no: fieldValue(f["第一单订单号"]),
+    second_order_no: fieldValue(f["第二单订单号"]),
+    first_order_status: fieldValue(f["第一单状态"]),
+    first_amount: firstAmount,
+    second_amount: secondAmount,
+    total_amount: numValue(f["合计金额"]) || (firstAmount + secondAmount),
+    qc_confirmed: boolValue(f["质检确认"]),
+    feishu_record_id: String(record.record_id || ""),
+  };
+}
+
 // ============================================
 // Supabase REST API 工具函数
 // ============================================
@@ -739,6 +790,14 @@ const SYNC_TYPES: Record<string, SyncType> = {
     onConflict: "period_month,group_name",
     filterFn: (row) => !!row.period_month && !!row.group_name,
   },
+  cross_sales: {
+    name: "连带成交",
+    tableIdEnv: "FEISHU_CROSS_SALES_TABLE_ID",
+    mapFn: mapCrossSalesRecord,
+    supabaseTable: "cross_sales",
+    onConflict: "record_date,first_order_no,second_order_no",
+    filterFn: (row) => !!row.record_date && !!row.staff_name,
+  },
 };
 
 // 执行单种类型的同步
@@ -888,6 +947,8 @@ Deno.serve(async (req: Request) => {
       typesToSync = ["ranking"];
     } else if (action === "sync_presale") {
       typesToSync = ["presale"];
+    } else if (action === "sync_cross_sales") {
+      typesToSync = ["cross_sales"];
     } else {
       return json({ ok: false, error: `未知的 action: ${action}` }, 400);
     }

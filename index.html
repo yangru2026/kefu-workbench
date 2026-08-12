@@ -617,6 +617,11 @@ body {
 .lightbox-close:hover { background:rgba(255,255,255,0.3); }
 @media (max-width:768px) { .lightbox-prev { left:4px; } .lightbox-next { right:4px; } .lightbox-nav { width:36px; height:36px; font-size:18px; } }
 
+/* ===== Cross Sales ===== */
+.cross-status-tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; font-weight:600; }
+.cross-status-tag.pending { background:#fff3cd; color:#856404; }
+.cross-status-tag.shipped { background:#d4edda; color:#155724; }
+
 /* ===== Logistics Query ===== */
 .logistics-modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.45); z-index:2000; align-items:center; justify-content:center; }
 .logistics-modal.show { display:flex; }
@@ -997,6 +1002,7 @@ body {
     <div class="nav-item" data-page="ranking"><span class="icon">🏆</span><span>客服排名</span></div>
     <div class="nav-item" data-page="daily"><span class="icon">🌙</span><span>日报</span></div>
     <div class="nav-item" data-page="presale"><span class="icon">📈</span><span>售前数据</span></div>
+    <div class="nav-item" data-page="cross-sales"><span class="icon">🛒</span><span>连带成交</span></div>
     <div class="nav-item" data-page="qc"><span class="icon">🔍</span><span>质检工具</span></div>
     <div class="nav-section">账号</div>
     <div class="nav-item admin-only-nav" data-page="members" style="display:none;"><span class="icon">👥</span><span>成员管理</span></div>
@@ -1186,6 +1192,59 @@ body {
         </div>
       </div>
     </div><!-- end monthly tab -->
+  </div>
+
+  <!-- ===== 连带成交 ===== -->
+  <div class="page" id="page-cross-sales">
+    <div class="page-header"><h1>🛒 连带成交登记</h1><p>飞书实时同步 · 第二单销售额排名 · 按日/按月统计</p></div>
+
+    <!-- 日期/月份筛选 -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+      <button class="btn btn-outline" onclick="prevCrossSalesDate()">◀ 上一天</button>
+      <input type="date" id="cross-sales-date-input" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;" onchange="onCrossSalesDateChange()">
+      <button class="btn btn-outline" onclick="nextCrossSalesDate()">下一天 ▶</button>
+      <div style="flex:1;"></div>
+      <button class="collab-btn" id="collab-cross-sales-btn" onclick="openCollabPanel('cross-sales')" style="display:none;">👥 协作者</button>
+      <button class="feishu-sync-btn admin-only-nav" id="cross-sales-sync-btn" onclick="syncCrossSalesFromFeishu()" style="display:none;">🔄 从飞书同步</button>
+      <button class="btn-sm outline" id="cross-sales-month-rank-btn" onclick="toggleCrossSalesRankMode()">📅 按月份排名</button>
+    </div>
+
+    <!-- 排名卡片 -->
+    <div class="card" style="margin-bottom:20px;">
+      <h3 style="margin-bottom:12px;">🏆 第二单销售额排名 <span id="cross-sales-rank-label" style="font-size:13px;color:var(--text-secondary);font-weight:normal;">（今日）</span></h3>
+      <div id="cross-sales-rank-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;"></div>
+      <div id="cross-sales-rank-empty" style="text-align:center;padding:30px;color:var(--text-secondary);display:none;">
+        <div style="font-size:36px;margin-bottom:8px;">🏆</div>
+        <p>暂无排名数据</p>
+      </div>
+    </div>
+
+    <!-- 明细表格 -->
+    <div class="card">
+      <h3 style="margin-bottom:16px;">📋 成交明细</h3>
+      <div style="overflow-x:auto;">
+        <table class="ranking-table" style="min-width:1000px;" id="cross-sales-table">
+          <thead><tr>
+            <th style="text-align:center;">日期</th>
+            <th style="text-align:center;">店铺</th>
+            <th style="text-align:center;">成交客服</th>
+            <th style="text-align:center;">产品类型</th>
+            <th style="text-align:center;">第一单订单号</th>
+            <th style="text-align:center;">第二单订单号</th>
+            <th style="text-align:center;">第一单状态</th>
+            <th style="text-align:center;">第一单金额</th>
+            <th style="text-align:center;">第二单金额</th>
+            <th style="text-align:center;">合计金额</th>
+            <th style="text-align:center;">质检确认</th>
+          </tr></thead>
+          <tbody id="cross-sales-tbody"></tbody>
+        </table>
+      </div>
+      <div id="cross-sales-empty" style="text-align:center;padding:40px;color:var(--text-secondary);display:none;">
+        <div style="font-size:40px;margin-bottom:8px;">🛒</div>
+        <p>暂无连带成交数据</p>
+      </div>
+    </div>
   </div>
 
   <!-- ===== 成员管理 ===== -->
@@ -1684,13 +1743,15 @@ async function initSupabase() {
     });
     // Notify app.js that supabase is ready
     if (window.onSupabaseReady) window.onSupabaseReady();
-    // 加载排班/排名/售前月度数据
+    // 加载排班/排名/售前月度/连带成交数据
     loadScheduleFromDB();
     loadRankingFromDB();
     loadPresaleMonthly();
+    loadCrossSalesFromDB();
     subscribeSchedule();
     subscribeRanking();
     subscribePresaleMonthly();
+    subscribeCrossSales();
     subscribeRequests();
   } catch (e) {
     console.error('Supabase 初始化失败', e);
@@ -1730,6 +1791,7 @@ function refreshAdminUI() {
   const canEditSchedule = canEdit('schedule');
   const canEditRanking = canEdit('ranking');
   const canEditPresale = canEdit('presale');
+  const canEditCrossSales = canEdit('cross-sales');
   const canEditStaffInfo = canEdit('staff-info');
 
   // 花色素材「新增」按钮
@@ -1756,6 +1818,9 @@ function refreshAdminUI() {
   // 售前月度「协作者」按钮
   const collabPresaleBtn = document.getElementById('collab-presale-btn');
   if (collabPresaleBtn) collabPresaleBtn.style.display = isAdmin ? '' : 'none';
+  // 连带成交「协作者」按钮
+  const collabCrossSalesBtn = document.getElementById('collab-cross-sales-btn');
+  if (collabCrossSalesBtn) collabCrossSalesBtn.style.display = isAdmin ? '' : 'none';
   // 客服信息「协作者」按钮
   const collabStaffBtn = document.getElementById('collab-staff-btn');
   if (collabStaffBtn) collabStaffBtn.style.display = isAdmin ? '' : 'none';
@@ -1780,6 +1845,9 @@ function refreshAdminUI() {
   if (presaleSaveBtn) presaleSaveBtn.style.display = canEditPresale ? presaleSaveBtn.style.display : 'none';
   const presaleSyncBtn = document.getElementById('presale-monthly-sync-btn');
   if (presaleSyncBtn) presaleSyncBtn.style.display = canEditPresale ? '' : 'none';
+  // 连带成交编辑权限
+  const crossSalesSyncBtn = document.getElementById('cross-sales-sync-btn');
+  if (crossSalesSyncBtn) crossSalesSyncBtn.style.display = canEditCrossSales ? '' : 'none';
 
   // Re-render patterns/training to show/hide mgmt buttons
   if (currentPage === 'patterns' && canEditPatterns !== (window._lastCanEditPatterns !== false)) {
@@ -2488,6 +2556,212 @@ async function syncPresaleFromFeishu() {
   }
 }
 
+// ==================== 连带成交登记 ====================
+let crossSalesData = [];
+let crossSalesSub = null;
+let crossSalesDate = '';
+let crossSalesRankMode = 'day'; // 'day' 按日排名，'month' 按月份排名
+let crossSalesMonth = '';
+
+function getTodayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function formatDateShort(dateStr) {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+async function loadCrossSalesFromDB() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase
+      .from('cross_sales')
+      .select('*')
+      .order('record_date', { ascending: false })
+      .limit(5000);
+    if (error) { console.warn('连带成交数据加载失败:', error.message); return; }
+    crossSalesData = data || [];
+    if (!crossSalesDate) crossSalesDate = getTodayStr();
+    if (!crossSalesMonth) {
+      const now = new Date();
+      crossSalesMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    }
+    if (currentPage === 'cross-sales') renderCrossSales();
+  } catch(e) { console.error('连带成交数据加载异常:', e); }
+}
+
+function subscribeCrossSales() {
+  if (!supabase || crossSalesSub) return;
+  crossSalesSub = supabase.channel('cross-sales-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'cross_sales' }, () => {
+      loadCrossSalesFromDB();
+    })
+    .subscribe();
+}
+
+function onCrossSalesDateChange() {
+  const input = document.getElementById('cross-sales-date-input');
+  if (input) crossSalesDate = input.value;
+  crossSalesRankMode = 'day';
+  renderCrossSales();
+}
+
+function prevCrossSalesDate() {
+  const d = new Date(crossSalesDate || getTodayStr());
+  d.setDate(d.getDate() - 1);
+  crossSalesDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  crossSalesRankMode = 'day';
+  renderCrossSales();
+}
+
+function nextCrossSalesDate() {
+  const d = new Date(crossSalesDate || getTodayStr());
+  d.setDate(d.getDate() + 1);
+  crossSalesDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  crossSalesRankMode = 'day';
+  renderCrossSales();
+}
+
+function toggleCrossSalesRankMode() {
+  if (crossSalesRankMode === 'day') {
+    crossSalesRankMode = 'month';
+  } else {
+    crossSalesRankMode = 'day';
+  }
+  renderCrossSales();
+}
+
+function getCrossSalesRankData() {
+  let filtered = [];
+  if (crossSalesRankMode === 'day') {
+    filtered = crossSalesData.filter(r => r.record_date === crossSalesDate);
+  } else {
+    const monthPrefix = crossSalesDate.slice(0, 7);
+    filtered = crossSalesData.filter(r => r.record_date && r.record_date.startsWith(monthPrefix));
+  }
+  const map = {};
+  filtered.forEach(r => {
+    const name = r.staff_name;
+    if (!name) return;
+    if (!map[name]) map[name] = { name, count: 0, secondAmount: 0, totalAmount: 0 };
+    map[name].count += 1;
+    map[name].secondAmount += Number(r.second_amount || 0);
+    map[name].totalAmount += Number(r.total_amount || 0);
+  });
+  const arr = Object.values(map);
+  arr.sort((a, b) => b.secondAmount - a.secondAmount);
+  return arr;
+}
+
+function getCrossSalesDetailRows() {
+  if (crossSalesRankMode === 'day') {
+    return crossSalesData.filter(r => r.record_date === crossSalesDate).sort((a, b) => (a.id || 0) - (b.id || 0));
+  }
+  const monthPrefix = crossSalesDate.slice(0, 7);
+  return crossSalesData.filter(r => r.record_date && r.record_date.startsWith(monthPrefix)).sort((a, b) => {
+    if (a.record_date !== b.record_date) return (b.record_date || '').localeCompare(a.record_date || '');
+    return (a.id || 0) - (b.id || 0);
+  });
+}
+
+function renderCrossSales() {
+  const dateInput = document.getElementById('cross-sales-date-input');
+  if (dateInput) dateInput.value = crossSalesDate;
+
+  const rankBtn = document.getElementById('cross-sales-month-rank-btn');
+  if (rankBtn) rankBtn.textContent = crossSalesRankMode === 'day' ? '📅 按月份排名' : '📅 按日排名';
+
+  // 排名
+  const rankCards = document.getElementById('cross-sales-rank-cards');
+  const rankEmpty = document.getElementById('cross-sales-rank-empty');
+  const rankLabel = document.getElementById('cross-sales-rank-label');
+  if (rankLabel) rankLabel.textContent = crossSalesRankMode === 'day' ? '（' + formatDateShort(crossSalesDate) + '）' : '（' + crossSalesDate.slice(0, 7) + ' 全月）';
+
+  const rankData = getCrossSalesRankData();
+  if (rankData.length === 0) {
+    if (rankCards) rankCards.innerHTML = '';
+    if (rankEmpty) rankEmpty.style.display = 'block';
+  } else {
+    if (rankEmpty) rankEmpty.style.display = 'none';
+    if (rankCards) {
+      rankCards.innerHTML = rankData.slice(0, 10).map((item, idx) => {
+        const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `<span style="font-weight:700;width:24px;display:inline-block;text-align:center;">${idx + 1}</span>`;
+        return `
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card-bg);border:1px solid var(--border);border-radius:12px;">
+            <div style="font-size:24px;">${medal}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name}</div>
+              <div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">${item.count} 笔连带</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-weight:700;color:var(--primary);font-size:16px;">¥${item.secondAmount.toLocaleString()}</div>
+              <div style="font-size:11px;color:var(--text-secondary);">第二单金额</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // 明细
+  const tbody = document.getElementById('cross-sales-tbody');
+  const empty = document.getElementById('cross-sales-empty');
+  const rows = getCrossSalesDetailRows();
+  if (rows.length === 0) {
+    if (tbody) tbody.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+  } else {
+    if (empty) empty.style.display = 'none';
+    if (tbody) {
+      tbody.innerHTML = rows.map(r => `
+        <tr>
+          <td style="text-align:center;white-space:nowrap;">${r.record_date ? formatDateShort(r.record_date) : '-'}</td>
+          <td style="text-align:center;">${r.shop || '-'}</td>
+          <td style="text-align:center;font-weight:600;">${r.staff_name || '-'}</td>
+          <td style="text-align:center;">${r.product_type || '-'}</td>
+          <td style="text-align:center;font-family:monospace;font-size:13px;">${r.first_order_no || '-'}</td>
+          <td style="text-align:center;font-family:monospace;font-size:13px;">${r.second_order_no || '-'}</td>
+          <td style="text-align:center;"><span class="cross-status-tag ${r.first_order_status === '已发货' ? 'shipped' : 'pending'}">${r.first_order_status || '-'}</span></td>
+          <td style="text-align:center;">¥${Number(r.first_amount || 0).toLocaleString()}</td>
+          <td style="text-align:center;font-weight:600;color:var(--primary);">¥${Number(r.second_amount || 0).toLocaleString()}</td>
+          <td style="text-align:center;font-weight:700;">¥${Number(r.total_amount || 0).toLocaleString()}</td>
+          <td style="text-align:center;">${r.qc_confirmed ? '✅' : '-'}</td>
+        </tr>
+      `).join('');
+    }
+  }
+}
+
+async function syncCrossSalesFromFeishu() {
+  const btn = document.getElementById('cross-sales-sync-btn');
+  if (!FEISHU_SYNC_CONFIG.authToken) { showToast('⚠️ 请先配置飞书同步参数'); return; }
+  if (!confirm('确定从飞书同步连带成交登记表？\n\n同步规则：\n• 飞书新增/修改的记录会写入工作台\n• 同一天+同一组订单号重复的数据会自动覆盖\n• 同步完成后自动刷新排名和明细')) return;
+  if (btn) { btn.disabled = true; btn.classList.add('syncing'); btn.textContent = '🔄 同步中...'; }
+  try {
+    const resp = await fetch(FEISHU_SYNC_CONFIG.edgeFunctionUrl, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + FEISHU_SYNC_CONFIG.authToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'sync_cross_sales' })
+    });
+    const data = await resp.json();
+    if (data.ok && data.results) {
+      const r = data.results.cross_sales || {};
+      if (r.error) showToast('❌ 连带成交同步失败: ' + r.error);
+      else showToast('✅ 连带成交同步完成！飞书 ' + (r.total_in_feishu||0) + ' 条，写入 ' + (r.synced||0) + ' 条');
+      loadCrossSalesFromDB();
+    } else {
+      showToast('❌ 同步失败: ' + (data.error || '未知错误'));
+    }
+  } catch(e) {
+    showToast('❌ 同步异常: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('syncing'); btn.textContent = '🔄 从飞书同步'; }
+  }
+}
+
 function prevPresaleMonth() {
   const [y, m] = presaleMonthlyMonth.split('-').map(Number);
   const d = new Date(y, m - 2, 1);
@@ -2829,6 +3103,7 @@ function switchPage(page) {
   if (page === 'schedule') renderSchedule();
   if (page === 'requests') { loadRequests(); renderReqForm(); }
   if (page === 'ranking') { if (rankingAllRows.length === 0) loadRankingFromDB(); else renderRanking(); }
+  if (page === 'cross-sales') { if (crossSalesData.length === 0) loadCrossSalesFromDB(); else renderCrossSales(); }
   if (page === 'presale' && presaleActiveTab === 'monthly') renderPresaleMonthly();
   if (page === 'staff-info') loadStaffInfo();
   if (page === 'qc') {
