@@ -1234,7 +1234,7 @@ body {
     <!-- 明细表格 -->
     <div class="card">
       <h3 style="margin-bottom:16px;">📋 成交明细</h3>
-      <div style="overflow-x:auto;max-height:calc(100vh - 280px);overflow-y:auto;">
+      <div style="overflow-x:auto;">
         <table class="ranking-table" style="min-width:1000px;" id="cross-sales-table">
           <thead style="position:sticky;top:0;z-index:10;background:var(--card-bg);"><tr>
             <th style="text-align:center;">日期</th>
@@ -2704,7 +2704,8 @@ function subscribeCrossSales() {
   if (!supabase || crossSalesSub) return;
   crossSalesSub = supabase.channel('cross-sales-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'cross_sales' }, () => {
-      loadCrossSalesFromDB();
+      clearTimeout(window._csLoadTimer);
+      window._csLoadTimer = setTimeout(loadCrossSalesFromDB, 800);
     })
     .subscribe();
 }
