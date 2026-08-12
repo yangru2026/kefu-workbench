@@ -1273,33 +1273,46 @@ body {
             <input type="date" id="cs-form-date" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
           </div>
           <div>
-            <label style="font-size:13px;font-weight:600;color:var(--text);">店铺</label>
-            <input type="text" id="cs-form-shop" list="cs-shop-options" placeholder="如：旗舰店" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
-            <datalist id="cs-shop-options"></datalist>
+            <label style="font-size:13px;font-weight:600;color:var(--text);">成交店铺 <span style="color:#e74c3c;">*</span></label>
+            <select id="cs-form-shop" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
+              <option value="">请选择店铺</option>
+              <option value="旗舰店">旗舰店</option>
+              <option value="京东店">京东店</option>
+              <option value="拼多多店">拼多多店</option>
+              <option value="抖音店">抖音店</option>
+              <option value="小红书店">小红书店</option>
+            </select>
           </div>
           <div>
-            <label style="font-size:13px;font-weight:600;color:var(--text);">成交客服 <span style="color:#e74c3c;">*</span></label>
-            <input type="text" id="cs-form-staff" list="cs-staff-options" placeholder="登记人姓名" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
-            <datalist id="cs-staff-options"></datalist>
+            <label style="font-size:13px;font-weight:600;color:var(--text);">成交客服</label>
+            <input type="text" id="cs-form-staff" readonly style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--text-secondary);cursor:not-allowed;">
           </div>
           <div>
             <label style="font-size:13px;font-weight:600;color:var(--text);">产品类型</label>
-            <input type="text" id="cs-form-type" list="cs-type-options" placeholder="如：日抛美瞳" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
-            <datalist id="cs-type-options"></datalist>
+            <select id="cs-form-type" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
+              <option value="">请选择类型</option>
+              <option value="日抛美瞳">日抛美瞳</option>
+              <option value="月抛美瞳">月抛美瞳</option>
+              <option value="年抛美瞳">年抛美瞳</option>
+              <option value="半年抛美瞳">半年抛美瞳</option>
+              <option value="季抛美瞳">季抛美瞳</option>
+              <option value="护理液">护理液</option>
+              <option value="眼镜盒">眼镜盒</option>
+              <option value="其他">其他</option>
+            </select>
           </div>
           <div>
             <label style="font-size:13px;font-weight:600;color:var(--text);">第一单订单号 <span style="color:#e74c3c;">*</span></label>
-            <input type="text" id="cs-form-first-no" placeholder="如：202608120001" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+            <input type="text" id="cs-form-first-no" placeholder="输入第一单订单号" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
           </div>
           <div>
             <label style="font-size:13px;font-weight:600;color:var(--text);">第二单订单号 <span style="color:#e74c3c;">*</span></label>
-            <input type="text" id="cs-form-second-no" placeholder="如：202608120002" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+            <input type="text" id="cs-form-second-no" placeholder="输入第二单订单号" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
           </div>
           <div>
             <label style="font-size:13px;font-weight:600;color:var(--text);">第一单状态</label>
-            <select id="cs-form-status" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
-              <option value="">请选择</option>
-              <option value="已发货">已发货</option>
+            <select id="cs-form-status" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
+              <option value="已发货" selected>已发货</option>
               <option value="待发货">待发货</option>
               <option value="已成交">已成交</option>
               <option value="已退款">已退款</option>
@@ -1310,12 +1323,12 @@ body {
             <input type="number" id="cs-form-first-amount" min="0" step="0.01" placeholder="0.00" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;" oninput="updateCrossSalesTotal()">
           </div>
           <div>
-            <label style="font-size:13px;font-weight:600;color:var(--text);">第二单金额（元）</label>
+            <label style="font-size:13px;font-weight:600;color:var(--text);">第二单金额（元）<span style="color:#e74c3c;">*</span></label>
             <input type="number" id="cs-form-second-amount" min="0" step="0.01" placeholder="0.00" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;" oninput="updateCrossSalesTotal()">
           </div>
           <div>
-            <label style="font-size:13px;font-weight:600;color:var(--text);">合计金额（元）<span style="font-weight:400;color:var(--text-secondary);">自动计算</span></label>
-            <input type="number" id="cs-form-total-amount" min="0" step="0.01" placeholder="自动 = 第一 + 第二" style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+            <label style="font-size:13px;font-weight:600;color:var(--text);">合计金额（元）</label>
+            <input type="number" id="cs-form-total-amount" min="0" step="0.01" placeholder="自动计算" readonly style="width:100%;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--text-secondary);cursor:not-allowed;">
           </div>
           <div style="display:flex;align-items:flex-end;gap:8px;">
             <label style="font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px;padding-bottom:8px;cursor:pointer;">
@@ -2825,7 +2838,12 @@ function renderCrossSales() {
   // 明细
   const tbody = document.getElementById('cross-sales-tbody');
   const empty = document.getElementById('cross-sales-empty');
-  const rows = getCrossSalesDetailRows();
+  let rows = getCrossSalesDetailRows();
+  // 普通客服只能看到自己组的明细，管理员/leader看全部
+  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  if (!isAdminOrLeader && currentProfile?.group_name) {
+    rows = rows.filter(r => r.team === currentProfile.group_name);
+  }
   if (rows.length === 0) {
     if (tbody) tbody.innerHTML = '';
     if (empty) empty.style.display = 'block';
@@ -2896,17 +2914,19 @@ function openCrossSalesForm() {
   // 预填日期：默认当前查看的日期；若查看的是历史日期则用今天
   const dateInput = document.getElementById('cs-form-date');
   if (dateInput) dateInput.value = crossSalesDate || getTodayStr();
-  // 预填客服姓名
+  // 预填客服姓名（只读，自动带入登录人）
   const staffInput = document.getElementById('cs-form-staff');
   if (staffInput) staffInput.value = (currentProfile && (currentProfile.name || currentProfile.real_name)) || '';
   // 重置其他字段
-  const ids = ['cs-form-shop', 'cs-form-type', 'cs-form-first-no', 'cs-form-second-no', 'cs-form-first-amount', 'cs-form-second-amount', 'cs-form-total-amount'];
+  const shopEl = document.getElementById('cs-form-shop');
+  if (shopEl) shopEl.value = '';
+  const typeEl = document.getElementById('cs-form-type');
+  if (typeEl) typeEl.value = '';
+  const ids = ['cs-form-first-no', 'cs-form-second-no', 'cs-form-first-amount', 'cs-form-second-amount', 'cs-form-total-amount'];
   ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  const statusEl = document.getElementById('cs-form-status'); if (statusEl) statusEl.value = '';
+  const statusEl = document.getElementById('cs-form-status'); if (statusEl) statusEl.value = '已发货';
   const qcEl = document.getElementById('cs-form-qc'); if (qcEl) qcEl.checked = false;
   const tip = document.getElementById('cs-form-tip'); if (tip) tip.style.display = 'none';
-  // 刷新下拉候选
-  fillCrossSalesDatalists();
   showModalById('mod-cross-sales');
 }
 
@@ -2932,7 +2952,7 @@ function fillCrossSalesDatalists() {
   setOptions('cs-type-options', types);
 }
 
-// 合计金额自动计算（可手动覆盖）
+// 合计金额自动计算
 function updateCrossSalesTotal() {
   const firstEl = document.getElementById('cs-form-first-amount');
   const secondEl = document.getElementById('cs-form-second-amount');
@@ -2940,7 +2960,8 @@ function updateCrossSalesTotal() {
   if (!firstEl || !secondEl || !totalEl) return;
   const f = parseFloat(firstEl.value) || 0;
   const s = parseFloat(secondEl.value) || 0;
-  totalEl.value = (f + s) ? (f + s).toFixed(2) : '';
+  const sum = f + s;
+  totalEl.value = sum > 0 ? sum.toFixed(2) : '';
 }
 
 // 提交登记
@@ -2957,6 +2978,8 @@ async function saveCrossSalesRecord() {
   // 必填校验
   if (!date) return showToast('⚠️ 请选择日期');
   if (!staff) return showToast('⚠️ 请填写成交客服');
+  const shop = document.getElementById('cs-form-shop')?.value.trim() || '';
+  if (!shop) return showToast('⚠️ 请选择成交店铺');
   if (!firstNo && !secondNo) return showToast('⚠️ 请至少填写一个订单号');
   const firstAmount = parseFloat(document.getElementById('cs-form-first-amount')?.value) || 0;
   const secondAmount = parseFloat(document.getElementById('cs-form-second-amount')?.value) || 0;
