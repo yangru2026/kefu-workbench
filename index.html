@@ -590,9 +590,10 @@ body {
 .lightbox.show { display:flex; }
 .lightbox-img-wrap { position:relative; display:flex; align-items:center; justify-content:center; width:min(92vw, 900px); max-height:82vh; }
 .lightbox-img-stack { position:relative; display:flex; align-items:center; justify-content:center; width:100%; max-height:78vh; min-height:120px; }
-.lightbox-img-stack img { max-width:min(92vw, 900px); max-height:78vh; object-fit:contain; border-radius:6px; box-shadow:0 8px 40px rgba(0,0,0,0.5); cursor:default; transition:opacity 0.35s ease; }
+.lightbox-img-stack img { max-width:min(92vw, 900px); max-height:78vh; object-fit:contain; border-radius:6px; box-shadow:0 8px 40px rgba(0,0,0,0.5); cursor:default; transition:opacity 0.35s ease, filter 0.35s ease; }
 .lightbox-hd { opacity:0; display:block; margin:auto; }
-.lightbox-hd.loaded { opacity:1; }
+.lightbox-hd.loaded { opacity:1; filter:none; }
+.lightbox-hd.thumb-placeholder { opacity:0.55; filter:blur(6px); }
 .lightbox-loader { position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; gap:10px; pointer-events:none; }
 .lightbox-loader.show { display:flex; }
 .lightbox-loader .lightbox-retry { pointer-events:auto; }
@@ -4210,6 +4211,15 @@ function toCdnUrl(url) {
   return url;
 }
 
+// 将 jsDelivr CDN URL 回退到 GitHub Pages 直接源（CDN 异常时备用）
+function toDirectUrl(url) {
+  if (!url) return '';
+  if (url.includes('cdn.jsdelivr.net/gh/yangru2026/kefu-workbench@main/')) {
+    return url.replace(/^https?:\/\/cdn\.jsdelivr\.net\/gh\/yangru2026\/kefu-workbench@main\//, 'https://yangru2026.github.io/kefu-workbench/');
+  }
+  return url;
+}
+
 // 给图片 URL 加版本号，避免浏览器/CDN 缓存返回旧资源
 function addCacheBuster(url) {
   if (!url || url.includes('supabase.co') || url.includes('?')) return url;
@@ -4452,6 +4462,20 @@ function openLightbox(images) {
   showLightboxImage();
   document.getElementById('lightbox').classList.add('show');
   document.body.style.overflow = 'hidden';
+  // 后台预加载下一张高清中图
+  if (lightboxImages.length > 1) {
+    preloadLightboxImage(1);
+  }
+}
+
+function preloadLightboxImage(idx) {
+  if (idx < 0 || idx >= lightboxImages.length) return;
+  const img = lightboxImages[idx];
+  const url = img.large || img.hd;
+  if (!url) return;
+  const preload = new Image();
+  preload.crossOrigin = 'anonymous';
+  preload.src = url;
 }
 
 function resetLightboxStatus() {
@@ -4482,9 +4506,10 @@ function showLightboxImage() {
   cancelLightboxPreload();
 
   hdEl.classList.remove('loaded');
-  hdEl.src = '';
+  hdEl.classList.add('thumb-placeholder');
   hdEl.removeAttribute('data-hd');
-  // 直接显示 spinner，不用模糊缩略图占位
+  // 先显示已缓存的缩略图（即时可见，减少黑屏等待感），后台再加载高清中图
+  hdEl.src = img.thumb || '';
   loader.classList.add('show');
 
   document.getElementById('lightbox-counter').textContent =
@@ -4517,45 +4542,58 @@ function loadLightboxHd(largeUrl, fallbackUrl) {
   const hdEl = document.getElementById('lightbox-img');
   const loader = document.getElementById('lightbox-loader');
 
-  cancelLightboxPreload();
-  const preload = new Image();
-  preload.crossOrigin = 'anonymous'; // 允许 canvas 复制
-  lightboxCurrentPreload = preload;
+  // 构建候选 URL 队列：CDN 中图 -> 直接源中图 -> CDN 原图 -> 直接源原图
+  const candidates = [];
+  function addCandidate(url) {
+    if (!url) return;
+    if (!candidates.includes(url)) candidates.push(url);
+  }
+  addCandidate(largeUrl);
+  addCandidate(toDirectUrl(largeUrl));
+  addCandidate(fallbackUrl);
+  addCandidate(toDirectUrl(fallbackUrl));
+
+  let candidateIdx = 0;
+  let timeoutTimer = null;
 
   function applyLoaded(url) {
+    if (timeoutTimer) { clearTimeout(timeoutTimer); timeoutTimer = null; }
     resetLightboxStatus();
     hdEl.src = url;
     hdEl.crossOrigin = 'anonymous';
     hdEl.setAttribute('data-hd', url);
     void hdEl.offsetWidth;
+    hdEl.classList.remove('thumb-placeholder');
     hdEl.classList.add('loaded');
     loader.classList.remove('show');
   }
 
-  preload.onload = function() {
-    applyLoaded(largeUrl);
-  };
-  preload.onerror = function() {
-    if (fallbackUrl && fallbackUrl !== largeUrl) {
-      const fallbackPreload = new Image();
-      fallbackPreload.crossOrigin = 'anonymous';
-      lightboxCurrentPreload = fallbackPreload;
-      fallbackPreload.onload = function() {
-        applyLoaded(fallbackUrl);
-      };
-      fallbackPreload.onerror = function() {
-        resetLightboxStatus();
-        setLightboxStatus('图片加载失败，可点击重试', true);
-        loader.classList.add('show');
-      };
-      fallbackPreload.src = fallbackUrl;
-    } else {
+  function tryNext() {
+    cancelLightboxPreload();
+    if (candidateIdx >= candidates.length) {
+      if (timeoutTimer) { clearTimeout(timeoutTimer); timeoutTimer = null; }
       resetLightboxStatus();
       setLightboxStatus('图片加载失败，可点击重试', true);
       loader.classList.add('show');
+      return;
     }
-  };
-  preload.src = largeUrl;
+    const url = candidates[candidateIdx++];
+    lightboxCurrentPreload = new Image();
+    lightboxCurrentPreload.crossOrigin = 'anonymous';
+    lightboxCurrentPreload.onload = function() { applyLoaded(url); };
+    lightboxCurrentPreload.onerror = function() { tryNext(); };
+    lightboxCurrentPreload.src = url;
+  }
+
+  // 5秒超时：若当前图片仍未加载完，自动切换到下一个候选源
+  timeoutTimer = setTimeout(() => {
+    if (!hdEl.classList.contains('loaded')) {
+      tryNext();
+    }
+  }, 5000);
+
+  cancelLightboxPreload();
+  tryNext();
 }
 
 function retryLightboxHd() {
@@ -4569,13 +4607,9 @@ function navLightbox(dir) {
   if (newIdx < 0 || newIdx >= lightboxImages.length) return;
   lightboxIdx = newIdx;
   showLightboxImage();
-  // 预加载下一张（先中图，再原图）
-  const preloadIdx = lightboxIdx + dir;
-  if (preloadIdx >= 0 && preloadIdx < lightboxImages.length) {
-    const next = lightboxImages[preloadIdx];
-    const nextImg = new Image();
-    nextImg.src = next.large || next.hd;
-  }
+  // 预加载前后各一张高清中图
+  preloadLightboxImage(lightboxIdx + dir);
+  preloadLightboxImage(lightboxIdx - dir);
 }
 
 function closeLightbox() {
