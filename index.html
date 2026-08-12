@@ -3424,7 +3424,7 @@ function renderCrossSales() {
   // 普通客服首次进入默认选中自己组，并自动聚焦到自己
   if (!isAdminOrLeader && !crossSalesTeamInited) {
     if (currentProfile?.group_name) crossSalesTeamFilter = currentProfile.group_name;
-    if (staffName) crossSalesFocusStaff = staffName;
+    if (staffName) crossSalesRankFocus = staffName;
   }
   crossSalesTeamInited = true;
   // 同步组按钮高亮
