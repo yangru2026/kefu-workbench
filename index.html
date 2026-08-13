@@ -3803,7 +3803,7 @@ function openCSProfile() {
             <td style="font-size:12px;">${escapeHtml(r.second_order_no || '-')}</td>
             <td style="text-align:right;">¥${Number(r.first_amount || 0).toLocaleString()}</td>
             <td style="text-align:right;">¥${Number(r.second_amount || 0).toLocaleString()}</td>
-            <td style="text-align:right;">¥${Number(r.total_amount || 0).toLocaleString()}</td>
+            <td style="text-align:right;">¥${(Number(r.first_amount || 0) + Number(r.second_amount || 0)).toLocaleString()}</td>
           </tr>`).join('')}
         </tbody>
       </table>
@@ -3830,7 +3830,7 @@ function getCrossSalesRankData() {
     if (!map[name]) map[name] = { name, count: 0, secondAmount: 0, totalAmount: 0 };
     map[name].count += 1;
     map[name].secondAmount += Number(r.second_amount || 0);
-    map[name].totalAmount += Number(r.total_amount || 0);
+    map[name].totalAmount += Number(r.first_amount || 0) + Number(r.second_amount || 0);
   });
   const arr = Object.values(map);
   arr.sort((a, b) => b.secondAmount - a.secondAmount);
@@ -4061,7 +4061,7 @@ function csRowHtml(r, isAdminOrLeader) {
       </td>
       <td style="padding:4px;"><input type="number" data-field="first_amount" value="${r.first_amount || ''}" step="0.01" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;"><input type="number" data-field="second_amount" value="${r.second_amount || ''}" data-orig="${r.second_amount || ''}" step="0.01" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
-      <td style="padding:4px;"><input type="number" data-field="total_amount" value="${r.total_amount || ''}" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
+      <td style="padding:4px;"><input type="number" data-field="total_amount" value="${((Number(r.first_amount)||0)+(Number(r.second_amount)||0)) > 0 ? ((Number(r.first_amount)||0)+(Number(r.second_amount)||0)).toFixed(2) : ''}" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
       <td style="text-align:center;padding:4px;">
         ${(isAdminOrLeader || r.staff_name === staffName) ? `<button class="btn-sm outline" onclick="deleteCrossSalesRecord(${r.id}, '${escapeHtml(r.staff_name || '')}')" style="padding:2px 8px;font-size:11px;">🗑️</button>` : '-'}
       </td>
@@ -4075,7 +4075,7 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader, append, show
   const dateVal = crossSalesDate || getTodayStr();
   const totalFirst = rows.reduce((s, r) => s + Number(r.first_amount || 0), 0);
   const totalSecond = rows.reduce((s, r) => s + Number(r.second_amount || 0), 0);
-  const totalAll = rows.reduce((s, r) => s + Number(r.total_amount || 0), 0);
+  const totalAll = totalFirst + totalSecond;
   const teamLabel = crossSalesTeamFilter === 'all' ? '全部' : crossSalesTeamFilter;
 
   // 「加载更多」：仅追加下一页，不破坏已渲染行与编辑态
@@ -5863,7 +5863,7 @@ function exportCrossSalesExcel() {
     '第一单状态': r.first_order_status || '',
     '第一单金额': Number(r.first_amount || 0),
     '第二单金额': Number(r.second_amount || 0),
-    '合计金额': Number(r.total_amount || 0),
+    '合计金额': Number(r.first_amount || 0) + Number(r.second_amount || 0),
     '质检确认': r.qc_confirmed ? '是' : '否',
   }));
 
