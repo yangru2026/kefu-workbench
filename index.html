@@ -1630,7 +1630,7 @@ body {
         <div style="display:flex;gap:8px;">
           <button class="btn-sm outline" onclick="previewCsPaste()">🔍 预览</button>
           <button class="btn-sm outline" onclick="closeModal('mod-cs-paste')">取消</button>
-          <button class="btn-sm primary" onclick="submitCsPaste()">✅ 导入</button>
+          <button id="cs-paste-import-btn" class="btn-sm primary" onclick="submitCsPaste()">✅ 导入</button>
         </div>
       </div>
     </div>
@@ -4862,6 +4862,7 @@ function openCsPasteModal() {
   if (ta) ta.value = '';
   const preview = document.getElementById('cs-paste-preview');
   if (preview) preview.innerHTML = '';
+  window._csPasteRows = [];
   showModalById('mod-cs-paste');
 }
 
@@ -4983,99 +4984,123 @@ function removeCsPasteRow(idx) {
 }
 
 async function submitCsPaste() {
-  if (!supabase) { showToast('⚠️ Supabase 未就绪'); return; }
-  const text = document.getElementById('cs-paste-textarea').value;
-  const parsed = (window._csPasteRows && window._csPasteRows.length) ? { rows: window._csPasteRows, errors: [] } : parseCsPasteText(text);
-  const rows = parsed.rows;
-  if (rows.length === 0) {
-    showToast('❌ 没有可识别的数据行' + (parsed.errors[0] ? '：' + parsed.errors[0] : ''));
-    return;
-  }
-
-  // 加载客服组别映射（用于反查 team）
-  const staffGroupMap = {};
+  const importBtn = document.getElementById('cs-paste-import-btn');
+  const originalBtnText = importBtn ? importBtn.innerHTML : '✅ 导入';
   try {
-    const { data: profilesData } = await supabase.from('profiles').select('name,real_name,group_name');
-    (profilesData || []).forEach(p => {
-      if (p.name) staffGroupMap[p.name] = p.group_name;
-      if (p.real_name) staffGroupMap[p.real_name] = p.group_name;
-    });
-  } catch (e) { console.warn('profiles 加载失败:', e); }
+    console.log('[submitCsPaste] start');
+    if (!supabase) { showToast('⚠️ Supabase 未就绪'); return; }
 
-  const defaultStaff = currentProfile?.name || currentProfile?.real_name || '';
-  const defaultTeam = currentProfile?.group_name || 'A组';
-  const inserted = [];
-  const skipped = [];
+    if (importBtn) {
+      importBtn.disabled = true;
+      importBtn.innerHTML = '⏳ 导入中...';
+    }
+    showToast('⏳ 正在导入，请稍候...');
 
-  for (const r of rows) {
-    const date = parseImportDate(r.date);
-    if (!date) { skipped.push(`第${r.lineNum}行：日期「${r.date}」格式不正确`); continue; }
-    const staff = r.staff || defaultStaff;
-    if (!staff) { skipped.push(`第${r.lineNum}行：缺少成交客服`); continue; }
-    if (!r.firstNo && !r.secondNo) { skipped.push(`第${r.lineNum}行：缺少订单号`); continue; }
-    const firstAmt = parseNumber(r.firstAmt);
-    const secondAmt = parseNumber(r.secondAmt);
-    const totalRaw = parseNumber(r.total);
-    const totalAmount = r.total ? totalRaw : (firstAmt + secondAmt);
-    let team = staffGroupMap[staff] || defaultTeam;
-    inserted.push({
-      record_date: date,
-      shop: r.shop || '',
-      staff_name: staff,
-      product_type: r.product || '',
-      first_order_no: r.firstNo || '',
-      second_order_no: r.secondNo || '',
-      first_order_status: r.status || '',
-      first_amount: firstAmt,
-      second_amount: secondAmt,
-      total_amount: totalAmount,
-      qc_confirmed: false,
-      team: team
-    });
-  }
-
-  if (inserted.length === 0) {
-    showToast('❌ 没有可导入的有效数据' + (skipped.length ? '（' + skipped[0] + '）' : ''));
-    return;
-  }
-
-  // 不拦截、不去重：所有粘贴行全部写入（含重复项）。
-  // 数据库应已移除 (日期+订单号) 唯一约束（见 fix_cross_sales_unique.sql），
-  // 重复记录可正常保存；重复项由页面「🔍 筛选重复项」高亮，供客服复核后自行删除。
-  try {
-    const { error } = await supabase.from('cross_sales').insert(inserted);
-    if (error) throw error;
-  } catch (e) {
-    // 兜底：若数据库仍保留旧唯一约束（管理员尚未执行迁移 SQL），逐行插入、跳过重复行，
-    // 避免整批粘贴直接失败；并提示执行迁移以彻底放开重复项。
-    const msg = (e && e.message) || '';
-    if (e && (e.code === '23505' || msg.includes('duplicate') || msg.includes('unique'))) {
-      let ok = 0, skip = 0;
-      for (const rec of inserted) {
-        const { error: ie } = await supabase.from('cross_sales').insert([rec]);
-        if (ie && (ie.code === '23505' || (ie.message || '').includes('duplicate') || (ie.message || '').includes('unique'))) skip++;
-        else if (ie) { showToast('❌ 粘贴导入失败: ' + ie.message); return; }
-        else ok++;
-      }
-      showToast(`✅ 已粘贴导入 ${ok} 条` + (skip ? `，跳过 ${skip} 条重复（请管理员执行 fix_cross_sales_unique.sql 以允许保留重复项）` : '') + (skipped.length ? `，跳过 ${skipped.length} 行（日期/订单号缺失）` : ''));
-      closeModal('mod-cs-paste');
-      const dates = inserted.map(r => r.record_date).sort();
-      if (dates.length) { crossSalesDate = dates[0]; crossSalesRankMode = 'day'; }
-      loadCrossSalesFromDB();
+    const text = document.getElementById('cs-paste-textarea').value;
+    const parsed = (window._csPasteRows && window._csPasteRows.length) ? { rows: window._csPasteRows, errors: [] } : parseCsPasteText(text);
+    const rows = parsed.rows;
+    console.log('[submitCsPaste] rows:', rows.length, 'errors:', parsed.errors);
+    if (rows.length === 0) {
+      showToast('❌ 没有可识别的数据行' + (parsed.errors[0] ? '：' + parsed.errors[0] : ''));
       return;
     }
-    showToast('❌ 粘贴导入失败: ' + (e && e.message ? e.message : e));
-    return;
+
+    // 加载客服组别映射（用于反查 team）
+    const staffGroupMap = {};
+    try {
+      const { data: profilesData } = await supabase.from('profiles').select('name,real_name,group_name');
+      (profilesData || []).forEach(p => {
+        if (p.name) staffGroupMap[p.name] = p.group_name;
+        if (p.real_name) staffGroupMap[p.real_name] = p.group_name;
+      });
+    } catch (e) { console.warn('profiles 加载失败:', e); }
+
+    const defaultStaff = currentProfile?.name || currentProfile?.real_name || '';
+    const defaultTeam = currentProfile?.group_name || 'A组';
+    const inserted = [];
+    const skipped = [];
+
+    for (const r of rows) {
+      const date = parseImportDate(r.date);
+      if (!date) { skipped.push(`第${r.lineNum}行：日期「${r.date}」格式不正确`); continue; }
+      const staff = r.staff || defaultStaff;
+      if (!staff) { skipped.push(`第${r.lineNum}行：缺少成交客服`); continue; }
+      if (!r.firstNo && !r.secondNo) { skipped.push(`第${r.lineNum}行：缺少订单号`); continue; }
+      const firstAmt = parseNumber(r.firstAmt);
+      const secondAmt = parseNumber(r.secondAmt);
+      const totalRaw = parseNumber(r.total);
+      const totalAmount = r.total ? totalRaw : (firstAmt + secondAmt);
+      let team = staffGroupMap[staff] || defaultTeam;
+      inserted.push({
+        record_date: date,
+        shop: r.shop || '',
+        staff_name: staff,
+        product_type: r.product || '',
+        first_order_no: r.firstNo || '',
+        second_order_no: r.secondNo || '',
+        first_order_status: r.status || '',
+        first_amount: firstAmt,
+        second_amount: secondAmt,
+        total_amount: totalAmount,
+        qc_confirmed: false,
+        team: team
+      });
+    }
+
+    if (inserted.length === 0) {
+      showToast('❌ 没有可导入的有效数据' + (skipped.length ? '（' + skipped[0] + '）' : ''));
+      return;
+    }
+
+    // 不拦截、不去重：所有粘贴行全部写入（含重复项）。
+    // 数据库应已移除 (日期+订单号) 唯一约束（见 fix_cross_sales_unique.sql），
+    // 重复记录可正常保存；重复项由页面「🔍 筛选重复项」高亮，供客服复核后自行删除。
+    console.log('[submitCsPaste] inserting', inserted.length, 'records');
+    try {
+      const { error } = await supabase.from('cross_sales').insert(inserted);
+      if (error) throw error;
+    } catch (e) {
+      // 兜底：若数据库仍保留旧唯一约束（管理员尚未执行迁移 SQL），逐行插入、跳过重复行，
+      // 避免整批粘贴直接失败；并提示执行迁移以彻底放开重复项。
+      const msg = (e && e.message) || '';
+      console.log('[submitCsPaste] bulk insert error:', e);
+      if (e && (e.code === '23505' || msg.includes('duplicate') || msg.includes('unique'))) {
+        showToast('⏳ 批量插入被约束拦截，正在逐行处理，请稍候...');
+        let ok = 0, skip = 0;
+        for (const rec of inserted) {
+          const { error: ie } = await supabase.from('cross_sales').insert([rec]);
+          if (ie && (ie.code === '23505' || (ie.message || '').includes('duplicate') || (ie.message || '').includes('unique'))) skip++;
+          else if (ie) { showToast('❌ 粘贴导入失败: ' + ie.message); return; }
+          else ok++;
+        }
+        showToast(`✅ 已粘贴导入 ${ok} 条` + (skip ? `，跳过 ${skip} 条重复（请管理员执行 fix_cross_sales_unique.sql 以允许保留重复项）` : '') + (skipped.length ? `，跳过 ${skipped.length} 行（日期/订单号缺失）` : ''));
+        closeModal('mod-cs-paste');
+        const dates = inserted.map(r => r.record_date).sort();
+        if (dates.length) { crossSalesDate = dates[0]; crossSalesRankMode = 'day'; }
+        loadCrossSalesFromDB();
+        return;
+      }
+      showToast('❌ 粘贴导入失败: ' + (e && e.message ? e.message : e));
+      return;
+    }
+    showToast(`✅ 已粘贴导入 ${inserted.length} 条` + (skipped.length ? `，跳过 ${skipped.length} 行（日期/订单号缺失）` : ''));
+    closeModal('mod-cs-paste');
+    // 切到最早一条的日期
+    const dates = inserted.map(r => r.record_date).sort();
+    if (dates.length) {
+      crossSalesDate = dates[0];
+      crossSalesRankMode = 'day';
+    }
+    loadCrossSalesFromDB();
+  } catch (unexpected) {
+    console.error('[submitCsPaste] unexpected error:', unexpected);
+    showToast('❌ 导入异常: ' + (unexpected && unexpected.message ? unexpected.message : unexpected));
+  } finally {
+    if (importBtn) {
+      importBtn.disabled = false;
+      importBtn.innerHTML = originalBtnText;
+    }
   }
-  showToast(`✅ 已粘贴导入 ${inserted.length} 条` + (skipped.length ? `，跳过 ${skipped.length} 行（日期/订单号缺失）` : ''));
-  closeModal('mod-cs-paste');
-  // 切到最早一条的日期
-  const dates = inserted.map(r => r.record_date).sort();
-  if (dates.length) {
-    crossSalesDate = dates[0];
-    crossSalesRankMode = 'day';
-  }
-  loadCrossSalesFromDB();
 }
 
 async function saveCrossSalesBatch() {
