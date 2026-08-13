@@ -795,7 +795,11 @@ const SYNC_TYPES: Record<string, SyncType> = {
     tableIdEnv: "FEISHU_CROSS_SALES_TABLE_ID",
     mapFn: mapCrossSalesRecord,
     supabaseTable: "cross_sales",
-    onConflict: "record_date,first_order_no,second_order_no",
+    // 去重键改为飞书记录ID（部分唯一索引仅对非空 feishu_record_id 生效），
+    // 因此手工粘贴/登记产生的空 feishu_record_id 记录不受约束、可保留真正重复项；
+    // 飞书同步的记录带唯一 feishu_record_id，重复同步时按ID忽略，不会产生多条。
+    onConflict: "feishu_record_id",
+    insertOnly: true,
     filterFn: (row) => !!row.record_date && !!row.staff_name,
   },
 };

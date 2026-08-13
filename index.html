@@ -2174,17 +2174,11 @@ async function initSupabase() {
         switchPage('login');
       }
     });
-    // Notify app.js that supabase is ready
+    // Notify app.js that supabase is ready（内部会按当前页加载公告等首页数据）
     if (window.onSupabaseReady) window.onSupabaseReady();
-    // 加载排班/排名/售前月度/连带成交数据
-    loadScheduleFromDB();
-    loadRankingFromDB();
-    loadPresaleMonthly();
-    subscribeSchedule();
-    subscribeRanking();
-    subscribePresaleMonthly();
-    subscribeCrossSales();
-    subscribeRequests();
+    // 各页面数据改为「进入页面时才加载 + 订阅」（订阅函数均有单例守卫，安全）。
+    // 这样启动时不建立 4+ 个 Realtime 通道、不发起多次全量查询，显著减轻首屏压力，
+    // 也避免停留在首页时仍被后台变动频繁打扰。
   } catch (e) {
     console.error('Supabase 初始化失败', e);
   }
@@ -3029,7 +3023,7 @@ let crossSalesSearch = '';      // 明细搜索关键字（客服/订单号）
 let crossSalesRankFocus = '';   // 排名卡片聚焦的客服名（点击穿透过滤明细）
 let csOptionManageTeam = 'default'; // 选项管理弹窗当前正在管理的组别
 let csCsPage = 1;                 // 明细分页当前页
-const CS_PAGE_SIZE = 60;         // 每页渲染行数（避免全量重渲染卡顿）
+const CS_PAGE_SIZE = 120;        // 每页渲染行数（避免全量重渲染卡顿）
 let _csOptHtmlCache = {};        // csOptionHtml 结果缓存，避免每行重复拼接
 let _csOrderNoIndex = {};        // 订单号索引：date|orderNo -> 出现次数（快速查重 O(1)）
 let _csDupGroupMap = {};         // 当前明细「完整键」重复统计：key -> 次数（定位重复项用）
@@ -3613,11 +3607,37 @@ function toggleCrossSalesRankMode() {
   renderCrossSales();
 }
 
+// 组别配色：A组蓝 / B组绿 / C组紫（手工粘贴记录按此区分，互不影响）
+const TEAM_COLORS = { 'all': '#6366f1', 'A组': '#2563eb', 'B组': '#16a34a', 'C组': '#9333ea' };
+function teamColor(team) { return TEAM_COLORS[team] || 'var(--primary)'; }
+// 统一渲染「成交明细」标题处的组别彩色标签（含归档/权限提示）
+function updateCsTeamHint() {
+  const hint = document.getElementById('cross-sales-team-hint');
+  if (!hint) return;
+  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const isArchived = isCsMonthArchived(crossSalesDate.slice(0, 7));
+  let html;
+  if (crossSalesTeamFilter === 'all') {
+    html = '<span style="color:var(--text-secondary);">· 全部组</span>';
+  } else {
+    const c = teamColor(crossSalesTeamFilter);
+    html = '· 当前组：<span style="display:inline-block;padding:2px 10px;border-radius:10px;color:#fff;background:' + c + ';font-weight:600;">' + crossSalesTeamFilter + '</span>';
+  }
+  if (!isAdminOrLeader) html += ' · 仅显示本组（' + (currentProfile?.group_name || '未分组') + '）记录，排名可切换';
+  if (isArchived) html += ' 🔒 该月已归档';
+  hint.innerHTML = html;
+}
 function setCrossSalesTeam(team) {
   crossSalesTeamFilter = team;
   document.querySelectorAll('[data-cs-team]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.csTeam === team);
+    const t = btn.dataset.csTeam;
+    const active = (t === team);
+    btn.classList.toggle('active', active);
+    const c = teamColor(t);
+    if (active) { btn.style.background = c; btn.style.borderColor = c; btn.style.color = '#fff'; }
+    else { btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = ''; }
   });
+  updateCsTeamHint();
   renderCrossSales();
 }
 
@@ -3846,26 +3866,26 @@ function renderCrossSales() {
     if (staffName) crossSalesRankFocus = staffName;
   }
   crossSalesTeamInited = true;
-  // 同步组按钮高亮
+  // 同步组按钮高亮 + 组别配色
   document.querySelectorAll('[data-cs-team]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.csTeam === crossSalesTeamFilter);
+    const t = btn.dataset.csTeam;
+    const active = (t === crossSalesTeamFilter);
+    btn.classList.toggle('active', active);
+    const c = teamColor(t);
+    if (active) { btn.style.background = c; btn.style.borderColor = c; btn.style.color = '#fff'; }
+    else { btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = ''; }
   });
-  // 组别提示 + 归档状态
-  const currentMonth = crossSalesDate.slice(0, 7);
-  const isArchived = isCsMonthArchived(currentMonth);
-  const teamHint = document.getElementById('cross-sales-team-hint');
-  if (teamHint) {
-    let base = isAdminOrLeader
-      ? (crossSalesTeamFilter === 'all' ? '· 全部组' : '· 当前组：' + crossSalesTeamFilter)
-      : '· 仅显示本组（' + (currentProfile?.group_name || '未分组') + '）记录，排名可切换';
-    if (isArchived) base += ' 🔒 该月已归档';
-    teamHint.textContent = base;
-  }
+  // 组别彩色标签 + 归档/权限提示
+  updateCsTeamHint();
   const dateInput = document.getElementById('cross-sales-date-input');
   if (dateInput) dateInput.value = crossSalesDate;
 
   const rankBtn = document.getElementById('cross-sales-month-rank-btn');
   if (rankBtn) rankBtn.textContent = crossSalesRankMode === 'day' ? '📅 按月份排名' : '📅 按日排名';
+
+  // 归档状态（归档按钮用）
+  const currentMonth = crossSalesDate.slice(0, 7);
+  const isArchived = isCsMonthArchived(currentMonth);
 
   // 归档本月按钮（仅管理员）
   const archiveBtn = document.getElementById('cross-sales-archive-current-btn');
@@ -4091,6 +4111,7 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader, append) {
         <td colspan="12" style="padding:8px 10px;background:#fafafa;border-top:1px solid var(--border);">
           <span class="cs-pager-text" style="font-size:12px;color:var(--text-secondary);"></span>
           <button class="cs-pager-more btn-sm outline" onclick="loadMoreCsRows()" style="margin-left:10px;font-size:12px;"></button>
+          <button class="cs-pager-all btn-sm outline" onclick="loadAllCsRows()" style="margin-left:6px;font-size:12px;color:#16a34a;font-weight:600;">显示全部</button>
           <span class="cs-pager-done" style="margin-left:10px;font-size:12px;color:var(--text-muted);display:none;">已全部加载</span>
         </td>
       </tr>
@@ -4132,13 +4153,33 @@ function updateCsPager(rows) {
   const more = pager.querySelector('.cs-pager-more');
   const done = pager.querySelector('.cs-pager-done');
   if (txt) txt.textContent = `🔎 已显示 ${shown} / 共 ${rows.length} 条`;
+  const all = pager.querySelector('.cs-pager-all');
   if (remaining > 0) {
     if (more) { more.style.display = ''; more.textContent = `⬇ 加载更多（${remaining} 条）`; }
+    if (all) all.style.display = '';
     if (done) done.style.display = 'none';
   } else {
     if (more) more.style.display = 'none';
+    if (all) all.style.display = 'none';
     if (done) done.style.display = '';
   }
+}
+
+// 一次加载剩余全部记录（分批追加，不整页重渲染，避免卡顿；方便客服一次性核对）
+function loadAllCsRows() {
+  const tbody = document.getElementById('cross-sales-tbody');
+  if (!tbody) return;
+  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const rows = getCSDisplayRows();
+  const total = rows.length;
+  const step = () => {
+    if (csCsPage * CS_PAGE_SIZE >= total) { updateCsPager(rows); return; }
+    csCsPage++;
+    renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader, true);
+    if (csCsPage * CS_PAGE_SIZE < total) setTimeout(step, 0);
+    else updateCsPager(rows);
+  };
+  step();
 }
 
 // 明细分页：加载下一页（追加，不破坏编辑态）
@@ -4336,7 +4377,7 @@ function updateCSDupBanner(count) {
   if (!banner) return;
   if (count > 0) {
     banner.style.display = 'block';
-    banner.innerHTML = '⚠️ 检测到 <strong>' + count + '</strong> 处订单号与当天已登记记录重复，保存时将被数据库拦截，请核对后再提交';
+    banner.innerHTML = '⚠️ 检测到 <strong>' + count + '</strong> 处订单号与当天已登记记录重复，已用红色标出。请复核后删除多余项（点「··· 更多 → 🔍 筛选重复项」可只看重复记录）';
   } else {
     banner.style.display = 'none';
   }
@@ -4896,7 +4937,7 @@ function renderCsPastePreview(errors) {
     ? '<div class="cs-paste-warn" style="background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;">⚠️ ' + errors.slice(0, 3).join('；') + (errors.length > 3 ? '…' : '') + '</div>'
     : '';
   const dupHtml = dupRowCount > 0
-    ? `<div class="cs-paste-warn dup">⚠️ 发现 <strong>${dupRowCount}</strong> 行重复（同一天 + 同一组订单号，已用<span style="background:#f59e0b;color:#fff;padding:0 4px;border-radius:3px;">橙色高亮</span>标出）。请复核后点行尾「✕」删除多余行，再点导入；或直接导入（确认后重复项会自动合并为一组、保留最后一条）。</div>`
+    ? `<div class="cs-paste-warn dup">⚠️ 发现 <strong>${dupRowCount}</strong> 行重复（同一天 + 同一组订单号，已用<span style="background:#f59e0b;color:#fff;padding:0 4px;border-radius:3px;">橙色高亮</span>标出）。所有行都会原样导入（含重复项），导入后可点「··· 更多 → 🔍 筛选重复项」只看重复记录，复核后删除多余行。</div>`
     : '';
 
   const head = ['#', '日期', '店铺', '客服', '产品', '第一单号', '第二单号', '状态', '第一单金额', '第二单金额', '合计', ''];
@@ -4998,37 +5039,20 @@ async function submitCsPaste() {
     return;
   }
 
-  // 计算导入集合内是否仍有重复冲突键（用户可能未在预览中手动删除）
-  const keyCount = {};
-  inserted.forEach(rec => { const k = `${rec.record_date}|${rec.first_order_no}|${rec.second_order_no}`; keyCount[k] = (keyCount[k] || 0) + 1; });
-  let dupInInsert = 0;
-  Object.values(keyCount).forEach(c => { if (c > 1) dupInInsert += c - 1; });
-  if (dupInInsert > 0) {
-    if (!confirm(`仍有 ${dupInInsert} 行重复（同一天 + 同一组订单号）。\n数据库不允许重复，导入时将按冲突键合并（每组保留最后一条），其余重复项不会写入。\n\n点「确定」导入合并后的数据；点「取消」返回删除多余行。`)) {
-      return;
-    }
-  }
-  // 单次 upsert 中不能出现重复冲突键，否则报 "ON CONFLICT DO UPDATE command cannot affect row a second time"
-  const lastIdx = new Map();
-  inserted.forEach((rec, idx) => {
-    const key = `${rec.record_date}|${rec.first_order_no}|${rec.second_order_no}`;
-    lastIdx.set(key, idx);
-  });
-  const keepIndices = Array.from(lastIdx.values()).sort((a, b) => a - b);
-  const deduped = keepIndices.map(i => inserted[i]);
-  const dupCount = inserted.length - deduped.length;
-
+  // 不拦截、不去重：所有粘贴行全部写入（含重复项）。
+  // 数据库已移除 (日期+订单号) 唯一约束，重复记录可正常保存；
+  // 重复项由页面「🔍 筛选重复项」高亮，供客服复核后自行删除。
   const { error } = await supabase
     .from('cross_sales')
-    .upsert(deduped, { onConflict: 'record_date,first_order_no,second_order_no' });
+    .insert(inserted);
   if (error) {
     showToast('❌ 粘贴导入失败: ' + error.message);
     return;
   }
-  showToast(`✅ 已粘贴导入 ${deduped.length} 条` + (dupCount > 0 ? `（合并了 ${dupCount} 条重复）` : '') + (skipped.length ? `，跳过 ${skipped.length} 行` : ''));
+  showToast(`✅ 已粘贴导入 ${inserted.length} 条` + (skipped.length ? `，跳过 ${skipped.length} 行（日期/订单号缺失）` : ''));
   closeModal('mod-cs-paste');
   // 切到最早一条的日期
-  const dates = deduped.map(r => r.record_date).sort();
+  const dates = inserted.map(r => r.record_date).sort();
   if (dates.length) {
     crossSalesDate = dates[0];
     crossSalesRankMode = 'day';
@@ -5889,16 +5913,17 @@ function switchPage(page) {
   refreshAdminUI();
   if (page === 'tools') renderTools();
   if (page === 'quiz') renderQuiz();
-  if (page === 'schedule') renderSchedule();
-  if (page === 'requests') { loadRequests(); renderReqForm(); }
-  if (page === 'ranking') { if (rankingAllRows.length === 0) loadRankingFromDB(); else renderRanking(); }
+  if (page === 'schedule') { loadScheduleFromDB(); subscribeSchedule(); renderSchedule(); }
+  if (page === 'requests') { loadRequests(); renderReqForm(); subscribeRequests(); }
+  if (page === 'ranking') { if (rankingAllRows.length === 0) loadRankingFromDB(); else renderRanking(); subscribeRanking(); }
   if (page === 'cross-sales') {
     loadCrossSalesFromDB(); // 每次进入都重新拉取，保证最新（Realtime 仅本页激活时刷新）
     // 加载下拉选项模板 + 实时订阅（防止刷新后选项消失）
     if (!csOptionsLoaded) loadCrossSalesOptions();
     subscribeCrossSalesOptions();
+    subscribeCrossSales();
   }
-  if (page === 'presale' && presaleActiveTab === 'monthly') renderPresaleMonthly();
+  if (page === 'presale' && presaleActiveTab === 'monthly') { loadPresaleMonthly(); subscribePresaleMonthly(); renderPresaleMonthly(); }
   if (page === 'staff-info') loadStaffInfo();
   if (page === 'qc') {
     const iframe = document.getElementById('qc-iframe');
