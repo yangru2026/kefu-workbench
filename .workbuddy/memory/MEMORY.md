@@ -61,3 +61,11 @@
 - 视频教程：81%动作有1080p视频，无视频的动作回退GIF动图
 - 真人视频管理：支持自定义上传真人示范视频（云存储URL或本地相册）
 - B站帕梅拉视频：10个跟练课程接入帕梅拉真人完整视频链接
+
+---
+
+## 前端改动验证方法（本沙箱可复用）
+- **语法检查**：`node -e "..."` 提取 inline `<script>`（正则 `/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g`）逐段 `new Function(m[1])` 校验。注意：Write 工具与 Bash 看到**不同文件系统**，校验脚本须在同一条 Bash 内用 `node -e` 或 heredoc 完成，不要 Write 后再跨工具读。
+- **无头浏览器冒烟测试**：`puppeteer-core`（**绝对路径 require** `C:\Users\Administrator\.workbuddy\binaries\node\workspace\node_modules\puppeteer-core`）+ Edge（`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`，headless:'new', args:['--no-sandbox']），本地 `http.createServer` 起服务加载页面，检查 `console`/`pageerror` 与新函数 `typeof`。
+- **坑**：`NODE_PATH` 在此环境不生效，必须绝对路径 require；`puppeteer-core` 依赖 `proxy-agent`（其 `dist/index.js` 缺失，需本地 stub）；测试脚本用 heredoc 写在**同一条 Bash 命令**里（规避 Write/Bash 文件系统不一致）。
+- **线上验证**：GitHub Pages 部署后 `curl` 拉 index.html 查标记；但本沙箱**外网极慢（~0.2KB/s）**，420KB 文件常超时，以 `git push` 成功 + 本地冒烟测试通过为准，勿因 curl 超时误判未部署。
