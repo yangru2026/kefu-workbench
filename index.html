@@ -1346,7 +1346,7 @@ body {
         <button class="rank-group-btn" data-cs-team="C组" onclick="setCrossSalesTeam('C组')">C组</button>
       </div>
       <div class="cs-toolbar-right">
-        <button class="btn-sm outline" id="cross-sales-month-rank-btn" onclick="toggleCrossSalesRankMode()">📅 按月份排名</button>
+        <button class="btn-sm outline" id="cross-sales-month-rank-btn" onclick="toggleCrossSalesRankMode()">📅 按日排名</button>
         <button class="btn-sm outline" id="cross-sales-archive-btn" onclick="openCsArchivePanel()">📁 历史月份</button>
         <button class="btn-sm outline" id="cross-sales-paste-btn" onclick="openCsPasteModal()" title="按表格列顺序粘贴多行数据，自动保存">📋 批量粘贴</button>
         <button class="btn-sm primary" id="cross-sales-quick-btn" onclick="openCsQuickRegister()">➕ 极速登记</button>
@@ -2999,7 +2999,7 @@ async function syncPresaleFromFeishu() {
 let crossSalesData = [];
 let crossSalesSub = null;
 let crossSalesDate = '';
-let crossSalesRankMode = 'day'; // 'day' 按日排名，'month' 按月份排名
+let crossSalesRankMode = 'month'; // 'day' 按日排名，'month' 按月份排名（默认按月）
 let crossSalesMonth = '';
 let crossSalesTeamFilter = 'all'; // 'all' | 'A组' | 'B组' | 'C组'
 let csOptions = { default: { shop: [], product_type: [], order_status: [] } }; // 按组隔离的动态选项缓存
@@ -3476,12 +3476,16 @@ async function loadCrossSalesFromDB() {
     if (error) { console.warn('连带成交数据加载失败:', error.message); return; }
     crossSalesData = data || [];
     if (!crossSalesDate) {
-      crossSalesDate = getTodayStr();
-      // 如果今天没有任何记录，自动跳到最近有记录的日期，避免页面看起来像“数据被清空”
+      const today = getTodayStr();
+      crossSalesDate = (crossSalesRankMode === 'month') ? (today.slice(0, 7) + '-01') : today;
+      // 如果当前周期没有任何记录，自动跳到最近有记录的日期/月份，避免页面看起来像"数据被清空"
       const dated = crossSalesData.filter(r => r.record_date);
-      if (crossSalesData.length > 0 && !dated.some(r => r.record_date === crossSalesDate)) {
-        const latest = dated.map(r => r.record_date).sort().pop();
-        if (latest) crossSalesDate = latest;
+      if (crossSalesData.length > 0) {
+        const curPrefix = crossSalesDate.slice(0, 7);
+        if (!dated.some(r => r.record_date.startsWith(curPrefix))) {
+          const latest = dated.map(r => r.record_date).sort().pop();
+          if (latest) crossSalesDate = (crossSalesRankMode === 'month') ? (latest.slice(0, 7) + '-01') : latest;
+        }
       }
     }
     if (!crossSalesMonth) {
