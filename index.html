@@ -3068,7 +3068,7 @@ async function loadCrossSalesOptions() {
       const team = t.team || 'default';
       if (!map[team]) map[team] = { shop: [], product_type: [], order_status: [] };
       if (map[team][t.key] !== undefined) {
-        map[team][t.key] = (Array.isArray(t.options) ? t.options : []).map(csNormalizeOption);
+        map[team][t.key] = csEnsureDistinctColors((Array.isArray(t.options) ? t.options : []).map(csNormalizeOption));
       }
     });
 
@@ -3105,7 +3105,7 @@ async function loadCrossSalesOptions() {
         if (!map[team]) map[team] = { shop: [], product_type: [], order_status: [] };
         for (const [key, list] of Object.entries(defaultOptions)) {
           if (!map[team][key] || map[team][key].length === 0) {
-            const normalizedList = list.map(csNormalizeOption);
+            const normalizedList = csEnsureDistinctColors(list.map(csNormalizeOption));
             map[team][key] = normalizedList;
             try {
               const upsertPromise = supabase.from('option_templates')
@@ -3156,6 +3156,21 @@ function csNormalizeOption(item) {
   }
   const v = String(item || '');
   return { value: v, color: csColorForValue(v) };
+}
+// 保证同一选项列表内颜色互不重复：保留手填色（不冲突时），缺色/冲突色从色板顺序补齐
+function csEnsureDistinctColors(list) {
+  const used = new Set();
+  return (list || []).map(o => {
+    const c = (o && o.color && /^#[0-9a-fA-F]{3,8}$/.test(o.color)) ? o.color : '';
+    if (c && !used.has(c)) { used.add(c); return { value: o.value, color: c }; }
+    let idx = used.size, pick = CS_OPTION_PALETTE[idx % CS_OPTION_PALETTE.length], guard = 0;
+    while (used.has(pick) && guard < CS_OPTION_PALETTE.length * 3) {
+      idx++; guard++;
+      pick = CS_OPTION_PALETTE[idx % CS_OPTION_PALETTE.length];
+    }
+    used.add(pick);
+    return { value: o.value, color: pick };
+  });
 }
 
 // Realtime 订阅选项变化：管理员改选项 → 所有客服实时同步
