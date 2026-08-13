@@ -2143,6 +2143,14 @@ function showLibErrorBanner(msg) {
   } catch(e) { console.error(e); }
 }
 
+// 带超时的 Promise 包装（防止网络卡住导致页面无限加载中）
+function withTimeout(promise, ms, label) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error((label || '操作') + '超时')), ms);
+    promise.then(v => { clearTimeout(timer); resolve(v); }, e => { clearTimeout(timer); reject(e); });
+  });
+}
+
 // ==================== AUTH ====================
 async function initSupabase() {
   try {
@@ -2155,13 +2163,24 @@ async function initSupabase() {
       return;
     }
     supabase = lib.createClient(SUPABASE_URL, SUPABASE_KEY);
-    // Check existing session
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      currentUser = session.user;
-      const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-      currentProfile = profile;
-      updateAuthUI();
+    // Check existing session（加 10 秒超时，避免网络抖动时首页无限加载）
+    try {
+      const { data: { session } } = await withTimeout(supabase.auth.getSession(), 10000, 'getSession');
+      if (session) {
+        currentUser = session.user;
+        try {
+          const { data: profile } = await withTimeout(
+            supabase.from('profiles').select('*').eq('id', session.user.id).single(),
+            10000, 'getProfile'
+          );
+          currentProfile = profile;
+        } catch (pe) {
+          console.warn('读取用户资料超时或失败', pe.message);
+        }
+        updateAuthUI();
+      }
+    } catch (se) {
+      console.warn('获取会话超时或失败', se.message);
     }
     // Listen for auth changes
     supabase.auth.onAuthStateChange(async (event, session) => {
@@ -2181,14 +2200,27 @@ async function initSupabase() {
       }
     });
     // Notify app.js that supabase is ready（内部会按当前页加载公告等首页数据）
-    if (window.onSupabaseReady) window.onSupabaseReady();
+    if (window.onSupabaseReady) {
+      window.__onSupabaseReadyCalled = true;
+      window.onSupabaseReady();
+    }
     // 各页面数据改为「进入页面时才加载 + 订阅」（订阅函数均有单例守卫，安全）。
     // 这样启动时不建立 4+ 个 Realtime 通道、不发起多次全量查询，显著减轻首屏压力，
     // 也避免停留在首页时仍被后台变动频繁打扰。
   } catch (e) {
     console.error('Supabase 初始化失败', e);
+    showLibErrorBanner('数据服务初始化失败：' + (e.message || '未知错误'));
   }
 }
+
+// 兜底：若 12 秒内 onSupabaseReady 仍未被调用，强制调用一次，避免首页/各页卡“加载中”
+setTimeout(() => {
+  if (window.onSupabaseReady && !window.__onSupabaseReadyCalled) {
+    window.__onSupabaseReadyCalled = true;
+    console.warn('onSupabaseReady 兜底触发');
+    window.onSupabaseReady();
+  }
+}, 12000);
 
 function updateAuthUI() {
   const userEl = document.getElementById('sidebar-user');
