@@ -3136,13 +3136,24 @@ function subscribeCrossSalesOptions() {
 // 生成下拉选项 HTML（key: shop / product_type / order_status，team 优先取该组选项）
 function csOptionHtml(key, currentVal, team) {
   const list = csOptionsFor(team, key);
+  const currentStr = currentVal ? String(currentVal) : '';
+  // 当前值是否已存在于模板选项中
+  const hasCurrent = currentStr && list.some(item => {
+    const val = (typeof item === 'object' && item && item.value !== undefined) ? String(item.value) : String(item);
+    return val === currentStr;
+  });
   const parts = ['<option value="">请选择</option>'];
+  // 若当前值不在模板中但数据库里确实有这个值，插一个兜底 option 使其能正常显示/选中
+  if (currentStr && !hasCurrent) {
+    const color = csColorForValue(currentStr);
+    parts.push(`<option value="${escapeAttr(currentStr)}" selected data-color="${escapeAttr(color)}">● ${escapeHtml(currentStr)}</option>`);
+  }
   list.forEach(item => {
-    const opt = (typeof item === 'object' && item && item.value) ? item : { value: String(item), color: '' };
+    const opt = (typeof item === 'object' && item && item.value !== undefined) ? item : { value: String(item), color: '' };
     const val = String(opt.value);
     const color = opt.color || '';
     const colorTag = color ? `● ` : '';
-    parts.push(`<option value="${escapeAttr(val)}" ${val === currentVal ? 'selected' : ''} data-color="${escapeAttr(color)}">${colorTag}${escapeHtml(val)}</option>`);
+    parts.push(`<option value="${escapeAttr(val)}" ${val === currentStr ? 'selected' : ''} data-color="${escapeAttr(color)}">${colorTag}${escapeHtml(val)}</option>`);
   });
   return parts.join('');
 }
