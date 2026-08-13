@@ -819,6 +819,51 @@ body {
 .modal-field input:focus,.modal-field textarea:focus,.modal-field select:focus { border-color:var(--primary); outline:none; }
 .modal-field textarea { min-height:60px; resize:vertical; }
 .modal-field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+/* ===== 选项管理 · 新风格 ===== */
+.cs-opt-teams { display:flex; gap:8px; margin-bottom:12px; }
+.cs-opt-team { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:18px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; background:#fff; border:1.5px solid var(--border); color:var(--text-secondary); transition:all .15s; }
+.cs-opt-team:hover { border-color:var(--primary); color:var(--text); }
+.cs-opt-team.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.cs-opt-team[data-team="default"] { --team-dot:#94a3b8; }
+.cs-opt-team[data-team="A组"] { --team-dot:#7B9B6A; }
+.cs-opt-team[data-team="B组"] { --team-dot:#5B8BD4; }
+.cs-opt-team[data-team="C组"] { --team-dot:#E8A96F; }
+.cs-opt-team .dot { width:8px; height:8px; border-radius:50%; background:var(--team-dot); }
+.cs-opt-team.active .dot { background:#fff; }
+.cs-opt-types { display:flex; gap:8px; margin-bottom:14px; }
+.cs-opt-type { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:14px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; background:#fff; border:1.5px solid var(--border); color:var(--text-secondary); transition:all .15s; }
+.cs-opt-type:hover { border-color:var(--primary); color:var(--text); }
+.cs-opt-type.active { background:var(--primary-light); color:var(--primary-dark); border-color:var(--primary-light); }
+.cs-opt-list { display:flex; flex-wrap:wrap; gap:8px; max-height:260px; overflow-y:auto; padding:12px; border:1px dashed var(--border); border-radius:12px; background:var(--bg); align-content:flex-start; }
+.cs-opt-pill { position:relative; display:inline-flex; align-items:center; gap:8px; padding:6px 10px 6px 6px; border-radius:18px; background:#fff; border:1px solid var(--border); font-size:13px; color:var(--text); transition:all .15s; cursor:default; }
+.cs-opt-pill:hover { border-color:var(--primary-light); box-shadow:0 2px 6px rgba(0,0,0,0.05); }
+.cs-opt-pill .color { width:14px; height:14px; border-radius:50%; flex-shrink:0; }
+.cs-opt-pill .txt { flex:1; }
+.cs-opt-pill .del { width:18px; height:18px; border:none; border-radius:50%; background:transparent; color:var(--text-muted); font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:0; transition:all .15s; }
+.cs-opt-pill:hover .del { opacity:1; }
+.cs-opt-pill .del:hover { background:#fee; color:#e5484d; }
+.cs-opt-addrow { display:flex; gap:8px; align-items:center; margin-top:12px; }
+.cs-opt-addrow input[type="color"] { width:36px; height:36px; padding:2px; border:1px solid var(--border); border-radius:8px; background:#fff; cursor:pointer; }
+.cs-opt-addrow input[type="text"] { flex:1; padding:8px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; font-family:inherit; }
+.cs-opt-addrow input[type="text"]:focus { border-color:var(--primary); outline:none; }
+.cs-opt-bulk { margin-top:14px; padding:12px; background:#fff; border:1px solid var(--border); border-radius:10px; }
+.cs-opt-bulk summary { font-size:12px; color:var(--text-secondary); cursor:pointer; user-select:none; }
+.cs-opt-bulk textarea { width:100%; margin-top:8px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px; font-family:inherit; resize:vertical; min-height:70px; }
+
+/* ===== 连带成交工具栏 · 新风格 ===== */
+.cs-toolbar { display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+.cs-toolbar-left { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.cs-toolbar-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-left:auto; }
+.cs-more-menu { position:relative; }
+.cs-more-btn { display:inline-flex; align-items:center; gap:4px; padding:6px 12px; border:1px solid var(--border); border-radius:8px; background:#fff; color:var(--text-secondary); font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+.cs-more-btn:hover { border-color:var(--primary); color:var(--text); }
+.cs-more-dropdown { display:none; position:absolute; right:0; top:100%; margin-top:6px; min-width:160px; background:#fff; border:1px solid var(--border); border-radius:10px; box-shadow:0 6px 24px rgba(0,0,0,0.10); z-index:100; padding:6px; }
+.cs-more-dropdown.show { display:block; }
+.cs-more-dropdown button { display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; border:none; background:none; border-radius:6px; font-size:13px; color:var(--text); cursor:pointer; font-family:inherit; text-align:left; }
+.cs-more-dropdown button:hover { background:var(--bg); }
+.cs-toolbar .rank-group-btn { padding:6px 18px; font-size:13px; border-width:1.5px; }
+
 /* Image manager */
 .img-mgr { margin-top:16px; border-top:1px solid var(--border); padding-top:14px; }
 .img-mgr h4 { font-size:13px; color:var(--text); margin:0 0 10px; }
@@ -1276,33 +1321,42 @@ body {
       </div>
     </div>
 
-    <!-- 日期/排名/组筛选 -->
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
-      <button class="btn btn-outline" onclick="prevCrossSalesDate()">◀ 上一天</button>
-      <input type="date" id="cross-sales-date-input" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;" onchange="onCrossSalesDateChange()">
-      <button class="btn btn-outline" onclick="nextCrossSalesDate()">下一天 ▶</button>
-      <div style="width:1px;height:24px;background:var(--border);margin:0 4px;"></div>
-      <button class="rank-group-btn active" data-cs-team="all" onclick="setCrossSalesTeam('all')">全部</button>
-      <button class="rank-group-btn" data-cs-team="A组" onclick="setCrossSalesTeam('A组')">A组</button>
-      <button class="rank-group-btn" data-cs-team="B组" onclick="setCrossSalesTeam('B组')">B组</button>
-      <button class="rank-group-btn" data-cs-team="C组" onclick="setCrossSalesTeam('C组')">C组</button>
-      <div style="flex:1;"></div>
-      <button class="btn-sm outline" id="cross-sales-options-btn" onclick="openCrossSalesOptions()" style="display:none;">⚙️ 选项管理</button>
-      <button class="btn-sm outline" id="cross-sales-import-btn" onclick="openExcelImport('cross_sales')" style="display:none;">📥 导入Excel</button>
-      <button class="btn-sm primary" id="cross-sales-quick-btn" onclick="openCsQuickRegister()">➕ 极速登记</button>
-      <button class="btn-sm outline" id="cross-sales-paste-btn" onclick="openCsPasteModal()" title="按表格列顺序粘贴多行数据，自动保存">📋 批量粘贴</button>
-      <button class="collab-btn" id="collab-cross-sales-btn" onclick="openCollabPanel('cross-sales')" style="display:none;">👥 协作者</button>
-      <button class="feishu-sync-btn admin-only-nav" id="cross-sales-sync-btn" onclick="syncCrossSalesFromFeishu()" style="display:none;">🔄 从飞书同步</button>
-      <button class="btn-sm outline" id="cross-sales-month-rank-btn" onclick="toggleCrossSalesRankMode()">📅 按月份排名</button>
-      <button class="btn-sm outline" id="cross-sales-archive-btn" onclick="openCsArchivePanel()">📁 历史月份</button>
-      <button class="btn-sm outline admin-only-nav" id="cross-sales-archive-current-btn" onclick="archiveCurrentCsMonth()" style="display:none;">🔒 归档本月</button>
-      <div style="width:1px;height:24px;background:var(--border);margin:0 4px;"></div>
-      <span id="cross-sales-export-wrap" style="display:none;align-items:center;gap:6px;">
-        <input type="date" id="cs-export-start" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:110px;" title="导出开始日期">
-        <span style="color:var(--text-secondary);font-size:12px;">~</span>
-        <input type="date" id="cs-export-end" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:110px;" title="导出结束日期">
-        <button class="btn-sm outline" onclick="exportCrossSalesExcel()" title="导出当前筛选范围内的数据">📤 导出Excel</button>
-      </span>
+    <!-- 日期/排名/组筛选 + 操作 -->
+    <div class="cs-toolbar">
+      <div class="cs-toolbar-left">
+        <button class="btn btn-outline" onclick="prevCrossSalesDate()">◀</button>
+        <input type="date" id="cross-sales-date-input" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;" onchange="onCrossSalesDateChange()">
+        <button class="btn btn-outline" onclick="nextCrossSalesDate()">▶</button>
+        <div style="width:1px;height:24px;background:var(--border);margin:0 2px;"></div>
+        <button class="rank-group-btn active" data-cs-team="all" onclick="setCrossSalesTeam('all')">全部</button>
+        <button class="rank-group-btn" data-cs-team="A组" onclick="setCrossSalesTeam('A组')">A组</button>
+        <button class="rank-group-btn" data-cs-team="B组" onclick="setCrossSalesTeam('B组')">B组</button>
+        <button class="rank-group-btn" data-cs-team="C组" onclick="setCrossSalesTeam('C组')">C组</button>
+      </div>
+      <div class="cs-toolbar-right">
+        <button class="btn-sm outline" id="cross-sales-month-rank-btn" onclick="toggleCrossSalesRankMode()">📅 按月份排名</button>
+        <button class="btn-sm outline" id="cross-sales-archive-btn" onclick="openCsArchivePanel()">📁 历史月份</button>
+        <button class="btn-sm outline" id="cross-sales-paste-btn" onclick="openCsPasteModal()" title="按表格列顺序粘贴多行数据，自动保存">📋 批量粘贴</button>
+        <button class="btn-sm primary" id="cross-sales-quick-btn" onclick="openCsQuickRegister()">➕ 极速登记</button>
+        <div class="cs-more-menu">
+          <button class="cs-more-btn" onclick="toggleCsMoreMenu(event)" title="更多操作">···</button>
+          <div class="cs-more-dropdown" id="cs-more-dropdown" onclick="event.stopPropagation()">
+            <button id="cross-sales-options-btn" onclick="openCrossSalesOptions();closeCsMoreMenu();" style="display:none;">⚙️ 选项管理</button>
+            <button id="cross-sales-import-btn" onclick="openExcelImport('cross_sales');closeCsMoreMenu();" style="display:none;">📥 导入Excel</button>
+            <button id="cross-sales-export-more-btn" onclick="toggleCsExportArea();closeCsMoreMenu();">📤 导出Excel</button>
+            <button class="feishu-sync-btn admin-only-nav" id="cross-sales-sync-btn" onclick="syncCrossSalesFromFeishu();closeCsMoreMenu();" style="display:none;">🔄 从飞书同步</button>
+            <button class="collab-btn" id="collab-cross-sales-btn" onclick="openCollabPanel('cross-sales');closeCsMoreMenu();" style="display:none;">👥 协作者</button>
+            <button class="admin-only-nav" id="cross-sales-archive-current-btn" onclick="archiveCurrentCsMonth();closeCsMoreMenu();" style="display:none;">🔒 归档本月</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="cross-sales-export-wrap" style="display:none;align-items:center;gap:6px;margin-bottom:14px;padding:10px 12px;background:#fff;border:1px solid var(--border);border-radius:10px;flex-wrap:wrap;">
+      <span style="font-size:12px;color:var(--text-secondary);">导出范围：</span>
+      <input type="date" id="cs-export-start" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:110px;" title="导出开始日期">
+      <span style="color:var(--text-secondary);font-size:12px;">~</span>
+      <input type="date" id="cs-export-end" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:110px;" title="导出结束日期">
+      <button class="btn-sm outline" onclick="exportCrossSalesExcel()" title="导出当前筛选范围内的数据">确认导出</button>
     </div>
 
     <!-- 排名卡片 -->
@@ -1448,38 +1502,38 @@ body {
 
   <!-- 连带成交 · 选项管理弹窗 -->
   <div class="modal-overlay" id="mod-cs-options" onclick="closeModal('mod-cs-options')">
-    <div class="modal-box" style="max-width:640px;" onclick="event.stopPropagation()">
+    <div class="modal-box" style="max-width:560px;" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3>⚙️ 选项管理</h3>
         <button class="modal-close" onclick="closeModal('mod-cs-options')">✕</button>
       </div>
       <div class="modal-body">
-        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">管理登记表格中的下拉选项。选项按<strong>组别隔离</strong>，A/B/C 组可设置不同店铺/产品类型，保存后实时同步到该组客服。</p>
-        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-          <button class="rank-group-btn cs-opt-team-tab active" data-opt-team="default" onclick="switchCsOptionsTeam('default')">🌐 通用</button>
-          <button class="rank-group-btn cs-opt-team-tab" data-opt-team="A组" onclick="switchCsOptionsTeam('A组')">A组</button>
-          <button class="rank-group-btn cs-opt-team-tab" data-opt-team="B组" onclick="switchCsOptionsTeam('B组')">B组</button>
-          <button class="rank-group-btn cs-opt-team-tab" data-opt-team="C组" onclick="switchCsOptionsTeam('C组')">C组</button>
+        <p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;line-height:1.5;">按组别隔离下拉选项。不同组可设置不同店铺 / 产品类型 / 第一单状态，保存后实时同步给该组客服。</p>
+        <div class="cs-opt-teams">
+          <button class="cs-opt-team active" data-team="default" data-opt-team="default" onclick="switchCsOptionsTeam('default')"><span class="dot"></span>通用</button>
+          <button class="cs-opt-team" data-team="A组" data-opt-team="A组" onclick="switchCsOptionsTeam('A组')"><span class="dot"></span>A组</button>
+          <button class="cs-opt-team" data-team="B组" data-opt-team="B组" onclick="switchCsOptionsTeam('B组')"><span class="dot"></span>B组</button>
+          <button class="cs-opt-team" data-team="C组" data-opt-team="C组" onclick="switchCsOptionsTeam('C组')"><span class="dot"></span>C组</button>
         </div>
-        <div style="display:flex;gap:8px;margin-bottom:14px;">
-          <button class="rank-group-btn cs-opt-tab active" data-opt-type="shop" onclick="switchCsOptionsTab('shop')">🏪 店铺</button>
-          <button class="rank-group-btn cs-opt-tab" data-opt-type="product_type" onclick="switchCsOptionsTab('product_type')">📦 产品类型</button>
-          <button class="rank-group-btn cs-opt-tab" data-opt-type="order_status" onclick="switchCsOptionsTab('order_status')">📌 第一单状态</button>
+        <div class="cs-opt-types">
+          <button class="cs-opt-type active" data-opt-type="shop" onclick="switchCsOptionsTab('shop')">🏪 店铺</button>
+          <button class="cs-opt-type" data-opt-type="product_type" onclick="switchCsOptionsTab('product_type')">📦 产品类型</button>
+          <button class="cs-opt-type" data-opt-type="order_status" onclick="switchCsOptionsTab('order_status')">📌 第一单状态</button>
         </div>
-        <div id="cs-options-list" style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
-        <div style="display:flex;gap:8px;margin-top:12px;align-items:center;">
-          <input type="color" id="cs-option-new-color" value="#6366f1" title="选项颜色" style="width:42px;height:36px;padding:2px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;">
-          <input type="text" id="cs-option-new-value" placeholder="输入新选项名称" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;" onkeydown="if(event.key==='Enter')addCsOption()">
-          <button class="btn-sm primary" onclick="addCsOption()" style="padding:8px 14px;white-space:nowrap;">➕ 添加</button>
+        <div id="cs-options-list" class="cs-opt-list"></div>
+        <div class="cs-opt-addrow">
+          <input type="color" id="cs-option-new-color" value="#6366f1" title="选项颜色">
+          <input type="text" id="cs-option-new-value" placeholder="输入新选项名称" onkeydown="if(event.key==='Enter')addCsOption()">
+          <button class="btn-sm primary" onclick="addCsOption()">➕ 添加</button>
         </div>
-        <div style="margin-top:12px;">
-          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">📋 批量添加（每行一个选项，支持粘贴多行文本）</div>
-          <textarea id="cs-option-bulk" rows="3" placeholder="例如：&#10;淘宝官方旗舰店&#10;京东旗舰店&#10;抖音直播间" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
-          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px;">
+        <details class="cs-opt-bulk">
+          <summary>📋 批量添加（每行一个选项，展开后粘贴）</summary>
+          <textarea id="cs-option-bulk" rows="3" placeholder="例如：&#10;淘宝官方旗舰店&#10;京东旗舰店&#10;抖音直播间"></textarea>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
             <button class="btn-sm outline" onclick="document.getElementById('cs-option-bulk').value=''">清空</button>
-            <button class="btn-sm primary" onclick="addCsOptionsBulk()">📥 批量添加</button>
+            <button class="btn-sm primary" onclick="addCsOptionsBulk()">批量添加</button>
           </div>
-        </div>
+        </details>
       </div>
       <div class="modal-footer">
         <button class="btn-sm outline" onclick="closeModal('mod-cs-options')">关闭</button>
@@ -3083,7 +3137,7 @@ function openCrossSalesOptions() {
 
 function switchCsOptionsTeam(team) {
   csOptionManageTeam = team;
-  document.querySelectorAll('.cs-opt-team-tab').forEach(btn => {
+  document.querySelectorAll('.cs-opt-team').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.optTeam === team);
   });
   renderCsOptionsList();
@@ -3091,10 +3145,19 @@ function switchCsOptionsTeam(team) {
 
 function switchCsOptionsTab(type) {
   csOptionManageType = type;
-  document.querySelectorAll('.cs-opt-tab').forEach(btn => {
+  document.querySelectorAll('.cs-opt-type').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.optType === type);
   });
   renderCsOptionsList();
+}
+
+function hexToRgba(hex, alpha) {
+  const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i) || hex.match(/^#?([a-f\d])([a-f\d])([a-f\d])$/i);
+  if (!m) return 'rgba(99,102,241,' + alpha + ')';
+  const r = parseInt(m[1].length === 1 ? m[1] + m[1] : m[1], 16);
+  const g = parseInt(m[2].length === 1 ? m[2] + m[2] : m[2], 16);
+  const b = parseInt(m[3].length === 1 ? m[3] + m[3] : m[3], 16);
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
 }
 
 function renderCsOptionsList() {
@@ -3102,22 +3165,18 @@ function renderCsOptionsList() {
   if (!wrap) return;
   const list = csOptionsFor(csOptionManageTeam, csOptionManageType);
   if (list.length === 0) {
-    wrap.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-secondary);font-size:13px;">暂无选项，请在下方添加</div>';
+    wrap.innerHTML = '<div style="width:100%;text-align:center;padding:28px 12px;color:var(--text-muted);font-size:13px;">暂无选项，请在下方添加</div>';
     return;
   }
   wrap.innerHTML = list.map((item, i) => {
     const opt = (typeof item === 'object' && item && item.value) ? item : { value: String(item), color: '' };
-    const color = opt.color || '';
-    return `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);">
-      <span style="width:22px;text-align:center;color:var(--text-secondary);font-size:12px;font-weight:700;">${i + 1}</span>
-      <input type="color" value="${escapeAttr(color || '#6366f1')}" onchange="updateCsOptionColor(${i}, this.value)" title="选项颜色" style="width:32px;height:26px;padding:1px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;">
-      <span style="flex:1;font-size:14px;color:var(--text);${color ? 'padding:2px 8px;border-radius:6px;background:' + escapeAttr(color) + '22;' : ''}">${escapeHtml(opt.value)}</span>
-      <button class="btn-sm outline" onclick="moveCsOption(${i}, -1)" title="上移" style="padding:2px 8px;font-size:11px;">↑</button>
-      <button class="btn-sm outline" onclick="moveCsOption(${i}, 1)" title="下移" style="padding:2px 8px;font-size:11px;">↓</button>
-      <button class="btn-sm outline" onclick="removeCsOption(${i})" style="padding:2px 8px;font-size:11px;color:#e74c3c;">🗑️</button>
-    </div>
-  `;
+    const color = opt.color || '#6366f1';
+    return `<span class="cs-opt-pill" title="拖拽排序暂不支持，可上下移动" style="background:${hexToRgba(color,0.08)};border-color:${hexToRgba(color,0.35)};">
+      <input type="color" value="${escapeAttr(color)}" onchange="updateCsOptionColor(${i}, this.value)" title="修改颜色" style="width:14px;height:14px;padding:0;border:none;border-radius:50%;background:transparent;cursor:pointer;opacity:0;position:absolute;left:6px;">
+      <span class="color" style="background:${escapeAttr(color)};"></span>
+      <span class="txt">${escapeHtml(opt.value)}</span>
+      <button type="button" class="del" onclick="removeCsOption(${i})" title="删除">×</button>
+    </span>`;
   }).join('');
 }
 
@@ -3474,6 +3533,39 @@ function setCrossSalesTeam(team) {
     btn.classList.toggle('active', btn.dataset.csTeam === team);
   });
   renderCrossSales();
+}
+
+// 连带成交工具栏 · 更多下拉菜单
+function toggleCsMoreMenu(e) {
+  e && e.stopPropagation();
+  const dd = document.getElementById('cs-more-dropdown');
+  if (!dd) return;
+  const willShow = !dd.classList.contains('show');
+  closeCsMoreMenu();
+  if (willShow) {
+    dd.classList.add('show');
+    const closeOnDoc = (ev) => { if (!ev.target.closest('.cs-more-menu')) closeCsMoreMenu(); };
+    document.addEventListener('click', closeOnDoc, { once: true });
+  }
+}
+function closeCsMoreMenu() {
+  const dd = document.getElementById('cs-more-dropdown');
+  if (dd) dd.classList.remove('show');
+}
+function toggleCsExportArea() {
+  const wrap = document.getElementById('cross-sales-export-wrap');
+  if (!wrap) return;
+  const show = wrap.style.display === 'none';
+  wrap.style.display = show ? 'flex' : 'none';
+  if (show) {
+    const today = new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    const fmt = d => d.toISOString().split('T')[0];
+    const s = document.getElementById('cs-export-start');
+    const e = document.getElementById('cs-export-end');
+    if (s && !s.value) s.value = fmt(start);
+    if (e && !e.value) e.value = fmt(today);
+  }
 }
 
 // 点击排名卡片：聚焦该客服的明细（再点取消）
