@@ -4053,7 +4053,7 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader, append) {
   captureCSInputState(tbody);
   if (!window._csEnterBound) { tbody.addEventListener('keydown', csEnterNavigation); window._csEnterBound = true; }
   const newRows = Array.from(tbody.querySelectorAll('tr[data-new="true"]'));
-  const limit = csLocateDup ? rows.length : CS_PAGE_SIZE; // 定位重复时展开全部，确保高亮可见
+  const limit = CS_PAGE_SIZE; // 始终分页（含筛选重复模式），避免重复项过多时一次性渲染卡死主线程
   const pageRows = rows.slice(0, limit);
 
   let html = pageRows.map(r => csRowHtml(r, isAdminOrLeader)).join('');
@@ -4084,8 +4084,8 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader, append) {
     </tr>
   `;
 
-  // 分页行（定位重复时展开全部，不显示分页）
-  if (!csLocateDup && rows.length > CS_PAGE_SIZE) {
+  // 分页行（正常与筛选重复模式都分页，避免一次性渲染过多导致卡顿）
+  if (rows.length > CS_PAGE_SIZE) {
     html += `
       <tr data-cs-foot="pager">
         <td colspan="12" style="padding:8px 10px;background:#fafafa;border-top:1px solid var(--border);">
@@ -4147,7 +4147,13 @@ function loadMoreCsRows() {
   const tbody = document.getElementById('cross-sales-tbody');
   if (!tbody) return;
   const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
-  const rows = getCSDisplayRows();
+  const all = getCSDisplayRows();
+  // 筛选重复模式下，加载更多也要按相同的重复过滤切片
+  computeCSDupGroups(all);
+  const rows = csLocateDup ? all.filter(r => {
+    const k = (r.record_date || '') + '|' + (r.first_order_no || '') + '|' + (r.second_order_no || '');
+    return _csDupGroupMap[k] > 1;
+  }) : all;
   renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader, true);
 }
 
