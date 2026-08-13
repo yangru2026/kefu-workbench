@@ -3200,6 +3200,17 @@ function csOptionHtml(key, currentVal, team) {
 
 // 给选中有颜色的 select 添加背景色
 function applySelectColor(sel) {
+  // 成交明细表按团队色区分，优先保持团队色，不被 option 颜色覆盖
+  const team = sel.dataset.team;
+  if (team) {
+    const c = teamColor(team);
+    if (c) {
+      sel.style.background = c + '15';
+      sel.style.borderColor = c;
+      sel.style.color = c;
+      return;
+    }
+  }
   const opt = sel.options[sel.selectedIndex];
   if (!opt) return;
   const color = opt.dataset.color;
@@ -3587,7 +3598,8 @@ function subscribeCrossSales() {
 function onCrossSalesDateChange() {
   const input = document.getElementById('cross-sales-date-input');
   if (input) crossSalesDate = input.value;
-  crossSalesRankMode = 'day';
+  // 默认保持按月模式；用户明确切换或点上下箭头才进按日模式
+  if (crossSalesRankMode !== 'day' && crossSalesRankMode !== 'month') crossSalesRankMode = 'month';
   syncCSNewRowsDate();
   renderCrossSales();
 }
@@ -4039,23 +4051,23 @@ function csRowHtml(r, isAdminOrLeader) {
       <td style="padding:4px;text-align:center;width:60px;white-space:nowrap;">${dupBadge}${isAdminOrLeader ? `<input type="checkbox" class="cs-row-check" data-id="${r.id || ''}" style="cursor:pointer;vertical-align:middle;">` : ''}</td>
       <td style="padding:4px;"><input type="date" data-field="record_date" value="${r.record_date || ''}" onchange="autoSaveCSRow(this)" style="width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
-        <select data-field="shop" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
+        <select data-field="shop" data-team="${escapeHtml(r.team || '')}" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid ${tcSafe};border-radius:4px;font-size:12px;background:${tcBg};color:${tcSafe};font-weight:600;" data-cs-color-init>
           ${csOptionHtml('shop', r.shop, r.team)}
         </select>
       </td>
       <td style="padding:4px;white-space:nowrap;">
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${tcSafe};margin-right:5px;vertical-align:middle;" title="${escapeHtml(r.team || '未分组')}"></span>
-        <input data-field="staff_name" value="${escapeHtml(r.staff_name || '')}" readonly style="width:64px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:${tcBg};color:${tcSafe};font-weight:700;">
+        <input data-field="staff_name" value="${escapeHtml(r.staff_name || '')}" readonly style="width:64px;padding:4px 6px;border:1px solid ${tcSafe};border-radius:4px;font-size:12px;background:${tcBg};color:${tcSafe};font-weight:700;">
       </td>
       <td style="padding:4px;">
-        <select data-field="product_type" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
+        <select data-field="product_type" data-team="${escapeHtml(r.team || '')}" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid ${tcSafe};border-radius:4px;font-size:12px;background:${tcBg};color:${tcSafe};font-weight:600;" data-cs-color-init>
           ${csOptionHtml('product_type', r.product_type, r.team)}
         </select>
       </td>
       <td style="padding:4px;"><input data-field="first_order_no" value="${escapeHtml(r.first_order_no || '')}" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;"><input data-field="second_order_no" value="${escapeHtml(r.second_order_no || '')}" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
-        <select data-field="first_order_status" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
+        <select data-field="first_order_status" data-team="${escapeHtml(r.team || '')}" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:80px;padding:4px 6px;border:1px solid ${tcSafe};border-radius:4px;font-size:12px;background:${tcBg};color:${tcSafe};font-weight:600;" data-cs-color-init>
           ${csOptionHtml('order_status', r.first_order_status, r.team)}
         </select>
       </td>
@@ -5009,6 +5021,17 @@ function removeCsPasteRow(idx) {
   renderCsPastePreview([]);
 }
 
+// 粘贴导入后调整日期：保持当前按日/按月模式，只把周期定位到导入数据所在范围
+function setCsDateToInsertedRange(inserted) {
+  const dates = inserted.map(r => r.record_date).filter(Boolean).sort();
+  if (!dates.length) return;
+  if (crossSalesRankMode === 'month') {
+    crossSalesDate = dates[0].slice(0, 7) + '-01';
+  } else {
+    crossSalesDate = dates[0];
+  }
+}
+
 async function submitCsPaste() {
   const importBtn = document.getElementById('cs-paste-import-btn');
   const originalBtnText = importBtn ? importBtn.innerHTML : '✅ 导入';
@@ -5101,8 +5124,7 @@ async function submitCsPaste() {
         }
         showToast(`✅ 已粘贴导入 ${ok} 条` + (skip ? `，跳过 ${skip} 条重复（请管理员执行 fix_cross_sales_unique.sql 以允许保留重复项）` : '') + (skipped.length ? `，跳过 ${skipped.length} 行（日期/订单号缺失）` : ''));
         closeModal('mod-cs-paste');
-        const dates = inserted.map(r => r.record_date).sort();
-        if (dates.length) { crossSalesDate = dates[0]; crossSalesRankMode = 'day'; }
+        setCsDateToInsertedRange(inserted);
         loadCrossSalesFromDB();
         return;
       }
@@ -5111,12 +5133,8 @@ async function submitCsPaste() {
     }
     showToast(`✅ 已粘贴导入 ${inserted.length} 条` + (skipped.length ? `，跳过 ${skipped.length} 行（日期/订单号缺失）` : ''));
     closeModal('mod-cs-paste');
-    // 切到最早一条的日期
-    const dates = inserted.map(r => r.record_date).sort();
-    if (dates.length) {
-      crossSalesDate = dates[0];
-      crossSalesRankMode = 'day';
-    }
+    // 保持当前按日/按月模式，只把日期调整到导入数据所在的周期
+    setCsDateToInsertedRange(inserted);
     loadCrossSalesFromDB();
   } catch (unexpected) {
     console.error('[submitCsPaste] unexpected error:', unexpected);
