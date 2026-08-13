@@ -2346,9 +2346,9 @@ let rankEditMode = false;
 async function loadConfig() {
   try {
     const ts = Date.now();
-    // 5秒超时，防止 fetch 卡住阻塞整个页面
+    // 3秒超时，config.json 是静态文件，不应阻塞首屏
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
     const resp = await fetch('config.json?t=' + ts, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (!resp.ok) throw new Error('Config load failed');
@@ -2368,12 +2368,12 @@ async function loadConfig() {
     document.getElementById('config-update').textContent = cfg.lastUpdate || '';
     updateStats();
     loadVisitorStats();
-    initSupabase();
+    // 如果快捷工具页已经打开，加载完配置后立即渲染
+    if (currentPage === 'tools' && typeof renderTools === 'function') renderTools();
     console.log('配置加载成功 v' + configVersion + ' | 更新于 ' + (cfg.lastUpdate || ''));
   } catch (e) {
     console.error('配置加载失败，使用默认数据', e);
     document.getElementById('config-version').textContent = '离线模式';
-    initSupabase();
   }
 }
 
@@ -3487,8 +3487,15 @@ function applyCsColumnFilters(rows) {
   return rows;
 }
 
-async function loadCrossSalesFromDB() {
+async function loadCrossSalesFromDB(force) {
   if (!supabase) return;
+  // 15 秒内重复进入本页，且没有强制刷新/Realtime 推送，则跳过全量拉取，直接渲染缓存，显著减少切页等待
+  const now = Date.now();
+  if (!force && window._csLastLoadAt && (now - window._csLastLoadAt < 15000)) {
+    if (currentPage === 'cross-sales') renderCrossSales();
+    return;
+  }
+  window._csLastLoadAt = now;
   try {
     const { data, error } = await supabase
       .from('cross_sales')
@@ -3615,7 +3622,8 @@ function updateCsTeamHint() {
   const hint = document.getElementById('cross-sales-team-hint');
   if (!hint) return;
   const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
-  const isArchived = isCsMonthArchived(crossSalesDate.slice(0, 7));
+  const safeDate = crossSalesDate || getTodayStr();
+  const isArchived = isCsMonthArchived(safeDate.slice(0, 7));
   let html;
   if (crossSalesTeamFilter === 'all') {
     html = '<span style="color:var(--text-secondary);">· 全部组</span>';
@@ -4067,7 +4075,7 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader, append, show
       tr.querySelectorAll('select[data-cs-color-init]').forEach(applySelectColor);
     });
     scanCSDuplicates();
-    const archived = isCsMonthArchived(crossSalesDate.slice(0, 7));
+    const archived = isCsMonthArchived((crossSalesDate || getTodayStr()).slice(0, 7));
     if (archived && !isAdminOrLeader) {
       inserted.forEach(tr => tr.querySelectorAll('input,select,button').forEach(el => { el.disabled = true; el.title = '该月份已归档，仅管理员可编辑'; }));
     }
@@ -4140,7 +4148,7 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader, append, show
   // 扫描重复订单号并标记
   scanCSDuplicates();
   // 已归档月份对非管理员只读
-  const archived = isCsMonthArchived(crossSalesDate.slice(0, 7));
+  const archived = isCsMonthArchived((crossSalesDate || getTodayStr()).slice(0, 7));
   if (archived && !isAdminOrLeader) {
     tbody.querySelectorAll('tr[data-id] input, tr[data-id] select, tr[data-id] button').forEach(el => {
       el.disabled = true;
@@ -5277,12 +5285,12 @@ async function clearAllCrossSales() {
       if (delErr) { showToast('❌ 删除失败: ' + delErr.message); return; }
       total += batch.length;
     }
-    // 3) 立即清空本地视图并刷新
+    // 3) 立即清空本地视图并刷新（保持 crossSalesDate 为今天，避免后续 slice 空值崩溃）
     crossSalesData = [];
-    crossSalesDate = null;
+    crossSalesDate = getTodayStr();
     renderCrossSales();
     showToast(`✅ 已清空全部成交明细（共 ${total} 条）`);
-    loadCrossSalesFromDB();
+    loadCrossSalesFromDB(true);
   } catch (e) {
     showToast('❌ 清空异常: ' + e.message);
   } finally {
@@ -9006,12 +9014,9 @@ function setVisitorName() {
 
 // ==================== INIT ====================
 async function init() {
-  try {
-    await loadConfig();
-  } catch(e) {
-    console.error('loadConfig 异常', e);
-    initSupabase();
-  }
+  // 关键优化：Supabase 初始化与配置加载并行，避免 config.json 拉取（尤其 GitHub Pages 慢时）阻塞首屏 3-5 秒
+  initSupabase();
+  loadConfig().catch(e => console.error('loadConfig 异常', e));
   try { renderTrainingFilters(); } catch(e) {}
   try { renderPatternFilters(); } catch(e) {}
   try { renderSOPFilters(); } catch(e) {}
