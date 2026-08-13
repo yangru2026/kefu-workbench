@@ -1376,7 +1376,20 @@ body {
         <button class="modal-close" onclick="closeModal('mod-cs-quick')">✕</button>
       </div>
       <div class="modal-body">
-        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">回车即提交 · 自动记忆上次选择 · 提交后排名实时刷新</p>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+          <p style="font-size:13px;color:var(--text-secondary);margin:0;">回车即提交 · 自动记忆上次选择 · 提交后排名实时刷新</p>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span id="cs-quick-team-label" style="font-size:12px;color:var(--text-secondary);">模板：-</span>
+            <button class="btn-sm outline" onclick="syncCsQuickOptions()" title="从云端重新加载选项模板">🔄 同步模板</button>
+            <select id="cs-quick-copy-opts" class="btn-sm outline" style="padding:4px 8px;font-size:12px;cursor:pointer;" onchange="const v=this.value;if(v){copyCsQuickOptions(v);this.value='';}">
+              <option value="">📋 复制选项</option>
+              <option value="shop">复制 店铺</option>
+              <option value="product_type">复制 产品类型</option>
+              <option value="order_status">复制 第一单状态</option>
+            </select>
+            <button class="btn-sm outline" onclick="copyLastCsRecord()" title="把最近一条登记的店铺/产品类型/状态复制到当前表单">⏪ 复制上一条</button>
+          </div>
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div>
             <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">日期</label>
@@ -4143,6 +4156,64 @@ function rememberCsSel(shop, product_type, first_order_status) {
   } catch (e) {}
 }
 
+// 刷新极速登记弹窗中的选项下拉，并显示当前使用的模板组别
+async function syncCsQuickOptions() {
+  if (!supabase) { showToast('⚠️ 请先登录'); return; }
+  await loadCrossSalesOptions();
+  const team = currentProfile?.group_name || 'A组';
+  const mem = getRememberedCsSel();
+  const shopEl = document.getElementById('cs-quick-shop');
+  if (shopEl) { shopEl.innerHTML = csOptionHtml('shop', mem.shop || '', team); applySelectColor(shopEl); }
+  const prodEl = document.getElementById('cs-quick-product');
+  if (prodEl) { prodEl.innerHTML = csOptionHtml('product_type', mem.product_type || '', team); applySelectColor(prodEl); }
+  const statusEl = document.getElementById('cs-quick-status');
+  if (statusEl) { statusEl.innerHTML = csOptionHtml('order_status', mem.first_order_status || '', team); applySelectColor(statusEl); }
+  const lbl = document.getElementById('cs-quick-team-label');
+  if (lbl) lbl.textContent = '模板：' + team;
+  showToast('✅ 已同步 ' + team + ' 的选项模板');
+}
+
+// 复制某类选项列表到剪贴板（便于粘到 Excel / 文档做导入模板）
+function copyCsQuickOptions(field) {
+  const team = currentProfile?.group_name || 'A组';
+  const list = csOptionsFor(team, field).map(o => (typeof o === 'object' && o && o.value) ? o.value : String(o));
+  if (!list.length) { showToast('⚠️ 当前组别无' + ({shop:'店铺',product_type:'产品类型',order_status:'第一单状态'}[field] || field)); return; }
+  const text = list.join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => showToast('✅ 已复制 ' + list.length + ' 个' + ({shop:'店铺',product_type:'产品类型',order_status:'第一单状态'}[field] || field)));
+  } else {
+    const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    showToast('✅ 已复制 ' + list.length + ' 个' + ({shop:'店铺',product_type:'产品类型',order_status:'第一单状态'}[field] || field));
+  }
+}
+
+// 把最近一条登记的店铺/产品类型/状态复制到当前表单
+async function copyLastCsRecord() {
+  if (!supabase || !currentProfile) { showToast('⚠️ 请先登录'); return; }
+  const name = currentProfile.name || currentProfile.real_name || '';
+  const team = currentProfile.group_name || 'A组';
+  const { data, error } = await supabase.from('cross_sales')
+    .select('shop,product_type,first_order_status')
+    .eq('team', team)
+    .or('staff_name.eq.' + name + ',created_by.eq.' + (currentUser?.id || ''))
+    .order('created_at', { ascending: false })
+    .limit(1);
+  if (error) { showToast('⚠️ 读取最近记录失败'); return; }
+  const rec = (data && data[0]) || null;
+  if (!rec) { showToast('⚠️ 没找到最近登记记录'); return; }
+  const setAndColor = (id, val, key) => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = csOptionHtml(key, val || '', team);
+    sel.value = val || '';
+    applySelectColor(sel);
+  };
+  setAndColor('cs-quick-shop', rec.shop, 'shop');
+  setAndColor('cs-quick-product', rec.product_type, 'product_type');
+  setAndColor('cs-quick-status', rec.first_order_status, 'order_status');
+  showToast('✅ 已复制最近一条：' + [rec.shop, rec.product_type, rec.first_order_status].filter(Boolean).join(' / '));
+}
+
 // 打开极速登记弹窗：预填今天/当前客服/上次记忆的选项
 function openCsQuickRegister() {
   if (!currentProfile) { showToast('⚠️ 请先登录'); return; }
@@ -4166,6 +4237,8 @@ function openCsQuickRegister() {
   if (staffEl) staffEl.textContent = (currentProfile.name || currentProfile.real_name || '');
   const contEl = document.getElementById('cs-quick-continue');
   if (contEl) contEl.checked = true;
+  const teamLbl = document.getElementById('cs-quick-team-label');
+  if (teamLbl) teamLbl.textContent = '模板：' + team;
   showModalById('mod-cs-quick');
   setTimeout(() => { const f = document.getElementById('cs-quick-first'); if (f) f.focus(); }, 60);
 }
