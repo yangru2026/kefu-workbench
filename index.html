@@ -843,6 +843,17 @@ body {
 .cs-opt-pill .del { width:18px; height:18px; border:none; border-radius:50%; background:transparent; color:var(--text-muted); font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:0; transition:all .15s; }
 .cs-opt-pill:hover .del { opacity:1; }
 .cs-opt-pill .del:hover { background:#fee; color:#e5484d; }
+/* 批量粘贴预览表格 */
+.cs-paste-table { width:100%; border-collapse:collapse; font-size:12px; }
+.cs-paste-table th, .cs-paste-table td { padding:5px 7px; border-bottom:1px solid var(--border); text-align:left; white-space:nowrap; }
+.cs-paste-table th { background:var(--bg); color:var(--text-secondary); font-weight:600; position:sticky; top:0; }
+.cs-paste-table td.amt { text-align:right; font-variant-numeric:tabular-nums; }
+.cs-paste-table .row-del { border:none; background:transparent; color:var(--text-muted); cursor:pointer; font-size:14px; padding:2px 6px; border-radius:4px; }
+.cs-paste-table .row-del:hover { background:#fee; color:#e5484d; }
+.cs-dup-row { background:#fff4e5 !important; }
+.cs-dup-row td:first-child { box-shadow: inset 3px 0 0 #f59e0b; }
+.cs-paste-warn { margin-top:8px; padding:8px 10px; border-radius:8px; font-size:12px; line-height:1.65; }
+.cs-paste-warn.dup { background:#fff4e5; border:1px solid #fcd9a5; color:#9a6700; }
 .cs-opt-addrow { display:flex; gap:8px; align-items:center; margin-top:12px; }
 .cs-opt-addrow input[type="color"] { width:36px; height:36px; padding:2px; border:1px solid var(--border); border-radius:8px; background:#fff; cursor:pointer; }
 .cs-opt-addrow input[type="text"] { flex:1; padding:8px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; font-family:inherit; }
@@ -4578,9 +4589,10 @@ function parseCsPasteText(text) {
   const lines = text.replace(/\r\n?/g, '\n').split('\n').map(s => s.trim()).filter(s => s && !/^#/.test(s));
   if (lines.length === 0) return { rows: [], errors: ['没有有效数据行'] };
 
-  // 检测是否包含表头（第一行含「日期」「订单号」「金额」等关键字）
+  // 检测是否包含表头（第一行命中 ≥2 个关键字才算，避免数据值如「店铺A」被误判为表头）
   const headerKeywords = ['日期', '订单号', '金额', '产品', '店铺', '客服', '状态'];
-  const hasHeader = lines[0] && headerKeywords.some(k => lines[0].includes(k));
+  const hitCount = lines[0] ? headerKeywords.filter(k => lines[0].includes(k)).length : 0;
+  const hasHeader = hitCount >= 2;
   const dataLines = hasHeader ? lines.slice(1) : lines;
 
   const rows = [];
@@ -4614,39 +4626,87 @@ function parseCsPasteText(text) {
 
 function previewCsPaste() {
   const text = document.getElementById('cs-paste-textarea').value;
-  const preview = document.getElementById('cs-paste-preview');
   const { rows, errors } = parseCsPasteText(text);
+  window._csPasteRows = rows; // 保存供删除/导入使用（反映用户手动删除后的结果）
+  const preview = document.getElementById('cs-paste-preview');
   if (rows.length === 0) {
     preview.innerHTML = '<div style="color:#e74c3c;padding:8px;background:#fef5f5;border-radius:6px;">❌ 没有可识别的数据行。' + (errors[0] || '') + '</div>';
     return;
   }
-  const dupKeys = {};
-  rows.forEach(r => { const k = `${r.date}|${r.firstNo}|${r.secondNo}`; dupKeys[k] = (dupKeys[k] || 0) + 1; });
-  const dupCount = Object.values(dupKeys).filter(c => c > 1).length;
-  const dupWarn = dupCount > 0 ? `<div style="margin-top:6px;color:#e74c3c;font-size:12px;">⚠️ 检测到 ${dupCount} 组重复键（同一天+同一组订单号），导入时会自动保留最后一条</div>` : '';
-  const errHtml = errors.length > 0
-    ? '<div style="margin-top:6px;color:#e67e22;font-size:12px;">⚠️ ' + errors.slice(0, 3).join('；') + (errors.length > 3 ? '…' : '') + '</div>'
+  renderCsPastePreview(errors);
+}
+
+// 仅根据当前 window._csPasteRows 渲染（不去重、不丢弃，重复行高亮）
+function renderCsPastePreview(errors) {
+  const preview = document.getElementById('cs-paste-preview');
+  const rows = window._csPasteRows || [];
+  if (rows.length === 0) {
+    preview.innerHTML = '<div style="padding:8px;background:#f6f8fa;border-radius:6px;color:var(--text-secondary);">已无数据行，可重新粘贴或修改后再次预览。</div>';
+    return;
+  }
+  // 重复键统计：同一天 + 同一组第一/第二单订单号
+  const keyCount = {};
+  rows.forEach(r => { const k = `${r.date}|${r.firstNo}|${r.secondNo}`; keyCount[k] = (keyCount[k] || 0) + 1; });
+  const dupSet = new Set();
+  rows.forEach(r => { const k = `${r.date}|${r.firstNo}|${r.secondNo}`; if (keyCount[k] > 1) dupSet.add(k); });
+  const dupRowCount = rows.filter(r => dupSet.has(`${r.date}|${r.firstNo}|${r.secondNo}`)).length;
+
+  const errHtml = (errors && errors.length > 0)
+    ? '<div class="cs-paste-warn" style="background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;">⚠️ ' + errors.slice(0, 3).join('；') + (errors.length > 3 ? '…' : '') + '</div>'
     : '';
+  const dupHtml = dupRowCount > 0
+    ? `<div class="cs-paste-warn dup">⚠️ 发现 <strong>${dupRowCount}</strong> 行重复（同一天 + 同一组订单号，已用<span style="background:#f59e0b;color:#fff;padding:0 4px;border-radius:3px;">橙色高亮</span>标出）。请复核后点行尾「✕」删除多余行，再点导入；或直接导入（确认后重复项会自动合并为一组、保留最后一条）。</div>`
+    : '';
+
+  const head = ['#', '日期', '店铺', '客服', '产品', '第一单号', '第二单号', '状态', '第一单金额', '第二单金额', '合计', ''];
+  const body = rows.map((r, idx) => {
+    const k = `${r.date}|${r.firstNo}|${r.secondNo}`;
+    const isDup = dupSet.has(k);
+    const total = r.total ? r.total : (parseNumber(r.firstAmt) + parseNumber(r.secondAmt));
+    return `<tr${isDup ? ' class="cs-dup-row"' : ''}>
+      <td>${idx + 1}</td>
+      <td>${escapeHtml(r.date || '')}</td>
+      <td>${escapeHtml(r.shop || '')}</td>
+      <td>${escapeHtml(r.staff || '')}</td>
+      <td>${escapeHtml(r.product || '')}</td>
+      <td>${escapeHtml(r.firstNo || '')}</td>
+      <td>${escapeHtml(r.secondNo || '')}</td>
+      <td>${escapeHtml(r.status || '')}</td>
+      <td class="amt">¥${escapeHtml(r.firstAmt || '0')}</td>
+      <td class="amt">¥${escapeHtml(r.secondAmt || '0')}</td>
+      <td class="amt">¥${escapeHtml(String(total))}</td>
+      <td><button class="row-del" title="删除此行" onclick="removeCsPasteRow(${idx})">✕</button></td>
+    </tr>`;
+  }).join('');
+
   preview.innerHTML = `
-    <div style="background:#f0f9f4;padding:10px 12px;border-radius:8px;border:1px solid #c8e6c9;">
-      ✅ 识别到 <strong>${rows.length}</strong> 条数据${dupWarn}${errHtml}
-      <div style="margin-top:6px;font-size:12px;color:var(--text-secondary);">前 3 条预览：</div>
-      <div style="margin-top:4px;font-size:12px;font-family:monospace;line-height:1.6;">
-        ${rows.slice(0, 3).map(r => {
-          const ok = r.date ? '✓' : '✗日期';
-          return `<div>${ok} ${escapeHtml(r.date || '?')} | ${escapeHtml(r.shop || '?')} | ${escapeHtml(r.staff || '?')} | ${escapeHtml(r.firstNo || '?')} | ${escapeHtml(r.secondNo || '?')} | ¥${escapeHtml(r.firstAmt || '0')} / ¥${escapeHtml(r.secondAmt || '0')}</div>`;
-        }).join('')}
-      </div>
+    <div style="background:#f0f9f4;padding:10px 12px;border-radius:8px;border:1px solid #c8e6c9;font-size:13px;">
+      ✅ 识别到 <strong>${rows.length}</strong> 条数据${dupRowCount > 0 ? `（<span style="color:#9a6700;">其中 <strong>${dupRowCount}</strong> 行重复</span>）` : '（无重复）'}
+    </div>
+    ${dupHtml}${errHtml}
+    <div style="max-height:320px;overflow:auto;border:1px solid var(--border);border-radius:8px;margin-top:8px;">
+      <table class="cs-paste-table">
+        <thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+        <tbody>${body}</tbody>
+      </table>
     </div>
   `;
+}
+
+// 删除预览中的某一行（用户复核后自行删除冗余项）
+function removeCsPasteRow(idx) {
+  if (!window._csPasteRows) return;
+  window._csPasteRows.splice(idx, 1);
+  renderCsPastePreview([]);
 }
 
 async function submitCsPaste() {
   if (!supabase) { showToast('⚠️ Supabase 未就绪'); return; }
   const text = document.getElementById('cs-paste-textarea').value;
-  const { rows, errors } = parseCsPasteText(text);
+  const parsed = (window._csPasteRows && window._csPasteRows.length) ? { rows: window._csPasteRows, errors: [] } : parseCsPasteText(text);
+  const rows = parsed.rows;
   if (rows.length === 0) {
-    showToast('❌ 没有可识别的数据行' + (errors[0] ? '：' + errors[0] : ''));
+    showToast('❌ 没有可识别的数据行' + (parsed.errors[0] ? '：' + parsed.errors[0] : ''));
     return;
   }
 
@@ -4697,6 +4757,16 @@ async function submitCsPaste() {
     return;
   }
 
+  // 计算导入集合内是否仍有重复冲突键（用户可能未在预览中手动删除）
+  const keyCount = {};
+  inserted.forEach(rec => { const k = `${rec.record_date}|${rec.first_order_no}|${rec.second_order_no}`; keyCount[k] = (keyCount[k] || 0) + 1; });
+  let dupInInsert = 0;
+  Object.values(keyCount).forEach(c => { if (c > 1) dupInInsert += c - 1; });
+  if (dupInInsert > 0) {
+    if (!confirm(`仍有 ${dupInInsert} 行重复（同一天 + 同一组订单号）。\n数据库不允许重复，导入时将按冲突键合并（每组保留最后一条），其余重复项不会写入。\n\n点「确定」导入合并后的数据；点「取消」返回删除多余行。`)) {
+      return;
+    }
+  }
   // 单次 upsert 中不能出现重复冲突键，否则报 "ON CONFLICT DO UPDATE command cannot affect row a second time"
   const lastIdx = new Map();
   inserted.forEach((rec, idx) => {
@@ -4714,7 +4784,7 @@ async function submitCsPaste() {
     showToast('❌ 粘贴导入失败: ' + error.message);
     return;
   }
-  showToast(`✅ 已粘贴导入 ${deduped.length} 条` + (dupCount > 0 ? `（已去重 ${dupCount} 条）` : '') + (skipped.length ? `，跳过 ${skipped.length} 行` : ''));
+  showToast(`✅ 已粘贴导入 ${deduped.length} 条` + (dupCount > 0 ? `（合并了 ${dupCount} 条重复）` : '') + (skipped.length ? `，跳过 ${skipped.length} 行` : ''));
   closeModal('mod-cs-paste');
   // 切到最早一条的日期
   const dates = deduped.map(r => r.record_date).sort();
