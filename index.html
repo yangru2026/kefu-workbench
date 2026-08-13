@@ -5040,13 +5040,31 @@ async function submitCsPaste() {
   }
 
   // 不拦截、不去重：所有粘贴行全部写入（含重复项）。
-  // 数据库已移除 (日期+订单号) 唯一约束，重复记录可正常保存；
-  // 重复项由页面「🔍 筛选重复项」高亮，供客服复核后自行删除。
-  const { error } = await supabase
-    .from('cross_sales')
-    .insert(inserted);
-  if (error) {
-    showToast('❌ 粘贴导入失败: ' + error.message);
+  // 数据库应已移除 (日期+订单号) 唯一约束（见 fix_cross_sales_unique.sql），
+  // 重复记录可正常保存；重复项由页面「🔍 筛选重复项」高亮，供客服复核后自行删除。
+  try {
+    const { error } = await supabase.from('cross_sales').insert(inserted);
+    if (error) throw error;
+  } catch (e) {
+    // 兜底：若数据库仍保留旧唯一约束（管理员尚未执行迁移 SQL），逐行插入、跳过重复行，
+    // 避免整批粘贴直接失败；并提示执行迁移以彻底放开重复项。
+    const msg = (e && e.message) || '';
+    if (e && (e.code === '23505' || msg.includes('duplicate') || msg.includes('unique'))) {
+      let ok = 0, skip = 0;
+      for (const rec of inserted) {
+        const { error: ie } = await supabase.from('cross_sales').insert([rec]);
+        if (ie && (ie.code === '23505' || (ie.message || '').includes('duplicate') || (ie.message || '').includes('unique'))) skip++;
+        else if (ie) { showToast('❌ 粘贴导入失败: ' + ie.message); return; }
+        else ok++;
+      }
+      showToast(`✅ 已粘贴导入 ${ok} 条` + (skip ? `，跳过 ${skip} 条重复（请管理员执行 fix_cross_sales_unique.sql 以允许保留重复项）` : '') + (skipped.length ? `，跳过 ${skipped.length} 行（日期/订单号缺失）` : ''));
+      closeModal('mod-cs-paste');
+      const dates = inserted.map(r => r.record_date).sort();
+      if (dates.length) { crossSalesDate = dates[0]; crossSalesRankMode = 'day'; }
+      loadCrossSalesFromDB();
+      return;
+    }
+    showToast('❌ 粘贴导入失败: ' + (e && e.message ? e.message : e));
     return;
   }
   showToast(`✅ 已粘贴导入 ${inserted.length} 条` + (skipped.length ? `，跳过 ${skipped.length} 行（日期/订单号缺失）` : ''));
