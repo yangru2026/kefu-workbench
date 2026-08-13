@@ -1329,7 +1329,8 @@ body {
       </div>
       <div id="cross-sales-empty" style="text-align:center;padding:40px;color:var(--text-secondary);display:none;">
         <div style="font-size:40px;margin-bottom:8px;">🛒</div>
-        <p>暂无连带成交数据</p>
+        <p>该日期暂无连带成交数据（数据都在云端，不会丢失）</p>
+        <p style="font-size:13px;margin-top:6px;">可点上方 <strong>📅 按月份排名</strong> 查看整月，或切换日历选择有记录的日期</p>
       </div>
     </div>
   </div>
@@ -3255,7 +3256,15 @@ async function loadCrossSalesFromDB() {
       .limit(5000);
     if (error) { console.warn('连带成交数据加载失败:', error.message); return; }
     crossSalesData = data || [];
-    if (!crossSalesDate) crossSalesDate = getTodayStr();
+    if (!crossSalesDate) {
+      crossSalesDate = getTodayStr();
+      // 如果今天没有任何记录，自动跳到最近有记录的日期，避免页面看起来像“数据被清空”
+      const dated = crossSalesData.filter(r => r.record_date);
+      if (crossSalesData.length > 0 && !dated.some(r => r.record_date === crossSalesDate)) {
+        const latest = dated.map(r => r.record_date).sort().pop();
+        if (latest) crossSalesDate = latest;
+      }
+    }
     if (!crossSalesMonth) {
       const now = new Date();
       crossSalesMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
