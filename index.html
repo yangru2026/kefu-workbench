@@ -875,6 +875,10 @@ body {
 .cs-more-dropdown button:hover { background:var(--bg); }
 .cs-danger-btn:hover { background:#fdecea !important; }
 .cs-toolbar .rank-group-btn { padding:6px 18px; font-size:13px; border-width:1.5px; }
+/* 定位重复项：重复行红色高亮 + 角标 */
+.cs-dup-row { background:#fff1f0 !important; box-shadow: inset 3px 0 0 #e5484d; }
+.cs-dup-row td { border-bottom: 1px solid #ffd6d2; }
+.cs-dup-badge { display:inline-block; background:#e5484d; color:#fff; font-size:10px; line-height:1; padding:2px 5px; border-radius:6px; margin-bottom:2px; }
 
 /* Image manager */
 .img-mgr { margin-top:16px; border-top:1px solid var(--border); padding-top:14px; }
@@ -1356,6 +1360,7 @@ body {
             <button id="cross-sales-options-btn" onclick="openCrossSalesOptions();closeCsMoreMenu();" style="display:none;">⚙️ 选项管理</button>
             <button id="cross-sales-import-btn" onclick="openExcelImport('cross_sales');closeCsMoreMenu();" style="display:none;">📥 导入Excel</button>
             <button id="cross-sales-export-more-btn" onclick="toggleCsExportArea();closeCsMoreMenu();">📤 导出Excel</button>
+            <button id="cross-sales-locate-btn" onclick="locateCSDuplicates();closeCsMoreMenu();" style="color:#b8860b;font-weight:600;">🔍 定位重复项</button>
             <button class="feishu-sync-btn admin-only-nav" id="cross-sales-sync-btn" onclick="syncCrossSalesFromFeishu();closeCsMoreMenu();" style="display:none;">🔄 从飞书同步</button>
             <button class="collab-btn" id="collab-cross-sales-btn" onclick="openCollabPanel('cross-sales');closeCsMoreMenu();" style="display:none;">👥 协作者</button>
             <button class="admin-only-nav" id="cross-sales-archive-current-btn" onclick="archiveCurrentCsMonth();closeCsMoreMenu();" style="display:none;">🔒 归档本月</button>
@@ -1409,6 +1414,7 @@ body {
         <span id="cross-sales-filter-hint" style="font-size:12px;color:var(--text-secondary);font-weight:normal;display:none;"></span>
       </h3>
       <div id="cross-sales-dup-banner" style="display:none;background:#fff5f5;border:1px solid #f3c1c0;color:#c62828;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:10px;"></div>
+      <div id="cross-sales-locate-banner" style="display:none;background:#fff8e1;border:1px solid #ffe08a;color:#8a6d00;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:10px;"></div>
       <div style="max-height:62vh;overflow:auto;border:1px solid var(--border);border-radius:8px;">
         <table class="ranking-table" style="min-width:1080px;" id="cross-sales-table">
           <thead style="position:sticky;top:0;z-index:10;background:var(--card-bg);"><tr>
@@ -3010,6 +3016,12 @@ let crossSalesTeamInited = false; // 客服首次进入是否已自动选中本�
 let crossSalesSearch = '';      // 明细搜索关键字（客服/订单号）
 let crossSalesRankFocus = '';   // 排名卡片聚焦的客服名（点击穿透过滤明细）
 let csOptionManageTeam = 'default'; // 选项管理弹窗当前正在管理的组别
+let csCsPage = 1;                 // 明细分页当前页
+const CS_PAGE_SIZE = 60;         // 每页渲染行数（避免全量重渲染卡顿）
+let _csOptHtmlCache = {};        // csOptionHtml 结果缓存，避免每行重复拼接
+let _csOrderNoIndex = {};        // 订单号索引：date|orderNo -> 出现次数（快速查重 O(1)）
+let _csDupGroupMap = {};         // 当前明细「完整键」重复统计：key -> 次数（定位重复项用）
+let csLocateDup = false;         // 是否处于「定位重复项」高亮模式
 let csColumnFilters = {};           // 表头列筛选状态：{ record_date: ['2026-08-01'], shop: ['...'], ... }
 let csFilterColumn = null;          // 当前打开的筛选列
 let csArchivedMonths = [];          // 已归档月份列表 [{month, team, archived_at}]
@@ -3135,6 +3147,8 @@ function subscribeCrossSalesOptions() {
 
 // 生成下拉选项 HTML（key: shop / product_type / order_status，team 优先取该组选项）
 function csOptionHtml(key, currentVal, team) {
+  const cacheKey = key + '|' + (team || 'default') + '|' + (currentVal || '');
+  if (_csOptHtmlCache[cacheKey] !== undefined) return _csOptHtmlCache[cacheKey];
   const list = csOptionsFor(team, key);
   const currentStr = currentVal ? String(currentVal) : '';
   // 当前值是否已存在于模板选项中
@@ -3155,7 +3169,9 @@ function csOptionHtml(key, currentVal, team) {
     const colorTag = color ? `● ` : '';
     parts.push(`<option value="${escapeAttr(val)}" ${val === currentStr ? 'selected' : ''} data-color="${escapeAttr(color)}">${colorTag}${escapeHtml(val)}</option>`);
   });
-  return parts.join('');
+  const out = parts.join('');
+  _csOptHtmlCache[cacheKey] = out;
+  return out;
 }
 
 // 给选中有颜色的 select 添加背景色
@@ -3494,18 +3510,22 @@ async function loadCrossSalesFromDB() {
     }
     if (currentPage === 'cross-sales') renderCrossSales();
   } catch(e) { console.error('连带成交数据加载异常:', e); }
-  // 同时加载归档月份（不影响主数据加载）
-  loadCsArchivedMonths();
+  // 同时加载归档月份，加载完再统一渲染一次（避免两次重渲染卡顿）
+  try {
+    const { data, error } = await supabase.from('cross_sales_archive_months').select('month,team,archived_at,note').order('month', { ascending: false });
+    if (!error) { csArchivedMonths = data || []; }
+  } catch(e) { console.warn('归档月份加载异常:', e); }
+  if (currentPage === 'cross-sales') renderCrossSales();
 }
 
-async function loadCsArchivedMonths() {
+// 重新拉取归档月份列表（归档/解档后调用）
+async function reloadCsArchivedMonths() {
   if (!supabase) return;
   try {
     const { data, error } = await supabase.from('cross_sales_archive_months').select('month,team,archived_at,note').order('month', { ascending: false });
-    if (error) { console.warn('归档月份加载失败:', error.message); return; }
-    csArchivedMonths = data || [];
-    if (currentPage === 'cross-sales') renderCrossSales();
-  } catch(e) { console.error('归档月份加载异常:', e); }
+    if (!error) csArchivedMonths = data || [];
+  } catch(e) { console.warn('归档月份加载异常:', e); }
+  if (currentPage === 'cross-sales') renderCrossSales();
 }
 
 function subscribeCrossSales() {
@@ -3758,6 +3778,16 @@ function getCrossSalesRankData() {
   return arr;
 }
 
+// 最终用于渲染的明细行（含普通客服仅看本组的过滤），render 与「加载更多」共用
+function getCSDisplayRows() {
+  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  let rows = getCrossSalesDetailRows();
+  if (!isAdminOrLeader && currentProfile?.group_name) {
+    rows = rows.filter(r => r.team === currentProfile.group_name);
+  }
+  return rows;
+}
+
 function getCrossSalesDetailRows() {
   let rows = [];
   if (crossSalesRankMode === 'day') {
@@ -3874,9 +3904,24 @@ function renderCrossSales() {
   // 明细
   const tbody = document.getElementById('cross-sales-tbody');
   const empty = document.getElementById('cross-sales-empty');
-  let rows = getCrossSalesDetailRows();
-  if (!isAdminOrLeader && currentProfile?.group_name) {
-    rows = rows.filter(r => r.team === currentProfile.group_name);
+  // 构建订单号索引 + 重复分组（各 O(N) 一次，替代每次渲染逐行 find）
+  buildCSOrderNoIndex();
+  let rows = getCSDisplayRows();
+  computeCSDupGroups(rows);
+  csCsPage = 1; // 每次整页重渲染回到第一页
+  // 定位重复项横幅
+  const locateBanner = document.getElementById('cross-sales-locate-banner');
+  if (locateBanner) {
+    const groups = Object.values(_csDupGroupMap).filter(c => c > 1).length;
+    const dupRows = Object.entries(_csDupGroupMap).filter(([k, c]) => c > 1 && k.replace(/\|/g, '')).reduce((s, [, c]) => s + (c - 1), 0);
+    if (csLocateDup && groups > 0) {
+      locateBanner.style.display = 'block';
+      locateBanner.innerHTML = `🔍 已定位 <strong>${groups}</strong> 组重复记录（共 ${dupRows} 条多余）。可逐个删除，或 ` +
+        `<button class="btn-sm outline" onclick="deleteCsDupExtras()" style="font-size:12px;color:#e74c3c;">🗑 删除多余（每组留首条）</button> ` +
+        `<button class="btn-sm outline" onclick="clearCsDupLocate()" style="font-size:12px;">✕ 取消定位</button>`;
+    } else {
+      locateBanner.style.display = 'none';
+    }
   }
   // 搜索/聚焦/列筛选状态提示
   const filterHint = document.getElementById('cross-sales-filter-hint');
@@ -3909,26 +3954,15 @@ function renderCrossSales() {
   renderCSMyTodayCard();
 }
 
-function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
-  // 渲染前先暂存正在编辑的格子，渲染后回填（防并发刷新清掉未保存的字）
-  captureCSInputState(tbody);
-  if (!window._csEnterBound) { tbody.addEventListener('keydown', csEnterNavigation); window._csEnterBound = true; }
+// 单行 HTML（含「定位重复项」高亮）。供整页渲染与「加载更多」追加复用
+function csRowHtml(r, isAdminOrLeader) {
   const staffName = (currentProfile?.name || currentProfile?.real_name) || '';
-  const team = currentProfile?.group_name || 'A组';
-  const dateVal = crossSalesDate || getTodayStr();
-  const totalFirst = rows.reduce((s, r) => s + Number(r.first_amount || 0), 0);
-  const totalSecond = rows.reduce((s, r) => s + Number(r.second_amount || 0), 0);
-  const totalAll = rows.reduce((s, r) => s + Number(r.total_amount || 0), 0);
-  const teamLabel = crossSalesTeamFilter === 'all' ? '全部' : crossSalesTeamFilter;
-
-  // 保留已有的新增行
-  const newRows = Array.from(tbody.querySelectorAll('tr[data-new="true"]'));
-
-  let html = rows.map((r, idx) => `
-    <tr data-id="${r.id || ''}" data-team="${escapeHtml(r.team || '')}">
-      <td style="padding:4px;text-align:center;">
-        ${isAdminOrLeader ? `<input type="checkbox" class="cs-row-check" data-id="${r.id || ''}" style="cursor:pointer;">` : ''}
-      </td>
+  const key = (r.record_date || '') + '|' + (r.first_order_no || '') + '|' + (r.second_order_no || '');
+  const isDup = csLocateDup && (_csDupGroupMap[key] > 1);
+  const dupBadge = isDup ? '<span class="cs-dup-badge" title="重复记录：同一天 + 同一组订单号重复">🔴重复</span>' : '';
+  return `
+    <tr data-id="${r.id || ''}" data-team="${escapeHtml(r.team || '')}" class="${isDup ? 'cs-dup-row' : ''}">
+      <td style="padding:4px;text-align:center;width:60px;white-space:nowrap;">${dupBadge}${isAdminOrLeader ? `<input type="checkbox" class="cs-row-check" data-id="${r.id || ''}" style="cursor:pointer;vertical-align:middle;">` : ''}</td>
       <td style="padding:4px;"><input type="date" data-field="record_date" value="${r.record_date || ''}" onchange="autoSaveCSRow(this)" style="width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
         <select data-field="shop" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
@@ -3955,18 +3989,60 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
         ${(isAdminOrLeader || r.staff_name === staffName) ? `<button class="btn-sm outline" onclick="deleteCrossSalesRecord(${r.id}, '${escapeHtml(r.staff_name || '')}')" style="padding:2px 8px;font-size:11px;">🗑️</button>` : '-'}
       </td>
     </tr>
-  `).join('');
+  `;
+}
+
+function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader, append) {
+  const staffName = (currentProfile?.name || currentProfile?.real_name) || '';
+  const team = currentProfile?.group_name || 'A组';
+  const dateVal = crossSalesDate || getTodayStr();
+  const totalFirst = rows.reduce((s, r) => s + Number(r.first_amount || 0), 0);
+  const totalSecond = rows.reduce((s, r) => s + Number(r.second_amount || 0), 0);
+  const totalAll = rows.reduce((s, r) => s + Number(r.total_amount || 0), 0);
+  const teamLabel = crossSalesTeamFilter === 'all' ? '全部' : crossSalesTeamFilter;
+
+  // 「加载更多」：仅追加下一页，不破坏已渲染行与编辑态
+  if (append) {
+    const start = (csCsPage - 1) * CS_PAGE_SIZE;
+    if (start >= rows.length) return; // 已无更多
+    const pageRows = rows.slice(start, start + CS_PAGE_SIZE);
+    if (pageRows.length === 0) return;
+    const tmp = document.createElement('tbody'); // 用 tbody 上下文，避免 <tr> 被当作非法子元素丢弃
+    tmp.innerHTML = pageRows.map(r => csRowHtml(r, isAdminOrLeader)).join('');
+    const totalRow = tbody.querySelector('tr[data-cs-foot="total"]');
+    while (tmp.firstChild) tbody.insertBefore(tmp.firstChild, totalRow);
+    const inserted = Array.from(tbody.querySelectorAll('tr[data-id]')).slice(start);
+    inserted.forEach(tr => {
+      tr.querySelectorAll('select[data-cs-color-init]').forEach(applySelectColor);
+    });
+    scanCSDuplicates();
+    const archived = isCsMonthArchived(crossSalesDate.slice(0, 7));
+    if (archived && !isAdminOrLeader) {
+      inserted.forEach(tr => tr.querySelectorAll('input,select,button').forEach(el => { el.disabled = true; el.title = '该月份已归档，仅管理员可编辑'; }));
+    }
+    updateCsPager(rows);
+    return;
+  }
+
+  // 整页重渲染（分页显示）
+  captureCSInputState(tbody);
+  if (!window._csEnterBound) { tbody.addEventListener('keydown', csEnterNavigation); window._csEnterBound = true; }
+  const newRows = Array.from(tbody.querySelectorAll('tr[data-new="true"]'));
+  const limit = csLocateDup ? rows.length : CS_PAGE_SIZE; // 定位重复时展开全部，确保高亮可见
+  const pageRows = rows.slice(0, limit);
+
+  let html = pageRows.map(r => csRowHtml(r, isAdminOrLeader)).join('');
 
   // 合计行
   html += `
-    <tr style="background:linear-gradient(90deg,#ede8ff,#e8e3ff);font-weight:800;font-size:14px;color:var(--primary);">
+    <tr data-cs-foot="total" style="background:linear-gradient(90deg,#ede8ff,#e8e3ff);font-weight:800;font-size:14px;color:var(--primary);">
       <td colspan="8" style="text-align:right;padding:10px;">${teamLabel} 合计</td>
       <td style="text-align:center;padding:10px;">¥${totalFirst.toLocaleString()}</td>
       <td style="text-align:center;padding:10px;">¥${totalSecond.toLocaleString()}</td>
       <td style="text-align:center;padding:10px;">¥${totalAll.toLocaleString()}</td>
       <td></td>
     </tr>
-    <tr>
+    <tr data-cs-foot="controls">
       <td colspan="12" style="padding:10px;background:#f8f8f8;border-top:1px dashed var(--border);">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <span style="font-size:13px;color:var(--text-secondary);">📝 填写后自动保存，无需点保存。</span>
@@ -3982,6 +4058,19 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
       </td>
     </tr>
   `;
+
+  // 分页行（定位重复时展开全部，不显示分页）
+  if (!csLocateDup && rows.length > CS_PAGE_SIZE) {
+    html += `
+      <tr data-cs-foot="pager">
+        <td colspan="12" style="padding:8px 10px;background:#fafafa;border-top:1px solid var(--border);">
+          <span class="cs-pager-text" style="font-size:12px;color:var(--text-secondary);"></span>
+          <button class="cs-pager-more btn-sm outline" onclick="loadMoreCsRows()" style="margin-left:10px;font-size:12px;"></button>
+          <span class="cs-pager-done" style="margin-left:10px;font-size:12px;color:var(--text-muted);display:none;">已全部加载</span>
+        </td>
+      </tr>
+    `;
+  }
 
   tbody.innerHTML = html;
   // 恢复保留的新增行
@@ -4006,6 +4095,89 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
       el.title = '该月份已归档，仅管理员可编辑';
     });
   }
+  updateCsPager(rows);
+}
+
+function updateCsPager(rows) {
+  const pager = document.querySelector('#cross-sales-tbody tr[data-cs-foot="pager"]');
+  if (!pager) return;
+  const shown = Math.min(rows.length, csCsPage * CS_PAGE_SIZE);
+  const remaining = rows.length - shown;
+  const txt = pager.querySelector('.cs-pager-text');
+  const more = pager.querySelector('.cs-pager-more');
+  const done = pager.querySelector('.cs-pager-done');
+  if (txt) txt.textContent = `🔎 已显示 ${shown} / 共 ${rows.length} 条`;
+  if (remaining > 0) {
+    if (more) { more.style.display = ''; more.textContent = `⬇ 加载更多（${remaining} 条）`; }
+    if (done) done.style.display = 'none';
+  } else {
+    if (more) more.style.display = 'none';
+    if (done) done.style.display = '';
+  }
+}
+
+// 明细分页：加载下一页（追加，不破坏编辑态）
+function loadMoreCsRows() {
+  csCsPage++;
+  const tbody = document.getElementById('cross-sales-tbody');
+  if (!tbody) return;
+  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const rows = getCSDisplayRows();
+  renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader, true);
+}
+
+// 一键定位重复项：高亮所有「日期+第一单+第二单」相同的记录并滚动到第一条
+function locateCSDuplicates() {
+  csLocateDup = !csLocateDup;
+  if (csLocateDup) {
+    renderCrossSales();
+    const first = document.querySelector('#cross-sales-tbody tr.cs-dup-row');
+    if (first) {
+      first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      showToast('🔍 已定位重复项，红色高亮为重复记录');
+    } else {
+      showToast('✅ 当前筛选范围内没有重复记录');
+    }
+  } else {
+    renderCrossSales();
+  }
+}
+function clearCsDupLocate() {
+  csLocateDup = false;
+  renderCrossSales();
+}
+
+// 删除所有重复记录的多余条（每组保留最早一条，按 id 升序）
+async function deleteCsDupExtras() {
+  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  if (!isAdminOrLeader) { showToast('⚠️ 仅管理员可批量删除'); return; }
+  const groups = {};
+  crossSalesData.forEach(r => {
+    if (!r.record_date && !r.first_order_no && !r.second_order_no) return;
+    const k = (r.record_date || '') + '|' + (r.first_order_no || '') + '|' + (r.second_order_no || '');
+    (groups[k] = groups[k] || []).push(r);
+  });
+  const delIds = [];
+  Object.values(groups).forEach(arr => {
+    if (arr.length > 1) {
+      arr.sort((a, b) => (a.id || 0) - (b.id || 0));
+      arr.slice(1).forEach(x => { if (x.id != null) delIds.push(x.id); });
+    }
+  });
+  if (delIds.length === 0) { showToast('⚠️ 没有可删除的重复项'); return; }
+  if (!confirm(`确认删除 ${delIds.length} 条重复记录（每组保留最早一条）？`)) return;
+  try {
+    let done = 0;
+    for (let i = 0; i < delIds.length; i += 500) {
+      const batch = delIds.slice(i, i + 500);
+      const { error } = await supabase.from('cross_sales').delete().in('id', batch);
+      if (error) throw error;
+      done += batch.length;
+    }
+    showToast(`✅ 已删除 ${done} 条重复记录`);
+    csLocateDup = false;
+    loadCrossSalesFromDB();
+  } catch (e) { showToast('❌ 删除失败: ' + e.message); }
 }
 
 // 生成一个空白新行（不依赖 addCrossSalesBlankRows，可被复用）
@@ -4047,25 +4219,53 @@ function createBlankCsRow(staffName, team, dateVal) {
   return tr;
 }
 
-// 实时检查订单号是否与当天已存在记录重复（输入时触发）
+// 构建订单号索引：date|orderNo -> 出现次数。一次 O(N)，后续查重 O(1)
+function buildCSOrderNoIndex() {
+  const m = {};
+  crossSalesData.forEach(r => {
+    const d = r.record_date || '';
+    [r.first_order_no, r.second_order_no].forEach(on => {
+      const v = (on || '').trim();
+      if (!v) return;
+      const k = d + '|' + v;
+      m[k] = (m[k] || 0) + 1;
+    });
+  });
+  _csOrderNoIndex = m;
+}
+
+// 计算当前明细「完整键(日期+第一单+第二单)」重复分组，用于「定位重复项」
+function computeCSDupGroups(rows) {
+  const m = {};
+  rows.forEach(r => {
+    if (!r.record_date && !r.first_order_no && !r.second_order_no) return;
+    const k = (r.record_date || '') + '|' + (r.first_order_no || '') + '|' + (r.second_order_no || '');
+    m[k] = (m[k] || 0) + 1;
+  });
+  _csDupGroupMap = m;
+}
+
+// 实时检查订单号是否与当天已存在记录重复（输入时触发，使用预构建索引 O(1)）
 function checkCSOrderDuplicate(el) {
   const tr = el.closest('tr');
   if (!tr) return;
   const val = (el.value || '').trim();
   const dateVal = tr.querySelector('[data-field="record_date"]')?.value || crossSalesDate;
-  const selfId = tr.dataset.id;
-  let dup = null;
+  let isDup = false, who = '';
   if (val) {
-    dup = crossSalesData.find(r =>
-      r.id != selfId &&
-      (!dateVal || r.record_date === dateVal) &&
-      (r.first_order_no === val || r.second_order_no === val)
-    ) || null;
+    const k = dateVal + '|' + val;
+    const cnt = _csOrderNoIndex[k] || 0;
+    // 索引含自身；cnt>1 表示另有其他行存在相同订单号
+    if (cnt > 1) {
+      isDup = true;
+      const other = crossSalesData.find(r => r.record_date === dateVal && (r.first_order_no === val || r.second_order_no === val));
+      who = other ? (other.staff_name || '其他客服') : '';
+    }
   }
-  if (dup) {
+  if (isDup) {
     el.style.borderColor = '#e5484d';
     el.style.background = '#fff5f5';
-    el.title = '⚠️ 当天已存在相同订单号：' + (dup.staff_name || '其他客服') + ' 的 ' + val;
+    el.title = '⚠️ 当天已存在相同订单号：' + who + ' 的 ' + val;
   } else {
     el.style.borderColor = '';
     el.style.background = '';
@@ -4074,7 +4274,7 @@ function checkCSOrderDuplicate(el) {
   updateCSDupBanner();
 }
 
-// 渲染后/保存后扫描整个表格，统一标记重复订单号并更新顶部提示条
+// 渲染后/保存后扫描整个表格，统一标记重复订单号并更新顶部提示条（使用索引 O(1)）
 function scanCSDuplicates() {
   const tbody = document.getElementById('cross-sales-tbody');
   if (!tbody) return;
@@ -4085,17 +4285,12 @@ function scanCSDuplicates() {
     const tr = el.closest('tr');
     if (!tr) return;
     const dateVal = tr.querySelector('[data-field="record_date"]')?.value || crossSalesDate;
-    const selfId = tr.dataset.id;
-    const dup = crossSalesData.find(r =>
-      r.id != selfId &&
-      (!dateVal || r.record_date === dateVal) &&
-      (r.first_order_no === val || r.second_order_no === val)
-    );
-    if (dup) {
+    const cnt = _csOrderNoIndex[dateVal + '|' + val] || 0;
+    if (cnt > 1) {
       dupCount++;
       el.style.borderColor = '#e5484d';
       el.style.background = '#fff5f5';
-      el.title = '⚠️ 当天已存在相同订单号：' + (dup.staff_name || '其他客服') + ' 的 ' + val;
+      el.title = '⚠️ 当天已存在相同订单号';
     } else {
       el.style.borderColor = '';
       el.style.background = '';
@@ -5063,7 +5258,7 @@ async function archiveCsMonth(month) {
     }, { onConflict: 'month' });
     if (error) { showToast('❌ 归档失败: ' + error.message); return; }
     showToast(`✅ ${month} 已归档`);
-    loadCsArchivedMonths();
+    reloadCsArchivedMonths();
   } catch(e) { showToast('❌ 归档异常: ' + e.message); }
 }
 
@@ -5076,7 +5271,7 @@ async function unarchiveCsMonth(month) {
     const { error } = await supabase.from('cross_sales_archive_months').delete().eq('month', month).eq('team', 'all');
     if (error) { showToast('❌ 解档失败: ' + error.message); return; }
     showToast(`✅ ${month} 已解档`);
-    loadCsArchivedMonths();
+    reloadCsArchivedMonths();
   } catch(e) { showToast('❌ 解档异常: ' + e.message); }
 }
 
