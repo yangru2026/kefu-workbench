@@ -3532,13 +3532,24 @@ async function loadCrossSalesFromDB(force) {
   }
   window._csLastLoadAt = now;
   try {
-    const { data, error } = await supabase
-      .from('cross_sales')
-      .select('*')
-      .order('record_date', { ascending: false })
-      .limit(5000);
-    if (error) { console.warn('连带成交数据加载失败:', error.message); return; }
-    crossSalesData = data || [];
+    // Supabase REST API 默认单次最多返回 1000 行，.limit(5000) 会被服务端截断。
+    // 必须循环 range 分页拉取，否则数据超过 1000 条后排名/合计都会少算。
+    const all = [];
+    const pageSize = 1000;
+    let offset = 0;
+    let page = [];
+    do {
+      const { data, error } = await supabase
+        .from('cross_sales')
+        .select('*')
+        .order('record_date', { ascending: false })
+        .range(offset, offset + pageSize - 1);
+      if (error) { console.warn('连带成交数据加载失败:', error.message); break; }
+      page = data || [];
+      all.push(...page);
+      offset += pageSize;
+    } while (page.length === pageSize);
+    crossSalesData = all;
     if (!crossSalesDate) {
       const today = getTodayStr();
       crossSalesDate = (crossSalesRankMode === 'month') ? (today.slice(0, 7) + '-01') : today;
@@ -4292,7 +4303,7 @@ async function deleteCsDupExtras() {
     }
     showToast(`✅ 已删除 ${done} 条重复记录`);
     csLocateDup = false;
-    loadCrossSalesFromDB();
+    loadCrossSalesFromDB(true);
   } catch (e) { showToast('❌ 删除失败: ' + e.message); }
 }
 
@@ -4865,7 +4876,7 @@ async function saveCSRow(tr) {
       }
     }
     // 保存成功后，若有因编辑而暂缓的刷新，立即补上
-    if (window._csPendingReload) { window._csPendingReload = false; loadCrossSalesFromDB(); }
+    if (window._csPendingReload) { window._csPendingReload = false; loadCrossSalesFromDB(true); }
     // 保存成功：浅色高亮一下
     const bg = tr.style.background;
     tr.style.background = '#e8f7ee';
@@ -5131,7 +5142,7 @@ async function submitCsPaste() {
         showToast(`✅ 已粘贴导入 ${ok} 条` + (skip ? `，跳过 ${skip} 条重复（请管理员执行 fix_cross_sales_unique.sql 以允许保留重复项）` : '') + (skipped.length ? `，跳过 ${skipped.length} 行（日期/订单号缺失）` : ''));
         closeModal('mod-cs-paste');
         setCsDateToInsertedRange(inserted);
-        loadCrossSalesFromDB();
+        loadCrossSalesFromDB(true);
         return;
       }
       showToast('❌ 粘贴导入失败: ' + (e && e.message ? e.message : e));
@@ -5141,7 +5152,7 @@ async function submitCsPaste() {
     closeModal('mod-cs-paste');
     // 保持当前按日/按月模式，只把日期调整到导入数据所在的周期
     setCsDateToInsertedRange(inserted);
-    loadCrossSalesFromDB();
+    loadCrossSalesFromDB(true);
   } catch (unexpected) {
     console.error('[submitCsPaste] unexpected error:', unexpected);
     showToast('❌ 导入异常: ' + (unexpected && unexpected.message ? unexpected.message : unexpected));
@@ -5196,7 +5207,7 @@ async function saveCrossSalesBatch() {
       return;
     }
     showToast(`✅ 已保存：新增 ${toInsert.length} 条，更新 ${toUpdate.length} 条`);
-    loadCrossSalesFromDB();
+    loadCrossSalesFromDB(true);
   } catch (e) { showToast('❌ 保存异常: ' + e.message); }
 }
 
@@ -5241,8 +5252,8 @@ async function syncCrossSalesFromFeishu() {
     if (data.ok && data.results) {
       const r = data.results.cross_sales || {};
       if (r.error) showToast('❌ 连带成交同步失败: ' + r.error);
-      else showToast('✅ 连带成交同步完成！飞书 ' + (r.total_in_feishu||0) + ' 条，写入 ' + (r.synced||0) + ' 条');
-      loadCrossSalesFromDB();
+      else       showToast('✅ 连带成交同步完成！飞书 ' + (r.total_in_feishu||0) + ' 条，写入 ' + (r.synced||0) + ' 条');
+      loadCrossSalesFromDB(true);
     } else {
       showToast('❌ 同步失败: ' + (data.error || '未知错误'));
     }
@@ -5266,7 +5277,7 @@ async function deleteCrossSalesRecord(id, staffName) {
     const { error } = await supabase.from('cross_sales').delete().eq('id', id);
     if (error) { showToast('❌ 删除失败: ' + error.message); return; }
     showToast('✅ 已删除');
-    loadCrossSalesFromDB();
+    loadCrossSalesFromDB(true);
   } catch (e) { showToast('❌ 删除异常: ' + e.message); }
 }
 
@@ -5287,7 +5298,7 @@ async function batchDeleteCsSelected() {
     if (error) { showToast('❌ 批量删除失败: ' + error.message); return; }
     showToast(`✅ 已删除 ${ids.length} 条记录`);
     document.getElementById('cs-select-all').checked = false;
-    loadCrossSalesFromDB();
+    loadCrossSalesFromDB(true);
   } catch (e) { showToast('❌ 批量删除异常: ' + e.message); }
 }
 
@@ -5840,13 +5851,12 @@ async function importCrossSalesFromSheet(rows) {
     if (error) { showToast('❌ 导入失败: ' + error.message); return; }
     showToast(`✅ 已导入 ${imported.length} 条连带成交数据` + (skipped.length ? `，跳过 ${skipped.length} 行` : ''));
 
-    // 切换到最早导入的日期，方便核对
+    // 切换到最早导入的日期，方便核对；保持用户当前的按日/按月模式
     const dates = imported.map(r => r.record_date).filter(Boolean).sort();
     if (dates.length) {
       crossSalesDate = dates[0];
-      crossSalesRankMode = 'day';
     }
-    loadCrossSalesFromDB();
+    loadCrossSalesFromDB(true);
   } catch(e) { showToast('❌ 导入异常: ' + e.message); }
 }
 
