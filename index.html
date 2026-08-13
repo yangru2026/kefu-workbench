@@ -1213,6 +1213,7 @@ body {
       <div style="flex:1;"></div>
       <button class="btn-sm outline" id="cross-sales-options-btn" onclick="openCrossSalesOptions()" style="display:none;">⚙️ 选项管理</button>
       <button class="btn-sm outline" id="cross-sales-import-btn" onclick="openExcelImport('cross_sales')" style="display:none;">📥 导入Excel</button>
+      <button class="btn-sm outline" id="cross-sales-paste-btn" onclick="openCsPasteModal()" title="按表格列顺序粘贴多行数据，自动保存">📋 批量粘贴</button>
       <button class="collab-btn" id="collab-cross-sales-btn" onclick="openCollabPanel('cross-sales')" style="display:none;">👥 协作者</button>
       <button class="feishu-sync-btn admin-only-nav" id="cross-sales-sync-btn" onclick="syncCrossSalesFromFeishu()" style="display:none;">🔄 从飞书同步</button>
       <button class="btn-sm outline" id="cross-sales-month-rank-btn" onclick="toggleCrossSalesRankMode()">📅 按月份排名</button>
@@ -1366,6 +1367,41 @@ body {
       </div>
       <div class="modal-footer">
         <button class="btn-sm outline" onclick="closeModal('mod-cs-archive')">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 连带成交 · 批量粘贴弹窗 -->
+  <div class="modal-overlay" id="mod-cs-paste" onclick="closeModal('mod-cs-paste')">
+    <div class="modal-box" style="max-width:780px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>📋 批量粘贴连带成交数据</h3>
+        <button class="modal-close" onclick="closeModal('mod-cs-paste')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;line-height:1.7;">
+          从 Excel/飞书表格复制多行数据，<strong>按下方列顺序</strong>粘贴进来（Tab 或逗号分隔均可）。第一行为表头会自动识别。<br>
+          列顺序：<code style="background:#f3f0ff;padding:2px 6px;border-radius:4px;">日期</code> ·
+          <code style="background:#f3f0ff;padding:2px 6px;border-radius:4px;">店铺</code> ·
+          <code style="background:#f3f0ff;padding:2px 6px;border-radius:4px;">成交客服</code> ·
+          <code style="background:#f3f0ff;padding:2px 6px;border-radius:4px;">产品类型</code> ·
+          <code style="background:#f3f0ff;padding:2px 6px;border-radius:4px;">第一单订单号</code> ·
+          <code style="background:#f3f0ff;padding:2px 6px;border-radius:4px;">第二单订单号</code> ·
+          <code style="background:#f3f0ff;padding:2px 6px;border-radius:4px;">第一单状态</code> ·
+          <code style="background:#f3f0ff;padding:2px 6px;border-radius:4px;">第一单金额</code> ·
+          <code style="background:#f3f0ff;padding:2px 6px;border-radius:4px;">第二单金额</code> ·
+          <code style="background:#f3f0ff;padding:2px 6px;border-radius:4px;">合计金额</code>（可省略，会自动算）
+        </p>
+        <textarea id="cs-paste-textarea" placeholder="例如：&#10;2026-08-13&#9;淘宝官方旗舰店&#9;小七&#9;日抛&#9;12345&#9;67890&#9;已付款&#9;49.9&#9;29.9&#9;79.8&#10;2026-08-13&#9;京东旗舰店&#9;小七&#9;月抛&#9;22345&#9;77890&#9;已发货&#9;79&#9;59&#9;138" style="width:100%;min-height:200px;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:'Menlo','Consolas',monospace;font-size:13px;line-height:1.5;resize:nowrap;"></textarea>
+        <div id="cs-paste-preview" style="margin-top:10px;font-size:13px;color:var(--text-secondary);"></div>
+      </div>
+      <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+        <span style="font-size:12px;color:var(--text-secondary);">💡 不填合计金额会自动用「第一单+第二单」计算</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-sm outline" onclick="previewCsPaste()">🔍 预览</button>
+          <button class="btn-sm outline" onclick="closeModal('mod-cs-paste')">取消</button>
+          <button class="btn-sm primary" onclick="submitCsPaste()">✅ 导入</button>
+        </div>
       </div>
     </div>
   </div>
@@ -3506,8 +3542,9 @@ function renderCrossSales() {
   }
   const hasNewRows = tbody ? tbody.querySelector('tr[data-new="true"]') !== null : false;
   if (rows.length === 0 && !hasNewRows) {
-    if (tbody) tbody.innerHTML = '';
-    if (empty) empty.style.display = 'block';
+    // 即使没数据也渲染表格，方便客服直接点新增行/批量粘贴
+    if (empty) empty.style.display = 'none';
+    if (tbody) renderCrossSalesEditableRows(tbody, [], isAdminOrLeader);
   } else {
     if (empty) empty.style.display = 'none';
     if (tbody) renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader);
@@ -3588,6 +3625,12 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
   tbody.innerHTML = html;
   // 恢复保留的新增行
   newRows.forEach(tr => tbody.appendChild(tr));
+  // 没有任何数据和新增行时，自动给一个空白行，让用户能直接填写/粘贴
+  if (tbody.querySelectorAll('tr[data-id], tr[data-new="true"]').length === 0) {
+    const blankTr = createBlankCsRow(staffName, team, dateVal);
+    blankTr.setAttribute('data-autoblank', 'true');
+    tbody.insertBefore(blankTr, tbody.firstElementChild);
+  }
   // 初始化有颜色标记的下拉框
   tbody.querySelectorAll('select[data-cs-color-init]').forEach(applySelectColor);
   // 扫描重复订单号并标记
@@ -3600,6 +3643,40 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
       el.title = '该月份已归档，仅管理员可编辑';
     });
   }
+}
+
+// 生成一个空白新行（不依赖 addCrossSalesBlankRows，可被复用）
+function createBlankCsRow(staffName, team, dateVal) {
+  const tr = document.createElement('tr');
+  tr.setAttribute('data-new', 'true');
+  tr.setAttribute('data-team', team);
+  tr.innerHTML = `
+      <td style="padding:4px;text-align:center;"><input type="checkbox" disabled style="opacity:0;cursor:default;"></td>
+      <td style="padding:4px;"><input type="date" data-field="record_date" value="${dateVal}" onchange="autoSaveCSRow(this)" style="width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;">
+        <select data-field="shop" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
+          ${csOptionHtml('shop', '', team)}
+        </select>
+      </td>
+      <td style="padding:4px;"><input data-field="staff_name" value="${escapeHtml(staffName)}" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
+      <td style="padding:4px;">
+        <select data-field="product_type" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
+          ${csOptionHtml('product_type', '', team)}
+        </select>
+      </td>
+      <td style="padding:4px;"><input data-field="first_order_no" placeholder="第一单" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;"><input data-field="second_order_no" placeholder="第二单" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;">
+        <select data-field="first_order_status" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
+          ${csOptionHtml('order_status', '', team)}
+        </select>
+      </td>
+      <td style="padding:4px;"><input type="number" data-field="first_amount" step="0.01" placeholder="0" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;"><input type="number" data-field="second_amount" step="0.01" placeholder="0" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;"><input type="number" data-field="total_amount" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
+      <td style="text-align:center;padding:4px;"><button class="btn-sm outline" onclick="this.closest('tr').remove()" style="padding:2px 8px;font-size:11px;">🗑️</button></td>
+    `;
+  return tr;
 }
 
 // 实时检查订单号是否与当天已存在记录重复（输入时触发）
@@ -3768,35 +3845,7 @@ function addCrossSalesBlankRows() {
   const dateVal = crossSalesDate || getTodayStr();
 
   for (let i = 0; i < count; i++) {
-    const tr = document.createElement('tr');
-    tr.setAttribute('data-new', 'true');
-    tr.setAttribute('data-team', team);
-    tr.innerHTML = `
-      <td style="padding:4px;text-align:center;"><input type="checkbox" disabled style="opacity:0;cursor:default;"></td>
-      <td style="padding:4px;"><input type="date" data-field="record_date" value="${dateVal}" onchange="autoSaveCSRow(this)" style="width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
-      <td style="padding:4px;">
-        <select data-field="shop" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
-          ${csOptionHtml('shop', '', team)}
-        </select>
-      </td>
-      <td style="padding:4px;"><input data-field="staff_name" value="${escapeHtml(staffName)}" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
-      <td style="padding:4px;">
-        <select data-field="product_type" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
-          ${csOptionHtml('product_type', '', team)}
-        </select>
-      </td>
-      <td style="padding:4px;"><input data-field="first_order_no" placeholder="第一单" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
-      <td style="padding:4px;"><input data-field="second_order_no" placeholder="第二单" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
-      <td style="padding:4px;">
-        <select data-field="first_order_status" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
-          ${csOptionHtml('order_status', '', team)}
-        </select>
-      </td>
-      <td style="padding:4px;"><input type="number" data-field="first_amount" step="0.01" placeholder="0" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
-      <td style="padding:4px;"><input type="number" data-field="second_amount" step="0.01" placeholder="0" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
-      <td style="padding:4px;"><input type="number" data-field="total_amount" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
-      <td style="text-align:center;padding:4px;"><button class="btn-sm outline" onclick="this.closest('tr').remove()" style="padding:2px 8px;font-size:11px;">🗑️</button></td>
-    `;
+    const tr = createBlankCsRow(staffName, team, dateVal);
     // 插入到数据行末尾、合计行之前
     const dataRows = tbody.querySelectorAll('tr[data-id], tr[data-new="true"]');
     const lastDataRow = dataRows[dataRows.length - 1];
@@ -3811,6 +3860,154 @@ function addCrossSalesBlankRows() {
   // 隐藏空提示
   const empty = document.getElementById('cross-sales-empty');
   if (empty) empty.style.display = 'none';
+}
+
+// ==================== 连带成交 · 批量粘贴 ====================
+function openCsPasteModal() {
+  const ta = document.getElementById('cs-paste-textarea');
+  if (ta) ta.value = '';
+  const preview = document.getElementById('cs-paste-preview');
+  if (preview) preview.innerHTML = '';
+  showModalById('mod-cs-paste');
+}
+
+// 解析粘贴文本，返回 rows 数组（每行 10 字段）
+function parseCsPasteText(text) {
+  if (!text) return { rows: [], errors: ['粘贴内容为空'] };
+  const lines = text.replace(/\r\n?/g, '\n').split('\n').map(s => s.trim()).filter(s => s && !/^#/.test(s));
+  if (lines.length === 0) return { rows: [], errors: ['没有有效数据行'] };
+
+  // 检测是否包含表头（第一行含「日期」「订单号」「金额」等关键字）
+  const headerKeywords = ['日期', '订单号', '金额', '产品', '店铺', '客服', '状态'];
+  const hasHeader = lines[0] && headerKeywords.some(k => lines[0].includes(k));
+  const dataLines = hasHeader ? lines.slice(1) : lines;
+
+  const rows = [];
+  const errors = [];
+  for (let i = 0; i < dataLines.length; i++) {
+    const cols = dataLines[i].split(/\t|,/).map(s => s.trim());
+    if (cols.length < 2) {
+      errors.push(`第${i + (hasHeader ? 2 : 1)}行：列数不足（${cols.length} 列）`);
+      continue;
+    }
+    // 兼容多余列：最多取前 10 列
+    if (cols.length > 10) cols.length = 10;
+    // 补齐到 10 列
+    while (cols.length < 10) cols.push('');
+    rows.push({
+      date: cols[0],
+      shop: cols[1],
+      staff: cols[2],
+      product: cols[3],
+      firstNo: cols[4],
+      secondNo: cols[5],
+      status: cols[6],
+      firstAmt: cols[7],
+      secondAmt: cols[8],
+      total: cols[9],
+      lineNum: i + (hasHeader ? 2 : 1)
+    });
+  }
+  return { rows, errors, hasHeader };
+}
+
+function previewCsPaste() {
+  const text = document.getElementById('cs-paste-textarea').value;
+  const preview = document.getElementById('cs-paste-preview');
+  const { rows, errors } = parseCsPasteText(text);
+  if (rows.length === 0) {
+    preview.innerHTML = '<div style="color:#e74c3c;padding:8px;background:#fef5f5;border-radius:6px;">❌ 没有可识别的数据行。' + (errors[0] || '') + '</div>';
+    return;
+  }
+  const errHtml = errors.length > 0
+    ? '<div style="margin-top:6px;color:#e67e22;font-size:12px;">⚠️ ' + errors.slice(0, 3).join('；') + (errors.length > 3 ? '…' : '') + '</div>'
+    : '';
+  preview.innerHTML = `
+    <div style="background:#f0f9f4;padding:10px 12px;border-radius:8px;border:1px solid #c8e6c9;">
+      ✅ 识别到 <strong>${rows.length}</strong> 条数据${errHtml}
+      <div style="margin-top:6px;font-size:12px;color:var(--text-secondary);">前 3 条预览：</div>
+      <div style="margin-top:4px;font-size:12px;font-family:monospace;line-height:1.6;">
+        ${rows.slice(0, 3).map(r => {
+          const ok = r.date ? '✓' : '✗日期';
+          return `<div>${ok} ${escapeHtml(r.date || '?')} | ${escapeHtml(r.shop || '?')} | ${escapeHtml(r.staff || '?')} | ${escapeHtml(r.firstNo || '?')} | ${escapeHtml(r.secondNo || '?')} | ¥${escapeHtml(r.firstAmt || '0')} / ¥${escapeHtml(r.secondAmt || '0')}</div>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+async function submitCsPaste() {
+  if (!supabase) { showToast('⚠️ Supabase 未就绪'); return; }
+  const text = document.getElementById('cs-paste-textarea').value;
+  const { rows, errors } = parseCsPasteText(text);
+  if (rows.length === 0) {
+    showToast('❌ 没有可识别的数据行' + (errors[0] ? '：' + errors[0] : ''));
+    return;
+  }
+
+  // 加载客服组别映射（用于反查 team）
+  const staffGroupMap = {};
+  try {
+    const { data: profilesData } = await supabase.from('profiles').select('name,real_name,group_name');
+    (profilesData || []).forEach(p => {
+      if (p.name) staffGroupMap[p.name] = p.group_name;
+      if (p.real_name) staffGroupMap[p.real_name] = p.group_name;
+    });
+  } catch (e) { console.warn('profiles 加载失败:', e); }
+
+  const defaultStaff = currentProfile?.name || currentProfile?.real_name || '';
+  const defaultTeam = currentProfile?.group_name || 'A组';
+  const inserted = [];
+  const skipped = [];
+
+  for (const r of rows) {
+    const date = parseImportDate(r.date);
+    if (!date) { skipped.push(`第${r.lineNum}行：日期「${r.date}」格式不正确`); continue; }
+    const staff = r.staff || defaultStaff;
+    if (!staff) { skipped.push(`第${r.lineNum}行：缺少成交客服`); continue; }
+    if (!r.firstNo && !r.secondNo) { skipped.push(`第${r.lineNum}行：缺少订单号`); continue; }
+    const firstAmt = parseNumber(r.firstAmt);
+    const secondAmt = parseNumber(r.secondAmt);
+    const totalRaw = parseNumber(r.total);
+    const totalAmount = r.total ? totalRaw : (firstAmt + secondAmt);
+    let team = staffGroupMap[staff] || defaultTeam;
+    inserted.push({
+      record_date: date,
+      shop: r.shop || '',
+      staff_name: staff,
+      product_type: r.product || '',
+      first_order_no: r.firstNo || '',
+      second_order_no: r.secondNo || '',
+      first_order_status: r.status || '',
+      first_amount: firstAmt,
+      second_amount: secondAmt,
+      total_amount: totalAmount,
+      qc_confirmed: false,
+      team: team
+    });
+  }
+
+  if (inserted.length === 0) {
+    showToast('❌ 没有可导入的有效数据' + (skipped.length ? '（' + skipped[0] + '）' : ''));
+    return;
+  }
+
+  const { error } = await supabase
+    .from('cross_sales')
+    .upsert(inserted, { onConflict: 'record_date,first_order_no,second_order_no' });
+  if (error) {
+    showToast('❌ 粘贴导入失败: ' + error.message);
+    return;
+  }
+  showToast(`✅ 已粘贴导入 ${inserted.length} 条` + (skipped.length ? `，跳过 ${skipped.length} 行` : ''));
+  closeModal('mod-cs-paste');
+  // 切到最早一条的日期
+  const dates = inserted.map(r => r.record_date).sort();
+  if (dates.length) {
+    crossSalesDate = dates[0];
+    crossSalesRankMode = 'day';
+  }
+  loadCrossSalesFromDB();
 }
 
 async function saveCrossSalesBatch() {
@@ -4131,12 +4328,14 @@ function getCell(row, map, keys) {
   }
   // 二次模糊：忽略「元」、amount、金额等常见后缀，进一步兼容「第二单金额（元）」→「第二单金额」
   for (const k of keys) {
-    const nk = normalizeHeader(k).replace(/(元|amount|金额)/g, '');
+    const nk = normalizeHeader(k).replace(/(元|amount|金额|订单)/g, '');
     if (!nk) continue;
     for (const [mapKey, idx] of Object.entries(map)) {
-      if (mapKey.replace(/(元|amount|金额)/g, '') === nk) return row[idx];
+      if (mapKey.replace(/(元|amount|金额|订单)/g, '') === nk) return row[idx];
     }
   }
+  // 调试：在 console 输出未匹配的原因
+  console.debug('[getCell] 未匹配 keys:', keys, '· 表头 keys:', Object.keys(map));
   return '';
 }
 
@@ -4347,8 +4546,8 @@ async function importCrossSalesFromSheet(rows) {
       const staff = String(getCell(row, header, ['成交客服', '客服', '客服姓名', '姓名', 'staff', 'staffname', 'name']) || '').trim();
       const firstNo = String(getCell(row, header, ['第一单订单号', '第一单号', '第一单订单', 'firstorder', 'firstorderno', 'firstordernumber']) || '').trim();
       const secondNo = String(getCell(row, header, ['第二单订单号', '第二单号', '第二单订单', 'secondorder', 'secondorderno', 'secondordernumber']) || '').trim();
-      const firstAmount = parseNumber(getCell(row, header, ['第一单金额', 'firstamount', 'firstamount金额', '第一单金额amount']));
-      const secondAmount = parseNumber(getCell(row, header, ['第二单金额', 'secondamount', 'secondamount金额', '第2单金额', '二单金额', '第二金额', 'second_amount']));
+      const firstAmount = parseNumber(getCell(row, header, ['第一单金额', 'firstamount', '第一单金额元', '第一单金额(元)', '第一单', 'first_amount', '第一笔金额']));
+      const secondAmount = parseNumber(getCell(row, header, ['第二单金额', 'secondamount', '第二单金额元', '第二单金额(元)', '第二单', 'second_amount', '第二笔金额', '连带金额', '二单金额', '第2单金额', '二单', '连带销售额']));
       const totalRaw = getCell(row, header, ['合计金额', 'totalamount', 'total', '合计', '总金额']);
       const totalAmount = totalRaw !== '' ? parseNumber(totalRaw) : (firstAmount + secondAmount);
       // 读取组别，优先从 Excel，没有则反查 profiles
