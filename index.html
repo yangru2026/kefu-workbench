@@ -1245,6 +1245,37 @@ body {
   <div class="page" id="page-cross-sales">
     <div class="page-header"><h1>🛒 连带成交登记</h1><p>客服直接登记 · 自动保存 · 第二单销售额排名 · 按组统计</p></div>
 
+    <!-- 我的今日 · 常驻迷你看板 -->
+    <div id="cs-mytoday-card" class="card" style="margin-bottom:16px;display:none;padding:14px 18px;background:linear-gradient(90deg,#f3f0ff,#f9f7ff);border:1px solid #e3dcff;">
+      <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:26px;">📌</span>
+          <div>
+            <div style="font-size:12px;color:var(--text-secondary);">我的今日 · <span id="cs-mytoday-date"></span></div>
+            <div style="font-weight:800;font-size:15px;color:var(--text);" id="cs-mytoday-name"></div>
+          </div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-weight:800;font-size:20px;color:var(--primary);" id="cs-mytoday-second">¥0</div>
+          <div style="font-size:11px;color:var(--text-secondary);">第二单金额</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-weight:800;font-size:20px;color:var(--text);" id="cs-mytoday-rank">-</div>
+          <div style="font-size:11px;color:var(--text-secondary);">当前排名</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-weight:800;font-size:20px;color:#e67e22;" id="cs-mytoday-gap">-</div>
+          <div style="font-size:11px;color:var(--text-secondary);">距上一名</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-weight:800;font-size:20px;color:var(--text);" id="cs-mytoday-count">0</div>
+          <div style="font-size:11px;color:var(--text-secondary);">登记笔数</div>
+        </div>
+        <div style="flex:1;"></div>
+        <div style="font-size:12px;color:var(--text-secondary);max-width:240px;" id="cs-mytoday-tip"></div>
+      </div>
+    </div>
+
     <!-- 日期/排名/组筛选 -->
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
       <button class="btn btn-outline" onclick="prevCrossSalesDate()">◀ 上一天</button>
@@ -3354,10 +3385,24 @@ async function loadCsArchivedMonths() {
 
 function subscribeCrossSales() {
   if (!supabase || crossSalesSub) return;
+  // 编辑中暂缓拉取：有人登记触发刷新时，不立刻重渲染，避免打断正在输入
+  if (!window._csFlushBound) {
+    document.addEventListener('focusout', () => {
+      if (window._csPendingReload) {
+        setTimeout(() => {
+          if (!csTableIsEditing()) { window._csPendingReload = false; loadCrossSalesFromDB(); }
+        }, 600);
+      }
+    });
+    window._csFlushBound = true;
+  }
   crossSalesSub = supabase.channel('cross-sales-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'cross_sales' }, () => {
       clearTimeout(window._csLoadTimer);
-      window._csLoadTimer = setTimeout(loadCrossSalesFromDB, 800);
+      window._csLoadTimer = setTimeout(() => {
+        if (csTableIsEditing()) { window._csPendingReload = true; return; }
+        loadCrossSalesFromDB();
+      }, 800);
     })
     .subscribe();
 }
@@ -3702,9 +3747,14 @@ function renderCrossSales() {
     if (empty) empty.style.display = 'none';
     if (tbody) renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader);
   }
+  // 更新常驻“我的今日”迷你看板
+  renderCSMyTodayCard();
 }
 
 function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
+  // 渲染前先暂存正在编辑的格子，渲染后回填（防并发刷新清掉未保存的字）
+  captureCSInputState(tbody);
+  if (!window._csEnterBound) { tbody.addEventListener('keydown', csEnterNavigation); window._csEnterBound = true; }
   const staffName = (currentProfile?.name || currentProfile?.real_name) || '';
   const team = currentProfile?.group_name || 'A组';
   const dateVal = crossSalesDate || getTodayStr();
@@ -3733,8 +3783,8 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
           ${csOptionHtml('product_type', r.product_type, r.team)}
         </select>
       </td>
-      <td style="padding:4px;"><input data-field="first_order_no" value="${escapeHtml(r.first_order_no || '')}" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
-      <td style="padding:4px;"><input data-field="second_order_no" value="${escapeHtml(r.second_order_no || '')}" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;"><input data-field="first_order_no" value="${escapeHtml(r.first_order_no || '')}" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;"><input data-field="second_order_no" value="${escapeHtml(r.second_order_no || '')}" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
         <select data-field="first_order_status" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
           ${csOptionHtml('order_status', r.first_order_status, r.team)}
@@ -3786,6 +3836,8 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader) {
   }
   // 初始化有颜色标记的下拉框
   tbody.querySelectorAll('select[data-cs-color-init]').forEach(applySelectColor);
+  // 回填渲染前暂存的未保存编辑
+  restoreCSInputState(tbody);
   // 扫描重复订单号并标记
   scanCSDuplicates();
   // 已归档月份对非管理员只读
@@ -3817,8 +3869,8 @@ function createBlankCsRow(staffName, team, dateVal) {
           ${csOptionHtml('product_type', '', team)}
         </select>
       </td>
-      <td style="padding:4px;"><input data-field="first_order_no" placeholder="第一单" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
-      <td style="padding:4px;"><input data-field="second_order_no" placeholder="第二单" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;"><input data-field="first_order_no" placeholder="第一单" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
+      <td style="padding:4px;"><input data-field="second_order_no" placeholder="第二单" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
         <select data-field="first_order_status" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
           ${csOptionHtml('order_status', '', team)}
@@ -3932,6 +3984,140 @@ function updateCSRowTotal(input) {
   const s = parseFloat(row.querySelector('[data-field="second_amount"]')?.value) || 0;
   const totalEl = row.querySelector('[data-field="total_amount"]');
   if (totalEl) totalEl.value = (f + s) > 0 ? (f + s).toFixed(2) : '';
+}
+
+// ==================== 连带成交 · 防并发刷新清掉未保存的格子 ====================
+
+// 暂存明细表正在编辑的格子，渲染后回填（别人登记触发刷新 / 自己切换筛选也不会丢字）
+let _csInputStash = null;
+function captureCSInputState(tbody) {
+  if (!tbody) return;
+  const snap = [];
+  tbody.querySelectorAll('tr[data-id], tr[data-new="true"]').forEach(tr => {
+    const id = tr.dataset.id || '';
+    const editing = tr.contains(document.activeElement);
+    const fields = {};
+    let hasVal = false;
+    tr.querySelectorAll('input[data-field], select[data-field]').forEach(el => {
+      const v = (el.value != null) ? el.value : '';
+      fields[el.dataset.field] = v;
+      if (v !== '') hasVal = true;
+    });
+    if (hasVal || editing) snap.push({ id, editing, fields });
+  });
+  _csInputStash = snap;
+}
+function restoreCSInputState(tbody) {
+  if (!tbody || !_csInputStash) return;
+  const byId = {};
+  _csInputStash.filter(s => s.id).forEach(s => byId[s.id] = s);
+  tbody.querySelectorAll('tr[data-id]').forEach(tr => {
+    const s = byId[tr.dataset.id];
+    if (!s) return;
+    tr.querySelectorAll('input[data-field], select[data-field]').forEach(el => {
+      const f = el.dataset.field;
+      if (s.fields[f] != null && el.value !== s.fields[f]) {
+        el.value = s.fields[f];
+        if (el.tagName === 'SELECT') applySelectColor(el);
+      }
+    });
+    const fEl = tr.querySelector('[data-field="first_amount"]');
+    if (fEl) updateCSRowTotal(fEl);
+  });
+  _csInputStash = null;
+}
+
+// 是否正在编辑明细表（用于在有人登记触发刷新时暂缓拉取，避免打断打字）
+function csTableIsEditing() {
+  const a = document.activeElement;
+  if (a && a.closest && a.closest('#cross-sales-tbody')) return true;
+  const tbody = document.getElementById('cross-sales-tbody');
+  if (tbody && tbody.querySelector('tr[data-id][data-saving="1"], tr[data-new="true"][data-saving="1"]')) return true;
+  return false;
+}
+
+// 明细表 Enter 字段流转：Enter 跳到下一字段；末行末字段自动保存并新增一行聚焦
+function csEnterNavigation(e) {
+  if (e.key !== 'Enter') return;
+  const tbody = e.currentTarget;
+  const active = document.activeElement;
+  if (!active || !active.matches('input[data-field]:not([readonly]), select[data-field]')) return;
+  e.preventDefault();
+  const fields = Array.prototype.slice.call(
+    tbody.querySelectorAll('tr[data-id], tr[data-new="true"]')
+  ).reduce((acc, tr) => acc.concat(
+    Array.prototype.slice.call(tr.querySelectorAll('input[data-field]:not([readonly]), select[data-field]'))
+  ), []);
+  const idx = fields.indexOf(active);
+  if (idx === -1 || idx >= fields.length - 1) {
+    const lastTr = active.closest('tr');
+    if (lastTr && lastTr.dataset.new === 'true') {
+      autoSaveCSRow(active);
+      setTimeout(ensureAndFocusBlankRow, 60);
+    } else if (lastTr && lastTr.dataset.id) {
+      autoSaveCSRow(active);
+      active.blur();
+    }
+    return;
+  }
+  fields[idx + 1].focus();
+}
+function ensureAndFocusBlankRow() {
+  const tbody = document.getElementById('cross-sales-tbody');
+  if (!tbody) return;
+  let blank = tbody.querySelector('tr[data-new="true"]');
+  if (!blank) {
+    const staffName = (currentProfile?.name || currentProfile?.real_name) || '';
+    const team = currentProfile?.group_name || 'A组';
+    blank = createBlankCsRow(staffName, team, crossSalesDate || getTodayStr());
+    const anchor = tbody.querySelector('tr:not([data-id]):not([data-new])');
+    tbody.insertBefore(blank, anchor);
+  }
+  const first = blank.querySelector('input[data-field]:not([readonly])');
+  if (first) first.focus();
+  return blank;
+}
+
+// ==================== 连带成交 · 我的今日 常驻迷你看板 ====================
+
+function getMyTodayStats() {
+  const today = getTodayStr();
+  const name = currentProfile?.name || currentProfile?.real_name || '';
+  const team = (crossSalesTeamFilter === 'all') ? null : crossSalesTeamFilter;
+  const myRows = crossSalesData.filter(r => r.record_date === today && r.staff_name === name && (!team || r.team === team));
+  const mySecond = myRows.reduce((s, r) => s + Number(r.second_amount || 0), 0);
+  const filtered = crossSalesData.filter(r => r.record_date === today && (!team || r.team === team) && r.staff_name);
+  const map = {};
+  filtered.forEach(r => { if (!map[r.staff_name]) map[r.staff_name] = 0; map[r.staff_name] += Number(r.second_amount || 0); });
+  const arr = Object.keys(map).map(k => ({ name: k, second: map[k] })).sort((a, b) => b.second - a.second);
+  const idx = arr.findIndex(x => x.name === name);
+  return {
+    today, team, name,
+    mySecond, myCount: myRows.length,
+    rank: idx >= 0 ? idx + 1 : '-',
+    total: arr.length,
+    hasRank: idx >= 0,
+    gap: idx > 0 ? arr[idx - 1].second - arr[idx].second : 0
+  };
+}
+function renderCSMyTodayCard() {
+  const card = document.getElementById('cs-mytoday-card');
+  if (!card) return;
+  const name = currentProfile?.name || currentProfile?.real_name || '';
+  if (!name) { card.style.display = 'none'; return; }
+  const s = getMyTodayStats();
+  card.style.display = 'flex';
+  document.getElementById('cs-mytoday-date').textContent = s.today;
+  document.getElementById('cs-mytoday-name').textContent = name + (s.team ? ' · ' + s.team : '');
+  document.getElementById('cs-mytoday-second').textContent = '¥' + Math.round(s.mySecond).toLocaleString();
+  document.getElementById('cs-mytoday-rank').textContent = s.rank === '-' ? '-' : ('第 ' + s.rank);
+  document.getElementById('cs-mytoday-gap').textContent = s.rank === 1 ? '领先🥇' : (s.gap > 0 ? '¥' + Math.round(s.gap).toLocaleString() : '-');
+  document.getElementById('cs-mytoday-count').textContent = s.myCount;
+  const tip = document.getElementById('cs-mytoday-tip');
+  if (s.rank === 1) tip.textContent = '🎉 今天你暂列第一，保持住！';
+  else if (s.hasRank && s.gap > 0) tip.textContent = '再冲 ¥' + Math.round(s.gap).toLocaleString() + ' 就能超过上一名 👆';
+  else if (!s.hasRank) tip.textContent = '今天还没登记，点「➕ 极速登记」开冲～';
+  else tip.textContent = '';
 }
 
 // ==================== 连带成交 · 极速登记（快速登记弹窗） ====================
@@ -4149,6 +4335,8 @@ async function saveCSRow(tr) {
         tr.dataset.team = data[0].team || record.team;
       }
     }
+    // 保存成功后，若有因编辑而暂缓的刷新，立即补上
+    if (window._csPendingReload) { window._csPendingReload = false; loadCrossSalesFromDB(); }
     // 保存成功：浅色高亮一下
     const bg = tr.style.background;
     tr.style.background = '#e8f7ee';
