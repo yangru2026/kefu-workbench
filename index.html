@@ -486,6 +486,7 @@ body {
   opacity: 0; transition: opacity 0.3s;
 }
 .toast.show { opacity: 1; }
+.toast.toast-success { background: #1d9e75; }
 
 /* Schedule */
 .legend-item { display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary); }
@@ -1257,6 +1258,7 @@ body {
       <div style="flex:1;"></div>
       <button class="btn-sm outline" id="cross-sales-options-btn" onclick="openCrossSalesOptions()" style="display:none;">⚙️ 选项管理</button>
       <button class="btn-sm outline" id="cross-sales-import-btn" onclick="openExcelImport('cross_sales')" style="display:none;">📥 导入Excel</button>
+      <button class="btn-sm primary" id="cross-sales-quick-btn" onclick="openCsQuickRegister()">➕ 极速登记</button>
       <button class="btn-sm outline" id="cross-sales-paste-btn" onclick="openCsPasteModal()" title="按表格列顺序粘贴多行数据，自动保存">📋 批量粘贴</button>
       <button class="collab-btn" id="collab-cross-sales-btn" onclick="openCollabPanel('cross-sales')" style="display:none;">👥 协作者</button>
       <button class="feishu-sync-btn admin-only-nav" id="cross-sales-sync-btn" onclick="syncCrossSalesFromFeishu()" style="display:none;">🔄 从飞书同步</button>
@@ -1331,6 +1333,71 @@ body {
         <div style="font-size:40px;margin-bottom:8px;">🛒</div>
         <p>该日期暂无连带成交数据（数据都在云端，不会丢失）</p>
         <p style="font-size:13px;margin-top:6px;">可点上方 <strong>📅 按月份排名</strong> 查看整月，或切换日历选择有记录的日期</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 连带成交 · 极速登记弹窗 -->
+  <div class="modal-overlay" id="mod-cs-quick" onclick="closeModal('mod-cs-quick')">
+    <div class="modal-box" style="max-width:480px;" onclick="event.stopPropagation()" onkeydown="csQuickOnEnter(event)">
+      <div class="modal-header">
+        <h3>➕ 极速登记</h3>
+        <button class="modal-close" onclick="closeModal('mod-cs-quick')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">回车即提交 · 自动记忆上次选择 · 提交后排名实时刷新</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">日期</label>
+            <input type="date" id="cs-quick-date" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">店铺</label>
+            <select id="cs-quick-shop" onchange="applySelectColor(this)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;background:#fff;"></select>
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">产品类型</label>
+            <select id="cs-quick-product" onchange="applySelectColor(this)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;background:#fff;"></select>
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">第一单状态</label>
+            <select id="cs-quick-status" onchange="applySelectColor(this)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;background:#fff;"></select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+          <div>
+            <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">第一单订单号</label>
+            <input id="cs-quick-first" placeholder="选填" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">第二单订单号 <span style="color:#e5484d;">*</span></label>
+            <input id="cs-quick-second" placeholder="必填" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+          <div>
+            <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">第一单金额</label>
+            <input type="number" step="0.01" id="cs-quick-firstamt" oninput="updateCsQuickTotal()" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">第二单金额</label>
+            <input type="number" step="0.01" id="cs-quick-secondamt" oninput="updateCsQuickTotal()" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">合计</label>
+            <input type="number" id="cs-quick-total" readonly placeholder="0" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;background:var(--bg);color:var(--text-secondary);">
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);">
+            <input type="checkbox" id="cs-quick-continue" checked> 连续登记（提交后不清空）
+          </label>
+          <div style="font-size:12px;color:var(--text-secondary);">成交客服：<strong id="cs-quick-staff" style="color:var(--text);"></strong></div>
+        </div>
+        <div style="margin-top:14px;display:flex;justify-content:flex-end;gap:10px;">
+          <button class="btn-sm outline" onclick="closeModal('mod-cs-quick')">取消</button>
+          <button class="btn-sm primary" id="cs-quick-submit" onclick="submitCsQuick()">提交</button>
+        </div>
       </div>
     </div>
   </div>
@@ -3762,6 +3829,11 @@ function createBlankCsRow(staffName, team, dateVal) {
       <td style="padding:4px;"><input type="number" data-field="total_amount" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
       <td style="text-align:center;padding:4px;"><button class="btn-sm outline" onclick="this.closest('tr').remove()" style="padding:2px 8px;font-size:11px;">🗑️</button></td>
     `;
+  // 预选上次记忆的 店铺/产品类型/第一单状态，减少重复操作
+  const mem = getRememberedCsSel();
+  if (mem.shop) { const s = tr.querySelector('[data-field="shop"]'); if (s) { s.value = mem.shop; applySelectColor(s); } }
+  if (mem.product_type) { const s = tr.querySelector('[data-field="product_type"]'); if (s) { s.value = mem.product_type; applySelectColor(s); } }
+  if (mem.first_order_status) { const s = tr.querySelector('[data-field="first_order_status"]'); if (s) { s.value = mem.first_order_status; applySelectColor(s); } }
   return tr;
 }
 
@@ -3860,6 +3932,169 @@ function updateCSRowTotal(input) {
   const s = parseFloat(row.querySelector('[data-field="second_amount"]')?.value) || 0;
   const totalEl = row.querySelector('[data-field="total_amount"]');
   if (totalEl) totalEl.value = (f + s) > 0 ? (f + s).toFixed(2) : '';
+}
+
+// ==================== 连带成交 · 极速登记（快速登记弹窗） ====================
+
+// 按人记忆上次选择的 店铺/产品类型/第一单状态，减少重复操作
+function getRememberedCsSel() {
+  try {
+    const uid = (currentUser && currentUser.id) || (currentProfile && currentProfile.id) || 'default';
+    const raw = localStorage.getItem('cs_last_sel_' + uid);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) { return {}; }
+}
+function rememberCsSel(shop, product_type, first_order_status) {
+  try {
+    const uid = (currentUser && currentUser.id) || (currentProfile && currentProfile.id) || 'default';
+    const prev = getRememberedCsSel();
+    const next = {
+      shop: shop || prev.shop || '',
+      product_type: product_type || prev.product_type || '',
+      first_order_status: first_order_status || prev.first_order_status || ''
+    };
+    localStorage.setItem('cs_last_sel_' + uid, JSON.stringify(next));
+  } catch (e) {}
+}
+
+// 打开极速登记弹窗：预填今天/当前客服/上次记忆的选项
+function openCsQuickRegister() {
+  if (!currentProfile) { showToast('⚠️ 请先登录'); return; }
+  const team = currentProfile.group_name || 'A组';
+  const mem = getRememberedCsSel();
+  const dateEl = document.getElementById('cs-quick-date');
+  if (dateEl) dateEl.value = getTodayStr();
+  const shopEl = document.getElementById('cs-quick-shop');
+  if (shopEl) { shopEl.innerHTML = csOptionHtml('shop', mem.shop || '', team); applySelectColor(shopEl); }
+  const prodEl = document.getElementById('cs-quick-product');
+  if (prodEl) { prodEl.innerHTML = csOptionHtml('product_type', mem.product_type || '', team); applySelectColor(prodEl); }
+  const statusEl = document.getElementById('cs-quick-status');
+  if (statusEl) { statusEl.innerHTML = csOptionHtml('order_status', mem.first_order_status || '', team); applySelectColor(statusEl); }
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  setVal('cs-quick-first', '');
+  setVal('cs-quick-second', '');
+  setVal('cs-quick-firstamt', '');
+  setVal('cs-quick-secondamt', '');
+  setVal('cs-quick-total', '');
+  const staffEl = document.getElementById('cs-quick-staff');
+  if (staffEl) staffEl.textContent = (currentProfile.name || currentProfile.real_name || '');
+  const contEl = document.getElementById('cs-quick-continue');
+  if (contEl) contEl.checked = true;
+  showModalById('mod-cs-quick');
+  setTimeout(() => { const f = document.getElementById('cs-quick-first'); if (f) f.focus(); }, 60);
+}
+
+// 弹窗内回车即提交（按钮/复选框/下拉不触发，避免误操作）
+function csQuickOnEnter(e) {
+  if (e.key !== 'Enter') return;
+  const t = e.target;
+  if (t.tagName === 'BUTTON' || t.type === 'checkbox' || t.tagName === 'SELECT') return;
+  e.preventDefault();
+  submitCsQuick();
+}
+
+// 自动合计
+function updateCsQuickTotal() {
+  const fa = parseFloat(document.getElementById('cs-quick-firstamt')?.value) || 0;
+  const sa = parseFloat(document.getElementById('cs-quick-secondamt')?.value) || 0;
+  const t = fa + sa;
+  const el = document.getElementById('cs-quick-total');
+  if (el) el.value = t > 0 ? t.toFixed(2) : '';
+}
+
+// 从弹窗读取一条记录
+function readCsQuick() {
+  const get = (id) => (document.getElementById(id)?.value || '').trim();
+  const num = (id) => parseFloat(document.getElementById(id)?.value) || 0;
+  const fa = num('cs-quick-firstamt');
+  const sa = num('cs-quick-secondamt');
+  return {
+    record_date: get('cs-quick-date'),
+    shop: get('cs-quick-shop'),
+    staff_name: (currentProfile?.name || currentProfile?.real_name || ''),
+    product_type: get('cs-quick-product'),
+    first_order_no: get('cs-quick-first'),
+    second_order_no: get('cs-quick-second'),
+    first_order_status: get('cs-quick-status'),
+    first_amount: fa,
+    second_amount: sa,
+    total_amount: fa + sa,
+    team: currentProfile?.group_name || 'A组'
+  };
+}
+
+// 提交极速登记：插入 → 本地即时更新 → 记忆选项 → 排名反馈 → 连续登记不清空
+async function submitCsQuick() {
+  if (!supabase || !currentUser) { showToast('⚠️ 请先登录'); return; }
+  const rec = readCsQuick();
+  const err = validateCSRow(rec, true, true);
+  if (err) { showToast('⚠️ ' + err); return; }
+  const btn = document.getElementById('cs-quick-submit');
+  if (btn) btn.disabled = true;
+  try {
+    const { data, error } = await supabase.from('cross_sales').insert([rec]).select();
+    if (error) {
+      if (error.code === '23505') showToast('⚠️ 该日期下相同订单号已登记过');
+      else showToast('❌ 保存失败: ' + error.message);
+      return;
+    }
+    if (data && data[0]) {
+      crossSalesData.push(data[0]);
+      rememberCsSel(rec.shop, rec.product_type, rec.first_order_status);
+      const r = getCSRankForDate(rec.record_date, rec.staff_name);
+      const label = (rec.record_date === getTodayStr()) ? '今日' : rec.record_date;
+      showCsSuccess('已登记 · 你' + label + '第二单 ¥' + Math.round(r.mySecond).toLocaleString() + ' · 当前排名第 ' + r.rank);
+      renderCrossSales();
+      if (document.getElementById('cs-quick-continue')?.checked) {
+        const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+        setVal('cs-quick-first', '');
+        setVal('cs-quick-second', '');
+        setVal('cs-quick-firstamt', '');
+        setVal('cs-quick-secondamt', '');
+        setVal('cs-quick-total', '');
+        const f = document.getElementById('cs-quick-first');
+        if (f) f.focus();
+        if (btn) btn.disabled = false;
+        return;
+      }
+    }
+  } catch (e) {
+    showToast('❌ 保存异常: ' + e.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+  closeModal('mod-cs-quick');
+}
+
+// 统计某客服在指定日期（按当前组筛选）的排名与第二单金额
+function getCSRankForDate(dateStr, name) {
+  const filtered = crossSalesData.filter(r =>
+    r.record_date === dateStr &&
+    (crossSalesTeamFilter === 'all' || r.team === crossSalesTeamFilter) &&
+    r.staff_name
+  );
+  const map = {};
+  filtered.forEach(r => {
+    if (!map[r.staff_name]) map[r.staff_name] = { name: r.staff_name, secondAmount: 0 };
+    map[r.staff_name].secondAmount += Number(r.second_amount || 0);
+  });
+  const arr = Object.values(map).sort((a, b) => b.secondAmount - a.secondAmount);
+  const idx = arr.findIndex(x => x.name === name);
+  return {
+    rank: idx >= 0 ? idx + 1 : '-',
+    mySecond: idx >= 0 ? arr[idx].secondAmount : 0,
+    total: arr.length
+  };
+}
+
+// 绿色成功 toast（登记即时反馈）
+function showCsSuccess(msg) {
+  const t = document.getElementById('toast');
+  if (!t) { showToast(msg); return; }
+  t.textContent = msg;
+  t.classList.add('show', 'toast-success');
+  clearTimeout(window._csToastTimer);
+  window._csToastTimer = setTimeout(() => { t.classList.remove('show', 'toast-success'); }, 2800);
 }
 
 // ==================== 连带成交 · 自动保存（blur 触发） ====================
