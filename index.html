@@ -862,6 +862,7 @@ body {
 .cs-more-dropdown.show { display:block; }
 .cs-more-dropdown button { display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; border:none; background:none; border-radius:6px; font-size:13px; color:var(--text); cursor:pointer; font-family:inherit; text-align:left; }
 .cs-more-dropdown button:hover { background:var(--bg); }
+.cs-danger-btn:hover { background:#fdecea !important; }
 .cs-toolbar .rank-group-btn { padding:6px 18px; font-size:13px; border-width:1.5px; }
 
 /* Image manager */
@@ -1347,6 +1348,8 @@ body {
             <button class="feishu-sync-btn admin-only-nav" id="cross-sales-sync-btn" onclick="syncCrossSalesFromFeishu();closeCsMoreMenu();" style="display:none;">🔄 从飞书同步</button>
             <button class="collab-btn" id="collab-cross-sales-btn" onclick="openCollabPanel('cross-sales');closeCsMoreMenu();" style="display:none;">👥 协作者</button>
             <button class="admin-only-nav" id="cross-sales-archive-current-btn" onclick="archiveCurrentCsMonth();closeCsMoreMenu();" style="display:none;">🔒 归档本月</button>
+            <div style="height:1px;background:var(--border);margin:4px 2px;"></div>
+            <button class="admin-only-nav cs-danger-btn" id="cross-sales-clear-all-btn" onclick="clearAllCrossSales();closeCsMoreMenu();" style="display:none;color:#c0392b;font-weight:600;">🗑 清空全部成交明细</button>
           </div>
         </div>
       </div>
@@ -4820,6 +4823,46 @@ async function batchDeleteCsSelected() {
     document.getElementById('cs-select-all').checked = false;
     loadCrossSalesFromDB();
   } catch (e) { showToast('❌ 批量删除异常: ' + e.message); }
+}
+
+// 清空全部成交明细（仅管理员，需二次确认；在已登录的管理员会话中执行，受 RLS 允许）
+async function clearAllCrossSales() {
+  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  if (!isAdminOrLeader) { showToast('⚠️ 仅管理员可清空'); return; }
+  if (!supabase) { showToast('⚠️ 数据服务未就绪，请刷新重试'); return; }
+  const ok1 = confirm('⚠️ 危险操作：将清空云端【全部】连带成交明细记录，且不可恢复！\n\n此操作只删除成交明细，不影响选项配置与历史归档。\n\n确定要清空吗？');
+  if (!ok1) return;
+  const ok2 = confirm('再次确认：清空后所有成交明细将从云端永久删除。\n\n确定继续吗？');
+  if (!ok2) return;
+  const btn = document.getElementById('cross-sales-clear-all-btn');
+  try {
+    if (btn) { btn.disabled = true; btn.textContent = '🧹 清空中…'; }
+    showToast('🧹 正在清空云端成交明细，请稍候…');
+    let total = 0, page = 0;
+    while (true) {
+      const { data, error } = await supabase
+        .from('cross_sales')
+        .select('id')
+        .order('id')
+        .range(page * 1000, page * 1000 + 999);
+      if (error) { showToast('❌ 读取失败: ' + error.message); return; }
+      if (!data || data.length === 0) break;
+      const ids = data.map(r => r.id);
+      const { error: delErr } = await supabase.from('cross_sales').delete().in('id', ids);
+      if (delErr) { showToast('❌ 删除失败: ' + delErr.message); return; }
+      total += ids.length;
+      if (data.length < 1000) break;
+      page++;
+    }
+    showToast(`✅ 已清空全部成交明细（共 ${total} 条）`);
+    // 立即刷新本地视图
+    crossSalesDate = null;
+    loadCrossSalesFromDB();
+  } catch (e) {
+    showToast('❌ 清空异常: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🗑 清空全部成交明细'; }
+  }
 }
 
 // 清空未填写的空白新增行（仅管理员）
