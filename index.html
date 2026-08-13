@@ -2346,9 +2346,9 @@ let rankEditMode = false;
 async function loadConfig() {
   try {
     const ts = Date.now();
-    // 3秒超时，config.json 是静态文件，不应阻塞首屏
+    // 15秒超时，GitHub Pages 国内访问慢，避免误中断
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     const resp = await fetch('config.json?t=' + ts, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (!resp.ok) throw new Error('Config load failed');
@@ -2372,8 +2372,14 @@ async function loadConfig() {
     if (currentPage === 'tools' && typeof renderTools === 'function') renderTools();
     console.log('配置加载成功 v' + configVersion + ' | 更新于 ' + (cfg.lastUpdate || ''));
   } catch (e) {
-    console.error('配置加载失败，使用默认数据', e);
-    document.getElementById('config-version').textContent = '离线模式';
+    // 超时属于降级预期，不打印红色堆栈吓用户；其它异常仍记录
+    if (e && e.name === 'AbortError') {
+      console.warn('配置加载超时，使用默认数据（不影响核心功能）');
+    } else {
+      console.error('配置加载失败，使用默认数据', e);
+    }
+    const verEl = document.getElementById('config-version');
+    if (verEl) verEl.textContent = '离线模式';
   }
 }
 
@@ -3095,9 +3101,15 @@ async function loadCrossSalesOptions() {
           if (!map[team][key] || map[team][key].length === 0) {
             const normalizedList = list.map(csNormalizeOption);
             map[team][key] = normalizedList;
-            supabase.from('option_templates')
-              .upsert({ key, team, label: labels[key], options: normalizedList, updated_at: new Date().toISOString() }, { onConflict: 'key,team' })
-              .catch(e => console.warn('默认选项保存失败:', e.message));
+            try {
+              const upsertPromise = supabase.from('option_templates')
+                .upsert({ key, team, label: labels[key], options: normalizedList, updated_at: new Date().toISOString() }, { onConflict: 'key,team' });
+              if (upsertPromise && typeof upsertPromise.catch === 'function') {
+                upsertPromise.catch(e => console.warn('默认选项保存失败:', e && e.message ? e.message : e));
+              }
+            } catch (e) {
+              console.warn('默认选项保存失败:', e && e.message ? e.message : e);
+            }
           }
         }
       }
@@ -9027,7 +9039,7 @@ async function init() {
 
 init();
 </script>
-<script src="app.js"></script>
+<script src="app.js?v=20260813"></script>
 
 <!-- Pattern Editor Modal -->
 <div class="modal-overlay" id="mod-pattern" onclick="closeModal('mod-pattern')">
