@@ -3198,28 +3198,19 @@ function csOptionHtml(key, currentVal, team) {
   return out;
 }
 
-// 给选中有颜色的 select 添加背景色
+// 给选中的 select 按 option 值着色（每个选项值有独立颜色）
 function applySelectColor(sel) {
-  // 成交明细表按团队色区分，优先保持团队色，不被 option 颜色覆盖
-  const team = sel.dataset.team;
-  if (team) {
-    const c = teamColor(team);
-    if (c) {
-      sel.style.background = c + '15';
-      sel.style.borderColor = c;
-      sel.style.color = c;
-      return;
-    }
-  }
   const opt = sel.options[sel.selectedIndex];
   if (!opt) return;
   const color = opt.dataset.color;
   if (color) {
     sel.style.background = color + '22'; // 20% 透明度
     sel.style.borderColor = color;
+    sel.style.color = color;
   } else {
     sel.style.background = '#fff';
     sel.style.borderColor = 'var(--border)';
+    sel.style.color = 'var(--text)';
   }
 }
 
@@ -4051,7 +4042,7 @@ function csRowHtml(r, isAdminOrLeader) {
       <td style="padding:4px;text-align:center;width:60px;white-space:nowrap;">${dupBadge}${isAdminOrLeader ? `<input type="checkbox" class="cs-row-check" data-id="${r.id || ''}" style="cursor:pointer;vertical-align:middle;">` : ''}</td>
       <td style="padding:4px;"><input type="date" data-field="record_date" value="${r.record_date || ''}" onchange="autoSaveCSRow(this)" style="width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
-        <select data-field="shop" data-team="${escapeHtml(r.team || '')}" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid ${tcSafe};border-radius:4px;font-size:12px;background:${tcBg};color:${tcSafe};font-weight:600;" data-cs-color-init>
+        <select data-field="shop" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;color:var(--text);font-weight:600;" data-cs-color-init>
           ${csOptionHtml('shop', r.shop, r.team)}
         </select>
       </td>
@@ -4060,14 +4051,14 @@ function csRowHtml(r, isAdminOrLeader) {
         <input data-field="staff_name" value="${escapeHtml(r.staff_name || '')}" readonly style="width:64px;padding:4px 6px;border:1px solid ${tcSafe};border-radius:4px;font-size:12px;background:${tcBg};color:${tcSafe};font-weight:700;">
       </td>
       <td style="padding:4px;">
-        <select data-field="product_type" data-team="${escapeHtml(r.team || '')}" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid ${tcSafe};border-radius:4px;font-size:12px;background:${tcBg};color:${tcSafe};font-weight:600;" data-cs-color-init>
+        <select data-field="product_type" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;color:var(--text);font-weight:600;" data-cs-color-init>
           ${csOptionHtml('product_type', r.product_type, r.team)}
         </select>
       </td>
       <td style="padding:4px;"><input data-field="first_order_no" value="${escapeHtml(r.first_order_no || '')}" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;"><input data-field="second_order_no" value="${escapeHtml(r.second_order_no || '')}" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
-        <select data-field="first_order_status" data-team="${escapeHtml(r.team || '')}" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:80px;padding:4px 6px;border:1px solid ${tcSafe};border-radius:4px;font-size:12px;background:${tcBg};color:${tcSafe};font-weight:600;" data-cs-color-init>
+        <select data-field="first_order_status" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;color:var(--text);font-weight:600;" data-cs-color-init>
           ${csOptionHtml('order_status', r.first_order_status, r.team)}
         </select>
       </td>
