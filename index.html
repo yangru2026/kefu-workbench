@@ -1360,7 +1360,7 @@ body {
             <button id="cross-sales-options-btn" onclick="openCrossSalesOptions();closeCsMoreMenu();" style="display:none;">⚙️ 选项管理</button>
             <button id="cross-sales-import-btn" onclick="openExcelImport('cross_sales');closeCsMoreMenu();" style="display:none;">📥 导入Excel</button>
             <button id="cross-sales-export-more-btn" onclick="toggleCsExportArea();closeCsMoreMenu();">📤 导出Excel</button>
-            <button id="cross-sales-locate-btn" onclick="locateCSDuplicates();closeCsMoreMenu();" style="color:#b8860b;font-weight:600;">🔍 定位重复项</button>
+            <button id="cross-sales-locate-btn" onclick="locateCSDuplicates();closeCsMoreMenu();" style="color:#b8860b;font-weight:600;">🔍 筛选重复项</button>
             <button class="feishu-sync-btn admin-only-nav" id="cross-sales-sync-btn" onclick="syncCrossSalesFromFeishu();closeCsMoreMenu();" style="display:none;">🔄 从飞书同步</button>
             <button class="collab-btn" id="collab-cross-sales-btn" onclick="openCollabPanel('cross-sales');closeCsMoreMenu();" style="display:none;">👥 协作者</button>
             <button class="admin-only-nav" id="cross-sales-archive-current-btn" onclick="archiveCurrentCsMonth();closeCsMoreMenu();" style="display:none;">🔒 归档本月</button>
@@ -2180,7 +2180,6 @@ async function initSupabase() {
     loadScheduleFromDB();
     loadRankingFromDB();
     loadPresaleMonthly();
-    loadCrossSalesFromDB();
     subscribeSchedule();
     subscribeRanking();
     subscribePresaleMonthly();
@@ -2427,7 +2426,7 @@ function subscribeTraining() {
   if (!supabase || trainSub) return;
   trainSub = supabase.channel('training-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'training_materials' }, () => {
-      loadTrainingFromDB();
+      debouncedReload('training', loadTrainingFromDB);
     })
     .subscribe();
 }
@@ -2461,7 +2460,7 @@ function subscribeTrainingCategories() {
   if (!supabase) return;
   supabase.channel('training-cat-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'training_categories' }, () => {
-      loadTrainingCategories();
+      debouncedReload('training-cat', loadTrainingCategories);
     })
     .subscribe();
 }
@@ -2491,11 +2490,24 @@ async function loadPatternsFromDB() {
   }
 }
 
+// 统一的 Realtime 刷新防抖：把短时间内的多次变动合并为一次全量重拉，
+// 避免批量导入 / 频繁编辑触发 N 次整页重渲染导致卡顿
+const _reloadTimers = {};
+function debouncedReload(key, fn, delay) {
+  if (delay == null) delay = 700;
+  clearTimeout(_reloadTimers[key]);
+  _reloadTimers[key] = setTimeout(() => {
+    _reloadTimers[key] = null;
+    try { fn(); } catch (e) { console.error('reload failed:', key, e); }
+  }, delay);
+}
+
 function subscribePatterns() {
   if (!supabase || patternSub) return;
   patternSub = supabase.channel('pattern-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'pattern_assets' }, () => {
-      loadPatternsFromDB();
+      if (currentPage !== 'patterns') return; // 非花色素材页时不浪费全量重拉
+      debouncedReload('patterns', loadPatternsFromDB);
     })
     .subscribe();
 }
@@ -2596,7 +2608,7 @@ function subscribeSchedule() {
   if (!supabase || scheduleSub) return;
   scheduleSub = supabase.channel('schedule-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'schedule_data' }, () => {
-      loadScheduleFromDB();
+      debouncedReload('schedule', loadScheduleFromDB);
     })
     .subscribe();
 }
@@ -2704,7 +2716,7 @@ function subscribeRanking() {
   if (!supabase || rankingSub) return;
   rankingSub = supabase.channel('ranking-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'ranking_data' }, () => {
-      loadRankingFromDB();
+      debouncedReload('ranking', loadRankingFromDB);
     })
     .subscribe();
 }
@@ -2818,7 +2830,7 @@ function subscribePresaleMonthly() {
   if (!supabase || presaleMonthlySub) return;
   presaleMonthlySub = supabase.channel('presale-monthly-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'presale_monthly' }, () => {
-      loadPresaleMonthly();
+      debouncedReload('presale', loadPresaleMonthly);
     })
     .subscribe();
 }
@@ -2827,7 +2839,7 @@ function subscribeRequests() {
   if (!supabase || reqSub) return;
   reqSub = supabase.channel('cs-requests-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'cs_requests' }, () => {
-      if (typeof loadRequests === 'function') loadRequests();
+      debouncedReload('requests', () => { if (typeof loadRequests === 'function') loadRequests(); });
     })
     .subscribe();
 }
@@ -3021,7 +3033,7 @@ const CS_PAGE_SIZE = 60;         // 每页渲染行数（避免全量重渲染�
 let _csOptHtmlCache = {};        // csOptionHtml 结果缓存，避免每行重复拼接
 let _csOrderNoIndex = {};        // 订单号索引：date|orderNo -> 出现次数（快速查重 O(1)）
 let _csDupGroupMap = {};         // 当前明细「完整键」重复统计：key -> 次数（定位重复项用）
-let csLocateDup = false;         // 是否处于「定位重复项」高亮模式
+let csLocateDup = false;         // 是否处于「筛选重复项」模式（仅本地视图，不影响他人页面）
 let csColumnFilters = {};           // 表头列筛选状态：{ record_date: ['2026-08-01'], shop: ['...'], ... }
 let csFilterColumn = null;          // 当前打开的筛选列
 let csArchivedMonths = [];          // 已归档月份列表 [{month, team, archived_at}]
@@ -3543,6 +3555,7 @@ function subscribeCrossSales() {
   }
   crossSalesSub = supabase.channel('cross-sales-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'cross_sales' }, () => {
+      if (currentPage !== 'cross-sales') return; // 非本页时不浪费全量重拉
       clearTimeout(window._csLoadTimer);
       window._csLoadTimer = setTimeout(() => {
         if (csTableIsEditing()) { window._csPendingReload = true; return; }
@@ -3908,17 +3921,29 @@ function renderCrossSales() {
   buildCSOrderNoIndex();
   let rows = getCSDisplayRows();
   computeCSDupGroups(rows);
+  // 定位重复项：进入筛选模式，仅显示重复记录、隐藏其他（仅本地视图，不影响他人页面）
+  if (csLocateDup) {
+    rows = rows.filter(r => {
+      const k = (r.record_date || '') + '|' + (r.first_order_no || '') + '|' + (r.second_order_no || '');
+      return _csDupGroupMap[k] > 1;
+    });
+  }
   csCsPage = 1; // 每次整页重渲染回到第一页
   // 定位重复项横幅
   const locateBanner = document.getElementById('cross-sales-locate-banner');
   if (locateBanner) {
     const groups = Object.values(_csDupGroupMap).filter(c => c > 1).length;
-    const dupRows = Object.entries(_csDupGroupMap).filter(([k, c]) => c > 1 && k.replace(/\|/g, '')).reduce((s, [, c]) => s + (c - 1), 0);
-    if (csLocateDup && groups > 0) {
-      locateBanner.style.display = 'block';
-      locateBanner.innerHTML = `🔍 已定位 <strong>${groups}</strong> 组重复记录（共 ${dupRows} 条多余）。可逐个删除，或 ` +
-        `<button class="btn-sm outline" onclick="deleteCsDupExtras()" style="font-size:12px;color:#e74c3c;">🗑 删除多余（每组留首条）</button> ` +
-        `<button class="btn-sm outline" onclick="clearCsDupLocate()" style="font-size:12px;">✕ 取消定位</button>`;
+    if (csLocateDup) {
+      if (groups > 0) {
+        locateBanner.style.display = 'block';
+        locateBanner.innerHTML = `🔍 已筛选出 <strong>${groups}</strong> 组重复记录（共 ${rows.length} 条，已隐藏其他记录）。复核后可 ` +
+          `<button class="btn-sm outline" onclick="deleteCsDupExtras()" style="font-size:12px;color:#e74c3c;">🗑 删除多余（每组留首条）</button> ` +
+          `<button class="btn-sm outline" onclick="clearCsDupLocate()" style="font-size:12px;">✕ 取消筛选重复项</button>`;
+      } else {
+        locateBanner.style.display = 'block';
+        locateBanner.innerHTML = `✅ 当前筛选范围内没有重复记录。` +
+          `<button class="btn-sm outline" onclick="clearCsDupLocate()" style="font-size:12px;">✕ 取消筛选重复项</button>`;
+      }
     } else {
       locateBanner.style.display = 'none';
     }
@@ -4126,7 +4151,7 @@ function loadMoreCsRows() {
   renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader, true);
 }
 
-// 一键定位重复项：高亮所有「日期+第一单+第二单」相同的记录并滚动到第一条
+// 一键定位重复项：进入筛选模式，仅显示重复记录、隐藏其他（仅本地视图，不影响他人）
 function locateCSDuplicates() {
   csLocateDup = !csLocateDup;
   if (csLocateDup) {
@@ -4134,12 +4159,12 @@ function locateCSDuplicates() {
     const first = document.querySelector('#cross-sales-tbody tr.cs-dup-row');
     if (first) {
       first.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      showToast('🔍 已定位重复项，红色高亮为重复记录');
+      showToast('🔍 已筛选出重复记录，其他记录已隐藏');
     } else {
       showToast('✅ 当前筛选范围内没有重复记录');
     }
   } else {
-    renderCrossSales();
+    clearCsDupLocate();
   }
 }
 function clearCsDupLocate() {
@@ -5766,7 +5791,8 @@ function subscribePatternCategories() {
   if (!supabase) return;
   supabase.channel('pattern-cat-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'pattern_categories' }, () => {
-      loadPatternCategories();
+      if (currentPage !== 'patterns') return;
+      debouncedReload('pattern-cat', loadPatternCategories);
     })
     .subscribe();
 }
@@ -5848,15 +5874,9 @@ function switchPage(page) {
     }
   }
   if (page === 'patterns') {
-    // Ensure pattern data is loaded before rendering
-    const brands = getPatternBrands();
-    if (brands.length === 0) {
-      if (window.loadPatternCategories) loadPatternCategories();
-      loadPatternsFromDB();
-    } else {
-      renderPatternFilters();
-      renderPatterns();
-    }
+    // 每次进入都重新拉取，保证数据最新（Realtime 仅在花色素材页激活时才刷新）
+    if (window.loadPatternCategories) loadPatternCategories();
+    loadPatternsFromDB();
   }
   if (page === 'sop') renderSOP();
   if (page === 'bulletin') renderBulletin();
@@ -5867,7 +5887,7 @@ function switchPage(page) {
   if (page === 'requests') { loadRequests(); renderReqForm(); }
   if (page === 'ranking') { if (rankingAllRows.length === 0) loadRankingFromDB(); else renderRanking(); }
   if (page === 'cross-sales') {
-    if (crossSalesData.length === 0) loadCrossSalesFromDB(); else renderCrossSales();
+    loadCrossSalesFromDB(); // 每次进入都重新拉取，保证最新（Realtime 仅本页激活时刷新）
     // 加载下拉选项模板 + 实时订阅（防止刷新后选项消失）
     if (!csOptionsLoaded) loadCrossSalesOptions();
     subscribeCrossSalesOptions();
