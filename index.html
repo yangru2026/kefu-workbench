@@ -3026,7 +3026,9 @@ async function loadCrossSalesOptions() {
     (data || []).forEach(t => {
       const team = t.team || 'default';
       if (!map[team]) map[team] = { shop: [], product_type: [], order_status: [] };
-      if (map[team][t.key] !== undefined) map[team][t.key] = Array.isArray(t.options) ? t.options : [];
+      if (map[team][t.key] !== undefined) {
+        map[team][t.key] = (Array.isArray(t.options) ? t.options : []).map(csNormalizeOption);
+      }
     });
 
     // 首次加载且数据库为空时，自动填充默认选项（仅第一次）
@@ -3062,9 +3064,10 @@ async function loadCrossSalesOptions() {
         if (!map[team]) map[team] = { shop: [], product_type: [], order_status: [] };
         for (const [key, list] of Object.entries(defaultOptions)) {
           if (!map[team][key] || map[team][key].length === 0) {
-            map[team][key] = list;
+            const normalizedList = list.map(csNormalizeOption);
+            map[team][key] = normalizedList;
             supabase.from('option_templates')
-              .upsert({ key, team, label: labels[key], options: list, updated_at: new Date().toISOString() }, { onConflict: 'key,team' })
+              .upsert({ key, team, label: labels[key], options: normalizedList, updated_at: new Date().toISOString() }, { onConflict: 'key,team' })
               .catch(e => console.warn('默认选项保存失败:', e.message));
           }
         }
@@ -3085,6 +3088,27 @@ function csOptionsFor(team, key) {
   const t = team || 'default';
   if (csOptions[t] && csOptions[t][key] && csOptions[t][key].length > 0) return csOptions[t][key];
   return csOptions.default?.[key] || [];
+}
+
+// 为没有颜色的选项值生成稳定颜色（相同字符串永远得到同一颜色）
+const CS_OPTION_PALETTE = [
+  '#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6',
+  '#1abc9c', '#e67e22', '#34495e', '#ff6b6b', '#4ecdc4',
+  '#45b7d1', '#96ceb4', '#fd79a8', '#a29bfe', '#00b894',
+  '#0984e3', '#fdcb6e', '#d63031', '#6c5ce7', '#00cec9'
+];
+function csColorForValue(value) {
+  if (!value) return '#6366f1';
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) hash = ((hash << 5) - hash) + value.charCodeAt(i), hash |= 0;
+  return CS_OPTION_PALETTE[Math.abs(hash) % CS_OPTION_PALETTE.length];
+}
+function csNormalizeOption(item) {
+  if (typeof item === 'object' && item && item.value !== undefined) {
+    return { value: String(item.value), color: item.color || csColorForValue(String(item.value)) };
+  }
+  const v = String(item || '');
+  return { value: v, color: csColorForValue(v) };
 }
 
 // Realtime 订阅选项变化：管理员改选项 → 所有客服实时同步
@@ -3172,8 +3196,8 @@ function renderCsOptionsList() {
     return;
   }
   wrap.innerHTML = list.map((item, i) => {
-    const opt = (typeof item === 'object' && item && item.value) ? item : { value: String(item), color: '' };
-    const color = opt.color || '#6366f1';
+    const opt = csNormalizeOption(item);
+    const color = opt.color;
     return `<span class="cs-opt-pill" title="拖拽排序暂不支持，可上下移动" style="background:${hexToRgba(color,0.08)};border-color:${hexToRgba(color,0.35)};">
       <input type="color" value="${escapeAttr(color)}" onchange="updateCsOptionColor(${i}, this.value)" title="修改颜色" style="width:14px;height:14px;padding:0;border:none;border-radius:50%;background:transparent;cursor:pointer;opacity:0;position:absolute;left:6px;">
       <span class="color" style="background:${escapeAttr(color)};"></span>
@@ -3204,7 +3228,7 @@ async function addCsOption() {
   if (!val) { showToast('⚠️ 请输入选项名称'); return; }
   const list = normalizeCsOptionList(csOptionsFor(csOptionManageTeam, csOptionManageType));
   if (list.some(o => o.value === val)) { showToast('⚠️ 该选项已存在'); return; }
-  list.push({ value: val, color: colorInput?.value || '' });
+  list.push({ value: val, color: colorInput?.value || csColorForValue(val) });
   const ok = await saveCsOptions(list);
   if (!ok) return;
   input.value = '';
@@ -4596,12 +4620,16 @@ function previewCsPaste() {
     preview.innerHTML = '<div style="color:#e74c3c;padding:8px;background:#fef5f5;border-radius:6px;">❌ 没有可识别的数据行。' + (errors[0] || '') + '</div>';
     return;
   }
+  const dupKeys = {};
+  rows.forEach(r => { const k = `${r.date}|${r.firstNo}|${r.secondNo}`; dupKeys[k] = (dupKeys[k] || 0) + 1; });
+  const dupCount = Object.values(dupKeys).filter(c => c > 1).length;
+  const dupWarn = dupCount > 0 ? `<div style="margin-top:6px;color:#e74c3c;font-size:12px;">⚠️ 检测到 ${dupCount} 组重复键（同一天+同一组订单号），导入时会自动保留最后一条</div>` : '';
   const errHtml = errors.length > 0
     ? '<div style="margin-top:6px;color:#e67e22;font-size:12px;">⚠️ ' + errors.slice(0, 3).join('；') + (errors.length > 3 ? '…' : '') + '</div>'
     : '';
   preview.innerHTML = `
     <div style="background:#f0f9f4;padding:10px 12px;border-radius:8px;border:1px solid #c8e6c9;">
-      ✅ 识别到 <strong>${rows.length}</strong> 条数据${errHtml}
+      ✅ 识别到 <strong>${rows.length}</strong> 条数据${dupWarn}${errHtml}
       <div style="margin-top:6px;font-size:12px;color:var(--text-secondary);">前 3 条预览：</div>
       <div style="margin-top:4px;font-size:12px;font-family:monospace;line-height:1.6;">
         ${rows.slice(0, 3).map(r => {
@@ -4669,17 +4697,27 @@ async function submitCsPaste() {
     return;
   }
 
+  // 单次 upsert 中不能出现重复冲突键，否则报 "ON CONFLICT DO UPDATE command cannot affect row a second time"
+  const lastIdx = new Map();
+  inserted.forEach((rec, idx) => {
+    const key = `${rec.record_date}|${rec.first_order_no}|${rec.second_order_no}`;
+    lastIdx.set(key, idx);
+  });
+  const keepIndices = Array.from(lastIdx.values()).sort((a, b) => a - b);
+  const deduped = keepIndices.map(i => inserted[i]);
+  const dupCount = inserted.length - deduped.length;
+
   const { error } = await supabase
     .from('cross_sales')
-    .upsert(inserted, { onConflict: 'record_date,first_order_no,second_order_no' });
+    .upsert(deduped, { onConflict: 'record_date,first_order_no,second_order_no' });
   if (error) {
     showToast('❌ 粘贴导入失败: ' + error.message);
     return;
   }
-  showToast(`✅ 已粘贴导入 ${inserted.length} 条` + (skipped.length ? `，跳过 ${skipped.length} 行` : ''));
+  showToast(`✅ 已粘贴导入 ${deduped.length} 条` + (dupCount > 0 ? `（已去重 ${dupCount} 条）` : '') + (skipped.length ? `，跳过 ${skipped.length} 行` : ''));
   closeModal('mod-cs-paste');
   // 切到最早一条的日期
-  const dates = inserted.map(r => r.record_date).sort();
+  const dates = deduped.map(r => r.record_date).sort();
   if (dates.length) {
     crossSalesDate = dates[0];
     crossSalesRankMode = 'day';
