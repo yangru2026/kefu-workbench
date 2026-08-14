@@ -3977,8 +3977,30 @@ function isCsRecordValid(r) {
 // 确保 日抛四盒(99.9) 与 99.7三幅(99.7) 等不同产品类型各自对应正确金额。
 // 种子为已确认产品类型；完整清单可在质检面板的「机制金额映射」编辑器维护（存 localStorage，免重部署）。
 const CS_MECHANISM_MAP_SEED = [
-  { kw: '日抛四盒', amount: 99.9 },
-  { kw: '三幅', amount: 99.7 },
+  // 三幅类（必须用完整名称，不能用通用“三幅”做关键词，否则 女高/定轴/初音 会被误配成 99.7）
+  { kw: '普通三幅（99.7）', amount: 99.7 },
+  { kw: '普通三幅', amount: 99.7 },
+  { kw: '女高三幅（59.9）', amount: 59.9 },
+  { kw: '女高三幅', amount: 59.9 },
+  { kw: '初音三幅（139.8）', amount: 139.8 },
+  { kw: '初音三幅', amount: 139.8 },
+  { kw: '定轴三幅（129.7）', amount: 129.7 },
+  { kw: '定轴三幅', amount: 129.7 },
+  // 两幅/两盒类
+  { kw: '初音两幅（99.8）', amount: 99.8 },
+  { kw: '初音两幅', amount: 99.8 },
+  { kw: '日抛两盒（59.8）', amount: 59.8 },
+  { kw: '日抛两盒', amount: 59.8 },
+  // 定轴组合类
+  { kw: '2定+1普（119.7）', amount: 119.7 },
+  { kw: '2定+1普', amount: 119.7 },
+  { kw: '1定+2普（109.7）', amount: 109.7 },
+  { kw: '1定+2普', amount: 109.7 },
+  // 日抛四盒有两个金额，必须用带金额的关键词区分
+  { kw: '日抛四盒（99.9）', amount: 99.9 },
+  { kw: '日抛四盒99.9', amount: 99.9 },
+  { kw: '日抛四盒（119.6）', amount: 119.6 },
+  { kw: '日抛四盒119.6', amount: 119.6 },
 ];
 const CS_MECHANISM_LS_KEY = 'cs_mechanism_map_override';
 
@@ -4005,12 +4027,14 @@ function saveMechanismMap(list) {
 }
 
 // 按产品类型精确匹配机制金额：优先匹配更长的（更具体）关键词，命中即用其金额；未命中返回 0（需配置）
+// 空格标准化：客服登记时可能写 "日抛四盒 99.9" 也可能写 "日抛四盒99.9"，统一去掉空格再匹配。
 function csExtractThreshold(pt) {
   if (!pt) return 0;
-  const s = String(pt);
-  const sorted = getMechanismMap().slice().sort((a, b) => b.kw.length - a.kw.length);
+  const s = String(pt).replace(/\s+/g, '');
+  const sorted = getMechanismMap().slice().sort((a, b) => String(b.kw).length - String(a.kw).length);
   for (const it of sorted) {
-    if (it.kw && s.includes(it.kw)) return Number(it.amount) || 0;
+    const kw = it.kw ? String(it.kw).replace(/\s+/g, '') : '';
+    if (kw && s.includes(kw)) return Number(it.amount) || 0;
   }
   return 0;
 }
