@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>连带成交质检（独立页 · 仅管理员）</title>
+<style>
+:root {
+  --primary: #7C9A5E;
+  --primary-light: #A8C08E;
+  --bg: #F7F5F0;
+  --card: #fff;
+  --text: #3D4A33;
+  --text2: #7A8B6E;
+  --border: #E2E0D8;
+  --red: #E57373;
+  --green: #4CAF50;
+  --blue: #64B5F6;
+  --yellow: #F5A623;
+  --purple: #7E57C2;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);min-height:100vh;color:var(--text)}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+.header{text-align:center;margin-bottom:18px}
+.header h1{font-size:22px;font-weight:600;color:var(--primary);margin-bottom:4px}
+.header p{font-size:13px;color:var(--text2)}
+.note-banner{background:#fffbe6;border:1px solid #fde68a;color:#92400e;padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;margin-bottom:16px}
+.note-banner b{color:#7c2d12}
+.locked-badge{background:#fef2f2;color:#c0392b;padding:4px 12px;border-radius:12px;font-size:11px;display:inline-flex;align-items:center;gap:4px;border:1px solid #fca5a5}
+.admin-badge{background:rgba(124,154,94,.12);color:var(--primary);padding:4px 12px;border-radius:12px;font-size:11px;font-weight:600}
+
+/* filter bar */
+.filter-bar{background:#fff;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid var(--border)}
+.filter-bar label{font-size:12px;color:var(--text2);font-weight:500}
+.filter-bar input,.filter-bar select{padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:#fff;font-family:inherit}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.seg button{padding:6px 14px;border:none;background:#fff;font-size:13px;cursor:pointer;font-family:inherit}
+.seg button.active{background:var(--primary);color:#fff}
+
+/* stats */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.stat-card .lbl{font-size:12px;color:var(--text2)}
+.stat-card .val{font-size:22px;font-weight:700;margin-top:4px}
+.stat-card .sub{font-size:11px;color:var(--text2);margin-top:2px}
+
+/* panel */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.panel h3{font-size:14px;font-weight:600;margin-bottom:10px;color:var(--text);display:flex;align-items:center;gap:6px}
+
+/* buttons */
+.btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:5px;font-family:inherit}
+.btn:hover{opacity:.9;transform:translateY(-1px)}
+.btn-p{background:var(--primary);color:#fff}
+.btn-s{background:#f1f5f9;color:var(--text)}
+.btn-r{background:var(--red);color:#fff}
+.btn-g{background:var(--green);color:#fff}
+.btn:disabled{opacity:.5;pointer-events:none}
+
+textarea.paste{width:100%;min-height:150px;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:'Menlo','Consolas',monospace;font-size:13px;line-height:1.5;outline:none;resize:vertical}
+textarea.paste:focus{border-color:var(--primary)}
+.hint{font-size:12px;color:var(--text2);line-height:1.6;margin:6px 0}
+
+/* qc item */
+.qc-item{border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;background:#fff}
+.qc-item .row1{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px}
+.qc-item .row2{display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap}
+.tag{font-weight:700;padding:1px 6px;border-radius:4px;font-size:12px}
+.qcin{padding:3px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;flex:1;min-width:140px}
+
+/* table */
+.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:8px;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:980px}
+th{background:#f8fafc;padding:8px 10px;text-align:left;font-weight:600;color:var(--text);border-bottom:2px solid var(--border);position:sticky;top:0}
+td{padding:7px 10px;border-bottom:1px solid #f1f5f9}
+tr.qc-fail{background:#fff5f5}
+tr.qc-pass{background:#f0fdf4}
+
+.empty{text-align:center;padding:30px;color:var(--text2);font-size:13px}
+.toast{position:fixed;top:20px;right:20px;background:var(--text);color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;z-index:9999;opacity:0;transform:translateX(20px);transition:all .3s;pointer-events:none;max-width:420px}
+.toast.show{opacity:1;transform:translateX(0)}
+.toast.error{background:var(--red)}
+
+details.mech{margin-top:6px;border:1px dashed var(--border);border-radius:8px;padding:8px 12px;background:#fafafa}
+details.mech summary{cursor:pointer;font-size:13px;font-weight:600}
+
+@media(max-width:768px){
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .filter-bar{flex-direction:column;align-items:stretch}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🔍 连带成交质检（独立页）</h1>
+    <p>仅管理员可用 · 从 ERP 退款单匹配 · 机制金额核验 · 抽查改合格</p>
+    <div id="roleBadge" style="margin-top:8px;"><span class="locked-badge">🔒 校验登录中…</span></div>
+  </div>
+
+  <div class="note-banner">
+    📌 <b>本页与原始数据完全隔离</b>：上方「原始数据」区域为<b>只读展示</b>，所有判定结果仅写入独立的质检字段（<code>qc_result</code> 等），<b>绝不修改</b>原表的金额、订单号等任何字段。原表由「连带成交」主页面管理。
+  </div>
+
+  <!-- 筛选 -->
+  <div class="filter-bar">
+    <label>日期</label>
+    <input type="date" id="qcDate">
+    <div class="seg" id="qcModeSeg">
+      <button data-mode="day" class="active" onclick="setQcMode('day')">按日</button>
+      <button data-mode="month" onclick="setQcMode('month')">按月</button>
+    </div>
+    <label>组别</label>
+    <select id="qcTeam">
+      <option value="all">全部</option>
+      <option value="A组">A组</option>
+      <option value="b组">b组</option>
+      <option value="C组">C组</option>
+    </select>
+    <button class="btn btn-p" onclick="reloadAll()">🔍 加载数据</button>
+  </div>
+
+  <!-- 统计（双版本，透明可对照） -->
+  <div class="stats-row" id="qcStats">
+    <div class="stat-card"><div class="lbl">全部第二单金额</div><div class="val" id="stAll">¥0</div><div class="sub" id="stCount">0 笔</div></div>
+    <div class="stat-card"><div class="lbl">合格第二单金额</div><div class="val" style="color:var(--green)" id="stValid">¥0</div><div class="sub">计入提成基数</div></div>
+    <div class="stat-card"><div class="lbl">剔除金额</div><div class="val" style="color:var(--red)" id="stDiff">¥0</div><div class="sub">不合格按 ¥0 计</div></div>
+    <div class="stat-card"><div class="lbl">待处理</div><div class="val" style="color:var(--yellow)" id="stBad">0</div><div class="sub">退款/退差价/金额异常/未配机制</div></div>
+  </div>
+
+  <!-- 退款单匹配 -->
+  <div class="panel">
+    <h3>🧾 粘贴 ERP 退款单（匹配退款）</h3>
+    <p class="hint">从 ERP 复制退款单清单（<code>类型</code> · <code>原始订单</code> · <code>退款金额</code>，Tab 或逗号分隔均可，自动跳过表头），粘贴到下方。系统用<b>订单号</b>匹配当前范围内明细的<b>第一单 / 第二单订单号</b>，命中即标记退款；退款金额 ≤ ¥10 视为退差价（待确认），其余按退款不合格。</p>
+    <textarea class="paste" id="qcRefundText" placeholder="例如从 ERP 复制：&#10;退款不退货&#9;260811-271151296090501&#9;0.01&#10;退货退款&#9;260812-271151296090502&#9;59.9&#10;换货&#9;260813-271151296090503&#9;3.5"></textarea>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap;">
+      <button class="btn btn-p" onclick="runCsQcMatch()">🔍 解析并匹配</button>
+      <button class="btn btn-s" onclick="clearCsQcResult()">清空</button>
+      <span id="qcMatchSummary" class="hint" style="margin:0;"></span>
+    </div>
+    <details class="mech">
+      <summary>⚙️ 机制金额映射（产品类型 → 金额，每行一条）</summary>
+      <p class="hint">格式：<code>关键词=金额</code>，如 <code>日抛四盒=99.9</code>。按关键词匹配产品类型，命中即用该金额做机制检查；<b>不同产品类型金额互不影响</b>。未命中的记录标「未配机制」，需在此补上。修改后点「保存映射」即生效（存本地，免重部署）。</p>
+      <textarea class="paste" id="qcMechText" style="min-height:90px;"></textarea>
+      <div style="display:flex;gap:8px;margin-top:6px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-p" onclick="saveCsMechMap()">💾 保存映射</button>
+        <button class="btn btn-s" onclick="resetCsMechMap()">↺ 重置为默认</button>
+        <span id="qcMechHint" class="hint" style="margin:0;"></span>
+      </div>
+    </details>
+    <div id="qcResultList" style="margin-top:10px;"></div>
+    <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
+      <button class="btn btn-s" onclick="exportCsQcResult()">📤 导出质检结果</button>
+      <button class="btn btn-p" onclick="saveCsQcResult()">💾 保存质检结果</button>
+    </div>
+  </div>
+
+  <!-- 原始数据（只读） -->
+  <div class="panel">
+    <h3>📋 原始数据（只读 · 不可修改）</h3>
+    <div class="table-wrap" style="max-height:520px;overflow:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>客服</th><th>日期</th><th>组</th><th>产品类型</th>
+            <th>第一单号</th><th>第二单号</th>
+            <th>第一单金额</th><th>第二单金额</th><th>备注</th><th>当前质检</th>
+          </tr>
+        </thead>
+        <tbody id="qcRawBody">
+          <tr><td colspan="10" class="empty">请选择日期/组别后点「加载数据」</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+/* ==================== Supabase Init ==================== */
+const SUPABASE_URL = 'https://ienmejlxukhrxjjxvfqf.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imllbm1lamx4dWtoeHJ4amp4dmZxZiIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzQ5NzU5NjgyLCJleHAiOjIwNjUzMzU2ODJ9.ABuL_Bn3o4Jp3gN1CFn8_FqFzSmS5xKQHj5jcE-akMk';
+var supabase = window.__csQcSupabase || supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+window.__csQcSupabase = supabase;
+
+/* ==================== State ==================== */
+let isAdmin = false;
+let adminName = '管理员';
+let records = [];                 // 当前范围原始记录（只读）
+let scopeMode = 'day';            // day | month
+let scopeDate = '';               // YYYY-MM-DD
+let scopeTeam = 'all';
+let matches = [];                 // 解析匹配后的全部记录（含 result）
+
+const TEAM_COLOR = { 'A组':'#2563eb', 'b组':'#16a34a', 'C组':'#9333ea', 'all':'#6366f1' };
+function teamColor(t){ return TEAM_COLOR[t] || '#6366f1'; }
+
+/* ==================== 机制金额映射（与工作台种子一致） ==================== */
+const CS_MECHANISM_MAP_SEED = [
+  { kw: '普通三幅（99.7）', amount: 99.7 },
+  { kw: '普通三幅', amount: 99.7 },
+  { kw: '女高三幅（59.9）', amount: 59.9 },
+  { kw: '女高三幅', amount: 59.9 },
+  { kw: '初音三幅（139.8）', amount: 139.8 },
+  { kw: '初音三幅', amount: 139.8 },
+  { kw: '定轴三幅（129.7）', amount: 129.7 },
+  { kw: '定轴三幅', amount: 129.7 },
+  { kw: '初音两幅（99.8）', amount: 99.8 },
+  { kw: '初音两幅', amount: 99.8 },
+  { kw: '日抛两盒（59.8）', amount: 59.8 },
+  { kw: '日抛两盒', amount: 59.8 },
+  { kw: '2定+1普（119.7）', amount: 119.7 },
+  { kw: '2定+1普', amount: 119.7 },
+  { kw: '1定+2普（109.7）', amount: 109.7 },
+  { kw: '1定+2普', amount: 109.7 },
+  { kw: '日抛四盒（99.9）', amount: 99.9 },
+  { kw: '日抛四盒99.9', amount: 99.9 },
+  { kw: '日抛四盒（119.6）', amount: 119.6 },
+  { kw: '日抛四盒119.6', amount: 119.6 },
+];
+const CS_MECHANISM_LS_KEY = 'cs_mechanism_map_override';
+
+function getMechanismMap() {
+  let override = [];
+  try { const raw = localStorage.getItem(CS_MECHANISM_LS_KEY); if (raw) override = JSON.parse(raw) || []; } catch (e) { override = []; }
+  const map = CS_MECHANISM_MAP_SEED.map(x => ({ ...x }));
+  const idx = {};
+  map.forEach((x, i) => { idx[x.kw] = i; });
+  override.forEach(o => {
+    if (!o || !o.kw) return;
+    if (idx[o.kw] != null) map[idx[o.kw]].amount = Number(o.amount) || 0;
+    else { idx[o.kw] = map.length; map.push({ kw: o.kw, amount: Number(o.amount) || 0 }); }
+  });
+  return map;
+}
+function saveMechanismMap(list) { try { localStorage.setItem(CS_MECHANISM_LS_KEY, JSON.stringify(list)); return true; } catch (e) { return false; } }
+function csExtractThreshold(pt) {
+  if (!pt) return 0;
+  const s = String(pt).replace(/\s+/g, '');
+  const sorted = getMechanismMap().slice().sort((a, b) => String(b.kw).length - String(a.kw).length);
+  for (const it of sorted) {
+    const kw = it.kw ? String(it.kw).replace(/\s+/g, '') : '';
+    if (kw && s.includes(kw)) return Number(it.amount) || 0;
+  }
+  return 0;
+}
+
+/* ==================== 退款解析 & 质检计算 ==================== */
+function parseRefundText(text) {
+  const refundMap = {};
+  if (!text) return refundMap;
+  const lines = text.replace(/\r\n?/g, '\n').split('\n').map(s => s.trim()).filter(Boolean);
+  for (const line of lines) {
+    if (/^(类型|原始订单|退款金额|订单号)/.test(line) && /类型|原始订单|退款金额/.test(line)) continue;
+    const cols = line.split(/\t|,|，|\s+/).map(s => s.trim()).filter(Boolean);
+    if (cols.length < 2) continue;
+    let orderNo = '', amount = 0, type = '';
+    cols.forEach(c => {
+      const digits = c.replace(/[^0-9]/g, '');
+      if (!orderNo && digits.length >= 6 && /^\d/.test(c)) orderNo = c;
+      else if (/^\d+(\.\d+)?$/.test(c)) amount = parseFloat(c);
+      else if (!type) type = c;
+    });
+    if (orderNo) refundMap[orderNo] = { type, amount, raw: line };
+  }
+  return refundMap;
+}
+
+function isCsRecordValid(r) {
+  const qc = r.qc_result || 'pending';
+  return qc === 'pending' || qc === 'pass';
+}
+
+function computeCsQc(r, refundMap) {
+  const fo = (r.first_order_no || '').trim();
+  const so = (r.second_order_no || '').trim();
+  let refundNo = null, refundAmt = 0;
+  if (refundMap[fo]) { refundNo = fo; refundAmt = refundMap[fo].amount; }
+  else if (refundMap[so]) { refundNo = so; refundAmt = refundMap[so].amount; }
+  const threshold = csExtractThreshold(r.product_type);
+  const total = Number(r.first_amount || 0) + Number(r.second_amount || 0);
+  if (refundNo) {
+    return refundAmt <= 10
+      ? { result: 'difficulty_refund', refund_order_no: refundNo, refund_amount: refundAmt, qc_amount_threshold: threshold }
+      : { result: 'fail_refund', refund_order_no: refundNo, refund_amount: refundAmt, qc_amount_threshold: threshold };
+  }
+  if (threshold === 0) return { result: 'no_mechanism', qc_amount_threshold: 0 };
+  if (total < threshold) return { result: 'fail_amount', qc_amount_threshold: threshold };
+  return { result: 'pass', qc_amount_threshold: threshold };
+}
+
+/* ==================== Toast ==================== */
+let toastTimer;
+function showToast(msg, isError) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + (isError ? 'error' : '') + ' show';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = 'toast', 2500);
+}
+
+/* ==================== 工具 ==================== */
+function escapeHtml(text){ if(!text) return ''; const d=document.createElement('div'); d.textContent=text; return d.innerHTML; }
+function getTodayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function monthBounds(ym){ // ym = 'YYYY-MM' -> {gte, lt}
+  const [y,m]=ym.split('-').map(Number);
+  const next=new Date(y, m, 1);
+  const gte=ym+'-01';
+  const lt=next.getFullYear()+'-'+String(next.getMonth()+1).padStart(2,'0')+'-01';
+  return {gte, lt};
+}
+
+/* ==================== 鉴权 ==================== */
+async function checkAuth() {
+  const badge = document.getElementById('roleBadge');
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || !session.user) {
+      badge.innerHTML = '<span class="locked-badge">🔒 未登录：请先在主工作台（index.html）登录</span>';
+      return;
+    }
+    const { data: prof, error } = await supabase.from('profiles').select('role,name,real_name').eq('id', session.user.id).single();
+    if (error) { badge.innerHTML = '<span class="locked-badge">⚠️ 读取权限失败：' + escapeHtml(error.message) + '</span>'; return; }
+    if (prof && prof.role === 'admin') {
+      isAdmin = true;
+      adminName = prof.name || prof.real_name || '管理员';
+      badge.innerHTML = '<span class="admin-badge">👑 管理员模式（' + escapeHtml(adminName) + '）</span>';
+    } else {
+      badge.innerHTML = '<span class="locked-badge">🔒 本页仅管理员可用</span>';
+    }
+  } catch (e) {
+    badge.innerHTML = '<span class="locked-badge">⚠️ 校验异常：' + escapeHtml(e.message || e) + '</span>';
+  }
+}
+
+/* ==================== 加载数据 ==================== */
+async function loadRecords() {
+  records = [];
+  let from = 0, size = 1000, batch;
+  do {
+    let q = supabase.from('cross_sales').select('*');
+    if (scopeMode === 'day') q = q.eq('record_date', scopeDate);
+    else { const b = monthBounds(scopeDate.slice(0,7)); q = q.gte('record_date', b.gte).lt('record_date', b.lt); }
+    if (scopeTeam !== 'all') q = q.eq('team', scopeTeam);
+    q = q.order('record_date', { ascending: false }).order('id', { ascending: false }).range(from, from + size - 1);
+    const { data, error } = await q;
+    if (error) { showToast('加载失败：' + error.message, true); break; }
+    batch = data || [];
+    records.push(...batch);
+    from += size;
+  } while (batch.length === size);
+  renderRawTable();
+  renderStatsFromRecords();
+}
+
+async function reloadAll() {
+  if (!isAdmin) { showToast('⚠️ 仅管理员可操作', true); return; }
+  scopeDate = document.getElementById('qcDate').value || getTodayStr();
+  scopeTeam = document.getElementById('qcTeam').value;
+  matches = [];
+  document.getElementById('qcResultList').innerHTML = '';
+  document.getElementById('qcMatchSummary').textContent = '';
+  await loadRecords();
+  showToast('✅ 已加载 ' + records.length + ' 条');
+}
+
+function setQcMode(mode) {
+  scopeMode = mode;
+  document.querySelectorAll('#qcModeSeg button').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+}
+
+/* ==================== 渲染：原始数据表（只读） ==================== */
+function qcStateLabel(qc) {
+  switch (qc || 'pending') {
+    case 'fail_refund': return '<span class="tag" style="background:#fdecea;color:#c0392b;">🔴退款</span>';
+    case 'fail_amount': return '<span class="tag" style="background:#fef5e7;color:#b9770e;">🟠金额异常</span>';
+    case 'difficulty_refund': return '<span class="tag" style="background:#fffbe6;color:#b7950b;">🟡退差价</span>';
+    case 'pass': return '<span class="tag" style="background:#eafaf1;color:#1e8449;">✅合格</span>';
+    case 'no_mechanism': return '<span class="tag" style="background:#f4f6f7;color:#7f8c8d;">⚪未配机制</span>';
+    default: return '<span class="tag" style="background:#eef;color:#555;">⚪待质检</span>';
+  }
+}
+function renderRawTable() {
+  const tb = document.getElementById('qcRawBody');
+  if (!records.length) { tb.innerHTML = '<tr><td colspan="10" class="empty">当前范围无数据</td></tr>'; return; }
+  tb.innerHTML = records.map(r => {
+    const qc = r.qc_result || 'pending';
+    const cls = (qc === 'fail_refund' || qc === 'fail_amount' || qc === 'difficulty_refund' || qc === 'no_mechanism') ? 'qc-fail' : (qc === 'pass' ? 'qc-pass' : '');
+    const tc = teamColor(r.team);
+    return `<tr class="${cls}">
+      <td style="font-weight:600;">${escapeHtml(r.staff_name || '')}</td>
+      <td>${escapeHtml(r.record_date || '')}</td>
+      <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${tc};margin-right:5px;"></span>${escapeHtml(r.team || '')}</td>
+      <td>${escapeHtml(r.product_type || '')}</td>
+      <td>${escapeHtml(r.first_order_no || '')}</td>
+      <td>${escapeHtml(r.second_order_no || '')}</td>
+      <td>¥${Number(r.first_amount||0).toFixed(2)}</td>
+      <td>¥${Number(r.second_amount||0).toFixed(2)}</td>
+      <td>${escapeHtml(r.notes || '')}</td>
+      <td>${qcStateLabel(qc)}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ==================== 统计（双版本） ==================== */
+function computeStats(src) {
+  const all = src.map(m => ({ r: m.r || m, result: m.result }));
+  const secondAll = all.reduce((s, m) => s + Number(m.r.second_amount || 0), 0);
+  const validList = all.filter(m => m.result === 'pending' || m.result === 'pass');
+  const valid = validList.reduce((s, m) => s + Number(m.r.second_amount || 0), 0);
+  const bad = all.filter(m => m.result !== 'pass');
+  return { count: all.length, secondAll, valid, diff: secondAll - valid, bad: bad.length };
+}
+function renderStatsFromRecords() {
+  const st = computeStats(records.map(r => ({ r, result: r.qc_result || 'pending' })));
+  paintStats(st);
+}
+function renderStatsFromMatches() {
+  const st = computeStats(matches);
+  paintStats(st);
+}
+function paintStats(st) {
+  document.getElementById('stAll').textContent = '¥' + st.secondAll.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('stValid').textContent = '¥' + st.valid.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('stDiff').textContent = '¥' + st.diff.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('stCount').textContent = st.count + ' 笔';
+  document.getElementById('stBad').textContent = st.bad;
+}
+
+/* ==================== 匹配 ==================== */
+function runCsQcMatch() {
+  if (!isAdmin) { showToast('⚠️ 仅管理员可操作', true); return; }
+  if (!records.length) { showToast('⚠️ 请先「加载数据」'); return; }
+  const text = document.getElementById('qcRefundText').value;
+  const refundMap = parseRefundText(text);
+  const refundCount = Object.keys(refundMap).length;
+  matches = records.map(r => ({ id: r.id, r, ...computeCsQc(r, refundMap) }));
+  const bad = matches.filter(m => m.result !== 'pass');
+  const f1 = bad.filter(m => m.result === 'fail_refund').length;
+  const f2 = bad.filter(m => m.result === 'difficulty_refund').length;
+  const f3 = bad.filter(m => m.result === 'fail_amount').length;
+  const f4 = bad.filter(m => m.result === 'no_mechanism').length;
+  document.getElementById('qcMatchSummary').innerHTML =
+    `范围内 <strong>${records.length}</strong> 条 · 匹配退款单 <strong>${refundCount}</strong> 个 · 待处理 <strong style="color:#c0392b;">${bad.length}</strong> 条（退款 ${f1} / 退差价 ${f2} / 金额异常 ${f3} / 未配机制 ${f4}）`;
+  renderStatsFromMatches();
+  renderCsQcList(bad);
+}
+
+function renderCsQcList(list) {
+  const el = document.getElementById('qcResultList');
+  if (!list.length) { el.innerHTML = '<p style="color:var(--text2);padding:10px;">✅ 当前范围内没有不合格记录（全部通过金额机制且未匹配到退款）。</p>'; return; }
+  el.innerHTML = list.map(m => {
+    const r = m.r;
+    const ori = Number(r.second_amount || 0);
+    const tag = m.result === 'fail_refund' ? '🔴 退款不合格'
+      : m.result === 'difficulty_refund' ? '🟡 退差价待确认'
+      : m.result === 'fail_amount' ? '🟠 金额异常'
+      : '⚪ 未配置机制金额';
+    const tagColor = m.result === 'fail_refund' ? '#c0392b'
+      : m.result === 'difficulty_refund' ? '#b7950b'
+      : m.result === 'fail_amount' ? '#b9770e'
+      : '#7f8c8d';
+    const total = (Number(r.first_amount || 0) + ori).toFixed(2);
+    return `
+    <div class="qc-item" data-id="${r.id}">
+      <div class="row1">
+        <span style="font-weight:700;">${escapeHtml(r.staff_name || '')}</span>
+        <span style="color:var(--text2);">${escapeHtml(r.record_date || '')}</span>
+        <span class="tag" style="background:${tagColor}1a;color:${tagColor};">${tag}</span>
+        <span>订单 ${escapeHtml(r.first_order_no || '—')} / ${escapeHtml(r.second_order_no || '—')}</span>
+        <span>产品类型：${escapeHtml(r.product_type || '—')}</span>
+        ${m.result === 'no_mechanism'
+          ? `<span style="color:#7f8c8d;">⚙️ 请在上方「机制金额映射」中添加该产品类型</span>`
+          : `<span>原第二单 <strong>¥${ori.toFixed(2)}</strong> → 质检后 <strong style="color:#c0392b;">¥0</strong></span>`}
+        ${m.refund_order_no ? `<span>退款单 ${escapeHtml(m.refund_order_no)} ¥${m.refund_amount}</span>` : ''}
+        ${m.qc_amount_threshold ? `<span>机制 ¥${m.qc_amount_threshold}（两单合计 ¥${total}）</span>` : ''}
+      </div>
+      <div class="row2">
+        <button class="btn btn-g" onclick="csQcSetResult(${r.id},'pass')">✅ 改合格</button>
+        <button class="btn btn-r" onclick="csQcSetResult(${r.id},'${m.result}')">${m.result === 'no_mechanism' ? '⚪ 保持待配置' : '❌ 保持不合格'}</button>
+        <input class="qcin" id="qc-note-${r.id}" placeholder="备注（可选）" value="${escapeHtml(r.qc_note || '')}">
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function csQcSetResult(id, result) {
+  const m = matches.find(x => x.id === id);
+  if (m) m.result = result;
+  renderCsQcList(matches.filter(x => x.result !== 'pass'));
+  renderStatsFromMatches();
+}
+
+async function saveCsQcResult() {
+  if (!isAdmin) { showToast('⚠️ 仅管理员可操作', true); return; }
+  if (matches.length === 0) { showToast('⚠️ 请先「解析并匹配」'); return; }
+  let n = 0, fail = 0;
+  for (const x of matches) {
+    const upd = { qc_result: x.result, qc_checked_at: new Date().toISOString(), qc_by: adminName };
+    if (x.refund_order_no) upd.refund_order_no = x.refund_order_no;
+    if (x.refund_amount != null) upd.refund_amount = x.refund_amount;
+    if (x.qc_amount_threshold != null) upd.qc_amount_threshold = x.qc_amount_threshold;
+    const noteEl = document.getElementById('qc-note-' + x.id);
+    if (noteEl && noteEl.value.trim()) upd.qc_note = noteEl.value.trim();
+    try {
+      const { error } = await supabase.from('cross_sales').update(upd).eq('id', x.id);
+      if (error) { fail++; console.error(error); } else n++;
+    } catch (e) { fail++; console.error(e); }
+  }
+  showToast(`✅ 已保存 ${n} 条质检结果${fail ? ' ❌ ' + fail + ' 条失败' : ''}`);
+  if (fail === 0) await loadRecords();
+}
+
+function exportCsQcResult() {
+  const src = matches.length ? matches : records.map(r => ({ r, result: r.qc_result || 'pending' }));
+  if (!src.length) { showToast('⚠️ 暂无数据'); return; }
+  const rows = src.map(x => ({
+    '日期': x.r.record_date,
+    '成交客服': x.r.staff_name,
+    '组别': x.r.team,
+    '产品类型': x.r.product_type,
+    '第一单订单号': x.r.first_order_no,
+    '第二单订单号': x.r.second_order_no,
+    '退款单号': x.refund_order_no || '',
+    '退款金额': x.refund_amount || 0,
+    '原第二单金额': Number(x.r.second_amount || 0),
+    '质检结果': x.result,
+    '机制金额': x.qc_amount_threshold || '',
+    '质检备注': x.r.qc_note || ''
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '质检结果');
+  XLSX.writeFile(wb, `质检结果_${getTodayStr()}.xlsx`);
+  showToast(`✅ 已导出 ${rows.length} 条`);
+}
+
+function clearCsQcResult() {
+  document.getElementById('qcRefundText').value = '';
+  document.getElementById('qcResultList').innerHTML = '';
+  document.getElementById('qcMatchSummary').textContent = '';
+  matches = [];
+  showToast('已清空匹配结果');
+}
+
+/* ==================== 机制金额映射编辑器 ==================== */
+function loadMechTextarea() {
+  document.getElementById('qcMechText').value = getMechanismMap().map(x => `${x.kw}=${x.amount}`).join('\n');
+}
+function saveCsMechMap() {
+  const ta = document.getElementById('qcMechText');
+  const lines = ta.value.split('\n').map(s => s.trim()).filter(Boolean);
+  const list = []; let bad = 0;
+  for (const line of lines) {
+    const mm = line.match(/^(.+?)\s*=\s*([0-9]+(?:\.[0-9]+)?)$/);
+    if (!mm) { bad++; continue; }
+    list.push({ kw: mm[1].trim(), amount: parseFloat(mm[2]) });
+  }
+  if (!list.length) { showToast('⚠️ 没有可保存的有效条目'); return; }
+  saveMechanismMap(list);
+  const hint = document.getElementById('qcMechHint');
+  if (hint) hint.textContent = `✅ 已保存 ${list.length} 条${bad ? '（' + bad + ' 行格式错误已忽略）' : ''}`;
+  showToast(`✅ 机制金额映射已保存 ${list.length} 条`);
+}
+function resetCsMechMap() {
+  try { localStorage.removeItem(CS_MECHANISM_LS_KEY); } catch (e) {}
+  loadMechTextarea();
+  const hint = document.getElementById('qcMechHint');
+  if (hint) hint.textContent = '已重置为默认（仅种子）';
+  showToast('↺ 已重置为默认映射');
+}
+
+/* ==================== Init ==================== */
+function init() {
+  document.getElementById('qcDate').value = getTodayStr();
+  loadMechTextarea();
+  checkAuth().then(() => { if (isAdmin) reloadAll(); });
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.supabase && window.supabase.createClient) init();
+    else { const t = setInterval(function(){ if (window.supabase && window.supabase.createClient){ clearInterval(t); init(); } }, 100); setTimeout(function(){ clearInterval(t); }, 10000); }
+  });
+} else { init(); }
+</script>
+</body>
+</html>

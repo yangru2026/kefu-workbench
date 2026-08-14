@@ -1367,7 +1367,7 @@ body {
             <button id="cross-sales-import-btn" onclick="openExcelImport('cross_sales');closeCsMoreMenu();" style="display:none;">📥 导入Excel</button>
             <button id="cross-sales-export-more-btn" onclick="toggleCsExportArea();closeCsMoreMenu();">📤 导出Excel</button>
             <button id="cross-sales-locate-btn" onclick="locateCSDuplicates();closeCsMoreMenu();" style="color:#b8860b;font-weight:600;">🔍 筛选重复项</button>
-            <button id="cross-sales-qc-btn" onclick="openCsQcPanel();closeCsMoreMenu();" style="display:none;color:#8e44ad;font-weight:600;">🔍 质检连带明细</button>
+            <button id="cross-sales-qc-btn" onclick="window.open('cs-qc.html','_blank');closeCsMoreMenu();" style="display:none;color:#8e44ad;font-weight:600;">🔍 质检连带明细（新页面）</button>
             <button class="feishu-sync-btn admin-only-nav" id="cross-sales-sync-btn" onclick="syncCrossSalesFromFeishu();closeCsMoreMenu();" style="display:none;">🔄 从飞书同步</button>
             <button class="collab-btn" id="collab-cross-sales-btn" onclick="openCollabPanel('cross-sales');closeCsMoreMenu();" style="display:none;">👥 协作者</button>
             <button class="admin-only-nav" id="cross-sales-archive-current-btn" onclick="archiveCurrentCsMonth();closeCsMoreMenu();" style="display:none;">🔒 归档本月</button>
@@ -1640,51 +1640,6 @@ body {
           <button class="btn-sm outline" onclick="previewCsPaste()">🔍 预览</button>
           <button class="btn-sm outline" onclick="closeModal('mod-cs-paste')">取消</button>
           <button id="cs-paste-import-btn" class="btn-sm primary" onclick="submitCsPaste()">✅ 导入</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 连带成交 · 质检面板（仅管理员） -->
-  <div class="modal-overlay" id="mod-cs-qc" onclick="closeModal('mod-cs-qc')">
-    <div class="modal-box" style="max-width:980px;" onclick="event.stopPropagation()">
-      <div class="modal-header">
-        <h3>🔍 质检连带明细（仅管理员）</h3>
-        <button class="modal-close" onclick="closeModal('mod-cs-qc')">✕</button>
-      </div>
-      <div class="modal-body">
-        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;line-height:1.7;">
-          从 ERP 复制退款单（<code style="background:#f3f0ff;padding:2px 6px;border-radius:4px;">类型</code> ·
-          <code style="background:#f3f0ff;padding:2px 6px;border-radius:4px;">原始订单</code> ·
-          <code style="background:#f3f0ff;padding:2px 6px;border-radius:4px;">退款金额</code>，直接粘贴到下方（Tab 或逗号分隔均可，自动识别表头）。<br>
-          系统会用<b>原始订单号</b>匹配当前范围内的明细（<b>第一单 / 第二单订单号</b>都会查），命中即标记退款；退款金额 ≤ ¥10 视为退差价（待你确认），其余按退款不合格；<br>
-          同时按<b>产品类型里的机制金额</b>检查两单合计是否达标，偏低者标「金额异常」。原表金额与订单号<b>不会被修改</b>，判定结果单独存档。
-        </p>
-        <textarea id="cs-qc-textarea" placeholder="例如从 ERP 复制：&#10;退款不退货&#9;260811-271151296090501&#9;0.01&#10;退货退款&#9;260812-271151296090502&#9;59.9&#10;换货&#9;260813-271151296090503&#9;3.5" style="width:100%;min-height:170px;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:'Menlo','Consolas',monospace;font-size:13px;line-height:1.5;"></textarea>
-        <div style="display:flex;align-items:center;gap:10px;margin:10px 0;flex-wrap:wrap;">
-          <button class="btn-sm primary" onclick="runCsQcMatch()">🔍 解析并匹配</button>
-          <button class="btn-sm outline" onclick="clearCsQcResult()">清空</button>
-          <span id="cs-qc-summary" style="font-size:13px;color:var(--text-secondary);"></span>
-        </div>
-        <details style="margin:6px 0;border:1px dashed var(--border);border-radius:8px;padding:6px 10px;background:#fafafa;">
-          <summary style="cursor:pointer;font-size:13px;font-weight:600;">⚙️ 机制金额映射（产品类型 → 金额，每行一条）</summary>
-          <p style="font-size:12px;color:var(--text-secondary);margin:6px 0;line-height:1.6;">
-            格式：<code style="background:#eef;padding:1px 5px;border-radius:4px;">关键词=金额</code>，如 <code style="background:#eef;padding:1px 5px;border-radius:4px;">日抛四盒=99.9</code>。按关键词匹配产品类型，命中即用该金额做机制检查；<b>不同产品类型金额互不影响</b>。未命中的记录会标「未配置机制金额」，需在此补上。修改后点「保存映射」即生效（存本地，免重部署）。
-          </p>
-          <textarea id="cs-mech-textarea" style="width:100%;min-height:90px;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:'Menlo','Consolas',monospace;font-size:13px;line-height:1.5;"></textarea>
-          <div style="display:flex;gap:8px;margin-top:6px;align-items:center;flex-wrap:wrap;">
-            <button class="btn-sm primary" onclick="saveCsMechMap()">💾 保存映射</button>
-            <button class="btn-sm outline" onclick="resetCsMechMap()">↺ 重置为默认</button>
-            <span id="cs-mech-hint" style="font-size:12px;color:var(--text-secondary);"></span>
-          </div>
-        </details>
-        <div id="cs-qc-result" style="max-height:420px;overflow:auto;border-top:1px solid var(--border);padding-top:8px;"></div>
-      </div>
-      <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-        <span style="font-size:12px;color:var(--text-secondary);">原表金额与订单号不会被修改；判定结果单独存于质检字段，统计时不合格按 ¥0 计。</span>
-        <div style="display:flex;gap:8px;">
-          <button class="btn-sm outline" onclick="exportCsQcResult()">📤 导出质检结果</button>
-          <button class="btn-sm primary" onclick="saveCsQcResult()">💾 保存质检结果</button>
         </div>
       </div>
     </div>
@@ -3937,11 +3892,10 @@ function getCrossSalesRankData() {
   filtered.forEach(r => {
     const name = r.staff_name;
     if (!name) return;
-    if (!map[name]) map[name] = { name, count: 0, secondAmount: 0, totalAmount: 0, validSecond: 0 };
+    if (!map[name]) map[name] = { name, count: 0, secondAmount: 0, totalAmount: 0 };
     map[name].count += 1;
     map[name].secondAmount += Number(r.second_amount || 0);
     map[name].totalAmount += Number(r.first_amount || 0) + Number(r.second_amount || 0);
-    if (isCsRecordValid(r)) map[name].validSecond += Number(r.second_amount || 0);
   });
   const arr = Object.values(map);
   arr.sort((a, b) => b.secondAmount - a.secondAmount);
@@ -3949,7 +3903,6 @@ function getCrossSalesRankData() {
 }
 
 // 全组合计（忽略组别筛选，始终统计所有组的第二单金额与单数）
-// 双版本：全部第二单金额 vs 合格第二单金额（退货/金额异常/退差价待确认 按 0 计）
 function getCrossSalesGrandTotal() {
   let filtered = [];
   if (crossSalesRankMode === 'day') {
@@ -3961,296 +3914,7 @@ function getCrossSalesGrandTotal() {
   const count = filtered.length;
   const secondAmount = filtered.reduce((s, r) => s + Number(r.second_amount || 0), 0);
   const firstAmount = filtered.reduce((s, r) => s + Number(r.first_amount || 0), 0);
-  const validSecond = filtered.reduce((s, r) => s + (isCsRecordValid(r) ? Number(r.second_amount || 0) : 0), 0);
-  const validCount = filtered.filter(r => isCsRecordValid(r)).length;
-  return { count, secondAmount, firstAmount, totalAmount: firstAmount + secondAmount, validSecond, validCount, diffAmount: secondAmount - validSecond };
-}
-
-// 记录是否计入提成基数（合格）：未质检(pending)或已确认合格(pass) 计入；退款/金额异常/退差价待确认 不计
-function isCsRecordValid(r) {
-  const qc = r.qc_result || 'pending';
-  return qc === 'pending' || qc === 'pass';
-}
-
-// ==================== 连带成交 · 质检（仅管理员） ====================
-// 机制金额：按「产品类型关键词 → 金额」显式映射，绝不用 Math.max 从文本误取数字，
-// 确保 日抛四盒(99.9) 与 99.7三幅(99.7) 等不同产品类型各自对应正确金额。
-// 种子为已确认产品类型；完整清单可在质检面板的「机制金额映射」编辑器维护（存 localStorage，免重部署）。
-const CS_MECHANISM_MAP_SEED = [
-  // 三幅类（必须用完整名称，不能用通用“三幅”做关键词，否则 女高/定轴/初音 会被误配成 99.7）
-  { kw: '普通三幅（99.7）', amount: 99.7 },
-  { kw: '普通三幅', amount: 99.7 },
-  { kw: '女高三幅（59.9）', amount: 59.9 },
-  { kw: '女高三幅', amount: 59.9 },
-  { kw: '初音三幅（139.8）', amount: 139.8 },
-  { kw: '初音三幅', amount: 139.8 },
-  { kw: '定轴三幅（129.7）', amount: 129.7 },
-  { kw: '定轴三幅', amount: 129.7 },
-  // 两幅/两盒类
-  { kw: '初音两幅（99.8）', amount: 99.8 },
-  { kw: '初音两幅', amount: 99.8 },
-  { kw: '日抛两盒（59.8）', amount: 59.8 },
-  { kw: '日抛两盒', amount: 59.8 },
-  // 定轴组合类
-  { kw: '2定+1普（119.7）', amount: 119.7 },
-  { kw: '2定+1普', amount: 119.7 },
-  { kw: '1定+2普（109.7）', amount: 109.7 },
-  { kw: '1定+2普', amount: 109.7 },
-  // 日抛四盒有两个金额，必须用带金额的关键词区分
-  { kw: '日抛四盒（99.9）', amount: 99.9 },
-  { kw: '日抛四盒99.9', amount: 99.9 },
-  { kw: '日抛四盒（119.6）', amount: 119.6 },
-  { kw: '日抛四盒119.6', amount: 119.6 },
-];
-const CS_MECHANISM_LS_KEY = 'cs_mechanism_map_override';
-
-function getMechanismMap() {
-  let override = [];
-  try {
-    const raw = localStorage.getItem(CS_MECHANISM_LS_KEY);
-    if (raw) override = JSON.parse(raw) || [];
-  } catch (e) { override = []; }
-  const map = CS_MECHANISM_MAP_SEED.map(x => ({ ...x }));
-  const idx = {};
-  map.forEach((x, i) => { idx[x.kw] = i; });
-  override.forEach(o => {
-    if (!o || !o.kw) return;
-    if (idx[o.kw] != null) map[idx[o.kw]].amount = Number(o.amount) || 0;
-    else { idx[o.kw] = map.length; map.push({ kw: o.kw, amount: Number(o.amount) || 0 }); }
-  });
-  return map;
-}
-
-function saveMechanismMap(list) {
-  try { localStorage.setItem(CS_MECHANISM_LS_KEY, JSON.stringify(list)); return true; }
-  catch (e) { return false; }
-}
-
-// 按产品类型精确匹配机制金额：优先匹配更长的（更具体）关键词，命中即用其金额；未命中返回 0（需配置）
-// 空格标准化：客服登记时可能写 "日抛四盒 99.9" 也可能写 "日抛四盒99.9"，统一去掉空格再匹配。
-function csExtractThreshold(pt) {
-  if (!pt) return 0;
-  const s = String(pt).replace(/\s+/g, '');
-  const sorted = getMechanismMap().slice().sort((a, b) => String(b.kw).length - String(a.kw).length);
-  for (const it of sorted) {
-    const kw = it.kw ? String(it.kw).replace(/\s+/g, '') : '';
-    if (kw && s.includes(kw)) return Number(it.amount) || 0;
-  }
-  return 0;
-}
-
-// 解析 ERP 退款单文本（类型 / 原始订单 / 退款金额，Tab 或逗号分隔），返回 orderNo -> {type, amount}
-function parseRefundText(text) {
-  const refundMap = {};
-  if (!text) return refundMap;
-  const lines = text.replace(/\r\n?/g, '\n').split('\n').map(s => s.trim()).filter(Boolean);
-  for (const line of lines) {
-    if (/^(类型|原始订单|退款金额|订单号)/.test(line) && /类型|原始订单|退款金额/.test(line)) continue; // 跳过表头
-    const cols = line.split(/\t|,|，|\s{2,}/).map(s => s.trim()).filter(Boolean);
-    if (cols.length < 2) continue;
-    let orderNo = '', amount = 0, type = '';
-    cols.forEach(c => {
-      const digits = c.replace(/[^0-9]/g, '');
-      if (!orderNo && digits.length >= 6 && /^\d/.test(c)) orderNo = c;
-      else if (/^\d+(\.\d+)?$/.test(c)) amount = parseFloat(c);
-      else if (!type) type = c;
-    });
-    if (orderNo) refundMap[orderNo] = { type, amount, raw: line };
-  }
-  return refundMap;
-}
-
-// 当前质检范围（复用页面筛选：日/月 + 团队）
-function getCsQcScopeRows() {
-  let rows = [];
-  if (crossSalesRankMode === 'day') rows = crossSalesData.filter(r => r.record_date === crossSalesDate);
-  else { const p = crossSalesDate.slice(0, 7); rows = crossSalesData.filter(r => r.record_date && r.record_date.startsWith(p)); }
-  if (crossSalesTeamFilter !== 'all') rows = rows.filter(r => r.team === crossSalesTeamFilter);
-  return rows;
-}
-
-// 计算单条记录质检结果
-function computeCsQc(r, refundMap) {
-  const fo = (r.first_order_no || '').trim();
-  const so = (r.second_order_no || '').trim();
-  let refundNo = null, refundAmt = 0;
-  if (refundMap[fo]) { refundNo = fo; refundAmt = refundMap[fo].amount; }
-  else if (refundMap[so]) { refundNo = so; refundAmt = refundMap[so].amount; }
-  const threshold = csExtractThreshold(r.product_type);
-  const total = Number(r.first_amount || 0) + Number(r.second_amount || 0);
-  if (refundNo) {
-    // 退款金额 ≤ ¥10 视为退差价（待人工确认），否则退款不合格
-    return refundAmt <= 10
-      ? { result: 'difficulty_refund', refund_order_no: refundNo, refund_amount: refundAmt, qc_amount_threshold: threshold }
-      : { result: 'fail_refund', refund_order_no: refundNo, refund_amount: refundAmt, qc_amount_threshold: threshold };
-  }
-  if (threshold === 0) {
-    // 该记录的产品类型未在产品类型→金额映射中配置，无法核验金额，标记待配置
-    return { result: 'no_mechanism', qc_amount_threshold: 0 };
-  }
-  if (total < threshold) {
-    return { result: 'fail_amount', qc_amount_threshold: threshold };
-  }
-  return { result: 'pass', qc_amount_threshold: threshold };
-}
-
-function openCsQcPanel() {
-  const ta = document.getElementById('cs-qc-textarea');
-  if (ta) ta.value = '';
-  const res = document.getElementById('cs-qc-result');
-  if (res) res.innerHTML = '';
-  const sum = document.getElementById('cs-qc-summary');
-  if (sum) sum.textContent = '';
-  const mechTa = document.getElementById('cs-mech-textarea');
-  if (mechTa) mechTa.value = getMechanismMap().map(x => `${x.kw}=${x.amount}`).join('\n');
-  const mechHint = document.getElementById('cs-mech-hint');
-  if (mechHint) mechHint.textContent = '';
-  window._csQcMatches = [];
-  showModalById('mod-cs-qc');
-}
-
-function saveCsMechMap() {
-  const ta = document.getElementById('cs-mech-textarea');
-  if (!ta) return;
-  const lines = ta.value.split('\n').map(s => s.trim()).filter(Boolean);
-  const list = [];
-  let bad = 0;
-  for (const line of lines) {
-    const mm = line.match(/^(.+?)\s*=\s*([0-9]+(?:\.[0-9]+)?)$/);
-    if (!mm) { bad++; continue; }
-    list.push({ kw: mm[1].trim(), amount: parseFloat(mm[2]) });
-  }
-  if (!list.length) { showToast('⚠️ 没有可保存的有效条目'); return; }
-  saveMechanismMap(list);
-  const hint = document.getElementById('cs-mech-hint');
-  if (hint) hint.textContent = `✅ 已保存 ${list.length} 条${bad ? '（' + bad + ' 行格式错误已忽略）' : ''}`;
-  showToast(`✅ 机制金额映射已保存 ${list.length} 条`);
-}
-
-function resetCsMechMap() {
-  try { localStorage.removeItem(CS_MECHANISM_LS_KEY); } catch (e) {}
-  const ta = document.getElementById('cs-mech-textarea');
-  if (ta) ta.value = CS_MECHANISM_MAP_SEED.map(x => `${x.kw}=${x.amount}`).join('\n');
-  const hint = document.getElementById('cs-mech-hint');
-  if (hint) hint.textContent = '已重置为默认（仅种子）';
-  showToast('↺ 已重置为默认映射');
-}
-
-function runCsQcMatch() {
-  const text = document.getElementById('cs-qc-textarea').value;
-  const refundMap = parseRefundText(text);
-  const refundCount = Object.keys(refundMap).length;
-  const rows = getCsQcScopeRows();
-  const matches = rows.map(r => ({ id: r.id, r, ...computeCsQc(r, refundMap) }));
-  window._csQcMatches = matches;
-  const bad = matches.filter(m => m.result !== 'pass');
-  const f1 = bad.filter(m => m.result === 'fail_refund').length;
-  const f2 = bad.filter(m => m.result === 'difficulty_refund').length;
-  const f3 = bad.filter(m => m.result === 'fail_amount').length;
-  const f4 = bad.filter(m => m.result === 'no_mechanism').length;
-  const sum = document.getElementById('cs-qc-summary');
-  if (sum) sum.innerHTML = `范围内 <strong>${rows.length}</strong> 条 · 匹配退款单 <strong>${refundCount}</strong> 个 · 需处理 <strong style="color:#c0392b;">${bad.length}</strong> 条（退款 ${f1} / 退差价 ${f2} / 金额异常 ${f3} / 未配机制 ${f4}）`;
-  renderCsQcList(bad);
-}
-
-function renderCsQcList(list) {
-  const el = document.getElementById('cs-qc-result');
-  if (!el) return;
-  if (!list.length) { el.innerHTML = '<p style="color:var(--text-secondary);padding:10px;">✅ 当前范围内没有不合格记录（全部通过金额机制且未匹配到退款）。</p>'; return; }
-  el.innerHTML = list.map(m => {
-    const r = m.r;
-    const ori = Number(r.second_amount || 0);
-    const tag = m.result === 'fail_refund' ? '🔴 退款不合格'
-      : m.result === 'difficulty_refund' ? '🟡 退差价待确认'
-      : m.result === 'fail_amount' ? '🟠 金额异常'
-      : '⚪ 未配置机制金额';
-    const tagColor = m.result === 'fail_refund' ? '#c0392b'
-      : m.result === 'difficulty_refund' ? '#b7950b'
-      : m.result === 'fail_amount' ? '#b9770e'
-      : '#7f8c8d';
-    const total = (Number(r.first_amount || 0) + ori).toFixed(2);
-    return `
-    <div class="cs-qc-item" data-id="${r.id}" style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px;background:#fff;">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;">
-        <span style="font-weight:700;">${escapeHtml(r.staff_name || '')}</span>
-        <span style="color:var(--text-secondary);">${r.record_date || ''}</span>
-        <span style="font-weight:700;color:${tagColor};">${tag}</span>
-        <span>订单 ${escapeHtml(r.first_order_no || '—')} / ${escapeHtml(r.second_order_no || '—')}</span>
-        <span>产品类型：${escapeHtml(r.product_type || '—')}</span>
-        ${m.result === 'no_mechanism'
-          ? `<span style="color:#7f8c8d;">⚙️ 请在上方「机制金额映射」中添加该产品类型</span>`
-          : `<span>原第二单 <strong>¥${ori}</strong> → 质检后 <strong style="color:#c0392b;">¥0</strong></span>`}
-        ${m.refund_order_no ? `<span>退款单 ${escapeHtml(m.refund_order_no)} ¥${m.refund_amount}</span>` : ''}
-        ${m.qc_amount_threshold ? `<span>机制 ¥${m.qc_amount_threshold}（两单合计 ¥${total}）</span>` : ''}
-      </div>
-      <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
-        <button class="btn-sm outline" style="color:#1e8449;" onclick="csQcSetResult(${r.id},'pass')">✅ 改合格</button>
-        <button class="btn-sm outline" style="color:#c0392b;" onclick="csQcSetResult(${r.id},'${m.result}')">${m.result === 'no_mechanism' ? '⚪ 保持待配置' : '❌ 保持不合格'}</button>
-        <input id="cs-qc-note-${r.id}" placeholder="备注（可选）" style="padding:3px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;flex:1;min-width:120px;">
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function csQcSetResult(id, result) {
-  const m = window._csQcMatches?.find(x => x.id === id);
-  if (m) m.result = result;
-  renderCsQcList(window._csQcMatches.filter(x => x.result !== 'pass'));
-}
-
-async function saveCsQcResult() {
-  if (!supabase) { showToast('⚠️ 未连接数据库'); return; }
-  const matches = window._csQcMatches || [];
-  if (matches.length === 0) { showToast('⚠️ 请先「解析并匹配」'); return; }
-  const by = currentProfile?.name || currentProfile?.real_name || '管理员';
-  let n = 0, fail = 0;
-  for (const x of matches) {
-    const upd = { qc_result: x.result, qc_checked_at: new Date().toISOString(), qc_by: by };
-    if (x.refund_order_no) upd.refund_order_no = x.refund_order_no;
-    if (x.refund_amount != null) upd.refund_amount = x.refund_amount;
-    if (x.qc_amount_threshold != null) upd.qc_amount_threshold = x.qc_amount_threshold;
-    const noteEl = document.getElementById('cs-qc-note-' + x.id);
-    if (noteEl && noteEl.value.trim()) upd.qc_note = noteEl.value.trim();
-    try {
-      const { error } = await supabase.from('cross_sales').update(upd).eq('id', x.id);
-      if (error) { fail++; console.error(error); } else n++;
-    } catch (e) { fail++; console.error(e); }
-  }
-  showToast(`✅ 已保存 ${n} 条质检结果${fail ? ' ❌ ' + fail + ' 条失败' : ''}`);
-  if (fail === 0) { closeModal('mod-cs-qc'); loadCrossSalesFromDB(true); }
-}
-
-function exportCsQcResult() {
-  const matches = window._csQcMatches || [];
-  if (matches.length === 0) { showToast('⚠️ 暂无质检结果'); return; }
-  const rows = matches.map(x => ({
-    '日期': x.r.record_date,
-    '成交客服': x.r.staff_name,
-    '组别': x.r.team,
-    '产品类型': x.r.product_type,
-    '第一单订单号': x.r.first_order_no,
-    '第二单订单号': x.r.second_order_no,
-    '退款单号': x.refund_order_no || '',
-    '退款金额': x.refund_amount || 0,
-    '原第二单金额': Number(x.r.second_amount || 0),
-    '质检结果': x.result,
-    '机制金额': x.qc_amount_threshold || '',
-  }));
-  const ws = XLSX.utils.json_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, '质检结果');
-  XLSX.writeFile(wb, `质检结果_${getTodayStr()}.xlsx`);
-  showToast(`✅ 已导出 ${rows.length} 条`);
-}
-
-function clearCsQcResult() {
-  const ta = document.getElementById('cs-qc-textarea');
-  if (ta) ta.value = '';
-  const res = document.getElementById('cs-qc-result');
-  if (res) res.innerHTML = '';
-  const sum = document.getElementById('cs-qc-summary');
-  if (sum) sum.textContent = '';
-  window._csQcMatches = [];
+  return { count, secondAmount, firstAmount, totalAmount: firstAmount + secondAmount };
 }
 
 // 最终用于渲染的明细行（含普通客服仅看本组的过滤），render 与「加载更多」共用
@@ -4368,7 +4032,7 @@ function renderCrossSales() {
             </div>
             <div style="text-align:right;">
               <div style="font-weight:700;color:var(--primary);font-size:16px;">¥${item.secondAmount.toLocaleString()}</div>
-              ${item.validSecond < item.secondAmount - 0.01 ? `<div style="font-size:11px;color:#1e8449;">合格 ¥${item.validSecond.toLocaleString()}</div>` : `<div style="font-size:11px;color:var(--text-secondary);">第二单金额</div>`}
+              <div style="font-size:11px;color:var(--text-secondary);">第二单金额</div>
             </div>
           </div>
         `;
@@ -4387,8 +4051,7 @@ function renderCrossSales() {
       `<span style="color:var(--text-secondary);">·</span>` +
       `<span>第二单金额 <strong style="color:var(--primary);font-size:16px;">¥${g.secondAmount.toLocaleString()}</strong></span>` +
       `<span style="color:var(--text-secondary);">·</span>` +
-      `<span>合格第二单 <strong style="color:#1e8449;font-size:16px;">¥${g.validSecond.toLocaleString()}</strong></span>` +
-      (g.diffAmount > 0.01 ? `<span style="color:var(--text-secondary);">·</span><span>剔除 <strong style="color:#c0392b;font-size:16px;">¥${g.diffAmount.toLocaleString()}</strong></span>` : '') +
+
       `<span style="color:var(--text-secondary);">·</span>` +
       `<span>第一单金额 <strong style="color:var(--text);font-size:16px;">¥${g.firstAmount.toLocaleString()}</strong></span>`;
   }
@@ -4472,18 +4135,10 @@ function csRowHtml(r, isAdminOrLeader) {
   const key = (r.record_date || '') + '|' + (r.first_order_no || '') + '|' + (r.second_order_no || '');
   const isDup = csLocateDup && (_csDupGroupMap[key] > 1);
   const dupBadge = isDup ? '<span class="cs-dup-badge" title="重复记录：同一天 + 同一组订单号重复">🔴重复</span>' : '';
-  // 质检徽章（管理员可见质检状态，客服也能看到颜色标记）
-  const qc = r.qc_result || 'pending';
-  let qcBadge = '';
-  if (qc === 'fail_refund') qcBadge = '<span class="cs-qc-badge" title="退款不合格（关联订单有退款）" style="background:#fdecea;color:#c0392b;border:1px solid #f5b7b1;padding:1px 5px;border-radius:4px;font-size:10px;margin-left:3px;">🔴退款</span>';
-  else if (qc === 'fail_amount') qcBadge = '<span class="cs-qc-badge" title="金额异常（两单合计低于机制）" style="background:#fef5e7;color:#b9770e;border:1px solid #fad7a0;padding:1px 5px;border-radius:4px;font-size:10px;margin-left:3px;">🟠金额异常</span>';
-  else if (qc === 'difficulty_refund') qcBadge = '<span class="cs-qc-badge" title="退差价待确认" style="background:#fffbe6;color:#b7950b;border:1px solid #f9e79f;padding:1px 5px;border-radius:4px;font-size:10px;margin-left:3px;">🟡退差价</span>';
-  else if (qc === 'pass') qcBadge = '<span class="cs-qc-badge" title="质检合格" style="background:#eafaf1;color:#1e8449;border:1px solid #a9dfbf;padding:1px 5px;border-radius:4px;font-size:10px;margin-left:3px;">✅合格</span>';
-  else if (qc === 'no_mechanism') qcBadge = '<span class="cs-qc-badge" title="产品类型未配置机制金额，无法核验" style="background:#f4f6f7;color:#7f8c8d;border:1px solid #d5dbdb;padding:1px 5px;border-radius:4px;font-size:10px;margin-left:3px;">⚪未配机制</span>';
-  const invalid = !isCsRecordValid(r);
+
   return `
-    <tr data-id="${r.id || ''}" data-team="${escapeHtml(r.team || '')}" class="${isDup ? 'cs-dup-row' : ''}${invalid ? ' cs-qc-invalid' : ''}">
-      <td style="padding:4px;text-align:center;width:60px;white-space:nowrap;">${dupBadge}${qcBadge}${isAdminOrLeader ? `<input type="checkbox" class="cs-row-check" data-id="${r.id || ''}" style="cursor:pointer;vertical-align:middle;">` : ''}</td>
+    <tr data-id="${r.id || ''}" data-team="${escapeHtml(r.team || '')}" class="${isDup ? 'cs-dup-row' : ''}">
+      <td style="padding:4px;text-align:center;width:60px;white-space:nowrap;">${dupBadge}${isAdminOrLeader ? `<input type="checkbox" class="cs-row-check" data-id="${r.id || ''}" style="cursor:pointer;vertical-align:middle;">` : ''}</td>
       <td style="padding:4px;"><input type="date" data-field="record_date" value="${r.record_date || ''}" onchange="autoSaveCSRow(this)" style="width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
         <select data-field="shop" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;color:var(--text);font-weight:600;" data-cs-color-init>
@@ -4508,8 +4163,8 @@ function csRowHtml(r, isAdminOrLeader) {
       </td>
       <td style="padding:4px;"><input type="number" data-field="first_amount" value="${r.first_amount || ''}" step="0.01" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
-        <input type="number" data-field="second_amount" value="${r.second_amount || ''}" data-orig="${r.second_amount || ''}" step="0.01" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid ${invalid ? '#e74c3c' : 'var(--border)'};border-radius:4px;font-size:12px;${invalid ? 'background:#fff5f5;' : ''}">
-        ${invalid ? `<div style="font-size:10px;color:#e74c3c;margin-top:2px;">质检后 ¥0</div>` : ''}
+        <input type="number" data-field="second_amount" value="${r.second_amount || ''}" data-orig="${r.second_amount || ''}" step="0.01" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;">
+
       </td>
       <td style="padding:4px;"><input type="number" data-field="total_amount" value="${((Number(r.first_amount)||0)+(Number(r.second_amount)||0)) > 0 ? ((Number(r.first_amount)||0)+(Number(r.second_amount)||0)).toFixed(2) : ''}" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
       <td style="padding:4px;"><input type="text" data-field="notes" value="${escapeHtml(r.notes || '')}" onblur="autoSaveCSRow(this)" placeholder="特殊情况说明" style="width:140px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
