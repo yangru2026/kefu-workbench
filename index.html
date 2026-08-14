@@ -1768,8 +1768,8 @@ body {
           </select>
         </div>
         <div style="flex:1;min-width:170px;">
-          <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">客户标记（选填）</label>
-          <input id="voc-tag" type="text" placeholder="微信昵称 / 订单号等" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+          <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">客户昵称 / 订单号（选填）</label>
+          <input id="voc-tag" type="text" placeholder="客户昵称 / 订单号" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
         </div>
         <div style="font-size:12px;color:var(--text-secondary);padding-bottom:8px;">登记人：<b id="voc-staff-label" style="color:var(--text);">-</b> · <span id="voc-team-label">-</span></div>
         <button class="btn-sm primary" onclick="submitVOC()" style="margin-bottom:2px;padding:9px 18px;">💾 保存这条反馈</button>
@@ -9755,7 +9755,7 @@ function buildVOCSummaryRows() {
     '日期': (r.created_at || '').slice(0, 10),
     '来源场景': r.scene || '',
     '主题': r.topic || '',
-    '客户标记': r.customer_tag || '',
+    '客户昵称/订单号': r.customer_tag || '',
     '登记客服': r.staff_name || '',
     '组别': r.team || '',
     '客户原话': r.raw_text || ''
