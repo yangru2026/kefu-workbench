@@ -3119,7 +3119,6 @@ let crossSalesTeamFilter = 'all'; // 'all' | 'A组' | 'B组' | 'C组'
 let csOptions = { default: { shop: [], product_type: [], order_status: [] } }; // 按组隔离的动态选项缓存
 let csOptionsSub = null;
 let csOptionsLoaded = false;
-let csOptionsFirstLoad = true; // 首次加载时空选项自动填充默认值
 let crossSalesTeamInited = false; // 客服首次进入是否已自动选中本组
 let crossSalesSearch = '';      // 明细搜索关键字（客服/订单号）
 let crossSalesRankFocus = '';   // 排名卡片聚焦的客服名（点击穿透过滤明细）
@@ -3163,53 +3162,7 @@ async function loadCrossSalesOptions() {
       }
     });
 
-    // 首次加载且数据库为空时，只在「通用」组填充示例模板（仅第一次）
-    // A/B/C 组保持独立、初始为空，由管理员按组自行维护
-    if (csOptionsFirstLoad) {
-      csOptionsFirstLoad = false;
-      const defaultOptions = {
-        shop: [
-          { value: '淘宝官方旗舰店', color: '#dc2626' },
-          { value: '京东旗舰店', color: '#ea580c' },
-          { value: '抖音直播间', color: '#d97706' },
-          { value: '小红书店铺', color: '#db2777' },
-          { value: '拼多多旗舰店', color: '#16a34a' }
-        ],
-        product_type: [
-          { value: '日抛', color: '#2563eb' },
-          { value: '月抛', color: '#7c3aed' },
-          { value: '半年抛', color: '#059669' },
-          { value: '年抛', color: '#ca8a04' },
-          { value: '护理液', color: '#0891b2' },
-          { value: '伴侣盒', color: '#64748b' }
-        ],
-        order_status: [
-          { value: '已付款', color: '#16a34a' },
-          { value: '待付款', color: '#dc2626' },
-          { value: '已发货', color: '#0284c7' },
-          { value: '已完成', color: '#9333ea' },
-          { value: '退款中', color: '#64748b' }
-        ]
-      };
-      const labels = { shop: '店铺', product_type: '产品类型', order_status: '第一单状态' };
-      const team = 'default';
-      if (!map[team]) map[team] = { shop: [], product_type: [], order_status: [] };
-      for (const [key, list] of Object.entries(defaultOptions)) {
-        if (!map[team][key] || map[team][key].length === 0) {
-          const normalizedList = csEnsureDistinctColors(list.map(csNormalizeOption));
-          map[team][key] = normalizedList;
-          try {
-            const upsertPromise = supabase.from('option_templates')
-              .upsert({ key, team, label: labels[key], options: normalizedList, updated_at: new Date().toISOString() }, { onConflict: 'key,team' });
-            if (upsertPromise && typeof upsertPromise.catch === 'function') {
-              upsertPromise.catch(e => console.warn('默认选项保存失败:', e && e.message ? e.message : e));
-            }
-          } catch (e) {
-            console.warn('默认选项保存失败:', e && e.message ? e.message : e);
-          }
-        }
-      }
-    }
+    // 选项完全由数据库与用户在「选项管理」中维护，不再自动回灌默认模板（避免删除后自动恢复）
 
     csOptions = map;
     csOptionsLoaded = true;

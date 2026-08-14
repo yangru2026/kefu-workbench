@@ -97,6 +97,7 @@ details.mech summary{cursor:pointer;font-size:13px;font-weight:600}
     <h1>🔍 连带成交质检（独立页）</h1>
     <p>仅管理员可用 · 从 ERP 退款单匹配 · 机制金额核验 · 抽查改合格</p>
     <div id="roleBadge" style="margin-top:8px;"><span class="locked-badge">🔒 校验登录中…</span></div>
+    <div id="authDiag" style="display:none;margin-top:10px;padding:12px 16px;border:1px solid var(--red);background:#fff5f5;border-radius:8px;font-size:13px;line-height:1.7;color:#b91c1c;"></div>
   </div>
 
   <div class="note-banner">
@@ -317,36 +318,89 @@ function monthBounds(ym){ // ym = 'YYYY-MM' -> {gte, lt}
 }
 
 /* ==================== 鉴权 ==================== */
-async function checkAuth() {
+async function checkAuth(retry) {
+  retry = retry || 0;
   const badge = document.getElementById('roleBadge');
+  const diag = document.getElementById('authDiag');
+  const setDiag = (html) => { if (diag) { diag.style.display = 'block'; diag.innerHTML = html; } };
+  const hideDiag = () => { if (diag) diag.style.display = 'none'; };
   try {
-    const { data: { session }, error: sessErr } = await supabase.auth.getSession();
-    if (sessErr) {
-      badge.innerHTML = '<span class="locked-badge">⚠️ 获取登录态失败：' + escapeHtml(sessErr.message) + '</span>';
-      return;
+    // 1) 取会话：getSession 优先，getUser 兜底（可刷新过期 session）
+    let session = null, sessErr = null;
+    try {
+      const g = await supabase.auth.getSession();
+      session = (g && g.data) ? g.data.session : null;
+      sessErr = (g && g.error) ? g.error : null;
+    } catch (e) { sessErr = e; }
+    if ((!session || !session.user) && retry < 2) {
+      try {
+        const u = await supabase.auth.getUser();
+        if (u && u.data && u.data.user) session = { user: u.data.user };
+      } catch (e) {}
     }
     if (!session || !session.user) {
-      badge.innerHTML = '<span class="locked-badge">🔒 未登录：请先在主工作台（index.html）登录后，再从「··· 更多 → 质检连带明细」打开本页</span>';
+      if (retry < 2) { await new Promise(r => setTimeout(r, 600)); return checkAuth(retry + 1); }
+      badge.innerHTML = '<span class="locked-badge">🔒 未登录：请先在主工作台（index.html）登录，再从「··· 更多 → 质检连带明细」打开本页</span>';
+      setDiag('当前状态：<b>未登录</b>（本页未检测到有效会话）。<br>请确认：① 已打开主工作台并登录；② 从主站菜单点进来（不要直接用书签/URL 打开）；③ 与主站同一浏览器。');
       return;
     }
-    const uid = session.user.id || '';
-    const email = session.user.email || '';
-    const { data: prof, error } = await supabase.from('profiles').select('role,name,real_name').eq('id', uid).single();
-    if (error) {
-      badge.innerHTML = '<span class="locked-badge">⚠️ 读取权限档案失败：' + escapeHtml(error.message) + '<br>当前登录：' + escapeHtml(email || uid.slice(0,8)) + '</span>';
+    const u = session.user;
+    const uid = u.id || '';
+    const email = u.email || '';
+    const metaRole = (u.app_metadata && u.app_metadata.role) || (u.user_metadata && u.user_metadata.role) || '';
+    let role = '';
+    let roleSrc = '';
+    try {
+      const { data: prof, error } = await supabase.from('profiles').select('role,name,real_name').eq('id', uid).single();
+      if (error || !prof) {
+        if (metaRole) { role = String(metaRole); roleSrc = 'jwt'; }
+        else {
+          badge.innerHTML = '<span class="locked-badge">⚠️ 读取权限档案失败：' + escapeHtml(error ? error.message : '无数据') + '</span>';
+          setDiag('已登录：<b>' + escapeHtml(email) + '</b>（uid: ' + escapeHtml(uid.slice(0,8)) + '…）<br>但读取 profiles 表失败：' + escapeHtml(error ? error.message : '无数据') + '<br>可能是 profiles 表的 RLS 策略异常，请在 Supabase 执行修复 SQL。');
+          return;
+        }
+      } else {
+        role = prof && prof.role ? String(prof.role) : '';
+        roleSrc = 'profiles';
+        if (prof.name || prof.real_name) adminName = prof.name || prof.real_name;
+      }
+    } catch (e) {
+      if (metaRole) { role = String(metaRole); roleSrc = 'jwt'; }
+      else { badge.innerHTML = '<span class="locked-badge">⚠️ 校验异常：' + escapeHtml(e.message || e) + '</span>'; setDiag('异常：' + escapeHtml(e.message || e)); return; }
+    }
+    // JWT 兜底：profiles 查不到时，若令牌中角色为 admin/leader 也放行
+    if (roleSrc === 'jwt' && (role === 'admin' || role === 'leader')) {
+      isAdmin = true;
+      badge.innerHTML = '<span class="admin-badge">👑 ' + (role === 'admin' ? '管理员' : '组长') + '模式（令牌 · ' + escapeHtml(email) + '）</span>';
+      setDiag('已登录：<b>' + escapeHtml(email) + '</b> ｜ 角色（令牌）：<b>' + escapeHtml(role) + '</b> ｜ 权限：已放行 ✅<br><small>注：本次由登录令牌中的角色判定（profiles 表未读取到）。</small>');
       return;
     }
-    const role = prof && prof.role ? String(prof.role) : '（空）';
     if (role === 'admin' || role === 'leader') {
       isAdmin = true;
-      adminName = prof.name || prof.real_name || '管理员';
+      hideDiag();
       badge.innerHTML = '<span class="admin-badge">👑 ' + (role === 'admin' ? '管理员' : '组长') + '模式（' + escapeHtml(adminName) + '）</span>';
+      setDiag('已登录：<b>' + escapeHtml(email) + '</b> ｜ 角色：<b>' + escapeHtml(role) + '</b> ｜ 权限：已放行 ✅');
     } else {
-      badge.innerHTML = '<span class="locked-badge">🔒 本页仅管理员/组长可用<br>当前登录：' + escapeHtml(email || uid.slice(0,8)) + ' ｜ 角色字段值：' + escapeHtml(role) + '<br>请确认 profiles 表中您的 role 为 admin 或 leader</span>';
+      badge.innerHTML = '<span class="locked-badge">🔒 本页仅管理员/组长可用<br>当前登录：' + escapeHtml(email) + ' ｜ 角色字段值：' + escapeHtml(role || '（空）') + '</span>';
+      setDiag('已登录：<b>' + escapeHtml(email) + '</b><br>但 profiles.role = <b>' + escapeHtml(role || '（空）') + '</b>，不是 admin/leader。<br>请在 Supabase 把你的 profiles.role 改为 admin。');
     }
   } catch (e) {
-    badge.innerHTML = '<span class="locked-badge">⚠️ 校验异常：' + escapeHtml(e && e.message ? e.message : e) + '</span>';
+    badge.innerHTML = '<span class="locked-badge">⚠️ 校验异常：' + escapeHtml(e.message || e) + '</span>';
+    setDiag('异常：' + escapeHtml(e.message || e));
   }
+}
+
+// 操作前鉴权：未通过时显示诊断区并提示，后台自动重试一次（处理会话延迟）
+function requireAdmin() {
+  if (isAdmin) return true;
+  if (!window.__csQcAuthRetried) {
+    window.__csQcAuthRetried = true;
+    checkAuth().then(() => { if (isAdmin) showToast('✅ 已识别管理员身份，请重新点击操作'); });
+  }
+  const diag = document.getElementById('authDiag');
+  if (diag) diag.style.display = 'block';
+  showToast('⚠️ 无管理员权限，详见页面顶部诊断区', true);
+  return false;
 }
 
 /* ==================== 加载数据 ==================== */
@@ -370,7 +424,7 @@ async function loadRecords() {
 }
 
 async function reloadAll() {
-  if (!isAdmin) { showToast('⚠️ 仅管理员可操作', true); return; }
+  if (!requireAdmin()) return;
   scopeDate = document.getElementById('qcDate').value || getTodayStr();
   scopeTeam = document.getElementById('qcTeam').value;
   matches = [];
@@ -445,7 +499,7 @@ function paintStats(st) {
 
 /* ==================== 匹配 ==================== */
 function runCsQcMatch() {
-  if (!isAdmin) { showToast('⚠️ 仅管理员可操作', true); return; }
+  if (!requireAdmin()) return;
   if (!records.length) { showToast('⚠️ 请先「加载数据」'); return; }
   const text = document.getElementById('qcRefundText').value;
   const refundMap = parseRefundText(text);
@@ -508,7 +562,7 @@ function csQcSetResult(id, result) {
 }
 
 async function saveCsQcResult() {
-  if (!isAdmin) { showToast('⚠️ 仅管理员可操作', true); return; }
+  if (!requireAdmin()) return;
   if (matches.length === 0) { showToast('⚠️ 请先「解析并匹配」'); return; }
   let n = 0, fail = 0;
   for (const x of matches) {
