@@ -1480,15 +1480,15 @@ body {
           </div>
           <div>
             <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">店铺</label>
-            <select id="cs-quick-shop" onchange="applySelectColor(this)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;background:#fff;"></select>
+            <select id="cs-quick-shop" onchange="applySelectColor(this)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;background:#fff;font-weight:600;"></select>
           </div>
           <div>
             <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">产品类型</label>
-            <select id="cs-quick-product" onchange="applySelectColor(this)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;background:#fff;"></select>
+            <select id="cs-quick-product" onchange="applySelectColor(this)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;background:#fff;font-weight:600;"></select>
           </div>
           <div>
             <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">第一单状态</label>
-            <select id="cs-quick-status" onchange="applySelectColor(this)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;background:#fff;"></select>
+            <select id="cs-quick-status" onchange="applySelectColor(this)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;background:#fff;font-weight:600;"></select>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
@@ -3174,12 +3174,26 @@ function csOptionsFor(team, key) {
 }
 
 // 为没有颜色的选项值生成稳定颜色（相同字符串永远得到同一颜色）
+// 色相尽量分散、饱和度适中，避免紫/蓝扎堆； closed 状态用浅 tint + 深色字，open 状态 option 本身带色
 const CS_OPTION_PALETTE = [
-  '#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6',
-  '#1abc9c', '#e67e22', '#34495e', '#ff6b6b', '#4ecdc4',
-  '#45b7d1', '#96ceb4', '#fd79a8', '#a29bfe', '#00b894',
-  '#0984e3', '#fdcb6e', '#d63031', '#6c5ce7', '#00cec9'
+  '#dc2626', // red-600
+  '#ea580c', // orange-600
+  '#d97706', // amber-600
+  '#ca8a04', // yellow-600
+  '#65a30d', // lime-600
+  '#16a34a', // green-600
+  '#059669', // emerald-600
+  '#0d9488', // teal-600
+  '#0891b2', // cyan-600
+  '#0284c7', // sky-600
+  '#2563eb', // blue-600
+  '#4f46e5', // indigo-600
+  '#7c3aed', // violet-600
+  '#9333ea', // purple-600
+  '#c026d3', // fuchsia-600
+  '#db2777'  // pink-600
 ];
+const CS_OPTION_PALETTE_SET = new Set(CS_OPTION_PALETTE);
 function csColorForValue(value) {
   if (!value) return '#6366f1';
   let hash = 0;
@@ -3193,12 +3207,14 @@ function csNormalizeOption(item) {
   const v = String(item || '');
   return { value: v, color: csColorForValue(v) };
 }
-// 保证同一选项列表内颜色互不重复：保留手填色（不冲突时），缺色/冲突色从色板顺序补齐
+// 保证同一选项列表内颜色互不重复：
+// - 如果手填色在新色板内且不冲突，保留（尊重管理员自定义）
+// - 旧色板/无效/冲突的颜色，按新色板顺序重新分配，避免紫/蓝扎堆
 function csEnsureDistinctColors(list) {
   const used = new Set();
   return (list || []).map(o => {
-    const c = (o && o.color && /^#[0-9a-fA-F]{3,8}$/.test(o.color)) ? o.color : '';
-    if (c && !used.has(c)) { used.add(c); return { value: o.value, color: c }; }
+    const c = (o && o.color && /^#[0-9a-fA-F]{3,8}$/.test(o.color)) ? String(o.color).toLowerCase() : '';
+    if (c && CS_OPTION_PALETTE_SET.has(c) && !used.has(c)) { used.add(c); return { value: o.value, color: c }; }
     let idx = used.size, pick = CS_OPTION_PALETTE[idx % CS_OPTION_PALETTE.length], guard = 0;
     while (used.has(pick) && guard < CS_OPTION_PALETTE.length * 3) {
       idx++; guard++;
@@ -3235,14 +3251,16 @@ function csOptionHtml(key, currentVal, team) {
   // 若当前值不在模板中但数据库里确实有这个值，插一个兜底 option 使其能正常显示/选中
   if (currentStr && !hasCurrent) {
     const color = csColorForValue(currentStr);
-    parts.push(`<option value="${escapeAttr(currentStr)}" selected data-color="${escapeAttr(color)}">● ${escapeHtml(currentStr)}</option>`);
+    const tint = color ? color + '10' : '';
+    parts.push(`<option value="${escapeAttr(currentStr)}" selected data-color="${escapeAttr(color)}" style="color:${escapeAttr(color)};background-color:${escapeAttr(tint)}">● ${escapeHtml(currentStr)}</option>`);
   }
   list.forEach(item => {
     const opt = (typeof item === 'object' && item && item.value !== undefined) ? item : { value: String(item), color: '' };
     const val = String(opt.value);
     const color = opt.color || '';
     const colorTag = color ? `● ` : '';
-    parts.push(`<option value="${escapeAttr(val)}" ${val === currentStr ? 'selected' : ''} data-color="${escapeAttr(color)}">${colorTag}${escapeHtml(val)}</option>`);
+    const tint = color ? color + '10' : '';
+    parts.push(`<option value="${escapeAttr(val)}" ${val === currentStr ? 'selected' : ''} data-color="${escapeAttr(color)}" style="color:${escapeAttr(color)};background-color:${escapeAttr(tint)}">${colorTag}${escapeHtml(val)}</option>`);
   });
   const out = parts.join('');
   _csOptHtmlCache[cacheKey] = out;
@@ -3250,18 +3268,21 @@ function csOptionHtml(key, currentVal, team) {
 }
 
 // 给选中的 select 按 option 值着色（每个选项值有独立颜色）
+// closed 状态：浅 tint 背景 + 彩色边框 + 深色粗体文字，保证清晰不晃眼
 function applySelectColor(sel) {
   const opt = sel.options[sel.selectedIndex];
   if (!opt) return;
   const color = opt.dataset.color;
   if (color) {
-    sel.style.background = color + '22'; // 20% 透明度
-    sel.style.borderColor = color;
-    sel.style.color = color;
+    sel.style.background = color + '12';   // ~7% 透明度，柔和不刺眼
+    sel.style.borderColor = color;          // 彩色边框，一眼区分
+    sel.style.color = '#1e293b';            // slate-800 深色字，清晰易读
+    sel.style.fontWeight = '600';
   } else {
     sel.style.background = '#fff';
     sel.style.borderColor = 'var(--border)';
     sel.style.color = 'var(--text)';
+    sel.style.fontWeight = 'inherit';
   }
 }
 
@@ -4392,20 +4413,20 @@ function createBlankCsRow(staffName, team, dateVal) {
       <td style="padding:4px;text-align:center;"><input type="checkbox" disabled style="opacity:0;cursor:default;"></td>
       <td style="padding:4px;"><input type="date" data-field="record_date" value="${dateVal}" onchange="autoSaveCSRow(this)" style="width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
-        <select data-field="shop" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
+        <select data-field="shop" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;font-weight:600;" data-cs-color-init>
           ${csOptionHtml('shop', '', team)}
         </select>
       </td>
       <td style="padding:4px;"><input data-field="staff_name" value="${escapeHtml(staffName)}" readonly style="width:70px;padding:4px 6px;border:1px solid ${sc};border-radius:4px;font-size:12px;background:${scBg};color:${sc};font-weight:700;" title="${escapeHtml(staffName)}"></td>
       <td style="padding:4px;">
-        <select data-field="product_type" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
+        <select data-field="product_type" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;font-weight:600;" data-cs-color-init>
           ${csOptionHtml('product_type', '', team)}
         </select>
       </td>
       <td style="padding:4px;"><input data-field="first_order_no" placeholder="第一单" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;"><input data-field="second_order_no" placeholder="第二单" oninput="checkCSOrderDuplicate(this)" onblur="autoSaveCSRow(this)" style="width:150px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;">
-        <select data-field="first_order_status" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
+        <select data-field="first_order_status" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;font-weight:600;" data-cs-color-init>
           ${csOptionHtml('order_status', '', team)}
         </select>
       </td>
