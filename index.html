@@ -3067,6 +3067,7 @@ let crossSalesSearch = '';      // 明细搜索关键字（客服/订单号）
 let crossSalesRankFocus = '';   // 排名卡片聚焦的客服名（点击穿透过滤明细）
 let csOptionManageTeam = 'default'; // 选项管理弹窗当前正在管理的组别
 let csCsPage = 1;                 // 明细分页当前页
+let csShowAll = false;            // “显示全部”持久标记：Realtime 重渲染时仍保持展开，不自动折叠回分页
 const CS_PAGE_SIZE = 120;        // 每页渲染行数（避免全量重渲染卡顿）
 let _csOptHtmlCache = {};        // csOptionHtml 结果缓存，避免每行重复拼接
 let _csOrderNoIndex = {};        // 订单号索引：date|orderNo -> 出现次数（快速查重 O(1)）
@@ -4035,7 +4036,7 @@ function renderCrossSales() {
       return _csDupGroupMap[k] > 1;
     });
   }
-  csCsPage = 1; // 每次整页重渲染回到第一页
+  csCsPage = csShowAll ? (Math.ceil(rows.length / CS_PAGE_SIZE) || 1) : 1; // “显示全部”时保持展开，否则回到第一页
   // 定位重复项横幅
   const locateBanner = document.getElementById('cross-sales-locate-banner');
   if (locateBanner) {
@@ -4077,10 +4078,10 @@ function renderCrossSales() {
   if (rows.length === 0 && !hasNewRows) {
     // 即使没数据也渲染表格，方便客服直接点新增行/批量粘贴
     if (empty) empty.style.display = 'none';
-    if (tbody) renderCrossSalesEditableRows(tbody, [], isAdminOrLeader);
+    if (tbody) renderCrossSalesEditableRows(tbody, [], isAdminOrLeader, false, csShowAll);
   } else {
     if (empty) empty.style.display = 'none';
-    if (tbody) renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader);
+    if (tbody) renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader, false, csShowAll);
   }
   // 更新常驻“我的今日”迷你看板
   renderCSMyTodayCard();
@@ -4259,14 +4260,10 @@ function updateCsPager(rows) {
 }
 
 // 一次性展开当前筛选条件下的全部记录（按用户要求不再分页，方便客服核对）；
-// 直接整渲染，避免依赖 csCsPage 偏移，确保“显示全部”真的显示全部。
+// 设置持久标记 csShowAll，即使 Realtime 重渲染也不再自动折叠回分页。
 function loadAllCsRows() {
-  const tbody = document.getElementById('cross-sales-tbody');
-  if (!tbody) return;
-  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
-  const rows = getCSDisplayRows();
-  csCsPage = Math.ceil(rows.length / CS_PAGE_SIZE) || 1; // 让分页器显示“已全部加载”
-  renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader, false, true);
+  csShowAll = true;
+  renderCrossSales();
 }
 
 // 明细分页：加载下一页（追加，不破坏编辑态）
