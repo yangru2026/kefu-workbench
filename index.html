@@ -4863,6 +4863,16 @@ function autoSaveCSRow(el) {
   if (!tr) return;
   // 仅处理数据行（已有记录 data-id / 新增行 data-new），跳过合计行和工具行
   if (!tr.dataset.id && tr.dataset.new !== 'true') return;
+  // 已有记录：客服只能改自己名下的；管理员/主管不限
+  if (tr.dataset.id) {
+    const isAdmin = currentProfile?.role === 'admin' || currentProfile?.role === 'leader';
+    const myName = (currentProfile?.name || currentProfile?.real_name || '').trim();
+    const rowStaff = (tr.querySelector('[data-field="staff_name"]')?.value || '').trim();
+    if (!isAdmin && rowStaff && rowStaff !== myName) {
+      showToast('⚠️ 你无法修改他人名下的记录');
+      return;
+    }
+  }
   clearTimeout(tr._csSaveTimer);
   tr._csSaveTimer = setTimeout(() => saveCSRow(tr), 500);
 }
@@ -4886,11 +4896,15 @@ async function saveCSRow(tr) {
   tr.dataset.saving = '1';
   try {
     if (tr.dataset.id) {
-      // 更新已有记录
-      const { error } = await supabase.from('cross_sales').update(record).eq('id', tr.dataset.id);
+      // 更新已有记录；用 .select() 检测 RLS 是否实际命中（命中 0 行说明无权限）
+      const { data, error } = await supabase.from('cross_sales').update(record).eq('id', tr.dataset.id).select();
       if (error) {
         if (error.code === '23505') showToast('⚠️ 该日期下相同订单号已存在，已跳过');
         else showToast('❌ 保存失败: ' + error.message);
+        return;
+      }
+      if (!data || data.length === 0) {
+        showToast('⚠️ 保存未生效：你没有权限修改该记录');
         return;
       }
     } else {
