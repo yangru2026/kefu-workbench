@@ -1754,6 +1754,14 @@ body {
           </select>
         </div>
         <div>
+          <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">品牌</label>
+          <select id="voc-brand" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
+            <option value="">未分类</option>
+            <option>弥生</option>
+            <option>极氧</option>
+          </select>
+        </div>
+        <div>
           <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">主题</label>
           <select id="voc-topic" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
             <option value="">未分类</option>
@@ -1792,6 +1800,11 @@ body {
     <div class="card">
       <h3 style="margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">📋 反馈记录
         <span style="flex:1;"></span>
+        <select id="voc-brand-filter" onchange="renderVOCList()" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;">
+          <option value="">全部品牌</option>
+          <option>弥生</option>
+          <option>极氧</option>
+        </select>
         <input type="search" id="voc-search" placeholder="🔍 搜索原话 / 主题 / 客服" oninput="renderVOCList()" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;width:220px;font-family:inherit;">
       </h3>
       <div id="voc-list" style="display:flex;flex-direction:column;gap:10px;"></div>
@@ -9622,11 +9635,14 @@ function renderVOCList() {
   const empty = document.getElementById('voc-list-empty');
   if (!wrap) return;
   const kw = (document.getElementById('voc-search')?.value || '').toLowerCase().trim();
+  const brandFilter = (document.getElementById('voc-brand-filter')?.value || '');
   let rows = vocData.slice();
+  if (brandFilter) rows = rows.filter(r => (r.brand || '') === brandFilter);
   if (kw) rows = rows.filter(r =>
     (r.raw_text || '').toLowerCase().includes(kw) ||
     (r.topic || '').toLowerCase().includes(kw) ||
     (r.scene || '').toLowerCase().includes(kw) ||
+    (r.brand || '').toLowerCase().includes(kw) ||
     (r.staff_name || '').toLowerCase().includes(kw) ||
     (r.customer_tag || '').toLowerCase().includes(kw)
   );
@@ -9642,12 +9658,13 @@ function renderVOCList() {
     const dtStr = dt ? (dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0') + ' ' + String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0')) : '-';
     const scene = r.scene ? `<span class="voc-tag voc-tag-scene">${vocEsc(r.scene)}</span>` : '';
     const topic = r.topic ? `<span class="voc-tag voc-tag-topic">${vocEsc(r.topic)}</span>` : '';
+    const brand = r.brand ? `<span class="voc-tag" style="background:#fdeefb;color:#a64ca6;">🏷 ${vocEsc(r.brand)}</span>` : '';
     const tag = r.customer_tag ? `<span class="voc-tag" style="background:#eef2f7;color:#586b82;">@${vocEsc(r.customer_tag)}</span>` : '';
     const delBtn = isAdmin ? `<button class="voc-del" onclick="deleteVOC(${r.id})" title="删除">🗑</button>` : '';
     return `<div class="voc-item">
       <div class="voc-item-head">
         <span class="voc-meta">${vocEsc(r.staff_name || '')} · ${vocEsc(r.team || '')} · ${dtStr}</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${scene}${topic}${tag}${delBtn}</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${brand}${scene}${topic}${tag}${delBtn}</div>
       </div>
       <div class="voc-raw">${vocEsc(r.raw_text || '')}</div>
     </div>`;
@@ -9662,16 +9679,18 @@ async function submitVOC() {
   if (!raw) { showToast('⚠️ 请先录入客户原话'); if (ta) ta.focus(); return; }
   const scene = document.getElementById('voc-scene')?.value || '';
   const topic = document.getElementById('voc-topic')?.value || '';
+  const brand = document.getElementById('voc-brand')?.value || '';
   const tag = (document.getElementById('voc-tag')?.value || '').trim();
   const name = (currentProfile && (currentProfile.name || currentProfile.real_name)) || (currentUser && currentUser.email) || '未知';
   const team = (currentProfile && currentProfile.group_name) || '';
-  const rec = { raw_text: raw, scene, topic, staff_name: name, team, customer_tag: tag, record_month: vocMonthNow() };
+  const rec = { raw_text: raw, scene, topic, brand, staff_name: name, team, customer_tag: tag, record_month: vocMonthNow() };
   try {
     const { data, error } = await supabase.from('customer_voice').insert([rec]).select();
     if (error) { showToast('⚠️ 保存失败：' + error.message); return; }
     showToast('✅ 已保存客户原话');
     ta.value = '';
     const tagEl = document.getElementById('voc-tag'); if (tagEl) tagEl.value = '';
+    const brandEl = document.getElementById('voc-brand'); if (brandEl) brandEl.value = '';
     loadVOCFromDB(true);
   } catch (e) { showToast('⚠️ 保存异常'); console.error(e); }
 }
@@ -9703,32 +9722,39 @@ async function generateVOCSummary() {
     vocSummaryCache = null;
     return;
   }
-  const sceneCount = {}, topicCount = {};
+  const sceneCount = {}, topicCount = {}, brandCount = {};
   rows.forEach(r => {
     if (r.scene) sceneCount[r.scene] = (sceneCount[r.scene] || 0) + 1;
     if (r.topic) topicCount[r.topic] = (topicCount[r.topic] || 0) + 1;
+    const b = r.brand || '未分类';
+    brandCount[b] = (brandCount[b] || 0) + 1;
   });
   const topScenes = Object.entries(sceneCount).sort((a, b) => b[1] - a[1]);
   const topTopics = Object.entries(topicCount).sort((a, b) => b[1] - a[1]);
+  const topBrands = Object.entries(brandCount).sort((a, b) => b[1] - a[1]);
   const picks = rows.filter(r => r.topic).sort((a, b) => (b.raw_text || '').length - (a.raw_text || '').length).slice(0, 8);
-  const sample = (picks.length ? picks : rows.slice(0, 8)).map(r => ({ text: r.raw_text, scene: r.scene, topic: r.topic, staff: r.staff_name }));
-  vocSummaryCache = { month, rows, stats: { sceneCount, topicCount, topScenes, topTopics, sample } };
+  const sample = (picks.length ? picks : rows.slice(0, 8)).map(r => ({ text: r.raw_text, scene: r.scene, topic: r.topic, staff: r.staff_name, brand: r.brand }));
+  vocSummaryCache = { month, rows, stats: { sceneCount, topicCount, brandCount, topScenes, topTopics, topBrands, sample } };
 
   const maxScene = Math.max(1, ...topScenes.map(x => x[1]));
   const maxTopic = Math.max(1, ...topTopics.map(x => x[1]));
+  const maxBrand = Math.max(1, ...topBrands.map(x => x[1]));
   const sceneBars = topScenes.map(([k, v]) => vocBarRow(k, v, maxScene)).join('');
   const topicBars = topTopics.map(([k, v]) => vocBarRow(k, v, maxTopic)).join('');
-  const sampleHtml = sample.map(s => `<div class="voc-sample">“${vocEsc(s.text)}” ${s.topic ? `<span class="voc-tag voc-tag-topic">${vocEsc(s.topic)}</span>` : ''} ${s.scene ? `<span class="voc-tag voc-tag-scene">${vocEsc(s.scene)}</span>` : ''}</div>`).join('');
+  const brandBars = topBrands.map(([k, v]) => vocBarRow(k, v, maxBrand)).join('');
+  const sampleHtml = sample.map(s => `<div class="voc-sample">“${vocEsc(s.text)}” ${s.brand ? `<span class="voc-tag" style="background:#fdeefb;color:#a64ca6;">🏷 ${vocEsc(s.brand)}</span>` : ''} ${s.topic ? `<span class="voc-tag voc-tag-topic">${vocEsc(s.topic)}</span>` : ''} ${s.scene ? `<span class="voc-tag voc-tag-scene">${vocEsc(s.scene)}</span>` : ''}</div>`).join('');
 
   sumEl.innerHTML = `
     <div style="display:flex;gap:28px;flex-wrap:wrap;align-items:center;margin-bottom:16px;padding:12px 16px;background:linear-gradient(90deg,#f3f7f3,#f7fbf6);border:1px solid #dcead8;border-radius:10px;">
       <div><div style="font-weight:800;font-size:24px;color:var(--primary);">${rows.length}</div><div style="font-size:12px;color:var(--text-secondary);">${month} 反馈条数</div></div>
+      <div><div style="font-weight:800;font-size:24px;color:var(--text);">${Object.keys(brandCount).length}</div><div style="font-size:12px;color:var(--text-secondary);">涉及品牌</div></div>
       <div><div style="font-weight:800;font-size:24px;color:var(--text);">${Object.keys(sceneCount).length}</div><div style="font-size:12px;color:var(--text-secondary);">涉及场景</div></div>
       <div><div style="font-weight:800;font-size:24px;color:var(--text);">${Object.keys(topicCount).length}</div><div style="font-size:12px;color:var(--text-secondary);">涉及主题</div></div>
       <div style="flex:1;"></div>
       <div style="font-size:12px;color:var(--text-secondary);">本月共 ${rows.length} 条客户原话</div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-bottom:18px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-bottom:18px;">
+      <div><div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;">🏷 品牌分布</div>${brandBars || '<div style="color:var(--text-secondary);font-size:13px;">无</div>'}</div>
       <div><div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;">📍 来源场景分布</div>${sceneBars || '<div style="color:var(--text-secondary);font-size:13px;">无</div>'}</div>
       <div><div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;">🏷 主题 TOP</div>${topicBars || '<div style="color:var(--text-secondary);font-size:13px;">无</div>'}</div>
     </div>
@@ -9753,6 +9779,7 @@ function buildVOCSummaryRows() {
   const { month, rows, stats } = s;
   const detail = rows.map(r => ({
     '日期': (r.created_at || '').slice(0, 10),
+    '品牌': r.brand || '',
     '来源场景': r.scene || '',
     '主题': r.topic || '',
     '客户昵称/订单号': r.customer_tag || '',
@@ -9779,6 +9806,9 @@ function exportVOCSummaryXLSX() {
     statRows.push(['主题 TOP']);
     data.stats.topTopics.forEach(([k, v]) => statRows.push([k, v]));
     statRows.push([]);
+    statRows.push(['品牌分布']);
+    data.stats.topBrands.forEach(([k, v]) => statRows.push([k, v]));
+    statRows.push([]);
     statRows.push(['代表性原话']);
     data.stats.sample.forEach(s => statRows.push([(s.topic || '') + ' ' + (s.scene || ''), s.text]));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(statRows), '汇总');
@@ -9797,11 +9827,13 @@ function exportVOCSummaryTXT() {
   data.stats.topScenes.forEach(([k, v]) => out += `  ${k}：${v} 条\n`);
   out += `\n【主题 TOP】\n`;
   data.stats.topTopics.forEach(([k, v]) => out += `  ${k}：${v} 条\n`);
+  out += `\n【品牌分布】\n`;
+  data.stats.topBrands.forEach(([k, v]) => out += `  ${k}：${v} 条\n`);
   out += `\n【代表性原话（原封不动）】\n`;
-  data.stats.sample.forEach((s, i) => out += `${i + 1}. （${[s.topic, s.scene].filter(Boolean).join('/')}）${s.text}\n`);
+  data.stats.sample.forEach((s, i) => out += `${i + 1}. （${[s.brand, s.topic, s.scene].filter(Boolean).join('/')}）${s.text}\n`);
   out += `\n【全部明细】\n`;
   data.rows.slice().sort((a, b) => (a.created_at || '').localeCompare(b.created_at || '')).forEach((r, i) => {
-    out += `${i + 1}. [${r.created_at || ''}] ${r.staff_name || ''}·${r.team || ''} ${[r.scene, r.topic].filter(Boolean).join('/')}：${r.raw_text}\n`;
+    out += `${i + 1}. [${r.created_at || ''}] ${r.staff_name || ''}·${r.team || ''} ${[r.brand, r.scene, r.topic].filter(Boolean).join('/')}：${r.raw_text}\n`;
   });
   const blob = new Blob([out], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);

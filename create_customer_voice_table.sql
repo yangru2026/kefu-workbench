@@ -26,7 +26,8 @@ create table if not exists public.customer_voice (
   topic        text,                                        -- 主题：产品建议/价格反馈/物流吐槽/竞品对比/使用问题/好评夸夸/投诉吐槽/其他
   staff_name   text,                                        -- 收集客服（登录名）
   team         text,                                        -- 组别 A组/B组/C组
-  customer_tag text,                                        -- 客户标记（微信昵称/订单号，选填）
+  customer_tag text,                                        -- 客户标记（客户昵称/订单号，选填）
+  brand        text not null default '',                    -- 品牌：弥生/极氧/空(未分类)
   created_at   timestamptz not null default now(),
   record_month text                                         -- 冗余月份 'YYYY-MM'，便于按月份索引筛选
 );
@@ -56,3 +57,14 @@ create policy "cv_update" on public.customer_voice
 drop policy if exists "cv_delete" on public.customer_voice;
 create policy "cv_delete" on public.customer_voice
   for delete to authenticated using (is_admin_or_leader());
+
+-- 兼容已建表：若表已存在但缺少 brand 列，补上（幂等）
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'customer_voice' and column_name = 'brand'
+  ) then
+    alter table public.customer_voice add column brand text not null default '';
+  end if;
+end $$;
