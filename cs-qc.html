@@ -111,7 +111,7 @@ details.mech summary{cursor:pointer;font-size:13px;font-weight:600}
       <button data-mode="day" class="active" onclick="setQcMode('day')">按日</button>
       <button data-mode="month" onclick="setQcMode('month')">按月</button>
     </div>
-    <label>组别</label>
+    <label title="当前连带成交表未区分组别，下拉仅展示、不参与过滤">组别</label>
     <select id="qcTeam">
       <option value="all">全部</option>
       <option value="A组">A组</option>
@@ -184,7 +184,9 @@ details.mech summary{cursor:pointer;font-size:13px;font-weight:600}
 /* ==================== Supabase Init ==================== */
 const SUPABASE_URL = 'https://ienmejlxukhrxjjxvfqf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imllbm1lamx4dWtoeHJ4amp4dmZxZiIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzQ5NzU5NjgyLCJleHAiOjIwNjUzMzU2ODJ9.ABuL_Bn3o4Jp3gN1CFn8_FqFzSmS5xKQHj5jcE-akMk';
-var supabase = window.__csQcSupabase || supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// 关键修复：用独立变量 SB_NS 引用 Supabase UMD 全局命名空间，避免下方 `var supabase` 提升后遮蔽它导致 createClient 报 undefined
+var SB_NS = window.supabase;
+var supabase = window.__csQcSupabase || (SB_NS && SB_NS.createClient ? SB_NS.createClient(SUPABASE_URL, SUPABASE_KEY) : null);
 window.__csQcSupabase = supabase;
 
 /* ==================== State ==================== */
@@ -318,26 +320,32 @@ function monthBounds(ym){ // ym = 'YYYY-MM' -> {gte, lt}
 async function checkAuth() {
   const badge = document.getElementById('roleBadge');
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session }, error: sessErr } = await supabase.auth.getSession();
+    if (sessErr) {
+      badge.innerHTML = '<span class="locked-badge">⚠️ 获取登录态失败：' + escapeHtml(sessErr.message) + '</span>';
+      return;
+    }
     if (!session || !session.user) {
-      badge.innerHTML = '<span class="locked-badge">🔒 未登录：请先在主工作台（index.html）登录后再打开本页</span>';
+      badge.innerHTML = '<span class="locked-badge">🔒 未登录：请先在主工作台（index.html）登录后，再从「··· 更多 → 质检连带明细」打开本页</span>';
       return;
     }
-    const { data: prof, error } = await supabase.from('profiles').select('role,name,real_name').eq('id', session.user.id).single();
+    const uid = session.user.id || '';
+    const email = session.user.email || '';
+    const { data: prof, error } = await supabase.from('profiles').select('role,name,real_name').eq('id', uid).single();
     if (error) {
-      badge.innerHTML = '<span class="locked-badge">⚠️ 读取权限失败：' + escapeHtml(error.message) + '</span>';
+      badge.innerHTML = '<span class="locked-badge">⚠️ 读取权限档案失败：' + escapeHtml(error.message) + '<br>当前登录：' + escapeHtml(email || uid.slice(0,8)) + '</span>';
       return;
     }
-    const role = prof && prof.role ? String(prof.role) : '未知';
+    const role = prof && prof.role ? String(prof.role) : '（空）';
     if (role === 'admin' || role === 'leader') {
       isAdmin = true;
       adminName = prof.name || prof.real_name || '管理员';
       badge.innerHTML = '<span class="admin-badge">👑 ' + (role === 'admin' ? '管理员' : '组长') + '模式（' + escapeHtml(adminName) + '）</span>';
     } else {
-      badge.innerHTML = '<span class="locked-badge">🔒 本页仅管理员/组长可用（当前角色：' + escapeHtml(role) + '）</span>';
+      badge.innerHTML = '<span class="locked-badge">🔒 本页仅管理员/组长可用<br>当前登录：' + escapeHtml(email || uid.slice(0,8)) + ' ｜ 角色字段值：' + escapeHtml(role) + '<br>请确认 profiles 表中您的 role 为 admin 或 leader</span>';
     }
   } catch (e) {
-    badge.innerHTML = '<span class="locked-badge">⚠️ 校验异常：' + escapeHtml(e.message || e) + '</span>';
+    badge.innerHTML = '<span class="locked-badge">⚠️ 校验异常：' + escapeHtml(e && e.message ? e.message : e) + '</span>';
   }
 }
 
@@ -349,7 +357,7 @@ async function loadRecords() {
     let q = supabase.from('cross_sales').select('*');
     if (scopeMode === 'day') q = q.eq('record_date', scopeDate);
     else { const b = monthBounds(scopeDate.slice(0,7)); q = q.gte('record_date', b.gte).lt('record_date', b.lt); }
-    if (scopeTeam !== 'all') q = q.eq('team', scopeTeam);
+    // 注：cross_sales 表当前无 team 列，下发 team 条件会报“列不存在”，故不按组过滤数据库
     q = q.order('record_date', { ascending: false }).order('id', { ascending: false }).range(from, from + size - 1);
     const { data, error } = await q;
     if (error) { showToast('加载失败：' + error.message, true); break; }
