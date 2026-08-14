@@ -9645,6 +9645,7 @@ function updateVOCStatus() {
   const name = vocCurrentName();
   const badge = document.getElementById('voc-todo-badge');
   const prog = document.getElementById('voc-progress');
+  const isAdmin = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
   if (!name) { if (badge) badge.style.display = 'none'; if (prog) prog.style.display = 'none'; return; }
   const count = getVOCTodayCount(name);
   const remain = Math.max(0, VOC_DAILY_LIMIT - count);
@@ -9653,6 +9654,12 @@ function updateVOCStatus() {
   const shiftText = sh.onShift
     ? (sh.active.length === 1 ? '当前班次：' + sh.active[0] + '（' + sched + '）' : '当前处于班次工作时间（' + sched + '）')
     : '当前非班次时间（' + sched + '）';
+  // 管理员/组长只负责收集查看，不显示待办与提醒
+  if (isAdmin) {
+    if (badge) badge.style.display = 'none';
+    if (prog) prog.style.display = 'none';
+    return;
+  }
   if (prog) {
     prog.style.display = '';
     prog.innerHTML = `📅 今日进度 <b style="color:${count >= VOC_DAILY_LIMIT ? '#27ae60' : '#e67e22'};">${count}/${VOC_DAILY_LIMIT}</b> · 还差 ${remain} 条 · ${shiftText}`;
