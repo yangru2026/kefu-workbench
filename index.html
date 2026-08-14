@@ -9662,7 +9662,8 @@ function updateVOCStatus() {
   }
   if (prog) {
     prog.style.display = '';
-    prog.innerHTML = `📅 今日进度 <b style="color:${count >= VOC_DAILY_LIMIT ? '#27ae60' : '#e67e22'};">${count}/${VOC_DAILY_LIMIT}</b> · 还差 ${remain} 条 · ${shiftText}`;
+    const note = remain > 0 ? ('· 还差 ' + remain + ' 条') : '· ✅ 已达成基础目标，可继续录入';
+    prog.innerHTML = `📅 今日进度 <b style="color:${count >= VOC_DAILY_LIMIT ? '#27ae60' : '#e67e22'};">${count}/${VOC_DAILY_LIMIT}</b> ${note} · ${shiftText}`;
   }
   if (badge) {
     if (remain > 0) { badge.style.display = ''; badge.textContent = '待办 ' + remain; }
@@ -9772,13 +9773,9 @@ async function submitVOC() {
   const raw = (ta?.value || '').trim();
   if (!raw) { showToast('⚠️ 请先录入客户原话'); if (ta) ta.focus(); return; }
   const name = (currentProfile && (currentProfile.name || currentProfile.real_name)) || (currentUser && currentUser.email) || '未知';
-  // 每日硬性上限 5 条
+  // 每日基础目标 5 条：达到后允许继续录入，仅做提醒
   const todayCount = getVOCTodayCount(name);
-  if (todayCount >= VOC_DAILY_LIMIT) {
-    showToast('⚠️ 今日已达 ' + VOC_DAILY_LIMIT + ' 条上限，明天再录');
-    updateVOCStatus();
-    return;
-  }
+  const reachedLimit = todayCount >= VOC_DAILY_LIMIT;
   const scene = document.getElementById('voc-scene')?.value || '';
   const topic = document.getElementById('voc-topic')?.value || '';
   const brand = document.getElementById('voc-brand')?.value || '';
@@ -9792,7 +9789,7 @@ async function submitVOC() {
   try {
     const { data, error } = await supabase.from('customer_voice').insert([rec]).select();
     if (error) { showToast('⚠️ 保存失败：' + error.message); return; }
-    showToast('✅ 已保存客户原话');
+    showToast(reachedLimit ? ('✅ 已保存 · 今日已达 ' + VOC_DAILY_LIMIT + ' 条基础目标，可继续录入') : '✅ 已保存客户原话');
     ta.value = '';
     const tagEl = document.getElementById('voc-tag'); if (tagEl) tagEl.value = '';
     const brandEl = document.getElementById('voc-brand'); if (brandEl) brandEl.value = '';
