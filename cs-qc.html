@@ -115,7 +115,7 @@ details.mech summary{cursor:pointer;font-size:13px;font-weight:600}
     <select id="qcTeam">
       <option value="all">全部</option>
       <option value="A组">A组</option>
-      <option value="b组">b组</option>
+      <option value="B组">B组</option>
       <option value="C组">C组</option>
     </select>
     <button class="btn btn-p" onclick="reloadAll()">🔍 加载数据</button>
@@ -320,17 +320,21 @@ async function checkAuth() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session || !session.user) {
-      badge.innerHTML = '<span class="locked-badge">🔒 未登录：请先在主工作台（index.html）登录</span>';
+      badge.innerHTML = '<span class="locked-badge">🔒 未登录：请先在主工作台（index.html）登录后再打开本页</span>';
       return;
     }
     const { data: prof, error } = await supabase.from('profiles').select('role,name,real_name').eq('id', session.user.id).single();
-    if (error) { badge.innerHTML = '<span class="locked-badge">⚠️ 读取权限失败：' + escapeHtml(error.message) + '</span>'; return; }
-    if (prof && prof.role === 'admin') {
+    if (error) {
+      badge.innerHTML = '<span class="locked-badge">⚠️ 读取权限失败：' + escapeHtml(error.message) + '</span>';
+      return;
+    }
+    const role = prof && prof.role ? String(prof.role) : '未知';
+    if (role === 'admin' || role === 'leader') {
       isAdmin = true;
       adminName = prof.name || prof.real_name || '管理员';
-      badge.innerHTML = '<span class="admin-badge">👑 管理员模式（' + escapeHtml(adminName) + '）</span>';
+      badge.innerHTML = '<span class="admin-badge">👑 ' + (role === 'admin' ? '管理员' : '组长') + '模式（' + escapeHtml(adminName) + '）</span>';
     } else {
-      badge.innerHTML = '<span class="locked-badge">🔒 本页仅管理员可用</span>';
+      badge.innerHTML = '<span class="locked-badge">🔒 本页仅管理员/组长可用（当前角色：' + escapeHtml(role) + '）</span>';
     }
   } catch (e) {
     badge.innerHTML = '<span class="locked-badge">⚠️ 校验异常：' + escapeHtml(e.message || e) + '</span>';
