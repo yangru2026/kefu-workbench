@@ -3701,6 +3701,8 @@ function onCrossSalesDateChange() {
   if (input) crossSalesDate = input.value;
   // 默认保持按月模式；用户明确切换或点上下箭头才进按日模式
   if (crossSalesRankMode !== 'day' && crossSalesRankMode !== 'month') crossSalesRankMode = 'month';
+  // 切换日期后清除日期列筛选，避免旧日期筛选把明细过滤成空
+  delete csColumnFilters['record_date'];
   syncCSNewRowsDate();
   renderCrossSales();
 }
@@ -3720,6 +3722,8 @@ function prevCrossSalesDate() {
   d.setDate(d.getDate() - 1);
   crossSalesDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   crossSalesRankMode = 'day';
+  // 切换日期后清除日期列筛选，避免旧日期筛选把明细过滤成空
+  delete csColumnFilters['record_date'];
   syncCSNewRowsDate();
   renderCrossSales();
 }
@@ -3729,6 +3733,8 @@ function nextCrossSalesDate() {
   d.setDate(d.getDate() + 1);
   crossSalesDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   crossSalesRankMode = 'day';
+  // 切换日期后清除日期列筛选，避免旧日期筛选把明细过滤成空
+  delete csColumnFilters['record_date'];
   syncCSNewRowsDate();
   renderCrossSales();
 }
@@ -3742,6 +3748,8 @@ function toggleCrossSalesRankMode() {
     crossSalesDate = getTodayStr();
     syncCSNewRowsDate();
   }
+  // 切换日/月模式会改变日期范围，清除日期列筛选避免冲突
+  delete csColumnFilters['record_date'];
   renderCrossSales();
 }
 
@@ -3816,6 +3824,8 @@ function toggleCsExportArea() {
 // 点击排名卡片：聚焦该客服的明细（再点取消）
 function toggleCrossSalesFocus(name) {
   crossSalesRankFocus = (crossSalesRankFocus === name) ? '' : (name || '');
+  // 聚焦/取消客服时，清除可能残留的成交客服列筛选，避免旧筛选把明细过滤成空
+  delete csColumnFilters['staff_name'];
   renderCrossSales();
 }
 
@@ -3835,7 +3845,10 @@ function getCSFocusStats(name) {
     const monthPrefix = crossSalesDate.slice(0, 7);
     filtered = crossSalesData.filter(r => r.record_date && r.record_date.startsWith(monthPrefix) && r.staff_name === name);
   }
-  if (crossSalesTeamFilter !== 'all') filtered = filtered.filter(r => r.team === crossSalesTeamFilter);
+  // 未聚焦客服时，才应用组筛选；聚焦状态下精确到人，忽略组筛选，避免面板与明细同时为空
+  if (!crossSalesRankFocus && crossSalesTeamFilter !== 'all') {
+    filtered = filtered.filter(r => r.team === crossSalesTeamFilter);
+  }
   const secondTotal = filtered.reduce((s, r) => s + Number(r.second_amount || 0), 0);
   const team = filtered[0]?.team || currentProfile?.group_name || '-';
   const rankData = getCrossSalesRankData();
@@ -3969,7 +3982,8 @@ function getCrossSalesGrandTotal() {
 function getCSDisplayRows() {
   const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
   let rows = getCrossSalesDetailRows();
-  if (!isAdminOrLeader && currentProfile?.group_name) {
+  // 普通客服默认只看本组；但点击排名卡片聚焦某客服时，允许查看该客服明细（即使跨组），避免明细为空
+  if (!isAdminOrLeader && currentProfile?.group_name && !crossSalesRankFocus) {
     rows = rows.filter(r => r.team === currentProfile.group_name);
   }
   return rows;
@@ -3990,12 +4004,11 @@ function getCrossSalesDetailRows() {
       return (a.id || 0) - (b.id || 0);
     });
   }
-  if (crossSalesTeamFilter !== 'all') {
-    rows = rows.filter(r => r.team === crossSalesTeamFilter);
-  }
-  // 排名卡片聚焦：只显示该客服的记录
+  // 排名卡片聚焦：精确到客服，忽略组筛选，避免组筛选与聚焦冲突导致明细为空
   if (crossSalesRankFocus) {
     rows = rows.filter(r => r.staff_name === crossSalesRankFocus);
+  } else if (crossSalesTeamFilter !== 'all') {
+    rows = rows.filter(r => r.team === crossSalesTeamFilter);
   }
   // 搜索过滤：客服姓名 / 第一单订单号 / 第二单订单号
   if (crossSalesSearch) {
