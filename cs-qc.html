@@ -516,7 +516,77 @@ async function saveCsQcResult() {
     } catch (e) { fail++; console.error(e); }
   }
   showToast(`✅ 已保存 ${n} 条质检结果${fail ? ' ❌ ' + fail + ' 条失败' : ''}`);
-  if (fail === 0) await loadRecords();
+  if (fail === 0) {
+    await loadRecords();
+    await pushQcNotifications(matches);
+  }
+}
+
+// 按 staff_name 分组，给每个客服推送一条站内通知
+async function pushQcNotifications(items) {
+  try {
+    if (!items || items.length === 0) return;
+    // 1. 按客服分组
+    const byStaff = {};
+    items.forEach(x => {
+      const name = x.r && x.r.staff_name ? String(x.r.staff_name).trim() : '';
+      if (!name) return;
+      if (!byStaff[name]) byStaff[name] = [];
+      byStaff[name].push(x);
+    });
+    const staffNames = Object.keys(byStaff);
+    if (staffNames.length === 0) return;
+
+    // 2. 查询 profiles，按 name/real_name 找到 user_id
+    const { data: profiles, error: profErr } = await supabase.from('profiles').select('id,name,real_name');
+    if (profErr) { console.warn('查询 profiles 失败，无法发送通知:', profErr.message); return; }
+    const profMap = {};
+    (profiles || []).forEach(p => {
+      const key = (p.name || p.real_name || '').trim();
+      if (key && !profMap[key]) profMap[key] = p.id;
+    });
+
+    // 3. 生成通知
+    const dateStr = items[0] && items[0].r && items[0].r.record_date ? items[0].r.record_date : getTodayStr();
+    const resultLabels = {
+      pass: '✅ 合格',
+      fail_refund: '🔴 退款不合格',
+      fail_amount: '🟠 金额异常',
+      difficulty_refund: '🟡 退差价',
+      no_mechanism: '⚪ 未配机制'
+    };
+    const notifications = [];
+    staffNames.forEach(name => {
+      const userId = profMap[name];
+      if (!userId) { console.warn('未找到客服「' + name + '」的用户ID，跳过通知'); return; }
+      const rows = byStaff[name];
+      const lines = rows.map((x, idx) => {
+        const r = x.r;
+        const label = resultLabels[x.result] || '⚪ 待质检';
+        return `${idx + 1}. ${r.product_type || '-'}｜第二单 ¥${Number(r.second_amount || 0).toFixed(2)}｜${label}`;
+      }).join('\n');
+      const failCount = rows.filter(x => x.result !== 'pass').length;
+      const title = failCount > 0
+        ? `您的连带成交登记已质检，${failCount} 条需关注`
+        : `您的连带成交登记已质检，全部合格`;
+      const content = `质检日期：${dateStr}\n共 ${rows.length} 条登记记录：\n${lines}\n\n如有疑问请联系管理员。`;
+      notifications.push({
+        user_id: userId,
+        type: 'cs_qc',
+        title,
+        content,
+        related_table: 'cross_sales',
+        related_id: rows[0] && rows[0].r ? rows[0].r.id : null
+      });
+    });
+
+    if (notifications.length === 0) return;
+    const { error } = await supabase.from('notifications').insert(notifications);
+    if (error) { console.warn('发送质检通知失败:', error.message); }
+    else { showToast(`✅ 已向 ${notifications.length} 位客服推送质检通知`); }
+  } catch (e) {
+    console.warn('pushQcNotifications 异常:', e);
+  }
 }
 
 function exportCsQcResult() {

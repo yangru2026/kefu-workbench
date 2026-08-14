@@ -125,6 +125,30 @@ body {
   color: var(--sidebar-text);
   margin-top: 4px;
 }
+.notify-bell {
+  position: relative;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  transition: background .15s;
+  flex-shrink: 0;
+  margin-top: -2px;
+}
+.notify-bell:hover { background: rgba(255,255,255,0.08); }
+.notify-bell .bell { font-size: 18px; opacity: .9; }
+.notify-bell .count {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #e74c3c;
+  color: #fff;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 10px;
+  display: none;
+  font-weight: 600;
+}
+.notify-bell .count.show { display: block; }
 
 .sidebar-nav { padding: 8px 0; flex: 1; }
 .nav-section { padding: 12px 20px 4px; font-size: 11px; text-transform: uppercase; color: rgba(255,255,255,0.3); letter-spacing: 1.5px; }
@@ -1095,9 +1119,15 @@ body {
 
 <!-- Sidebar -->
 <aside class="sidebar">
-  <div class="sidebar-header">
-    <h2>🌿 尤赫售前客服工作台</h2>
-    <div class="sub">一站式服务工具</div>
+  <div class="sidebar-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+    <div>
+      <h2>🌿 尤赫售前客服工作台</h2>
+      <div class="sub">一站式服务工具</div>
+    </div>
+    <div class="notify-bell" id="notify-bell" onclick="openNotificationPanel()" title="通知中心">
+      <span class="bell">🔔</span>
+      <span class="count" id="notify-count">0</span>
+    </div>
   </div>
   <nav class="sidebar-nav">
     <div class="nav-section">客服常用</div>
@@ -1662,6 +1692,26 @@ body {
     </div>
   </div>
 
+  <!-- 通知中心弹窗 -->
+  <div class="modal-overlay" id="mod-notify" onclick="closeModal('mod-notify')">
+    <div class="modal-box" style="max-width:520px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>🔔 通知中心</h3>
+        <button class="modal-close" onclick="closeModal('mod-notify')">✕</button>
+      </div>
+      <div class="modal-body" id="notify-body">
+        <div id="notify-list" style="max-height:420px;overflow:auto;"></div>
+      </div>
+      <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;">
+        <span id="notify-footer-summary" style="font-size:12px;color:var(--text-secondary);">加载中…</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-sm outline" onclick="markAllNotificationsRead()">全部已读</button>
+          <button class="btn-sm outline" onclick="closeModal('mod-notify')">关闭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== 成员管理 ===== -->
   <div class="page" id="page-members">
     <div class="page-header"><h1>👥 成员管理</h1><p>查看和管理团队成员账号</p></div>
@@ -2184,6 +2234,7 @@ async function initSupabase() {
           console.warn('读取用户资料超时或失败', pe.message);
         }
         updateAuthUI();
+        startNotificationPolling();
       }
     } catch (se) {
       console.warn('获取会话超时或失败', se.message);
@@ -2195,6 +2246,7 @@ async function initSupabase() {
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
         currentProfile = profile;
         updateAuthUI();
+        startNotificationPolling();
         if (document.getElementById('page-login').classList.contains('active')) {
           switchPage('home');
         }
@@ -9208,6 +9260,97 @@ function setVisitorName() {
     localStorage.removeItem('kefu_visitor_name');
     document.getElementById('visitor-name').textContent = '访客';
   }
+}
+
+// ==================== 通知中心 ====================
+let notifications = [];
+let notifyTimer = null;
+
+function openNotificationPanel() {
+  renderNotificationList();
+  showModalById('mod-notify');
+}
+
+async function loadNotifications() {
+  if (!supabase || !currentUser) return;
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (error) { console.warn('加载通知失败:', error.message); return; }
+    notifications = data || [];
+    updateNotificationBadge();
+  } catch (e) { console.warn('loadNotifications 异常:', e); }
+}
+
+function updateNotificationBadge() {
+  const count = notifications.filter(n => !n.is_read).length;
+  const badge = document.getElementById('notify-count');
+  if (badge) {
+    badge.textContent = count > 99 ? '99+' : String(count);
+    badge.classList.toggle('show', count > 0);
+  }
+}
+
+function renderNotificationList() {
+  const wrap = document.getElementById('notify-list');
+  const summary = document.getElementById('notify-footer-summary');
+  if (!wrap) return;
+  if (notifications.length === 0) {
+    wrap.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text-secondary);font-size:14px;">暂无通知</div>';
+    if (summary) summary.textContent = '暂无通知';
+    return;
+  }
+  const unread = notifications.filter(n => !n.is_read).length;
+  wrap.innerHTML = notifications.map(n => {
+    const time = new Date(n.created_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const unreadStyle = !n.is_read ? 'background:#f8fafc;border-left:3px solid var(--primary);' : 'background:#fff;border-left:3px solid transparent;';
+    const contentHtml = escapeHtml(n.content).replace(/\n/g, '<br>');
+    return `<div style="${unreadStyle}border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;cursor:pointer;transition:background .15s;" onclick="markNotificationRead(${n.id})">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;">
+        <strong style="font-size:13px;color:var(--text);">${escapeHtml(n.title)}</strong>
+        <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;">${time}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text-secondary);line-height:1.6;">${contentHtml}</div>
+      ${!n.is_read ? '<div style="margin-top:6px;font-size:11px;color:var(--primary);">点击标记为已读</div>' : ''}
+    </div>`;
+  }).join('');
+  if (summary) summary.textContent = `共 ${notifications.length} 条 · 未读 ${unread} 条`;
+}
+
+async function markNotificationRead(id) {
+  if (!supabase) return;
+  try {
+    const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    if (error) { console.warn('标记已读失败:', error.message); return; }
+    const n = notifications.find(x => x.id === id);
+    if (n) n.is_read = true;
+    updateNotificationBadge();
+    renderNotificationList();
+  } catch (e) { console.warn('markNotificationRead 异常:', e); }
+}
+
+async function markAllNotificationsRead() {
+  if (!supabase || notifications.length === 0) return;
+  try {
+    const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
+    if (unreadIds.length === 0) { showToast('没有未读通知'); return; }
+    const { error } = await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
+    if (error) { showToast('标记失败：' + error.message); return; }
+    notifications.forEach(n => n.is_read = true);
+    updateNotificationBadge();
+    renderNotificationList();
+    showToast('✅ 已全部标记为已读');
+  } catch (e) { console.warn('markAllNotificationsRead 异常:', e); }
+}
+
+function startNotificationPolling() {
+  if (notifyTimer) clearInterval(notifyTimer);
+  loadNotifications();
+  notifyTimer = setInterval(loadNotifications, 60000); // 每分钟轮询一次
 }
 
 // ==================== INIT ====================
