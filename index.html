@@ -5306,8 +5306,14 @@ async function deleteCrossSalesRecord(id, staffName) {
   if (!supabase) return;
   if (!confirm(`确定删除 ${staffName || '这条'} 记录？删除后不可恢复。`)) return;
   try {
-    const { error } = await supabase.from('cross_sales').delete().eq('id', id);
+    // 用 .select() 拿回被删除的行，便于区分“真的删了”与“被 RLS 静默拦截（0 行）”
+    const { data, error } = await supabase.from('cross_sales').delete().eq('id', id).select();
     if (error) { showToast('❌ 删除失败: ' + error.message); return; }
+    if (!data || data.length === 0) {
+      showToast('⚠️ 删除未生效：你可能没有该记录的删除权限（仅能删本人名下），或记录已被他人删除');
+      loadCrossSalesFromDB(true);
+      return;
+    }
     showToast('✅ 已删除');
     loadCrossSalesFromDB(true);
   } catch (e) { showToast('❌ 删除异常: ' + e.message); }
