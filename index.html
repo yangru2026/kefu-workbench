@@ -1136,7 +1136,7 @@ body {
     <div class="nav-item" data-page="patterns"><span class="icon">🎨</span><span>花色素材</span></div>
     <div class="nav-item" data-page="tools"><span class="icon">🛠</span><span>快捷工具</span></div>
     <div class="nav-item" data-page="cross-sales"><span class="icon">🛒</span><span>连带成交</span></div>
-    <div class="nav-item" data-page="voc"><span class="icon">📣</span><span>客户之声</span></div>
+    <div class="nav-item" data-page="voc"><span class="icon">📣</span><span>客户之声</span><span class="badge" id="voc-todo-badge" style="display:none;"></span></div>
     <div class="nav-section">培训</div>
     <div class="nav-item" data-page="training"><span class="icon">📚</span><span>培训资料</span></div>
     <div class="nav-item" data-page="sop"><span class="icon">📄</span><span>新人SOP</span></div>
@@ -1780,6 +1780,7 @@ body {
           <input id="voc-tag" type="text" placeholder="客户昵称 / 订单号" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
         </div>
         <div style="font-size:12px;color:var(--text-secondary);padding-bottom:8px;">登记人：<b id="voc-staff-label" style="color:var(--text);">-</b> · <span id="voc-team-label">-</span></div>
+        <div id="voc-progress" style="font-size:12px;color:var(--text-secondary);padding:2px 0 8px;display:none;"></div>
         <button class="btn-sm primary" onclick="submitVOC()" style="margin-bottom:2px;padding:9px 18px;">💾 保存这条反馈</button>
       </div>
     </div>
@@ -9572,6 +9573,17 @@ init();
 <!-- 隐藏的文件上传 input，用于 Excel/CSV 导入 -->
 <input type="file" id="excel-import-input" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleExcelImport(this)">
 
+<!-- 客户之声：未完成提醒弹窗 -->
+<div id="voc-reminder-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;max-width:420px;width:90%;padding:26px 24px;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+    <div style="font-size:18px;font-weight:800;margin-bottom:12px;color:var(--text);">📣 客户之声待办提醒</div>
+    <div id="voc-reminder-body" style="font-size:14px;line-height:1.7;color:var(--text-secondary);"></div>
+    <div style="margin-top:20px;text-align:right;">
+      <button class="btn-sm primary" onclick="closeVOCReminder()">知道了，去录入</button>
+    </div>
+  </div>
+</div>
+
 <!-- ==================== 客户之声 (VOC) ==================== -->
 <script>
 let vocData = [];
@@ -9591,6 +9603,80 @@ function getVOCMonthPrefix() {
 
 function vocEsc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ===== 客户之声硬性规则：每日5条 + 品牌/场景/主题必填 + 班次 =====
+const VOC_DAILY_LIMIT = 5;
+const VOC_INHOUSE_NAMES = ['小雷', '小南']; // 自有客服（班次窗口不同）
+function vocCurrentName() {
+  return (currentProfile && (currentProfile.name || currentProfile.real_name)) || (currentUser && currentUser.email) || '';
+}
+function vocTodayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function getVOCTodayCount(name) {
+  if (!name) return 0;
+  const today = vocTodayStr();
+  return (vocData || []).filter(r => (r.staff_name || '') === name && (r.created_at || '').slice(0, 10) === today).length;
+}
+// 根据人员类别 + 当前时间判断班次（班次窗口有重叠，重叠时如实标注）
+function getCurrentShift() {
+  const name = vocCurrentName();
+  const inhouse = VOC_INHOUSE_NAMES.includes(name);
+  const windows = inhouse
+    ? [['早班', 8.5, 17.5], ['中班', 12, 21], ['晚班', 16, 24]]
+    : [['早班', 8, 16], ['中班', 13, 21], ['晚班', 16, 24]];
+  const now = new Date();
+  const h = now.getHours() + now.getMinutes() / 60;
+  const active = windows.filter(([, s, e]) => h >= s && h < e).map(([label]) => label);
+  return { inhouse, windows, active, onShift: active.length > 0 };
+}
+function fmtShiftTime(t) {
+  const hh = Math.floor(t);
+  const mm = Math.round((t - hh) * 60);
+  return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+}
+function shiftScheduleText(sh) {
+  const parts = sh.windows.map(([label, s, e]) => label + ' ' + fmtShiftTime(s) + '-' + fmtShiftTime(e));
+  return (sh.inhouse ? '自有班次：' : '外包班次：') + parts.join(' / ');
+}
+function updateVOCStatus() {
+  const name = vocCurrentName();
+  const badge = document.getElementById('voc-todo-badge');
+  const prog = document.getElementById('voc-progress');
+  if (!name) { if (badge) badge.style.display = 'none'; if (prog) prog.style.display = 'none'; return; }
+  const count = getVOCTodayCount(name);
+  const remain = Math.max(0, VOC_DAILY_LIMIT - count);
+  const sh = getCurrentShift();
+  const sched = shiftScheduleText(sh);
+  const shiftText = sh.onShift
+    ? (sh.active.length === 1 ? '当前班次：' + sh.active[0] + '（' + sched + '）' : '当前处于班次工作时间（' + sched + '）')
+    : '当前非班次时间（' + sched + '）';
+  if (prog) {
+    prog.style.display = '';
+    prog.innerHTML = `📅 今日进度 <b style="color:${count >= VOC_DAILY_LIMIT ? '#27ae60' : '#e67e22'};">${count}/${VOC_DAILY_LIMIT}</b> · 还差 ${remain} 条 · ${shiftText}`;
+  }
+  if (badge) {
+    if (remain > 0) { badge.style.display = ''; badge.textContent = '待办 ' + remain; }
+    else { badge.style.display = 'none'; }
+  }
+  // 未完成提醒弹窗（仅班次内、单会话一次）
+  if (remain > 0 && !window.__vocReminderShown && sh.onShift) {
+    window.__vocReminderShown = true;
+    showVOCReminder(count, remain, sh);
+  }
+}
+function showVOCReminder(count, remain, sh) {
+  const m = document.getElementById('voc-reminder-modal');
+  if (!m) return;
+  document.getElementById('voc-reminder-body').innerHTML =
+    `你今天还有 <b style="color:#e67e22;">${remain}</b> 条「客户之声」待录入（已完成 ${count}/${VOC_DAILY_LIMIT}）。<br>请在本班次工作时间内完成（${shiftScheduleText(sh)}），客户原话请一字不改直接粘贴。`;
+  m.style.display = 'flex';
+}
+function closeVOCReminder() {
+  const m = document.getElementById('voc-reminder-modal');
+  if (m) m.style.display = 'none';
 }
 
 async function loadVOCFromDB(force) {
@@ -9628,6 +9714,7 @@ function renderVOC() {
   const nl = document.getElementById('voc-staff-label'); if (nl) nl.textContent = name;
   const tl = document.getElementById('voc-team-label'); if (tl) tl.textContent = team;
   renderVOCList();
+  updateVOCStatus();
 }
 
 function renderVOCList() {
@@ -9677,11 +9764,22 @@ async function submitVOC() {
   const ta = document.getElementById('voc-raw');
   const raw = (ta?.value || '').trim();
   if (!raw) { showToast('⚠️ 请先录入客户原话'); if (ta) ta.focus(); return; }
+  const name = (currentProfile && (currentProfile.name || currentProfile.real_name)) || (currentUser && currentUser.email) || '未知';
+  // 每日硬性上限 5 条
+  const todayCount = getVOCTodayCount(name);
+  if (todayCount >= VOC_DAILY_LIMIT) {
+    showToast('⚠️ 今日已达 ' + VOC_DAILY_LIMIT + ' 条上限，明天再录');
+    updateVOCStatus();
+    return;
+  }
   const scene = document.getElementById('voc-scene')?.value || '';
   const topic = document.getElementById('voc-topic')?.value || '';
   const brand = document.getElementById('voc-brand')?.value || '';
+  // 品牌 / 场景 / 主题 必选
+  if (!brand) { showToast('⚠️ 请先选择「品牌」'); return; }
+  if (!scene) { showToast('⚠️ 请先选择「来源场景」'); return; }
+  if (!topic) { showToast('⚠️ 请先选择「主题」'); return; }
   const tag = (document.getElementById('voc-tag')?.value || '').trim();
-  const name = (currentProfile && (currentProfile.name || currentProfile.real_name)) || (currentUser && currentUser.email) || '未知';
   const team = (currentProfile && currentProfile.group_name) || '';
   const rec = { raw_text: raw, scene, topic, brand, staff_name: name, team, customer_tag: tag, record_month: vocMonthNow() };
   try {
