@@ -1389,6 +1389,7 @@ body {
       <h3 style="margin-bottom:12px;">🏆 第二单销售额排名 <span id="cross-sales-rank-label" style="font-size:13px;color:var(--text-secondary);font-weight:normal;">（今日）</span>
         <span style="font-size:12px;color:var(--text-secondary);font-weight:normal;margin-left:8px;">💡 点击卡片可聚焦该客服的明细，再次点击取消</span>
       </h3>
+      <div id="cross-sales-rank-summary" style="display:flex;gap:28px;flex-wrap:wrap;align-items:center;margin-bottom:14px;padding:10px 16px;background:linear-gradient(90deg,#eef2ff,#f6f0ff);border:1px solid #e0d9ff;border-radius:10px;font-size:14px;color:var(--text);"></div>
       <div id="cross-sales-rank-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;"></div>
       <div id="cross-sales-rank-empty" style="text-align:center;padding:30px;color:var(--text-secondary);display:none;">
         <div style="font-size:36px;margin-bottom:8px;">🏆</div>
@@ -1422,7 +1423,7 @@ body {
       <div id="cross-sales-dup-banner" style="display:none;background:#fff5f5;border:1px solid #f3c1c0;color:#c62828;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:10px;"></div>
       <div id="cross-sales-locate-banner" style="display:none;background:#fff8e1;border:1px solid #ffe08a;color:#8a6d00;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:10px;"></div>
       <div style="max-height:62vh;overflow:auto;border:1px solid var(--border);border-radius:8px;">
-        <table class="ranking-table" style="min-width:1080px;" id="cross-sales-table">
+        <table class="ranking-table" style="min-width:1220px;" id="cross-sales-table">
           <thead style="position:sticky;top:0;z-index:10;background:var(--card-bg);"><tr>
             <th style="text-align:center;width:32px;"><input type="checkbox" id="cs-select-all" title="全选" onclick="toggleCsSelectAll(this)" style="cursor:pointer;"></th>
             <th style="text-align:center;min-width:110px;">日期 <span class="cs-filter-btn" onclick="openCsColumnFilter('record_date')" title="筛选日期">🔽</span></th>
@@ -1435,6 +1436,7 @@ body {
             <th style="text-align:center;min-width:70px;">第一单金额 <span class="cs-filter-btn" onclick="openCsColumnFilter('first_amount')" title="筛选金额">🔽</span></th>
             <th style="text-align:center;min-width:70px;">第二单金额 <span class="cs-filter-btn" onclick="openCsColumnFilter('second_amount')" title="筛选金额">🔽</span></th>
             <th style="text-align:center;min-width:70px;">合计金额 <span class="cs-filter-btn" onclick="openCsColumnFilter('total_amount')" title="筛选金额">🔽</span></th>
+            <th style="text-align:center;min-width:140px;">备注</th>
             <th style="text-align:center;width:60px;">操作</th>
           </tr></thead>
           <tbody id="cross-sales-tbody"></tbody>
@@ -3899,6 +3901,21 @@ function getCrossSalesRankData() {
   return arr;
 }
 
+// 全组合计（忽略组别筛选，始终统计所有组的第二单金额与单数）
+function getCrossSalesGrandTotal() {
+  let filtered = [];
+  if (crossSalesRankMode === 'day') {
+    filtered = crossSalesData.filter(r => r.record_date === crossSalesDate);
+  } else {
+    const monthPrefix = crossSalesDate.slice(0, 7);
+    filtered = crossSalesData.filter(r => r.record_date && r.record_date.startsWith(monthPrefix));
+  }
+  const count = filtered.length;
+  const secondAmount = filtered.reduce((s, r) => s + Number(r.second_amount || 0), 0);
+  const firstAmount = filtered.reduce((s, r) => s + Number(r.first_amount || 0), 0);
+  return { count, secondAmount, firstAmount, totalAmount: firstAmount + secondAmount };
+}
+
 // 最终用于渲染的明细行（含普通客服仅看本组的过滤），render 与「加载更多」共用
 function getCSDisplayRows() {
   const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
@@ -4019,6 +4036,20 @@ function renderCrossSales() {
     }
   }
 
+  // 全组合计汇总（忽略组别筛选，始终统计所有组）
+  const sumEl = document.getElementById('cross-sales-rank-summary');
+  if (sumEl) {
+    const g = getCrossSalesGrandTotal();
+    const scope = crossSalesRankMode === 'day' ? formatDateShort(crossSalesDate) : (crossSalesDate.slice(0, 7) + ' 全月');
+    sumEl.innerHTML =
+      `📊 <strong>全组合计（${scope}）</strong>` +
+      `<span style="margin-left:6px;">共 <strong>${g.count}</strong> 笔</span>` +
+      `<span style="color:var(--text-secondary);">·</span>` +
+      `<span>第二单金额 <strong style="color:var(--primary);font-size:16px;">¥${g.secondAmount.toLocaleString()}</strong></span>` +
+      `<span style="color:var(--text-secondary);">·</span>` +
+      `<span>第一单金额 <strong style="color:var(--text);font-size:16px;">¥${g.firstAmount.toLocaleString()}</strong></span>`;
+  }
+
   // 聚焦面板
   renderCSFocusPanel();
 
@@ -4093,6 +4124,8 @@ function csRowHtml(r, isAdminOrLeader) {
   const tc = teamColor(r.team);
   const tcSafe = tc.startsWith('#') ? tc : '#6366f1';   // 团队色（未知组回退）
   const tcBg = tcSafe + '1a';                            // 浅色底，用于客服名背景
+  const sc = csColorForValue(r.staff_name);             // 客服名按值着色（不同客服不同颜色）
+  const scBg = sc + '22';
   const key = (r.record_date || '') + '|' + (r.first_order_no || '') + '|' + (r.second_order_no || '');
   const isDup = csLocateDup && (_csDupGroupMap[key] > 1);
   const dupBadge = isDup ? '<span class="cs-dup-badge" title="重复记录：同一天 + 同一组订单号重复">🔴重复</span>' : '';
@@ -4107,7 +4140,7 @@ function csRowHtml(r, isAdminOrLeader) {
       </td>
       <td style="padding:4px;white-space:nowrap;">
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${tcSafe};margin-right:5px;vertical-align:middle;" title="${escapeHtml(r.team || '未分组')}"></span>
-        <input data-field="staff_name" value="${escapeHtml(r.staff_name || '')}" readonly style="width:64px;padding:4px 6px;border:1px solid ${tcSafe};border-radius:4px;font-size:12px;background:${tcBg};color:${tcSafe};font-weight:700;">
+        <input data-field="staff_name" value="${escapeHtml(r.staff_name || '')}" readonly style="width:64px;padding:4px 6px;border:1px solid ${sc};border-radius:4px;font-size:12px;background:${scBg};color:${sc};font-weight:700;" title="${escapeHtml(r.staff_name || '')}">
       </td>
       <td style="padding:4px;">
         <select data-field="product_type" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;color:var(--text);font-weight:600;" data-cs-color-init>
@@ -4124,6 +4157,7 @@ function csRowHtml(r, isAdminOrLeader) {
       <td style="padding:4px;"><input type="number" data-field="first_amount" value="${r.first_amount || ''}" step="0.01" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;"><input type="number" data-field="second_amount" value="${r.second_amount || ''}" data-orig="${r.second_amount || ''}" step="0.01" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;"><input type="number" data-field="total_amount" value="${((Number(r.first_amount)||0)+(Number(r.second_amount)||0)) > 0 ? ((Number(r.first_amount)||0)+(Number(r.second_amount)||0)).toFixed(2) : ''}" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
+      <td style="padding:4px;"><input type="text" data-field="notes" value="${escapeHtml(r.notes || '')}" onblur="autoSaveCSRow(this)" placeholder="特殊情况说明" style="width:140px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="text-align:center;padding:4px;">
         ${(isAdminOrLeader || r.staff_name === staffName) ? `<button class="btn-sm outline" onclick="deleteCrossSalesRecord(${r.id}, '${escapeHtml(r.staff_name || '')}')" style="padding:2px 8px;font-size:11px;">🗑️</button>` : '-'}
       </td>
@@ -4179,10 +4213,11 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader, append, show
       <td style="text-align:center;padding:10px;">¥${totalFirst.toLocaleString()}</td>
       <td style="text-align:center;padding:10px;">¥${totalSecond.toLocaleString()}</td>
       <td style="text-align:center;padding:10px;">¥${totalAll.toLocaleString()}</td>
+      <td style="padding:10px;font-size:12px;color:var(--text-secondary);"></td>
       <td></td>
     </tr>
     <tr data-cs-foot="controls">
-      <td colspan="12" style="padding:10px;background:#f8f8f8;border-top:1px dashed var(--border);">
+      <td colspan="13" style="padding:10px;background:#f8f8f8;border-top:1px dashed var(--border);">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <span style="font-size:13px;color:var(--text-secondary);">📝 填写后自动保存，无需点保存。</span>
           <input type="number" id="cs-add-rows-count" value="10" min="1" max="500" style="width:60px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;">
@@ -4202,7 +4237,7 @@ function renderCrossSalesEditableRows(tbody, rows, isAdminOrLeader, append, show
   if (rows.length > CS_PAGE_SIZE) {
     html += `
       <tr data-cs-foot="pager">
-        <td colspan="12" style="padding:8px 10px;background:#fafafa;border-top:1px solid var(--border);">
+        <td colspan="13" style="padding:8px 10px;background:#fafafa;border-top:1px solid var(--border);">
           <span class="cs-pager-text" style="font-size:12px;color:var(--text-secondary);"></span>
           <button class="cs-pager-more btn-sm outline" onclick="loadMoreCsRows()" style="margin-left:10px;font-size:12px;"></button>
           <button class="cs-pager-all btn-sm outline" onclick="loadAllCsRows()" style="margin-left:6px;font-size:12px;color:#16a34a;font-weight:600;">显示全部</button>
@@ -4341,6 +4376,8 @@ function createBlankCsRow(staffName, team, dateVal) {
   const tr = document.createElement('tr');
   tr.setAttribute('data-new', 'true');
   tr.setAttribute('data-team', team);
+  const sc = csColorForValue(staffName);
+  const scBg = sc + '22';
   tr.innerHTML = `
       <td style="padding:4px;text-align:center;"><input type="checkbox" disabled style="opacity:0;cursor:default;"></td>
       <td style="padding:4px;"><input type="date" data-field="record_date" value="${dateVal}" onchange="autoSaveCSRow(this)" style="width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
@@ -4349,7 +4386,7 @@ function createBlankCsRow(staffName, team, dateVal) {
           ${csOptionHtml('shop', '', team)}
         </select>
       </td>
-      <td style="padding:4px;"><input data-field="staff_name" value="${escapeHtml(staffName)}" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
+      <td style="padding:4px;"><input data-field="staff_name" value="${escapeHtml(staffName)}" readonly style="width:70px;padding:4px 6px;border:1px solid ${sc};border-radius:4px;font-size:12px;background:${scBg};color:${sc};font-weight:700;" title="${escapeHtml(staffName)}"></td>
       <td style="padding:4px;">
         <select data-field="product_type" onchange="applySelectColor(this);autoSaveCSRow(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff;" data-cs-color-init>
           ${csOptionHtml('product_type', '', team)}
@@ -4365,6 +4402,7 @@ function createBlankCsRow(staffName, team, dateVal) {
       <td style="padding:4px;"><input type="number" data-field="first_amount" step="0.01" placeholder="0" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;"><input type="number" data-field="second_amount" step="0.01" placeholder="0" oninput="updateCSRowTotal(this)" onblur="autoSaveCSRow(this)" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="padding:4px;"><input type="number" data-field="total_amount" readonly style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg);color:var(--text-secondary);"></td>
+      <td style="padding:4px;"><input type="text" data-field="notes" placeholder="备注" onblur="autoSaveCSRow(this)" style="width:140px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></td>
       <td style="text-align:center;padding:4px;"><button class="btn-sm outline" onclick="this.closest('tr').remove()" style="padding:2px 8px;font-size:11px;">🗑️</button></td>
     `;
   // 预选上次记忆的 店铺/产品类型/第一单状态，减少重复操作
@@ -5275,6 +5313,7 @@ function readCSRow(tr) {
     first_amount: firstAmount,
     second_amount: secondAmount,
     total_amount: firstAmount + secondAmount,
+    notes: getVal('notes'),
     qc_confirmed: !!tr.querySelector('[data-field="qc_confirmed"]')?.checked,
     team: tr.dataset.team || currentProfile?.group_name || 'A组',
   };
@@ -5947,6 +5986,7 @@ function exportCrossSalesExcel() {
     '第一单金额': Number(r.first_amount || 0),
     '第二单金额': Number(r.second_amount || 0),
     '合计金额': Number(r.first_amount || 0) + Number(r.second_amount || 0),
+    '备注': r.notes || '',
     '质检确认': r.qc_confirmed ? '是' : '否',
   }));
 
