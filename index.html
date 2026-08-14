@@ -1549,6 +1549,9 @@ body {
           <button class="cs-opt-type" data-opt-type="product_type" onclick="switchCsOptionsTab('product_type')">📦 产品类型</button>
           <button class="cs-opt-type" data-opt-type="order_status" onclick="switchCsOptionsTab('order_status')">📌 第一单状态</button>
         </div>
+        <div id="cs-opt-copy-hint" style="display:none;margin:0 0 10px;font-size:12px;color:var(--text-secondary);background:var(--bg);padding:8px 10px;border-radius:6px;line-height:1.5;">
+          当前组为空。若 A/B/C 组需要与通用保持一致，可点击下方「从通用复制」；只想用本组独立选项则忽略此提示。
+        </div>
         <div id="cs-options-list" class="cs-opt-list"></div>
         <div class="cs-opt-addrow">
           <input type="color" id="cs-option-new-color" value="#6366f1" title="选项颜色">
@@ -3108,50 +3111,49 @@ async function loadCrossSalesOptions() {
       }
     });
 
-    // 首次加载且数据库为空时，自动填充默认选项（仅第一次）
+    // 首次加载且数据库为空时，只在「通用」组填充示例模板（仅第一次）
+    // A/B/C 组保持独立、初始为空，由管理员按组自行维护
     if (csOptionsFirstLoad) {
       csOptionsFirstLoad = false;
       const defaultOptions = {
         shop: [
-          { value: '淘宝官方旗舰店', color: '#ff6b6b' },
-          { value: '京东旗舰店', color: '#4ecdc4' },
-          { value: '抖音直播间', color: '#1a1a2e' },
-          { value: '小红书店铺', color: '#ff8b94' },
-          { value: '拼多多旗舰店', color: '#e67e22' }
+          { value: '淘宝官方旗舰店', color: '#dc2626' },
+          { value: '京东旗舰店', color: '#ea580c' },
+          { value: '抖音直播间', color: '#d97706' },
+          { value: '小红书店铺', color: '#db2777' },
+          { value: '拼多多旗舰店', color: '#16a34a' }
         ],
         product_type: [
-          { value: '日抛', color: '#3498db' },
-          { value: '月抛', color: '#9b59b6' },
-          { value: '半年抛', color: '#2ecc71' },
-          { value: '年抛', color: '#f1c40f' },
-          { value: '护理液', color: '#1abc9c' },
-          { value: '伴侣盒', color: '#95a5a6' }
+          { value: '日抛', color: '#2563eb' },
+          { value: '月抛', color: '#7c3aed' },
+          { value: '半年抛', color: '#059669' },
+          { value: '年抛', color: '#ca8a04' },
+          { value: '护理液', color: '#0891b2' },
+          { value: '伴侣盒', color: '#64748b' }
         ],
         order_status: [
-          { value: '已付款', color: '#27ae60' },
-          { value: '待付款', color: '#e74c3c' },
-          { value: '已发货', color: '#2980b9' },
-          { value: '已完成', color: '#8e44ad' },
-          { value: '退款中', color: '#7f8c8d' }
+          { value: '已付款', color: '#16a34a' },
+          { value: '待付款', color: '#dc2626' },
+          { value: '已发货', color: '#0284c7' },
+          { value: '已完成', color: '#9333ea' },
+          { value: '退款中', color: '#64748b' }
         ]
       };
       const labels = { shop: '店铺', product_type: '产品类型', order_status: '第一单状态' };
-      const teams = ['default', 'A组', 'B组', 'C组'];
-      for (const team of teams) {
-        if (!map[team]) map[team] = { shop: [], product_type: [], order_status: [] };
-        for (const [key, list] of Object.entries(defaultOptions)) {
-          if (!map[team][key] || map[team][key].length === 0) {
-            const normalizedList = csEnsureDistinctColors(list.map(csNormalizeOption));
-            map[team][key] = normalizedList;
-            try {
-              const upsertPromise = supabase.from('option_templates')
-                .upsert({ key, team, label: labels[key], options: normalizedList, updated_at: new Date().toISOString() }, { onConflict: 'key,team' });
-              if (upsertPromise && typeof upsertPromise.catch === 'function') {
-                upsertPromise.catch(e => console.warn('默认选项保存失败:', e && e.message ? e.message : e));
-              }
-            } catch (e) {
-              console.warn('默认选项保存失败:', e && e.message ? e.message : e);
+      const team = 'default';
+      if (!map[team]) map[team] = { shop: [], product_type: [], order_status: [] };
+      for (const [key, list] of Object.entries(defaultOptions)) {
+        if (!map[team][key] || map[team][key].length === 0) {
+          const normalizedList = csEnsureDistinctColors(list.map(csNormalizeOption));
+          map[team][key] = normalizedList;
+          try {
+            const upsertPromise = supabase.from('option_templates')
+              .upsert({ key, team, label: labels[key], options: normalizedList, updated_at: new Date().toISOString() }, { onConflict: 'key,team' });
+            if (upsertPromise && typeof upsertPromise.catch === 'function') {
+              upsertPromise.catch(e => console.warn('默认选项保存失败:', e && e.message ? e.message : e));
             }
+          } catch (e) {
+            console.warn('默认选项保存失败:', e && e.message ? e.message : e);
           }
         }
       }
@@ -3166,11 +3168,10 @@ async function loadCrossSalesOptions() {
   } catch(e) { console.error('选项模板加载异常:', e); }
 }
 
-// 取某组某类型的选项，没有则回退 default
+// 取某组某类型的选项，严格按组隔离，不再回退 default
 function csOptionsFor(team, key) {
   const t = team || 'default';
-  if (csOptions[t] && csOptions[t][key] && csOptions[t][key].length > 0) return csOptions[t][key];
-  return csOptions.default?.[key] || [];
+  return csOptions[t]?.[key] || [];
 }
 
 // 为没有颜色的选项值生成稳定颜色（相同字符串永远得到同一颜色）
@@ -3325,10 +3326,16 @@ function hexToRgba(hex, alpha) {
 
 function renderCsOptionsList() {
   const wrap = document.getElementById('cs-options-list');
+  const hint = document.getElementById('cs-opt-copy-hint');
   if (!wrap) return;
   const list = csOptionsFor(csOptionManageTeam, csOptionManageType);
+  const isDefault = csOptionManageTeam === 'default';
+  if (hint) hint.style.display = (!isDefault && list.length === 0) ? 'block' : 'none';
   if (list.length === 0) {
-    wrap.innerHTML = '<div style="width:100%;text-align:center;padding:28px 12px;color:var(--text-muted);font-size:13px;">暂无选项，请在下方添加</div>';
+    const copyBtn = !isDefault
+      ? `<button class="btn-sm outline" onclick="copyCsOptionsFromDefault()" style="margin-top:10px;">📋 从通用复制</button>`
+      : '';
+    wrap.innerHTML = `<div style="width:100%;text-align:center;padding:28px 12px;color:var(--text-muted);font-size:13px;">暂无选项，请在下方添加${copyBtn}</div>`;
     return;
   }
   wrap.innerHTML = list.map((item, i) => {
@@ -3429,6 +3436,21 @@ async function updateCsOptionColor(idx, color) {
   const ok = await saveCsOptions(list);
   if (!ok) return;
   renderCsOptionsList();
+}
+
+// 把通用组的选项复制到当前组，复制后两组成独立副本，互不影响
+async function copyCsOptionsFromDefault() {
+  if (csOptionManageTeam === 'default') { showToast('⚠️ 当前已是通用组'); return; }
+  const source = csOptionsFor('default', csOptionManageType);
+  if (source.length === 0) { showToast('⚠️ 通用组暂无该类型选项，请先配置'); return; }
+  if (!confirm(`确定把「通用」的 ${source.length} 个选项复制到 ${csOptionManageTeam}？\n复制后两组可独立编辑，互不影响。`)) return;
+  const newList = normalizeCsOptionList(source).map(o => ({ value: o.value, color: o.color || csColorForValue(o.value) }));
+  const ok = await saveCsOptions(newList);
+  if (!ok) return;
+  showToast(`✅ 已复制 ${newList.length} 个选项到 ${csOptionManageTeam}`);
+  renderCsOptionsList();
+  // 连带成交页若打开则刷新下拉
+  if (currentPage === 'cross-sales' && !document.activeElement?.closest('#cross-sales-tbody')) renderCrossSales();
 }
 
 // 统一把字符串数组转成 {value, color} 对象数组
