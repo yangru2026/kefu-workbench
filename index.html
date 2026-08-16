@@ -2380,7 +2380,8 @@ body {
 // ==================== SUPABASE CONFIG ====================
 const SUPABASE_URL = 'https://ienmejlxukhrxjjxvfqf.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_emFn7uMsZYdIk0lmLCxP3A_2V4gL68s';
-supabase = null;
+// 若 Supabase 库已内联加载，则直接使用；否则后续 waitForSupabaseLib 会兜底赋值
+var supabase = window.supabase || null;
 let currentUser = null;
 let currentProfile = null;
 
