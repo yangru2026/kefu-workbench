@@ -1825,8 +1825,6 @@ body {
       <h3 style="margin-bottom:14px;">🎙 录入客户原话 <span style="font-size:12px;color:var(--text-secondary);font-weight:normal;">（原封不动，一字不改不加工）</span></h3>
       <textarea id="voc-raw" rows="5" placeholder="把客户原话原封不动地粘贴 / 录入到这里，例如：&#10;“你们这个美瞳我戴着有点磨眼睛，但是颜色真的好看，就是想问问有没有更舒服的材质”" oninput="onVOCRawInput();saveVOCDraft();" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;resize:vertical;line-height:1.6;"></textarea>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;">
-        <button class="btn-sm primary" onclick="parseVOCAndFill()" style="padding:8px 16px;">⚡ 一键解析</button>
-        <button class="btn-sm outline" onclick="openVOCBatch()" style="padding:8px 16px;">📋 批量粘贴</button>
         <span style="font-size:12px;color:var(--text-secondary);">自动识别「来源场景 / 品牌 / 主题」，识别不准可手动改</span>
       </div>
       <div id="voc-parse-hits" style="margin-top:8px;display:none;"></div>
