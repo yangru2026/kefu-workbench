@@ -1795,11 +1795,17 @@ body {
     <!-- 录入原声 -->
     <div class="card" style="margin-bottom:20px;">
       <h3 style="margin-bottom:14px;">🎙 录入客户原话 <span style="font-size:12px;color:var(--text-secondary);font-weight:normal;">（原封不动，一字不改不加工）</span></h3>
-      <textarea id="voc-raw" rows="5" placeholder="把客户原话原封不动地粘贴 / 录入到这里，例如：&#10;“你们这个美瞳我戴着有点磨眼睛，但是颜色真的好看，就是想问问有没有更舒服的材质”" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;resize:vertical;line-height:1.6;"></textarea>
+      <textarea id="voc-raw" rows="5" placeholder="把客户原话原封不动地粘贴 / 录入到这里，例如：&#10;“你们这个美瞳我戴着有点磨眼睛，但是颜色真的好看，就是想问问有没有更舒服的材质”" oninput="onVOCRawInput()" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;resize:vertical;line-height:1.6;"></textarea>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;">
+        <button class="btn-sm primary" onclick="parseVOCAndFill()" style="padding:8px 16px;">⚡ 一键解析</button>
+        <button class="btn-sm outline" onclick="openVOCBatch()" style="padding:8px 16px;">📋 批量粘贴</button>
+        <span style="font-size:12px;color:var(--text-secondary);">自动识别「来源场景 / 品牌 / 主题」，识别不准可手动改</span>
+      </div>
+      <div id="voc-parse-hits" style="margin-top:8px;display:none;"></div>
       <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-top:12px;">
         <div>
           <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">来源场景</label>
-          <select id="voc-scene" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
+          <select id="voc-scene" onchange="vocManualEdit=true" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
             <option value="">未分类</option>
             <option>抖音客服</option>
             <option>天猫客服</option>
@@ -1814,7 +1820,7 @@ body {
         </div>
         <div>
           <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">品牌</label>
-          <select id="voc-brand" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
+          <select id="voc-brand" onchange="vocManualEdit=true" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
             <option value="">未分类</option>
             <option>弥生</option>
             <option>极氧</option>
@@ -1822,7 +1828,7 @@ body {
         </div>
         <div>
           <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">主题</label>
-          <select id="voc-topic" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
+          <select id="voc-topic" onchange="vocManualEdit=true" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
             <option value="">未分类</option>
             <option>产品建议</option>
             <option>价格反馈</option>
@@ -9686,6 +9692,25 @@ init();
   </div>
 </div>
 
+<!-- 客户之声 · 批量粘贴解析 -->
+<div id="voc-batch-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;max-width:840px;width:94%;max-height:90vh;display:flex;flex-direction:column;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <div style="font-size:18px;font-weight:800;color:var(--text);">📋 批量粘贴客户原话</div>
+      <span style="flex:1;"></span>
+      <button class="btn-sm outline" onclick="closeVOCBatch()">✕ 关闭</button>
+    </div>
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;">每行一条 / 空行分隔；支持「1. 」「①」编号或「[日期]」开头自动拆分。粘贴后点「解析拆分」，逐条自动打标，可手动调整，最后「全部保存」。</div>
+    <textarea id="voc-batch-raw" rows="6" placeholder="把多条客户原话粘贴到这里，例如：&#10;抖音的弥生戴久了有点干，颜色好看&#10;小红书买的极氧太贵了&#10;1. 淘宝的弥生磨眼睛&#10;2. 拼多多极氧发货好慢" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;resize:vertical;line-height:1.6;"></textarea>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 6px;align-items:center;">
+      <button class="btn-sm primary" onclick="runVOCBatchParse()">⚡ 解析拆分</button>
+      <button class="btn-sm outline" onclick="saveVOCBatch()">💾 全部保存</button>
+      <span id="voc-batch-count" style="font-size:12px;color:var(--text-secondary);"></span>
+    </div>
+    <div id="voc-batch-preview" style="flex:1;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:10px;background:#fafbfa;display:none;"></div>
+  </div>
+</div>
+
 <!-- ==================== 客户之声 (VOC) ==================== -->
 <script>
 let vocData = [];
@@ -9787,6 +9812,251 @@ function showVOCReminder(count, remain, sh) {
 function closeVOCReminder() {
   const m = document.getElementById('voc-reminder-modal');
   if (m) m.style.display = 'none';
+}
+
+// ===== 客户之声 一键自动解析引擎（本地关键词规则，零成本/离线/可手动改）=====
+const VOC_PARSE = {
+  brand: {
+    '弥生': ['弥生', 'mison', '米生', '猕生'],
+    '极氧': ['极氧', 'jiyang', '极阳', '极洋', '基氧']
+  },
+  scene: {
+    '抖音客服': ['抖音', 'douyin', '抖店'],
+    '天猫客服': ['天猫', 'tmall'],
+    '淘宝客服': ['淘宝', 'taobao'],
+    '拼多多客服': ['拼多多', '拼夕夕', 'pdd', '多多'],
+    '京东客服': ['京东', 'jingdong', 'jd'],
+    '小红书客服': ['小红书', '薯', 'redbook', 'xhs'],
+    '快手客服': ['快手', 'kuaishou', 'ks'],
+    '微信客服': ['微信', '微店', '朋友圈', 'wechat', '社群', '群里', '群聊']
+  },
+  // 未命中平台关键词时，按 A/B/C 组别兜底推断
+  sceneFallbackByTeam: { 'A': '抖音客服', 'B': '拼多多客服', 'C': '天猫客服' },
+  // 主题：按命中关键词加权打分，取最高分；每个关键词权重 w
+  topic: {
+    '使用问题': { w: 3, k: ['磨眼睛', '磨眼', '干涩', '异物感', '红血丝', '发炎', '过敏', '刺痛', '不舒服', '戴不上', '取不下来', '怎么戴', '佩戴', '滑片', '模糊', '看不清', '晕', '晕眩', '度数', '基弧', '直径', '透氧', '护理', '清洗', '蛋白', '镜片', '掉色', '不贴合', '眼干', '眼红'] },
+    '价格反馈': { w: 2, k: ['价格', '贵', '便宜', '划算', '优惠', '降价', '性价比', '不值', '促销', '活动价', '价位', '折扣', '满减', '太贵', '买不起'] },
+    '物流吐槽': { w: 2, k: ['物流', '快递', '发货', '到货', '收货', '配送', '顺丰', '邮政', 'ems', '运单', '包裹', '还没收到', '迟迟', '发货慢', '到货慢'] },
+    '竞品对比': { w: 2, k: ['对比', '比起', '竞品', '别家', '其他牌子', '别的品牌', '海昌', '博士伦', '强生', '可啦啦', 'moody', '可糖', '视客', '相比'] },
+    '好评夸夸': { w: 2, k: ['好看', '满意', '喜欢', '漂亮', '舒服', '回购', '推荐', '自然', '绝了', '爱了', '夸', '赞', '好评', '惊艳', '显白', '水润', '太喜欢', '真的好', '超爱'] },
+    '投诉吐槽': { w: 2, k: ['投诉', '差评', '垃圾', '退货', '退款', '后悔', '失望', '骗', '虚假', '假货', '气死', '无语', '吐槽', '坑', '态度', '敷衍', '烂', '恶心', '气愤'] },
+    '产品建议': { w: 2, k: ['建议', '希望', '要是能', '能不能出', '出新款', '花色', '颜色', '款式', '设计', '想要', '增加', '上架', '出个', '多来', '期待', '出一款', '多些', '改进'] }
+  }
+};
+
+// 解析单条客户原话，返回 {brand, scene, topic, hits}
+function parseVOC(text, team) {
+  const t = String(text || '').toLowerCase();
+  const hits = { brand: [], scene: [], topic: [] };
+  let brand = '', scene = '', topic = '';
+
+  // 品牌
+  let bestBrand = '', bestBrandScore = 0;
+  for (const [label, kws] of Object.entries(VOC_PARSE.brand)) {
+    let score = 0; const found = [];
+    for (const kw of kws) { if (t.includes(kw.toLowerCase())) { score += 1; found.push(kw); } }
+    if (score > bestBrandScore) { bestBrandScore = score; bestBrand = label; hits.brand = found; }
+  }
+  brand = bestBrand; // '' 表示未分类
+
+  // 场景
+  let bestScene = '', bestSceneScore = 0;
+  for (const [label, kws] of Object.entries(VOC_PARSE.scene)) {
+    let score = 0; const found = [];
+    for (const kw of kws) { if (t.includes(kw.toLowerCase())) { score += 1; found.push(kw); } }
+    if (score > bestSceneScore) { bestSceneScore = score; bestScene = label; hits.scene = found; }
+  }
+  if (bestScene) scene = bestScene;
+  else if (team) {
+    for (const [k, v] of Object.entries(VOC_PARSE.sceneFallbackByTeam)) {
+      if (team.includes(k)) { scene = v; hits.scene = ['(按组别 ' + team + ' 推断)']; break; }
+    }
+  }
+  // '' 表示未分类（匹配 select 的 value=""）
+
+  // 主题（加权取最高）
+  let bestTopic = '', bestTopicScore = 0;
+  for (const [label, cfg] of Object.entries(VOC_PARSE.topic)) {
+    let score = 0; const found = [];
+    for (const kw of cfg.k) { if (t.includes(kw.toLowerCase())) { score += cfg.w; found.push(kw); } }
+    if (score > bestTopicScore) { bestTopicScore = score; bestTopic = label; hits.topic = found; }
+  }
+  topic = bestTopic || '其他';
+
+  return { brand, scene, topic, hits };
+}
+
+// ===== 单条一键解析 UI =====
+let vocManualEdit = false;     // 用户手动改过下拉后，停止自动覆盖
+let vocParseTimer = null;
+
+function onVOCRawInput() {
+  clearTimeout(vocParseTimer);
+  vocParseTimer = setTimeout(() => {
+    const ta = document.getElementById('voc-raw');
+    const raw = (ta && ta.value || '').trim();
+    if (raw.length < 4) { hideVOCParseHits(); return; }
+    if (vocManualEdit) return; // 用户已手动改过，不再自动覆盖
+    const team = (currentProfile && currentProfile.group_name) || '';
+    const res = parseVOC(raw, team);
+    const s = document.getElementById('voc-scene'); if (s) s.value = res.scene;
+    const b = document.getElementById('voc-brand'); if (b) b.value = res.brand;
+    const tp = document.getElementById('voc-topic'); if (tp) tp.value = res.topic;
+    showVOCParseHits(res, true);
+  }, 600);
+}
+
+function parseVOCAndFill() {
+  const ta = document.getElementById('voc-raw');
+  const raw = (ta && ta.value || '').trim();
+  if (!raw) { showToast('⚠️ 请先录入客户原话再解析'); if (ta) ta.focus(); return; }
+  const team = (currentProfile && currentProfile.group_name) || '';
+  const res = parseVOC(raw, team);
+  const s = document.getElementById('voc-scene'); if (s) s.value = res.scene;
+  const b = document.getElementById('voc-brand'); if (b) b.value = res.brand;
+  const tp = document.getElementById('voc-topic'); if (tp) tp.value = res.topic;
+  vocManualEdit = false; // 主动解析后允许后续自动覆盖
+  showVOCParseHits(res, false);
+}
+
+function showVOCParseHits(res, isAuto) {
+  const box = document.getElementById('voc-parse-hits');
+  if (!box) return;
+  const chip = (emoji, label, val, bg, color) =>
+    `<span class="voc-tag" style="background:${bg};color:${color};">${emoji} ${label}${val ? '：' + vocEsc(val) : ''}</span>`;
+  let html = `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">`;
+  html += chip('📍', '场景', res.scene || '未分类', '#eaf1fb', '#3a6ea5');
+  html += chip('🏷', '品牌', res.brand || '未分类', '#fdeefb', '#a64ca6');
+  html += chip('🏷', '主题', res.topic, '#f3eefb', '#7a4fb0');
+  html += `</div>`;
+  const parts = [];
+  if (res.hits.scene.length) parts.push('场景←' + res.hits.scene.join('、'));
+  if (res.hits.brand.length) parts.push('品牌←' + res.hits.brand.join('、'));
+  if (res.hits.topic.length) parts.push('主题←' + res.hits.topic.join('、'));
+  if (parts.length) {
+    html += `<div style="margin-top:6px;font-size:12px;color:var(--text-secondary);line-height:1.7;">🤖 识别依据：${parts.map(vocEsc).join(' ｜ ')}</div>`;
+  } else {
+    html += `<div style="margin-top:6px;font-size:12px;color:var(--text-secondary);">🤖 未命中关键词，已按默认/组别推断，可手动调整</div>`;
+  }
+  if (isAuto) html += `<div style="margin-top:4px;font-size:11px;color:#999;">（自动预解析，手动改动下拉后将不再自动覆盖）</div>`;
+  box.innerHTML = html;
+  box.style.display = '';
+}
+
+function hideVOCParseHits() {
+  const box = document.getElementById('voc-parse-hits');
+  if (box) { box.style.display = 'none'; box.innerHTML = ''; }
+}
+
+// ===== 批量粘贴解析与一键保存 =====
+const VOC_SCENE_OPTS = ['未分类', '抖音客服', '天猫客服', '淘宝客服', '拼多多客服', '京东客服', '小红书客服', '快手客服', '微信客服', '其他'];
+const VOC_BRAND_OPTS = ['未分类', '弥生', '极氧'];
+const VOC_TOPIC_OPTS = ['未分类', '产品建议', '价格反馈', '物流吐槽', '竞品对比', '使用问题', '好评夸夸', '投诉吐槽', '其他'];
+
+function vocOptHtml(opts, selected) {
+  let html = opts.map(o => `<option ${o === selected ? 'selected' : ''}>${vocEsc(o)}</option>`).join('');
+  if (selected && !opts.includes(selected)) html += `<option selected>${vocEsc(selected)}</option>`;
+  return html;
+}
+function vocSceneOptions(sel) { return vocOptHtml(VOC_SCENE_OPTS, sel || '未分类'); }
+function vocBrandOptions(sel) { return vocOptHtml(VOC_BRAND_OPTS, sel || '未分类'); }
+function vocTopicOptions(sel) { return vocOptHtml(VOC_TOPIC_OPTS, sel || '未分类'); }
+
+// 按行拆分多条；支持「1. 」「①」编号或「[日期]」开头自动去除前缀
+function vocSplitLines(text) {
+  const t = (text || '').trim();
+  if (!t) return [];
+  const numRe = /^(?:\d+[\.\)、]|[①②③④⑤⑥⑦⑧⑨⑩]\s*|\[\d{4}[-\/年]\d{1,2}[-\/月]\d{1,2}(?:日)?\]|\[\d{1,2}[-\/月]\d{1,2}(?:日)?\])\s*/;
+  const out = [];
+  t.split(/\r?\n/).map(s => s.trim()).filter(Boolean).forEach(line => {
+    line = line.replace(numRe, '').trim();
+    if (line) out.push(line);
+  });
+  return out;
+}
+
+let vocBatchItems = []; // {raw, scene, brand, topic}
+
+function openVOCBatch() {
+  const m = document.getElementById('voc-batch-modal');
+  if (m) m.style.display = 'flex';
+}
+function closeVOCBatch() {
+  const m = document.getElementById('voc-batch-modal');
+  if (m) m.style.display = 'none';
+}
+
+function runVOCBatchParse() {
+  const ta = document.getElementById('voc-batch-raw');
+  const raw = (ta && ta.value || '').trim();
+  if (!raw) { showToast('⚠️ 请先粘贴多条客户原话'); return; }
+  const team = (currentProfile && currentProfile.group_name) || '';
+  const lines = vocSplitLines(raw);
+  if (!lines.length) { showToast('⚠️ 未解析出任何内容'); return; }
+  vocBatchItems = lines.map(line => {
+    const r = parseVOC(line, team);
+    return { raw: line, scene: r.scene || '未分类', brand: r.brand || '未分类', topic: r.topic };
+  });
+  renderVOCBatchPreview();
+}
+
+function renderVOCBatchPreview() {
+  const wrap = document.getElementById('voc-batch-preview');
+  const cnt = document.getElementById('voc-batch-count');
+  if (!wrap) return;
+  if (!vocBatchItems.length) { wrap.style.display = 'none'; if (cnt) cnt.textContent = ''; return; }
+  wrap.style.display = '';
+  if (cnt) cnt.textContent = '共 ' + vocBatchItems.length + ' 条待保存';
+  wrap.innerHTML = vocBatchItems.map((it, i) => `
+    <div style="display:flex;gap:8px;align-items:flex-start;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff;margin-bottom:8px;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;line-height:1.6;color:var(--text);word-break:break-word;margin-bottom:6px;">${i + 1}. ${vocEsc(it.raw)}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <select data-batch="${i}" data-field="scene" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:12px;">${vocSceneOptions(it.scene)}</select>
+          <select data-batch="${i}" data-field="brand" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:12px;">${vocBrandOptions(it.brand)}</select>
+          <select data-batch="${i}" data-field="topic" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:12px;">${vocTopicOptions(it.topic)}</select>
+        </div>
+      </div>
+      <button class="voc-del" onclick="removeVOCBatchItem(${i})" title="删除">🗑</button>
+    </div>`).join('');
+  wrap.querySelectorAll('select[data-batch]').forEach(sel => {
+    sel.addEventListener('change', e => {
+      const idx = +e.target.getAttribute('data-batch');
+      const field = e.target.getAttribute('data-field');
+      if (vocBatchItems[idx]) vocBatchItems[idx][field] = e.target.value;
+    });
+  });
+}
+
+function removeVOCBatchItem(idx) {
+  vocBatchItems.splice(idx, 1);
+  renderVOCBatchPreview();
+}
+
+async function saveVOCBatch() {
+  if (!supabase) { showToast('⚠️ 系统未就绪'); return; }
+  if (!currentProfile && !currentUser) { showToast('⚠️ 请先登录'); return; }
+  if (!vocBatchItems.length) { showToast('⚠️ 请先解析拆分'); return; }
+  const missing = vocBatchItems.filter(it => !it.brand || !it.scene || !it.topic || it.brand === '未分类' || it.scene === '未分类' || it.topic === '未分类');
+  if (missing.length) { showToast('⚠️ 有 ' + missing.length + ' 条未填完整（品牌/场景/主题均必填）'); return; }
+  const name = (currentProfile && (currentProfile.name || currentProfile.real_name)) || (currentUser && currentUser.email) || '未知';
+  const team = (currentProfile && currentProfile.group_name) || '';
+  const recs = vocBatchItems.map(it => ({
+    raw_text: it.raw,
+    scene: it.scene === '未分类' ? '' : it.scene,
+    topic: it.topic === '未分类' ? '' : it.topic,
+    brand: it.brand === '未分类' ? '' : it.brand,
+    staff_name: name, team, customer_tag: '', record_month: vocMonthNow()
+  }));
+  try {
+    const { error } = await supabase.from('customer_voice').insert(recs).select();
+    if (error) { showToast('⚠️ 批量保存失败：' + error.message); return; }
+    showToast('✅ 已批量保存 ' + recs.length + ' 条客户原话');
+    vocBatchItems = [];
+    renderVOCBatchPreview();
+    closeVOCBatch();
+    loadVOCFromDB(true);
+  } catch (e) { showToast('⚠️ 批量保存异常'); console.error(e); }
 }
 
 async function loadVOCFromDB(force) {
@@ -9895,6 +10165,8 @@ async function submitVOC() {
     ta.value = '';
     const tagEl = document.getElementById('voc-tag'); if (tagEl) tagEl.value = '';
     const brandEl = document.getElementById('voc-brand'); if (brandEl) brandEl.value = '';
+    vocManualEdit = false;
+    hideVOCParseHits();
     loadVOCFromDB(true);
   } catch (e) { showToast('⚠️ 保存异常'); console.error(e); }
 }
