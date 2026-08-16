@@ -821,7 +821,10 @@ const WK_STATUS_TEXT = { done: '达标', near: '接近', failed: '未完成' };
 // 单条结果：rate=完成率(值/目标 或 目标/值)，status done/near/failed
 function wkMakeResult(label, value, unit, target, higherBetter) {
   const t = wkNum(target);
-  const rate = (t > 0 && value != null) ? (higherBetter ? (value / t) : (t / value)) : 0;
+  let rate = 0;
+  if (t > 0 && value != null && value > 0) {
+    rate = higherBetter ? (value / t) : (t / value);
+  }
   let status = 'failed';
   if (rate >= 1) status = 'done';
   else if (rate >= 0.98) status = 'near';
@@ -830,7 +833,7 @@ function wkMakeResult(label, value, unit, target, higherBetter) {
 }
 
 // 把原始数据(raw)按指标列表逐条算成结果数组
-// raw = { direct:{key:val}, shops:{店名:{i,p,sec,rounds}}, satisfaction:{good,bad}, reply:{total,in3} }
+// raw = { direct:{key:val}, shops:{店名:{i,p,sec}}, satisfaction:{good,bad}, reply:{total,in3} }
 function computeWeeklyResults(tpl, raw) {
   raw = raw || {};
   const direct = raw.direct || {};
@@ -841,12 +844,12 @@ function computeWeeklyResults(tpl, raw) {
   // 全平台合计：Σ付款 / Σ询单
   let totInq = 0, totPay = 0;
   (tpl.shops || []).forEach(s => { const d = shopsRaw[s] || {}; totInq += wkNum(d.i); totPay += wkNum(d.p); });
-  // 各店响应秒/轮次 → 用于「各店平均响应」
+  // 各店「响应秒数」直接就是该店平均响应，用于求「各店平均响应」
   const responseVals = [];
   (tpl.shops || []).forEach(s => {
     const d = shopsRaw[s] || {};
-    const sec = wkNum(d.sec), rounds = wkNum(d.rounds);
-    if (rounds > 0) responseVals.push(sec / rounds);
+    const sec = wkNum(d.sec);
+    if (sec > 0) responseVals.push(sec);
   });
 
   const results = [];
@@ -872,8 +875,7 @@ function computeWeeklyResults(tpl, raw) {
       results.push(wkMakeResult(m.label, wkRound1(v), '%', m.target, true));
     } else if (m.type === 'response') {
       const d = shopsRaw[m.shop] || {};
-      const sec = wkNum(d.sec), rounds = wkNum(d.rounds);
-      const v = rounds > 0 ? (sec / rounds) : 0;
+      const v = wkNum(d.sec);
       results.push(wkMakeResult(m.label, wkRound1(v), m.unit || 's', m.target, false));
     } else if (m.type === 'avg_response') {
       const v = responseVals.length ? (responseVals.reduce((a, b) => a + b, 0) / responseVals.length) : 0;
@@ -953,23 +955,22 @@ function renderWeeklyForm(tpl, saved) {
     </div>`;
   }
 
-  // 2. 各店铺原始数据：询单/付款（转化用）；响应秒/轮次（有响应指标时采集，系统求各店平均）
+  // 2. 各店铺原始数据：询单/付款（转化用）；响应秒数（有响应指标时采集，系统求各店平均）
   if ((hasConversion || hasResponse) && (tpl.shops || []).length) {
-    html += wkSectionTitle('各店铺数据（询单人数 / 付款人数' + (hasResponse ? ' / 响应秒数 / 会话轮次' : '') + '）');
+    html += wkSectionTitle('各店铺数据（询单人数 / 付款人数' + (hasResponse ? ' / 响应秒数' : '') + '）');
     html += `<table class="ranking-table" style="min-width:520px;font-size:13px;border-collapse:collapse;">
-      <thead><tr><th style="text-align:left;padding:6px 8px;">店铺</th><th style="text-align:center;padding:6px 8px;">询单人数</th><th style="text-align:center;padding:6px 8px;">付款人数</th>${hasResponse ? '<th style="text-align:center;padding:6px 8px;">响应秒数</th><th style="text-align:center;padding:6px 8px;">会话轮次</th>' : ''}</tr></thead><tbody>`;
+      <thead><tr><th style="text-align:left;padding:6px 8px;">店铺</th><th style="text-align:center;padding:6px 8px;">询单人数</th><th style="text-align:center;padding:6px 8px;">付款人数</th>${hasResponse ? '<th style="text-align:center;padding:6px 8px;">响应秒数</th>' : ''}</tr></thead><tbody>`;
     (tpl.shops || []).forEach(s => {
       const d = shopsRaw[s] || {};
       html += `<tr>
         <td style="padding:6px 8px;font-weight:600;">${escapeHtml(s)}</td>
         <td style="padding:4px;text-align:center;"><input type="number" class="wk-raw" data-type="shop" data-shop="${escapeAttr(s)}" data-field="i" value="${d.i != null && d.i !== '' ? d.i : ''}" style="width:90px;padding:6px 4px;border:1px solid var(--border);border-radius:6px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
         <td style="padding:4px;text-align:center;"><input type="number" class="wk-raw" data-type="shop" data-shop="${escapeAttr(s)}" data-field="p" value="${d.p != null && d.p !== '' ? d.p : ''}" style="width:90px;padding:6px 4px;border:1px solid var(--border);border-radius:6px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
-        ${hasResponse ? `<td style="padding:4px;text-align:center;"><input type="number" class="wk-raw" data-type="shop" data-shop="${escapeAttr(s)}" data-field="sec" value="${d.sec != null && d.sec !== '' ? d.sec : ''}" style="width:90px;padding:6px 4px;border:1px solid var(--border);border-radius:6px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
-        <td style="padding:4px;text-align:center;"><input type="number" class="wk-raw" data-type="shop" data-shop="${escapeAttr(s)}" data-field="rounds" value="${d.rounds != null && d.rounds !== '' ? d.rounds : ''}" style="width:90px;padding:6px 4px;border:1px solid var(--border);border-radius:6px;text-align:center;background:var(--card-bg);color:var(--text);"></td>` : ''}
+        ${hasResponse ? `<td style="padding:4px;text-align:center;"><input type="number" class="wk-raw" data-type="shop" data-shop="${escapeAttr(s)}" data-field="sec" value="${d.sec != null && d.sec !== '' ? d.sec : ''}" style="width:90px;padding:6px 4px;border:1px solid var(--border);border-radius:6px;text-align:center;background:var(--card-bg);color:var(--text);"></td>` : ''}
       </tr>`;
     });
     html += `</tbody></table>`;
-    if (hasResponse) html += `<div style="font-size:12px;color:var(--text-secondary);">响应为「各店分别填写，系统自动求平均值」</div>`;
+    if (hasResponse) html += `<div style="font-size:12px;color:var(--text-secondary);">响应为「各店分别填写平均响应秒数，系统自动求各店平均值」</div>`;
   }
 
   // 3. 满意度
