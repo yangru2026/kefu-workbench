@@ -2668,6 +2668,7 @@ async function loadPatternsFromDB() {
     const { data, error } = await supabase
       .from('pattern_assets')
       .select('*')
+      .order('is_discontinued', { ascending: true })
       .order('sort_order', { ascending: false })
       .order('created_at', { ascending: false })
       .order('name', { ascending: true });
@@ -7445,8 +7446,11 @@ function renderPatterns() {
     );
   }
 
-  // 排序：先按手动排序权重降序，再按 created_at 降序（新款自然靠前），最后按名称
+  // 排序：下架花色永远排最后；其余先按手动排序权重降序，再按 created_at 降序（新款靠前），最后按名称
   items = [...items].sort((a, b) => {
+    const da = a.isDiscontinued ? 1 : 0;
+    const db = b.isDiscontinued ? 1 : 0;
+    if (da !== db) return da - db;
     const sa = (a.sortOrder || 0);
     const sb = (b.sortOrder || 0);
     if (sb !== sa) return sb - sa;
