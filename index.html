@@ -2668,8 +2668,8 @@ async function loadPatternsFromDB() {
     const { data, error } = await supabase
       .from('pattern_assets')
       .select('*')
-      .order('brand', { ascending: true })
-      .order('type', { ascending: true })
+      .order('sort_order', { ascending: false })
+      .order('created_at', { ascending: false })
       .order('name', { ascending: true });
     if (error) {
       console.error('花色素材加载失败:', error);
@@ -6229,6 +6229,7 @@ function buildPatternTree(flatData) {
       baseCurve: p.base_curve || '',
       fixedAxis: p.fixed_axis || '',
       createdAt: p.created_at || '',
+      sortOrder: typeof p.sort_order === 'number' ? p.sort_order : (parseInt(p.sort_order, 10) || 0),
       _id: p.id,
       _brand: p.brand,
       _type: p.type,
@@ -7444,8 +7445,11 @@ function renderPatterns() {
     );
   }
 
-  // 新款置顶：先复制数组再排序（避免修改原始树数据），按 created_at 降序排列
+  // 排序：先按手动排序权重降序，再按 created_at 降序（新款自然靠前），最后按名称
   items = [...items].sort((a, b) => {
+    const sa = (a.sortOrder || 0);
+    const sb = (b.sortOrder || 0);
+    if (sb !== sa) return sb - sa;
     const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
     const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
     if (tb !== ta) return tb - ta;
@@ -7548,20 +7552,39 @@ function renderPatterns() {
     window._patternRefs = window._patternRefs || {};
     window._patternRefs[pkey] = { brand: p._brand || patternBrand, type: p._type || patternType, _id: p._id, ...p };
 
+    // 新款标签：30天内添加的花色显示 🆕
+    const isNewPattern = (() => {
+      if (!p.createdAt) return false;
+      const created = new Date(p.createdAt).getTime();
+      if (isNaN(created)) return false;
+      return (Date.now() - created) < 30 * 24 * 60 * 60 * 1000; // 30天
+    })();
+    const newBadge = (!p.isDiscontinued && isNewPattern) ? `<div style="position:absolute;top:8px;right:8px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;z-index:2;box-shadow:0 1px 4px rgba(16,185,129,.4);">🆕 新款</div>` : '';
+
+    // 主参数行：抛型/色系/直径/基弧/定轴/状态标签
+    const metaTags = [];
+    if (p.isDiscontinued) metaTags.push('<span class="pcard-disc-tag">已下架</span>');
+    if (!p.isDiscontinued && isNewPattern) metaTags.push('<span style="color:#10b981;font-weight:600;">🆕 新款</span>');
+    metaTags.push('<span>' + escapeHtml(p._type || patternType || '') + '</span>');
+    if (p.color) metaTags.push('<span>' + escapeHtml(p.color) + '</span>');
+    if (p.diameter || p.colorDiameter) {
+      let d = '';
+      if (p.diameter) d += '直径' + escapeHtml(p.diameter);
+      if (p.diameter && p.colorDiameter) d += ' · ';
+      if (p.colorDiameter) d += '着色' + escapeHtml(p.colorDiameter);
+      metaTags.push('<span>' + d + '</span>');
+    }
+    if (p.baseCurve) metaTags.push('<span>基弧 ' + escapeHtml(p.baseCurve) + '</span>');
+    if (p.fixedAxis) metaTags.push('<span style="color:var(--primary);font-weight:600;">定轴</span>');
+    const metaTagsHtml = metaTags.join('');
+
+    // 次参数行：材质/透氧/含水/规格
     const specs = [];
     if (p.material) specs.push('<span class="pcard-spec-mini">' + escapeHtml(p.material) + '</span>');
-    if (p.diameter) specs.push('<span class="pcard-spec-mini">' + escapeHtml(p.diameter) + '</span>');
-    if (p.baseCurve) specs.push('<span class="pcard-spec-mini">基弧 ' + escapeHtml(p.baseCurve) + '</span>');
-    if (p.colorDiameter) specs.push('<span class="pcard-spec-mini">着色 ' + escapeHtml(p.colorDiameter) + '</span>');
     if (p.oxygen) specs.push('<span class="pcard-spec-mini">透氧 ' + escapeHtml(p.oxygen) + '</span>');
     if (p.water) specs.push('<span class="pcard-spec-mini">含水 ' + escapeHtml(p.water) + '</span>');
-    if (p.fixedAxis) {
-      const faText = String(p.fixedAxis);
-      const faDisplay = faText.startsWith('定轴') ? faText : '定轴 ' + faText;
-      specs.push('<span class="pcard-spec-mini" style="color:var(--primary);font-weight:600;">' + escapeHtml(faDisplay) + '</span>');
-    }
     if (p.spec) specs.push('<span class="pcard-spec-mini">' + escapeHtml(p.spec) + '</span>');
-    const specsHtml = specs.length ? specs.join('') : '';
+    const specsHtml = specs.length ? '<div class="pcard-meta-row" style="margin-top:4px;">' + specs.join('') + '</div>' : '';
 
     // Management buttons: show for admin or collaborators
     const canManage = canEdit('patterns');
@@ -7574,16 +7597,6 @@ function renderPatterns() {
       <button class="btn-del" title="删除" onclick="event.stopPropagation();deletePattern('${escapeAttr(p._id)}','${escapeAttr(p.name)}')">🗑️</button>
     </div>` : '';
     const discBadge = p.isDiscontinued ? `<div style="position:absolute;top:8px;left:8px;background:#d97706;color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;z-index:2;">已下架</div>` : '';
-    // 新款标签：30天内添加的花色显示 🆕
-    const isNewPattern = (() => {
-      if (!p.createdAt) return false;
-      const created = new Date(p.createdAt).getTime();
-      if (isNaN(created)) return false;
-      return (Date.now() - created) < 30 * 24 * 60 * 60 * 1000; // 30天
-    })();
-    const newBadge = (!p.isDiscontinued && isNewPattern) ? `<div style="position:absolute;top:8px;right:8px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;z-index:2;box-shadow:0 1px 4px rgba(16,185,129,.4);">🆕 新款</div>` : '';
-    const discMetaTag = p.isDiscontinued ? '<span class="pcard-disc-tag">已下架</span>' : '';
-    const newMetaTag = (!p.isDiscontinued && isNewPattern) ? '<span style="color:#10b981;font-weight:600;">🆕 新款</span>' : '';
     const nameStyle = p.isDiscontinued ? ' style="text-decoration:line-through;opacity:.65;"' : '';
 
     return `<div class="pattern-card"${p.isDiscontinued ? ' style="opacity:.7;"' : ''}>
@@ -7601,13 +7614,9 @@ function renderPatterns() {
           <span class="pcard-series">${escapeHtml(p.series || '')}</span>
         </div>
         <div class="pcard-meta-row">
-          ${discMetaTag}
-          ${newMetaTag}
-          ${p.fixedAxis ? '<span style="color:var(--primary);font-weight:600;">定轴</span>' : ''}
-          <span>${escapeHtml(p.color || '')}</span>
-          ${p.diameter ? '<span>' + escapeHtml(p.diameter) + '</span>' : ''}
-          ${specsHtml}
+          ${metaTagsHtml}
         </div>
+        ${specsHtml}
         <div class="pcard-script">
           ${escapeHtml(p.description || p.script || '暂无话术')}
           <button class="pcard-copy" onclick="copyPatternScript(this, '${escapeAttr(p.description || p.script || '')}')">📋 复制</button>
@@ -7731,8 +7740,9 @@ function openPatternEditor(pattern) {
   const isNew = !pattern;
   document.getElementById('mod-pattern-title').textContent = isNew ? '＋ 新增花色' : '✏️ 编辑花色';
   window._editPattern = pattern ? {
-    brand: pattern.brand, type: pattern.type, name: pattern.name, isNew: false, _id: pattern._id || null
-  } : { brand: '', type: '', name: '', isNew: true, _id: null };
+    brand: pattern.brand, type: pattern.type, name: pattern.name, isNew: false, _id: pattern._id || null,
+    sortOrder: pattern.sortOrder || 0
+  } : { brand: '', type: '', name: '', isNew: true, _id: null, sortOrder: 0 };
   window._editImages = [];
   if (!isNew && pattern) {
     // 优先用多图数组，回退到单个图片
@@ -7798,6 +7808,8 @@ function renderEditorForm(pattern) {
     + '<div class="modal-field"><label>透氧量</label><input id="ef-oxygen" value="' + escapeHtml(t.oxygen || '') + '" placeholder="100dk"></div></div>'
     + '<div class="modal-field-row"><div class="modal-field"><label>含水量</label><input id="ef-water" value="' + escapeHtml(t.water || '') + '" placeholder="58%"></div>'
     + '<div class="modal-field"><label>规格</label><input id="ef-spec" value="' + escapeHtml(t.spec || '') + '" placeholder="6片/盒"></div></div>'
+    + '<div class="modal-field-row"><div class="modal-field"><label>排序权重 <span style="font-weight:400;color:var(--text-muted);">(数字越大越靠前，0 为默认)</span></label><input id="ef-sortorder" type="number" min="0" step="1" value="' + (typeof b.sortOrder === 'number' ? b.sortOrder : (parseInt(b.sortOrder, 10) || 0)) + '" placeholder="0"></div>'
+    + '<div class="modal-field" style="display:flex;align-items:flex-end;padding-bottom:6px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;"><input type="checkbox" id="ef-pinned" ' + ((b.sortOrder || 0) > 0 ? 'checked' : '') + ' onchange="togglePinSortOrder()"> 🔝 置顶</label></div></div>'
     + '<div class="modal-field"><label>推荐话术</label><textarea id="ef-desc">' + escapeHtml(t.description || t.script || '') + '</textarea></div>'
     + '<div class="img-mgr"><h4>🖼️ 图片管理</h4><div class="img-mgr-grid" id="img-mgr-grid">' + imgsHtml + '</div>'
     + '<div class="img-add-row">'
@@ -7815,6 +7827,18 @@ function refreshSeriesDatalist() {
   const datalist = document.getElementById('ef-series-list');
   if (datalist) {
     datalist.innerHTML = allSeries.map(s => '<option value="' + escapeHtml(s) + '">').join('');
+  }
+}
+
+function togglePinSortOrder() {
+  const pinned = document.getElementById('ef-pinned')?.checked || false;
+  const input = document.getElementById('ef-sortorder');
+  if (!input) return;
+  if (pinned) {
+    const current = parseInt(input.value, 10) || 0;
+    if (current <= 0) input.value = '100';
+  } else {
+    input.value = '0';
   }
 }
 
@@ -7875,6 +7899,7 @@ async function savePattern() {
     oxygen: document.getElementById('ef-oxygen').value.trim(),
     water: document.getElementById('ef-water').value.trim(),
     spec: document.getElementById('ef-spec').value.trim(),
+    sort_order: parseInt(document.getElementById('ef-sortorder')?.value, 10) || 0,
     description: document.getElementById('ef-desc').value.trim(),
     eye_img: window._editImages.filter(i => i.type === 'eye').map(i => i.url)[0] || '',
     lens_img: window._editImages.filter(i => i.type === 'lens').map(i => i.url)[0] || '',
