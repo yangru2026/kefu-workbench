@@ -1048,37 +1048,35 @@ function renderWeeklyResult(content, meta) {
 
   const rows = results.map(r => `
     <tr>
-      <td style="padding:8px 10px;font-weight:600;font-size:13px;white-space:nowrap;">${escapeHtml(r.label)}</td>
-      <td style="padding:8px 10px;text-align:center;font-weight:700;font-size:14px;">${wkFmtNum(r.value)}${r.unit || ''}</td>
-      <td style="padding:8px 10px;text-align:center;font-size:13px;color:#666;">${wkFmtNum(r.target)}${r.unit || ''}</td>
-      <td style="padding:8px 10px;text-align:center;font-weight:700;font-size:13px;color:${WK_STATUS_COLOR[r.status]};">${Math.round(r.rate * 100)}%</td>
-      <td style="padding:8px 10px;text-align:center;font-size:12px;color:${WK_STATUS_COLOR[r.status]};">${WK_STATUS_TEXT[r.status]}</td>
+      <td style="padding:7px 10px;font-weight:600;font-size:12px;white-space:nowrap;">${escapeHtml(r.label)}</td>
+      <td style="padding:7px 10px;text-align:center;font-weight:700;font-size:13px;">${wkFmtNum(r.value)}${r.unit || ''}</td>
+      <td style="padding:7px 10px;text-align:center;font-size:12px;color:#666;">${wkFmtNum(r.target)}${r.unit || ''}</td>
+      <td style="padding:7px 10px;text-align:center;font-weight:700;font-size:12px;color:${WK_STATUS_COLOR[r.status]};">${Math.round(r.rate * 100)}%</td>
     </tr>`).join('');
 
   document.getElementById('weekly-result-area').innerHTML = `
-    <div style="max-width:760px;margin:0 auto;background:#edf5ff;border-radius:16px;padding:20px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#2d2d2d;line-height:1.5;">
-      <div class="weekly-screenshot-card" style="background:#fff;border-radius:12px;padding:20px 18px;border:1px solid #c8d8ea;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #f0eeeb;padding-bottom:12px;">
+    <div style="max-width:720px;margin:0 auto;background:#f5f0ff;border-radius:16px;padding:18px 14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#2d2d2d;line-height:1.5;">
+      <div class="weekly-screenshot-card" style="background:#fff;border-radius:12px;padding:18px 16px;border:1px solid #d4c8e8;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #ede8f7;padding-bottom:10px;">
           <div>
-            <div style="font-size:13px;color:#7a7a7a;">${rangeLabel}</div>
+            <div style="font-size:12px;color:#7a7190;">${rangeLabel}</div>
             <div style="font-size:16px;font-weight:700;color:#2d2d2d;">${escapeHtml(meta.name || '')} · ${escapeHtml(meta.group || '')} 周报</div>
           </div>
           <span style="font-size:11px;background:#7c6fae;color:#fff;padding:3px 12px;border-radius:10px;font-weight:600;">周报</span>
         </div>
         <table style="width:100%;border-collapse:collapse;">
-          <thead><tr style="background:#f5f6f8;font-size:12px;color:#666;">
-            <th style="text-align:left;padding:8px 10px;">指标</th>
-            <th style="text-align:center;padding:8px 10px;">结果</th>
-            <th style="text-align:center;padding:8px 10px;">目标</th>
-            <th style="text-align:center;padding:8px 10px;">完成率</th>
-            <th style="text-align:center;padding:8px 10px;">状态</th>
+          <thead><tr style="background:#f0ebfa;font-size:12px;color:#5f5878;">
+            <th style="text-align:left;padding:7px 10px;">指标</th>
+            <th style="text-align:center;padding:7px 10px;width:90px;">结果</th>
+            <th style="text-align:center;padding:7px 10px;width:80px;">目标</th>
+            <th style="text-align:center;padding:7px 10px;width:70px;">完成率</th>
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
-        ${content && content.notes ? `<div style="margin-top:14px;font-size:12px;color:#5a5a5a;background:#fcf7ef;padding:10px 12px;border-radius:8px;border-left:3px solid #c9a66b;">${escapeHtml(content.notes)}</div>` : ''}
-        <div style="margin-top:18px;display:flex;gap:10px;justify-content:center;">
+        ${content && content.notes ? `<div style="margin-top:12px;font-size:12px;color:#5a5a5a;background:#f8f5ff;padding:9px 12px;border-radius:8px;border-left:3px solid #b8a9d9;">${escapeHtml(content.notes)}</div>` : ''}
+        <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;">
           <button onclick="closeWeeklyForm()" style="padding:8px 22px;border-radius:8px;border:1px solid #d5d3d0;background:#f9f8f7;color:#666;font-size:14px;cursor:pointer;">返回</button>
-          <button onclick="copyWeeklyResult()" style="padding:8px 22px;border-radius:8px;border:none;background:#5a6d8a;color:#fff;font-size:14px;cursor:pointer;">📷 复制截图</button>
+          <button onclick="copyWeeklyResult()" style="padding:8px 22px;border-radius:8px;border:none;background:#7c6fae;color:#fff;font-size:14px;cursor:pointer;">📷 复制截图</button>
         </div>
       </div>
     </div>`;
@@ -1196,13 +1194,13 @@ function renderWeeklyReportCanvas(content, meta) {
   const results = computeWeeklyResults(tpl, (content && content.raw) || {});
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-  const W = 600;
-  const PAD = 20;
+  const W = 680;
+  const PAD = 18;
   const cardX = PAD, cardY = PAD, cardW = W - PAD * 2;
-  const colLabel = 200, colResult = 120, colTarget = 120;
+  const colLabel = 230, colResult = 100, colTarget = 100;
   const colRate = cardW - colLabel - colResult - colTarget;
-  const titleH = 54, thH = 34, rowH = 34;
-  const notesH = (content && content.notes) ? (Math.ceil(estimateWeeklyNotesWidth(content.notes) / (cardW - 24)) * 18 + 24) : 0;
+  const titleH = 48, thH = 30, rowH = 30;
+  const notesH = (content && content.notes) ? (Math.ceil(estimateWeeklyNotesWidth(content.notes) / (cardW - 28)) * 17 + 22) : 0;
   const H = PAD * 2 + titleH + thH + results.length * rowH + notesH + 10;
 
   const canvas = document.createElement('canvas');
@@ -1210,57 +1208,58 @@ function renderWeeklyReportCanvas(content, meta) {
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
 
-  ctx.fillStyle = '#edf5ff'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#f5f0ff'; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = '#ffffff'; wkRoundRect(ctx, cardX, cardY, cardW, H - PAD * 2, 12); ctx.fill();
-  ctx.strokeStyle = '#c8d8ea'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.strokeStyle = '#d4c8e8'; ctx.lineWidth = 1; ctx.stroke();
 
-  let y = cardY + 20;
+  let y = cardY + 18;
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#7a7a7a'; ctx.font = '13px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillText((meta.start || '') + ' ~ ' + (meta.end || ''), cardX + 18, y);
+  ctx.fillStyle = '#7a7190'; ctx.font = '12px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText((meta.start || '') + ' ~ ' + (meta.end || ''), cardX + 16, y);
   ctx.fillStyle = '#2d2d2d'; ctx.font = 'bold 16px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillText((meta.name || '') + ' · ' + (meta.group || '') + ' 周报', cardX + 18, y + 22);
-  ctx.fillStyle = '#7c6fae'; wkRoundRect(ctx, cardX + cardW - 70, y - 4, 52, 24, 10); ctx.fill();
+  ctx.fillText((meta.name || '') + ' · ' + (meta.group || '') + ' 周报', cardX + 16, y + 21);
+  ctx.fillStyle = '#7c6fae'; wkRoundRect(ctx, cardX + cardW - 64, y - 3, 48, 22, 10); ctx.fill();
   ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
-  ctx.fillText('周报', cardX + cardW - 44, y + 8);
+  ctx.fillText('周报', cardX + cardW - 40, y + 8);
 
-  y += titleH - 6;
-  ctx.strokeStyle = '#f0eeeb'; ctx.beginPath(); ctx.moveTo(cardX, y); ctx.lineTo(cardX + cardW, y); ctx.stroke();
-  y += 6;
+  y += titleH - 4;
+  ctx.strokeStyle = '#ede8f7'; ctx.beginPath(); ctx.moveTo(cardX, y); ctx.lineTo(cardX + cardW, y); ctx.stroke();
+  y += 4;
 
-  ctx.textAlign = 'left'; ctx.fillStyle = '#666'; ctx.font = 'bold 12px sans-serif';
-  ctx.fillText('指标', cardX + 18, y + thH / 2);
+  ctx.fillStyle = '#f0ebfa'; wkRoundRect(ctx, cardX + 1, y, cardW - 2, thH, 0); ctx.fill();
+  ctx.textAlign = 'left'; ctx.fillStyle = '#5f5878'; ctx.font = 'bold 12px sans-serif';
+  ctx.fillText('指标', cardX + 16, y + thH / 2);
   ctx.textAlign = 'center';
   ctx.fillText('结果', cardX + colLabel + colResult / 2, y + thH / 2);
   ctx.fillText('目标', cardX + colLabel + colResult + colTarget / 2, y + thH / 2);
   ctx.fillText('完成率', cardX + colLabel + colResult + colTarget + colRate / 2, y + thH / 2);
   y += thH;
-  ctx.strokeStyle = '#f0eeeb'; ctx.beginPath(); ctx.moveTo(cardX, y); ctx.lineTo(cardX + cardW, y); ctx.stroke();
+  ctx.strokeStyle = '#ede8f7'; ctx.beginPath(); ctx.moveTo(cardX, y); ctx.lineTo(cardX + cardW, y); ctx.stroke();
 
   results.forEach(r => {
     const ratePct = Math.round(r.rate * 100);
     const color = WK_STATUS_COLOR[r.status];
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#2d2d2d'; ctx.font = 'bold 13px sans-serif';
-    ctx.fillText(r.label, cardX + 18, y + rowH / 2);
+    ctx.fillStyle = '#2d2d2d'; ctx.font = 'bold 12px sans-serif';
+    ctx.fillText(r.label, cardX + 16, y + rowH / 2);
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#2d2d2d'; ctx.font = 'bold 14px sans-serif';
+    ctx.fillStyle = '#2d2d2d'; ctx.font = 'bold 13px sans-serif';
     ctx.fillText(wkFmtNum(r.value) + (r.unit || ''), cardX + colLabel + colResult / 2, y + rowH / 2);
-    ctx.fillStyle = '#666'; ctx.font = '13px sans-serif';
+    ctx.fillStyle = '#666'; ctx.font = '12px sans-serif';
     ctx.fillText(wkFmtNum(r.target) + (r.unit || ''), cardX + colLabel + colResult + colTarget / 2, y + rowH / 2);
-    ctx.fillStyle = color; ctx.font = 'bold 13px sans-serif';
+    ctx.fillStyle = color; ctx.font = 'bold 12px sans-serif';
     ctx.fillText(ratePct + '%', cardX + colLabel + colResult + colTarget + colRate / 2, y + rowH / 2);
     y += rowH;
-    ctx.strokeStyle = '#f5f4f2'; ctx.beginPath(); ctx.moveTo(cardX, y); ctx.lineTo(cardX + cardW, y); ctx.stroke();
+    ctx.strokeStyle = '#f3f1f8'; ctx.beginPath(); ctx.moveTo(cardX, y); ctx.lineTo(cardX + cardW, y); ctx.stroke();
   });
 
   if (content && content.notes) {
     y += 6;
-    ctx.fillStyle = '#fcf7ef'; wkRoundRect(ctx, cardX + 10, y, cardW - 20, notesH, 8); ctx.fill();
-    ctx.strokeStyle = '#e8dcc4'; ctx.stroke();
+    ctx.fillStyle = '#f8f5ff'; wkRoundRect(ctx, cardX + 10, y, cardW - 20, notesH, 8); ctx.fill();
+    ctx.strokeStyle = '#ddd5ef'; ctx.stroke();
     ctx.fillStyle = '#5a5a5a'; ctx.font = '12px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
     wkWrapLines(ctx, content.notes, cardW - 44).forEach((ln, i) => {
-      ctx.fillText(ln, cardX + 22, y + 10 + i * 18);
+      ctx.fillText(ln, cardX + 22, y + 9 + i * 17);
     });
   }
   return canvas;
