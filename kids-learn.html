@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>👶 宝宝学习工作台</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: linear-gradient(180deg, #eaf4ff 0%, #f7fbff 40%, #fff7f0 100%);
+    color: #2b2f38;
+    min-height: 100vh;
+    padding-bottom: 90px;
+  }
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(6px);
+    border-bottom: 2px solid #e3ecff;
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .topbar .logo { font-size: 22px; }
+  .topbar .name { font-weight: 800; font-size: 18px; color: #2a6df4; }
+  .topbar .name small { font-weight: 500; color: #8a93a6; font-size: 12px; margin-left: 4px; }
+  .topbar .stat {
+    margin-left: auto; display: flex; gap: 8px; align-items: center;
+  }
+  .pill {
+    background: #fff3d6; color: #b9770a; font-weight: 800;
+    padding: 6px 12px; border-radius: 999px; font-size: 15px;
+    border: 1px solid #ffe2a3;
+  }
+  .pill.star { background: #e8f0ff; color: #2a6df4; border-color: #cfe0ff; }
+  .pill .edit { font-size: 11px; color: #9aa3b5; margin-left: 4px; cursor: pointer; }
+
+  .wrap { max-width: 880px; margin: 0 auto; padding: 14px; }
+  .hero {
+    background: linear-gradient(135deg, #ffd66e 0%, #ff9a8b 100%);
+    border-radius: 20px; padding: 18px; color: #fff;
+    box-shadow: 0 8px 22px rgba(255,154,139,0.35);
+    margin-bottom: 16px;
+  }
+  .hero h1 { margin: 0 0 6px; font-size: 22px; }
+  .hero p { margin: 0; font-size: 14px; opacity: .95; }
+
+  .section-title { font-size: 17px; font-weight: 800; margin: 18px 4px 10px; color: #344; display: flex; align-items: center; gap: 8px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .card {
+    background: #fff; border-radius: 16px; padding: 16px;
+    box-shadow: 0 4px 14px rgba(40,80,160,0.08);
+    border: 1px solid #eef2fb;
+  }
+  .card h3 { margin: 0 0 4px; font-size: 16px; }
+  .card p { margin: 0 0 12px; font-size: 13px; color: #7a8499; }
+
+  button { font-family: inherit; cursor: pointer; border: none; }
+  .btn {
+    width: 100%; padding: 13px 14px; border-radius: 14px;
+    font-size: 16px; font-weight: 800; color: #fff;
+    background: #2a6df4; box-shadow: 0 4px 10px rgba(42,109,244,.3);
+    transition: transform .05s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn.green { background: #21b97a; box-shadow: 0 4px 10px rgba(33,185,122,.3); }
+  .btn.orange { background: #ff8a3d; box-shadow: 0 4px 10px rgba(255,138,61,.3); }
+  .btn.purple { background: #9b5de5; box-shadow: 0 4px 10px rgba(155,93,229,.3); }
+  .btn.ghost { background: #eef3ff; color: #2a6df4; box-shadow: none; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  .levels { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .lv {
+    min-width: 56px; padding: 8px 10px; border-radius: 12px; font-weight: 800;
+    background: #eef3ff; color: #2a6df4; border: 1px solid #dbe6ff; text-align: center;
+  }
+  .lv.locked { background: #f1f3f7; color: #b3bacb; border-color: #e6e9f0; }
+  .lv.done { background: #e7fbf1; color: #16a36a; border-color: #c4f0db; }
+  .lv.active { outline: 3px solid #ffd66e; }
+
+  /* tabs */
+  .tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    background: #fff; border-top: 2px solid #eef2fb;
+    display: flex; padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    box-shadow: 0 -4px 16px rgba(40,80,160,.08);
+  }
+  .tab {
+    flex: 1; border: none; background: transparent; padding: 6px 2px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    color: #9aa3b5; font-size: 11px; font-weight: 700;
+  }
+  .tab .ic { font-size: 22px; }
+  .tab.active { color: #2a6df4; }
+  .tab.active .ic { transform: translateY(-2px); }
+
+  /* modal / quiz */
+  .overlay {
+    position: fixed; inset: 0; z-index: 50; background: rgba(20,30,50,.45);
+    display: none; align-items: flex-end; justify-content: center;
+  }
+  .overlay.show { display: flex; }
+  .sheet {
+    background: #fff; width: 100%; max-width: 880px; max-height: 92vh; overflow-y: auto;
+    border-radius: 22px 22px 0 0; padding: 18px 16px 24px;
+    animation: slideUp .25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(40px); opacity: .6; } to { transform: none; opacity: 1; } }
+  .sheet h2 { margin: 0 0 4px; font-size: 19px; display: flex; align-items: center; gap: 8px; }
+  .sheet .close { float: right; font-size: 22px; color: #b3bacb; background: none; }
+  .progress { height: 10px; background: #eef2fb; border-radius: 999px; overflow: hidden; margin: 10px 0 14px; }
+  .progress > span { display: block; height: 100%; background: linear-gradient(90deg,#2a6df4,#5fb0ff); transition: width .3s; }
+
+  .passage {
+    background: #fff8ec; border: 1px solid #ffe2b0; border-radius: 14px;
+    padding: 12px 14px; font-size: 15px; line-height: 1.7; color: #5b4a2e; margin-bottom: 14px;
+  }
+  .passage b { color: #d98300; }
+  .qtext { font-size: 18px; font-weight: 800; margin: 6px 0 14px; line-height: 1.5; }
+  .speak {
+    display: inline-flex; align-items: center; gap: 6px; margin-left: 8px;
+    background: #eef3ff; color: #2a6df4; border-radius: 999px; padding: 4px 10px;
+    font-size: 13px; font-weight: 700; vertical-align: middle;
+  }
+  .opts { display: grid; gap: 10px; }
+  .opt {
+    width: 100%; text-align: left; padding: 14px 16px; border-radius: 14px;
+    background: #f5f8ff; border: 2px solid #e3ecff; font-size: 17px; font-weight: 700; color: #2b2f38;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .opt:active { transform: scale(.98); }
+  .opt .key { width: 26px; height: 26px; border-radius: 8px; background: #2a6df4; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
+  .opt.correct { background: #e7fbf1; border-color: #16a36a; color: #0e7a4d; }
+  .opt.wrong { background: #ffecec; border-color: #ff6b6b; color: #c0392b; }
+  .opt:disabled { cursor: default; }
+  .feedback { margin-top: 14px; font-size: 16px; font-weight: 800; min-height: 24px; }
+  .feedback.ok { color: #16a36a; }
+  .feedback.no { color: #e0573b; }
+
+  .big-letter { font-size: 90px; font-weight: 900; text-align: center; color: #2a6df4; margin: 6px 0 4px; letter-spacing: 2px; }
+  .ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px,1fr)); gap: 8px; margin: 8px 0 4px; }
+  .ref-chip { background: #f5f8ff; border: 1px solid #e3ecff; border-radius: 10px; padding: 8px 4px; text-align: center; font-size: 18px; font-weight: 800; color: #2a6df4; }
+  .ref-chip small { display: block; font-size: 11px; color: #9aa3b5; font-weight: 600; }
+  .ref-title { font-weight: 800; margin: 12px 0 2px; font-size: 14px; color: #344; }
+  .pinyin-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #f5f8ff; border-radius: 12px; margin-bottom: 8px; }
+  .pinyin-row .py { font-size: 22px; font-weight: 900; color: #2a6df4; min-width: 70px; }
+  .pinyin-row .hz { font-size: 22px; font-weight: 800; }
+  .pinyin-row .eg { font-size: 13px; color: #8a93a6; }
+
+  .reward { display: flex; align-items: center; gap: 10px; padding: 12px; background: #fff; border: 1px solid #eef2fb; border-radius: 14px; margin-bottom: 10px; }
+  .reward .emoji { font-size: 26px; }
+  .reward .info { flex: 1; }
+  .reward .info b { font-size: 15px; }
+  .reward .info div { font-size: 12px; color: #8a93a6; }
+  .reward .cost { font-weight: 800; color: #b9770a; }
+  .reward .btn { width: auto; padding: 8px 14px; font-size: 14px; }
+  .empty { text-align: center; color: #9aa3b5; padding: 30px 0; font-size: 14px; }
+  .hidden { display: none !important; }
+  .toast {
+    position: fixed; left: 50%; top: 20%; transform: translateX(-50%);
+    background: #2b2f38; color: #fff; padding: 12px 20px; border-radius: 12px;
+    font-weight: 800; z-index: 99; opacity: 0; transition: opacity .25s; pointer-events: none; font-size: 15px;
+  }
+  .toast.show { opacity: .95; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row .btn { flex: 1; min-width: 120px; }
+  input.txt {
+    width: 100%; padding: 11px 12px; border: 2px solid #e3ecff; border-radius: 12px;
+    font-size: 15px; font-family: inherit; margin-bottom: 10px;
+  }
+  .tip { font-size: 12px; color: #8a93a6; margin: 4px 2px 10px; }
+  @media (max-width: 520px) {
+    .big-letter { font-size: 70px; }
+    .topbar .name { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="logo">🧒</span>
+  <span class="name" id="kidName">宝贝<small>学习工作台</small></span>
+  <button class="pill" onclick="editName()">⭐ <span id="pointVal">0</span> 分<span class="edit">改名字</span></button>
+  <button class="pill star">🌟 <span id="starVal">0</span></button>
+</div>
+
+<div class="wrap">
+  <div class="hero">
+    <h1>👋 宝贝，今天也要加油哦！</h1>
+    <p>选一个喜欢的关卡，边玩边学。答对得积分，集星星解锁新关卡，攒分换小奖励！</p>
+  </div>
+
+  <div class="section-title">🎯 选择学习关卡</div>
+  <div class="grid" id="moduleGrid"></div>
+
+  <div class="card" style="margin-top:14px;">
+    <h3>📊 我的成长</h3>
+    <p>每个模块闯过一关，就能解锁下一关；全部答对还有额外奖励！</p>
+    <div id="growthBars"></div>
+  </div>
+</div>
+
+<!-- 底部 Tab -->
+<div class="tabbar" id="tabbar">
+  <button class="tab active" data-tab="home" onclick="switchTab('home')"><span class="ic">🏠</span>首页</button>
+  <button class="tab" data-tab="pinyin" onclick="switchTab('pinyin')"><span class="ic">🔤</span>拼音</button>
+  <button class="tab" data-tab="reading" onclick="switchTab('reading')"><span class="ic">📖</span>阅读</button>
+  <button class="tab" data-tab="math" onclick="switchTab('math')"><span class="ic">➕</span>数学</button>
+  <button class="tab" data-tab="english" onclick="switchTab('english')"><span class="ic">🔤</span>英语</button>
+  <button class="tab" data-tab="reward" onclick="switchTab('reward')"><span class="ic">🎁</span>奖励</button>
+</div>
+
+<!-- 通用弹层 -->
+<div class="overlay" id="overlay">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===================== 数据 ===================== */
+const SHENGMU = ['b','p','m','f','d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y','w'];
+const YUNMU_DAN = ['a','o','e','i','u','ü'];
+const YUNMU_FU = ['ai','ei','ui','ao','ou','iu','ie','üe','er'];
+const YUNMU_QIAN = ['an','en','in','un','ün'];
+const YUNMU_HOU = ['ang','eng','ing','ong'];
+const YUNMU_ALL = YUNMU_DAN.concat(YUNMU_FU).concat(YUNMU_QIAN).concat(YUNMU_HOU);
+const ZHENGTI = ['zhi','chi','shi','ri','zi','ci','si','yi','wu','yu','ye','yue','yuan','yin','yun','ying'];
+const HANZI_PY = [
+  ['爸','bà'],['妈','mā'],['我','wǒ'],['大','dà'],['小','xiǎo'],['上','shàng'],['下','xià'],
+  ['人','rén'],['口','kǒu'],['手','shǒu'],['日','rì'],['月','yuè'],['水','shuǐ'],['火','huǒ'],
+  ['木','mù'],['中','zhōng'],['国','guó'],['天','tiān'],['山','shān'],['马','mǎ'],['牛','niú'],
+  ['花','huā'],['鸟','niǎo'],['虫','chóng'],['云','yún'],['雨','yǔ'],['风','fēng'],['车','chē']
+];
+const READING_PASSAGES = [
+  { title:'小公鸡找朋友', text:'小公鸡想找一个朋友。他先去找小鸭，小鸭说：“我会游泳，你不会。”他又去找小鸟，小鸟说：“我会飞，你不会。”最后他认识了小羊，他们一起在草地上玩，成了好朋友。',
+    qs:[ {q:'小公鸡最后和谁成了好朋友？',opts:['小鸭','小鸟','小羊'],a:2},
+         {q:'小鸭会什么？',opts:['飞','游泳','跑'],a:1},
+         {q:'这个故事告诉我们什么？',opts:['要找和自己不一样的','好朋友可以不一样','不要交朋友'],a:1} ] },
+  { title:'下雨了', text:'下午，天阴了，哗啦啦下起雨来。小刺猬没有伞，急得团团转。小乌龟爬过来说：“我用背上的壳当伞，我们一起走吧！”小刺猬笑了，和小乌龟一起回家。',
+    qs:[ {q:'谁把壳当伞？',opts:['小刺猬','小乌龟','小雨'],a:1},
+         {q:'天气怎么样？',opts:['晴天','下雨','下雪'],a:1},
+         {q:'小刺猬为什么笑了？',opts:['因为下雨好玩','因为有人帮他','因为回家了'],a:1} ] },
+  { title:'爱吃蔬菜的小兔', text:'兔妈妈种了许多蔬菜：红红的西红柿，绿绿的黄瓜，长长的萝卜。小兔原来不爱吃蔬菜，看见颜色这么好看，就尝了一口，哇，真甜！从那以后，小兔爱上了吃蔬菜。',
+    qs:[ {q:'兔妈妈种了什么？',opts:['水果','蔬菜','花'],a:1},
+         {q:'小兔一开始爱吃什么？',opts:['不爱吃蔬菜','只吃萝卜','爱吃所有菜'],a:0},
+         {q:'小兔后来为什么爱吃蔬菜？',opts:['妈妈逼的','觉得好看又甜','肚子饿'],a:1} ] }
+];
+const ENGLISH_LETTERS = [
+  ['A','apple','🍎'],['B','ball','⚽'],['C','cat','🐱'],['D','dog','🐶'],['E','egg','🥚'],
+  ['F','fish','🐟'],['G','gift','🎁'],['H','hat','🎩'],['I','ice','🧊'],['J','juice','🧃'],
+  ['K','key','🔑'],['L','lion','🦁'],['M','milk','🥛'],['N','nose','👃'],['O','orange','🍊'],
+  ['P','pig','🐷'],['Q','queen','👑'],['R','rabbit','🐰'],['S','sun','☀️'],['T','tiger','🐯'],
+  ['U','umbrella','☂️'],['V','violin','🎻'],['W','water','💧'],['X','box','📦'],['Y','yellow','💛'],['Z','zoo','🦁']
+];
+const ENGLISH_WORDS = [
+  ['red','红色','🔴'],['blue','蓝色','🔵'],['yellow','黄色','💛'],['green','绿色','💚'],
+  ['cat','猫','🐱'],['dog','狗','🐶'],['bird','鸟','🐦'],['fish','鱼','🐟'],
+  ['one','一','1️⃣'],['two','二','2️⃣'],['three','三','3️⃣'],['apple','苹果','🍎']
+];
+
+/* ===================== 状态 ===================== */
+const STORE_KEY = 'kids_learn_v1';
+const MODULES = {
+  pinyin:  { name:'拼音',   icon:'🔤', color:'orange', max:4, desc:'声母 · 韵母 · 整体认读' },
+  reading: { name:'语文阅读', icon:'📖', color:'green',  max:3, desc:'读短文 · 练理解' },
+  math:    { name:'数学解决问题', icon:'➕', color:'purple', max:4, desc:'看图列式 · 应用题' },
+  english: { name:'英语启蒙', icon:'🔤', color:'orange', max:3, desc:'字母 · 单词 · 听音' }
+};
+function defaultState(){
+  return {
+    kidName: '宝贝',
+    totalPoints: 0,
+    stars: 0,
+    modules: {
+      pinyin:  { level:1, points:0, unlocked:1, stars:0 },
+      reading: { level:1, points:0, unlocked:1, stars:0 },
+      math:    { level:1, points:0, unlocked:1, stars:0 },
+      english: { level:1, points:0, unlocked:1, stars:0 }
+    },
+    rewards: [
+      { id:1, emoji:'🍦', name:'吃一个冰淇淋', cost:30 },
+      { id:2, emoji:'📺', name:'看一集动画片', cost:50 },
+      { id:3, emoji:'🏞️', name:'去公园玩一次', cost:80 },
+      { id:4, emoji:'🎨', name:'画画的自由时间', cost:40 }
+    ],
+    redeemed: []
+  };
+}
+let state = loadState();
+function loadState(){
+  try { const s = JSON.parse(localStorage.getItem(STORE_KEY)); if (s && s.modules) return s; } catch(e){}
+  return defaultState();
+}
+function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+
+/* ===================== 工具 ===================== */
+function $(id){ return document.getElementById(id); }
+function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function pickN(arr, n){ const c = arr.slice(); const out=[]; while(out.length<n && c.length){ out.push(c.splice(Math.floor(Math.random()*c.length),1)[0]); } return out; }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function speak(text, lang){
+  try {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = lang || 'zh-CN';
+    u.rate = 0.9; u.pitch = 1.1;
+    window.speechSynthesis.speak(u);
+  } catch(e){}
+}
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(()=> t.classList.remove('show'), 1600);
+}
+function addPoints(n){ state.totalPoints += n; saveState(); refreshTop(); }
+function addStars(n){ state.stars += n; saveState(); refreshTop(); }
+function refreshTop(){
+  $('pointVal').textContent = state.totalPoints;
+  $('starVal').textContent = state.stars;
+  $('kidName').innerHTML = state.kidName + '<small>学习工作台</small>';
+}
+
+/* ===================== 首页 ===================== */
+function renderHome(){
+  const g = $('moduleGrid'); g.innerHTML = '';
+  Object.keys(MODULES).forEach(key=>{
+    const m = MODULES[key]; const st = state.modules[key];
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.innerHTML = '<h3>'+m.icon+' '+m.name+'</h3><p>'+m.desc+'</p>'+
+      '<button class="btn '+m.color+'" onclick="openModule(\''+key+'\')">开始学习</button>'+
+      '<div class="levels" id="lv-'+key+'"></div>';
+    g.appendChild(el);
+    renderLevels(key);
+  });
+  renderGrowth();
+}
+function renderLevels(key){
+  const m = MODULES[key]; const st = state.modules[key];
+  const box = $('lv-'+key); if(!box) return; box.innerHTML='';
+  for(let i=1;i<=m.max;i++){
+    const lv = document.createElement('div');
+    let cls='lv';
+    if(i>st.unlocked) cls+=' locked';
+    else if(i<st.level || (i===st.level && st.stars>0)) cls+=' done';
+    if(i===st.level) cls+=' active';
+    lv.className=cls;
+    lv.textContent = (i>st.unlocked?'🔒':'') + '第'+i+'关';
+    lv.onclick = ()=>{ if(i<=st.unlocked) startQuiz(key,i); else toast('先通关前面的关卡哦～'); };
+    box.appendChild(lv);
+  }
+}
+function renderGrowth(){
+  const box = $('growthBars'); if(!box) return; box.innerHTML='';
+  Object.keys(MODULES).forEach(key=>{
+    const m=MODULES[key]; const st=state.modules[key];
+    const done = st.stars; const total = m.max;
+    const row = document.createElement('div');
+    row.style.cssText='margin-bottom:10px;';
+    row.innerHTML = '<div style="font-size:13px;font-weight:700;margin-bottom:4px;">'+m.icon+' '+m.name+'：★'+done+'/'+total+' 关 · '+st.points+'分</div>'+
+      '<div class="progress"><span style="width:'+(done/total*100)+'%"></span></div>';
+    box.appendChild(row);
+  });
+}
+
+/* ===================== 模块面板 ===================== */
+function openModule(key){
+  const m = MODULES[key];
+  let html = '<button class="close" onclick="closeSheet()">×</button>';
+  html += '<h2>'+m.icon+' '+m.name+'</h2>';
+  html += '<p class="tip">'+m.desc+' ｜ 当前已解锁到第 '+state.modules[key].unlocked+' 关</p>';
+  if(key==='pinyin') html += pinyinRefHtml();
+  if(key==='english') html += englishRefHtml();
+  if(key==='reading') html += '<div class="tip">阅读关卡会给出一篇短文，读完后回答下面的问题。</div>';
+  if(key==='math') html += '<div class="tip">数学关卡会出应用题，读题后选出正确答案。</div>';
+  html += '<div class="section-title" style="margin-top:6px;">选择关卡开始</div>';
+  html += '<div class="levels" id="lvPop-'+key+'"></div>';
+  // 复制关卡按钮
+  html += '<div class="row" style="margin-top:16px;">';
+  html += '<button class="btn '+m.color+'" onclick="startQuiz(\''+key+'\', state.modules[\''+key+'\'].level)">▶ 从第'+state.modules[key].level+'关开始</button>';
+  html += '<button class="btn ghost" onclick="closeSheet()">关闭</button></div>';
+  openSheet(html);
+  // 渲染弹层内关卡
+  const lb = $('lvPop-'+key);
+  for(let i=1;i<=m.max;i++){
+    const st = state.modules[key];
+    const b = document.createElement('button');
+    let cls='lv'; if(i>st.unlocked) cls+=' locked'; else if(i<st.level||(i===st.level&&st.stars>0)) cls+=' done';
+    b.className=cls;
+    b.textContent=(i>st.unlocked?'🔒':'')+'第'+i+'关';
+    b.onclick=()=>{ if(i<=st.unlocked) startQuiz(key,i); else toast('先通关前面的关卡哦～'); };
+    lb.appendChild(b);
+  }
+}
+function pinyinRefHtml(){
+  let h = '<div class="ref-title">🌟 声母（'+SHENGMU.length+'个）</div><div class="ref-grid">';
+  SHENGMU.forEach(s=> h+='<div class="ref-chip">'+s+'</div>');
+  h+='</div>';
+  const groups=[['单韵母',YUNMU_DAN],['复韵母',YUNMU_FU],['前鼻韵母',YUNMU_QIAN],['后鼻韵母',YUNMU_HOU]];
+  groups.forEach(g=>{ h+='<div class="ref-title">🌟 '+g[0]+'（'+g[1].length+'个）</div><div class="ref-grid">'; g[1].forEach(y=> h+='<div class="ref-chip">'+y+'</div>'); h+='</div>'; });
+  h+='<div class="ref-title">🌟 整体认读音节（'+ZHENGTI.length+'个）</div><div class="ref-grid">';
+  ZHENGTI.forEach(z=> h+='<div class="ref-chip">'+z+'</div>'); h+='</div>';
+  h+='<div class="ref-title">🔡 常见汉字读音</div>';
+  HANZI_PY.slice(0,12).forEach(([hz,py])=>{ h+='<div class="pinyin-row"><span class="py">'+py+'</span><span class="hz">'+hz+'</span><button class="speak" onclick="speak(\''+hz+'\',\'zh-CN\')">🔊 听</button></div>'; });
+  return h;
+}
+function englishRefHtml(){
+  let h='<div class="ref-title">🔤 字母表（点一下听发音）</div><div class="ref-grid">';
+  ENGLISH_LETTERS.forEach(([L,w,e])=>{ h+='<div class="ref-chip" onclick="speak(\''+L+'\',\'en-US\')">'+L+'<small>'+e+'</small></div>'; });
+  h+='</div>';
+  h+='<div class="ref-title">🍎 基础单词（听一听）</div><div class="ref-grid">';
+  ENGLISH_WORDS.forEach(([w,c,e])=>{ h+='<div class="ref-chip" onclick="speak(\''+w+'\',\'en-US\')">'+e+'<small>'+w+'</small></div>'; });
+  h+='</div>';
+  return h;
+}
+
+/* ===================== 题目生成 ===================== */
+function buildQuestions(mod, level){
+  if(mod==='reading') return buildReading(level);
+  const n = 5 + level; // 题量随关卡增加
+  const out=[];
+  for(let i=0;i<n;i++){
+    if(mod==='pinyin') out.push(genPinyin(level));
+    else if(mod==='math') out.push(genMath(level));
+    else if(mod==='english') out.push(genEnglish(level));
+  }
+  return out;
+}
+function genPinyin(level){
+  const r = Math.random();
+  if(level===1){ // 声母韵母整体认读分类
+    const pool = shuffle([
+      {v:rand(SHENGMU),t:'声母'},{v:rand(YUNMU_ALL),t:'韵母'},{v:rand(ZHENGTI),t:'整体认读'}
+    ]);
+    const item = rand(pool);
+    return { prompt:'「'+item.v+'」属于哪一类？', options:['声母','韵母','整体认读'], answer:['声母','韵母','整体认读'].indexOf(item.t), speakText:item.v, speakLang:'zh-CN' };
+  }
+  if(level===2){ // 给汉字选声母
+    const [hz,py] = rand(HANZI_PY); const sm = py.replace(/[aoeiuü].*/,'').replace(/^([zcs]h?|r).*/,'$1');
+    const sheng = py[0]==='y'||py[0]==='w' ? py[0] : (py.startsWith('zh')?'zh':py.startsWith('ch')?'ch':py.startsWith('sh')?'sh':py[0]);
+    const ans = SHENGMU.indexOf(sheng);
+    const opts = shuffle([sheng].concat(pickN(SHENGMU.filter(x=>x!==sheng),3)));
+    return { prompt:'「'+hz+'」的声母是？', options:opts, answer:opts.indexOf(sheng), speakText:hz, speakLang:'zh-CN' };
+  }
+  if(level===3){ // 给汉字选韵母
+    const [hz,py] = rand(HANZI_PY);
+    let yun = py.replace(/^[^aoeiuü]*/,'');
+    if(py[0]==='y' && yun.indexOf('u')>=0) yun = yun.replace('u','ü');
+    if(py[0]==='w' && yun.indexOf('u')>=0) yun = yun.replace('u','ü');
+    if(!YUNMU_ALL.includes(yun)) yun = rand(YUNMU_ALL);
+    const opts = shuffle([yun].concat(pickN(YUNMU_ALL.filter(x=>x!==yun),3)));
+    return { prompt:'「'+hz+'」的韵母是？', options:opts, answer:opts.indexOf(yun), speakText:hz, speakLang:'zh-CN' };
+  }
+  // level4 混合：听音选正确拼音
+  const [hz,py] = rand(HANZI_PY);
+  const opts = shuffle([py].concat(pickN(HANZI_PY.filter(x=>x[1]!==py).map(x=>x[1]),3)));
+  return { prompt:'听一听，选出「'+hz+'」的拼音', options:opts, answer:opts.indexOf(py), speakText:hz, speakLang:'zh-CN' };
+}
+function genMath(level){
+  const a = Math.floor(Math.random()*9)+1;
+  const b = Math.floor(Math.random()*9)+1;
+  let q, ans, mk;
+  if(level===1){
+    if(Math.random()<0.5){ ans=a+b; q=''+a+' + '+b+' = ?'; }
+    else { const x=Math.max(a,b), y=Math.min(a,b); ans=x-y; q=''+x+' - '+y+' = ?'; }
+  } else if(level===2){
+    const x=Math.floor(Math.random()*15)+5, y=Math.floor(Math.random()*10)+1;
+    if(Math.random()<0.5){ ans=x+y; q=''+x+' + '+y+' = ?'; }
+    else { const big=Math.max(x,y), sm=Math.min(x,y); ans=big-sm; q=''+big+' - '+sm+' = ?'; }
+  } else if(level===3){
+    const who=['树上有','操场有','盘子里有','书包里有'][Math.floor(Math.random()*4)];
+    const act=['飞走','吃掉','拿走','借给同学'][Math.floor(Math.random()*4)];
+    const x=Math.floor(Math.random()*12)+6, y=Math.floor(Math.random()*5)+1;
+    ans=x-y; q=who+x+'只，'+act+y+'只，还剩几只？';
+  } else {
+    const x=Math.floor(Math.random()*20)+10, y=Math.floor(Math.random()*8)+2, z=Math.floor(Math.random()*8)+2;
+    if(Math.random()<0.5){ ans=x-y+z; q='小红有'+x+'元，买文具花'+y+'元，妈妈又给'+z+'元，现在有多少元？'; }
+    else { ans=x+y-z; q='停车场原来有'+x+'辆车，又开来'+y+'辆，开走'+z+'辆，现在有几辆？'; }
+  }
+  const opts = shuffle([ans].concat(pickN([ans+1,ans-1,ans+2,ans-2].filter(v=>v>=0&&v!==ans),3)));
+  return { prompt:q, options:opts, answer:opts.indexOf(ans) };
+}
+function genEnglish(level){
+  if(level===1){ // 听音选字母
+    const [L,w,e] = rand(ENGLISH_LETTERS);
+    const opts = shuffle([L].concat(pickN(ENGLISH_LETTERS.filter(x=>x[0]!==L).map(x=>x[0]),3)));
+    return { prompt:'🔊 听一听，是哪个字母？', options:opts, answer:opts.indexOf(L), speakText:L, speakLang:'en-US' };
+  }
+  if(level===2){ // 字母→例词
+    const [L,w,e] = rand(ENGLISH_LETTERS);
+    const opts = shuffle([w].concat(pickN(ENGLISH_LETTERS.filter(x=>x[1]!==w).map(x=>x[1]),3)));
+    return { prompt:'字母「'+L+'」的例词是？ '+e, options:opts, answer:opts.indexOf(w), speakText:w, speakLang:'en-US' };
+  }
+  // level3 听音选单词
+  const [w,c,e] = rand(ENGLISH_WORDS);
+  const opts = shuffle([w].concat(pickN(ENGLISH_WORDS.filter(x=>x[0]!==w).map(x=>x[0]),3)));
+  return { prompt:e+' 「'+c+'」用英语怎么说？', options:opts, answer:opts.indexOf(w), speakText:w, speakLang:'en-US' };
+}
+function buildReading(level){
+  const p = READING_PASSAGES[(level-1) % READING_PASSAGES.length];
+  return p.qs.map(q=>({ passage:p, prompt:q.q, options:q.opts, answer:q.a }));
+}
+
+/* ===================== 答题引擎 ===================== */
+let quiz = null;
+function startQuiz(mod, level){
+  closeSheet();
+  const questions = buildQuestions(mod, level);
+  quiz = { mod, level, questions, idx:0, score:0 };
+  renderQuiz();
+}
+function renderQuiz(){
+  const q = quiz.questions[quiz.idx];
+  const total = quiz.questions.length;
+  let html = '<button class="close" onclick="quitQuiz()">×</button>';
+  html += '<h2>'+MODULES[quiz.mod].icon+' '+MODULES[quiz.mod].name+' · 第'+quiz.level+'关</h2>';
+  html += '<div class="progress"><span style="width:'+(quiz.idx/total*100)+'%"></span></div>';
+  html += '<div style="font-size:13px;color:#8a93a6;margin-bottom:8px;">第 '+(quiz.idx+1)+' / '+total+' 题　答对 '+quiz.score+' 题</div>';
+  if(q.passage){
+    html += '<div class="passage">📖 <b>'+q.passage.title+'</b><br>'+q.passage.text+'</div>';
+  }
+  if(q.speakText){
+    html += '<div class="qtext">'+q.prompt+' <button class="speak" onclick="speak(\''+q.speakText+'\',\''+q.speakLang+'\')">🔊 听</button></div>';
+  } else {
+    html += '<div class="qtext">'+q.prompt+'</div>';
+  }
+  const keys=['A','B','C','D'];
+  html += '<div class="opts" id="optBox">';
+  q.options.forEach((o,i)=>{
+    html += '<button class="opt" data-i="'+i+'" onclick="answer('+i+')"><span class="key">'+keys[i]+'</span>'+o+'</button>';
+  });
+  html += '</div>';
+  html += '<div class="feedback" id="fb"></div>';
+  openSheet(html);
+}
+function answer(i){
+  const q = quiz.questions[quiz.idx];
+  if(quiz._locked) return; quiz._locked=true;
+  const btns = document.querySelectorAll('#optBox .opt');
+  const correct = (i===q.answer);
+  btns.forEach((b,idx)=>{
+    b.disabled=true;
+    if(idx===q.answer) b.classList.add('correct');
+    else if(idx===i) b.classList.add('wrong');
+  });
+  const fb = $('fb');
+  if(correct){
+    quiz.score++; addPoints(5);
+    fb.className='feedback ok'; fb.textContent='🎉 答对啦！+5分';
+    if(q.speakText) speak(q.speakText, q.speakLang);
+  } else {
+    fb.className='feedback no'; fb.textContent='💡 正确答案是 '+['A','B','C','D'][q.answer]+'：'+q.options[q.answer];
+  }
+  setTimeout(()=>{ quiz._locked=false; nextQuestion(); }, correct?850:1400);
+}
+function nextQuestion(){
+  quiz.idx++;
+  if(quiz.idx >= quiz.questions.length){ finishQuiz(); }
+  else renderQuiz();
+}
+function quitQuiz(){ if(confirm('退出本次练习？已得的积分会保留。')){ quiz=null; closeSheet(); renderHome(); } }
+function finishQuiz(){
+  const mod=quiz.mod, level=quiz.level, total=quiz.questions.length, score=quiz.score;
+  const rate = score/total;
+  let bonus=0, newStar=false, unlockedNext=false;
+  if(rate>=0.6){
+    const st=state.modules[mod];
+    if(st.stars < level){ st.stars = level; newStar=true; addStars(1); }
+    bonus = 20; addPoints(bonus);
+    if(level < MODULES[mod].max && st.unlocked < level+1){ st.unlocked = level+1; st.level = Math.min(level+1, MODULES[mod].max); unlockedNext=true; }
+    st.points += score*5 + bonus;
+    saveState();
+  }
+  state.modules[mod].points += score*5; saveState();
+  let html='<button class="close" onclick="closeSheet();renderHome();">×</button>';
+  html+='<h2>🏆 第'+level+'关完成！</h2>';
+  html+='<div style="text-align:center;padding:14px 0;">';
+  html+='<div style="font-size:54px;font-weight:900;color:#2a6df4;">'+score+' / '+total+'</div>';
+  html+='<div style="color:#8a93a6;margin:6px 0 14px;">'+(rate>=0.6?'太棒了，过关！🎉':(rate>=0.4?'不错，再练练更稳！':'加油，多听多读就会了！'))+'</div>';
+  html+='<div class="row" style="justify-content:center;">';
+  html+='<div class="pill">⭐ +'+(score*5)+' 分</div>';
+  if(bonus) html+='<div class="pill">🎁 通关 +'+bonus+'分</div>';
+  if(newStar) html+='<div class="pill star">🌟 新星星！</div>';
+  html+='</div></div>';
+  if(unlockedNext) html+='<div class="tip" style="text-align:center;">🔓 解锁了第'+(level+1)+'关，回首页就能看到！</div>';
+  html+='<div class="row" style="margin-top:16px;">';
+  html+='<button class="btn '+(MODULES[mod].color)+'" onclick="startQuiz(\''+mod+'\','+(rate>=0.6?Math.min(level+1,MODULES[mod].max):level)+')">再玩一次</button>';
+  html+='<button class="btn ghost" onclick="closeSheet();renderHome();">回首页</button></div>';
+  openSheet(html);
+  renderLevels(mod); renderGrowth();
+}
+
+/* ===================== 奖励 ===================== */
+function renderReward(){
+  let html='<button class="close" onclick="switchTab(\'home\')">×</button>';
+  html+='<h2>🎁 奖励墙</h2>';
+  html+='<p class="tip">攒够积分就能兑换小奖励～ 兑换后记得让爸爸妈妈确认哦！当前积分：⭐ '+state.totalPoints+'</p>';
+  html+='<div id="rewardList"></div>';
+  html+='<div class="section-title">➕ 家长添加奖励</div>';
+  html+='<input class="txt" id="rwEmoji" placeholder="表情，如 🍦">';
+  html+='<input class="txt" id="rwName" placeholder="奖励名称，如 吃一个冰淇淋">';
+  html+='<input class="txt" id="rwCost" placeholder="需要多少分，如 30" type="number">';
+  html+='<button class="btn orange" onclick="addReward()">添加奖励</button>';
+  if(state.redeemed.length){
+    html+='<div class="section-title">✅ 已兑换</div><div id="redeemedList"></div>';
+  }
+  openSheet(html);
+  renderRewardList();
+  renderRedeemed();
+}
+function renderRewardList(){
+  const box=$('rewardList'); if(!box) return; box.innerHTML='';
+  if(!state.rewards.length){ box.innerHTML='<div class="empty">还没有奖励，家长先添加一个吧～</div>'; return; }
+  state.rewards.forEach(r=>{
+    const can = state.totalPoints >= r.cost;
+    const el=document.createElement('div'); el.className='reward';
+    el.innerHTML='<span class="emoji">'+r.emoji+'</span><div class="info"><b>'+r.name+'</b><div class="cost">需要 '+r.cost+' 分</div></div>';
+    const btn=document.createElement('button');
+    btn.className='btn '+(can?'green':'ghost'); btn.textContent= can?'兑换':'分不够'; btn.disabled=!can;
+    btn.onclick=()=>redeem(r.id);
+    el.appendChild(btn);
+    const del=document.createElement('button'); del.className='speak'; del.style.cssText='margin-left:6px;'; del.textContent='🗑';
+    del.onclick=()=>{ if(confirm('删除这个奖励？')){ state.rewards=state.rewards.filter(x=>x.id!==r.id); saveState(); renderRewardList(); } };
+    el.appendChild(del);
+    box.appendChild(el);
+  });
+}
+function redeem(id){
+  const r=state.rewards.find(x=>x.id===id); if(!r) return;
+  if(state.totalPoints < r.cost){ toast('积分不够哦'); return; }
+  state.totalPoints -= r.cost;
+  state.redeemed.unshift({ emoji:r.emoji, name:r.name, cost:r.cost, time:Date.now() });
+  saveState(); refreshTop(); toast('🎉 兑换成功！记得找爸妈确认～');
+  renderRewardList(); renderRedeemed();
+}
+function renderRedeemed(){
+  const box=$('redeemedList'); if(!box) return; box.innerHTML='';
+  state.redeemed.forEach(r=>{
+    const el=document.createElement('div'); el.className='reward';
+    el.innerHTML='<span class="emoji">'+r.emoji+'</span><div class="info"><b>'+r.name+'</b><div>已用 '+r.cost+' 分兑换 · 待确认</div></div>';
+    box.appendChild(el);
+  });
+}
+function addReward(){
+  const emoji=($('rwEmoji').value||'🎁').trim();
+  const name=($('rwName').value||'').trim();
+  const cost=parseInt($('rwCost').value,10);
+  if(!name){ toast('请填奖励名称'); return; }
+  if(!cost||cost<1){ toast('请填正确的分数'); return; }
+  state.rewards.push({ id:Date.now(), emoji, name, cost });
+  saveState(); toast('已添加奖励');
+  $('rwEmoji').value=''; $('rwName').value=''; $('rwCost').value='';
+  renderRewardList();
+}
+
+/* ===================== 弹层 / Tab ===================== */
+function openSheet(html){ $('sheet').innerHTML=html; $('overlay').classList.add('show'); }
+function closeSheet(){ $('overlay').classList.remove('show'); }
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(t=> t.classList.toggle('active', t.dataset.tab===tab));
+  closeSheet();
+  if(tab==='home'){ renderHome(); $('wrap').style.display=''; }
+  else {
+    if(tab==='reward'){ renderReward(); }
+    else { openModule(tab); }
+  }
+}
+function editName(){
+  const n=prompt('给宝宝起个名字吧：', state.kidName);
+  if(n && n.trim()){ state.kidName=n.trim(); saveState(); refreshTop(); }
+}
+
+/* 初始化 */
+document.getElementById('wrap').id='wrap';
+// 把页面主体包进 wrap（已存在）
+refreshTop();
+renderHome();
+// 点击遮罩空白关闭
+$('overlay').addEventListener('click', e=>{ if(e.target===$('overlay')){ /* 答题中不自动关 */ if(!quiz) closeSheet(); } });
+</script>
+</body>
+</html>
