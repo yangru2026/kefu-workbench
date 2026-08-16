@@ -1823,9 +1823,9 @@ body {
     <!-- 录入原声 -->
     <div class="card" style="margin-bottom:20px;">
       <h3 style="margin-bottom:14px;">🎙 录入客户原话 <span style="font-size:12px;color:var(--text-secondary);font-weight:normal;">（原封不动，一字不改不加工）</span></h3>
-      <textarea id="voc-raw" rows="5" placeholder="把客户原话原封不动地粘贴 / 录入到这里，例如：&#10;“你们这个美瞳我戴着有点磨眼睛，但是颜色真的好看，就是想问问有没有更舒服的材质”" oninput="onVOCRawInput();saveVOCDraft();" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;resize:vertical;line-height:1.6;"></textarea>
+      <textarea id="voc-raw" rows="5" placeholder="把客户原话原封不动地粘贴 / 录入到这里，例如：&#10;“你们这个美瞳我戴着有点磨眼睛，但是颜色真的好看，就是想问问有没有更舒服的材质”" oninput="saveVOCDraft();" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;resize:vertical;line-height:1.6;"></textarea>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;">
-        <span style="font-size:12px;color:var(--text-secondary);">自动识别「来源场景 / 品牌 / 主题」，识别不准可手动改</span>
+        <span style="font-size:12px;color:var(--text-secondary);">请手动选择「来源场景 / 品牌 / 主题」</span>
       </div>
       <div id="voc-parse-hits" style="margin-top:8px;display:none;"></div>
       <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-top:12px;">
@@ -9930,7 +9930,6 @@ function parseVOC(text, team) {
 
 // ===== 单条一键解析 UI =====
 let vocManualEdit = false;     // 用户手动改过下拉后，停止自动覆盖
-let vocParseTimer = null;
 
 // ==================== 客户之声：本地草稿兜底（防刷新/断网丢数据） ====================
 const VOC_DRAFT_KEY = () => 'voc_draft_' + ((currentUser && currentUser.id) || 'guest');
@@ -9963,32 +9962,11 @@ function restoreVOCDraft() {
 function clearVOCDraft() { try { localStorage.removeItem(VOC_DRAFT_KEY()); } catch (e) {} }
 
 function onVOCRawInput() {
-  clearTimeout(vocParseTimer);
-  vocParseTimer = setTimeout(() => {
-    const ta = document.getElementById('voc-raw');
-    const raw = (ta && ta.value || '').trim();
-    if (raw.length < 4) { hideVOCParseHits(); return; }
-    if (vocManualEdit) return; // 用户已手动改过，不再自动覆盖
-    const team = (currentProfile && currentProfile.group_name) || '';
-    const res = parseVOC(raw, team);
-    const s = document.getElementById('voc-scene'); if (s) s.value = res.scene;
-    const b = document.getElementById('voc-brand'); if (b) b.value = res.brand;
-    const tp = document.getElementById('voc-topic'); if (tp) tp.value = res.topic;
-    showVOCParseHits(res, true);
-  }, 600);
+  // 已取消自动解析/自动填充：录入区只做手动选择，不再根据原话自动改写下拉
 }
 
 function parseVOCAndFill() {
-  const ta = document.getElementById('voc-raw');
-  const raw = (ta && ta.value || '').trim();
-  if (!raw) { showToast('⚠️ 请先录入客户原话再解析'); if (ta) ta.focus(); return; }
-  const team = (currentProfile && currentProfile.group_name) || '';
-  const res = parseVOC(raw, team);
-  const s = document.getElementById('voc-scene'); if (s) s.value = res.scene;
-  const b = document.getElementById('voc-brand'); if (b) b.value = res.brand;
-  const tp = document.getElementById('voc-topic'); if (tp) tp.value = res.topic;
-  vocManualEdit = false; // 主动解析后允许后续自动覆盖
-  showVOCParseHits(res, false);
+  // 已取消自动解析/自动填充：保留函数占位，避免历史引用报错（入口按钮已移除）
 }
 
 function showVOCParseHits(res, isAuto) {
