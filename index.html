@@ -1146,7 +1146,7 @@ body {
     <div class="nav-item" data-page="schedule"><span class="icon">📅</span><span>排班表</span></div>
     <div class="nav-item" data-page="requests"><span class="icon">📝</span><span>申请审批</span><span class="badge" id="req-pending-badge" style="display:none;"></span></div>
     <div class="nav-item" data-page="ranking"><span class="icon">🏆</span><span>客服排名</span></div>
-    <div class="nav-item" data-page="daily"><span class="icon">🌙</span><span>日报</span></div>
+    <div class="nav-item" data-page="daily"><span class="icon">🌙</span><span>汇报</span></div>
     <div class="nav-item" data-page="presale"><span class="icon">📈</span><span>售前数据</span></div>
     <div class="nav-item" data-page="qc"><span class="icon">🔍</span><span>质检工具</span></div>
     <div class="nav-section">账号</div>
@@ -1203,53 +1203,112 @@ body {
     </div>
   </div>
 
-  <!-- ===== 日报 ===== -->
+  <!-- ===== 汇报 ===== -->
   <div class="page" id="page-daily">
-    <div class="page-header"><h1>🌙 日报</h1><p>每日店铺数据 · 自动汇总 · 实时同步</p></div>
-    <div class="daily-actions" style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;">
-      <button class="btn-sm primary" onclick="openDailyForm()">✎ 填写今日日报</button>
-      <button class="btn-sm outline admin-only" onclick="renderDailyTrack()">👀 查看提交情况</button>
+    <div class="page-header"><h1>🌙 汇报</h1><p>日报 · 周报 · 数据汇总 · 实时同步</p></div>
+
+    <!-- Tab 切换 -->
+    <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border);">
+      <button class="presale-tab-btn active" data-tab="daily" onclick="switchReportTab('daily')">📅 日报</button>
+      <button class="presale-tab-btn" data-tab="weekly" onclick="switchReportTab('weekly')">📊 周报</button>
     </div>
-    <div id="daily-content">
-      <!-- 填写表单 -->
-      <div id="daily-form-area" style="display:none;">
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
-            <h3 style="margin:0;">填写日报 <span id="daily-date-label" style="font-size:13px;color:var(--text-secondary);font-weight:normal;"></span></h3>
-            <div style="font-size:14px;color:var(--primary);">当日总接待量：<strong id="daily-total-visitors" style="font-size:18px;">0</strong></div>
-          </div>
-          <div style="overflow-x:auto;">
-            <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">💡 接待量 = 当日数据；询单/支付/转化率按各平台延迟规则：天猫/拼多多/快手 延3天，抖音 延1天</div>
-            <table class="ranking-table" id="daily-shop-table" style="min-width:700px;">
-              <thead><tr>
-                <th style="text-align:center;">店铺</th><th style="text-align:center;">接待量（当日）</th><th style="text-align:center;">询单</th><th style="text-align:center;">支付</th><th style="text-align:center;">转化率</th><th style="text-align:center;">目标转化</th><th style="text-align:center;">目标还需付款人数</th>
-              </tr></thead>
-              <tbody id="daily-shop-tbody"></tbody>
-            </table>
-          </div>
-          <div style="margin-top:20px;display:flex;flex-direction:column;gap:14px;">
-            <div class="form-row"><label>未成交分析</label><textarea id="daily-analysis" rows="2" placeholder="分析今日未成交原因..."></textarea></div>
-            <div class="form-row"><label>后台催付情况</label><textarea id="daily-followup" rows="2" placeholder="如：已全部催付 / 剩余XX单未催..."></textarea></div>
-            <div class="form-row"><label>客户反馈/建议</label><textarea id="daily-feedback" rows="2" placeholder="客户提出的产品/服务建议..."></textarea></div>
-          </div>
-          <div style="display:flex;gap:10px;margin-top:20px;">
-            <button class="btn-sm primary" onclick="submitDaily()">提交日报</button>
-            <button class="btn-sm outline" onclick="closeDailyForm()">取消</button>
+
+    <!-- 日报 Tab -->
+    <div id="report-daily-tab">
+      <div class="daily-actions" style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn-sm primary" onclick="openDailyForm()">✎ 填写今日日报</button>
+        <button class="btn-sm outline admin-only" onclick="renderDailyTrack()">👀 查看提交情况</button>
+      </div>
+      <div id="daily-content">
+        <!-- 填写表单 -->
+        <div id="daily-form-area" style="display:none;">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+              <h3 style="margin:0;">填写日报 <span id="daily-date-label" style="font-size:13px;color:var(--text-secondary);font-weight:normal;"></span></h3>
+              <div style="font-size:14px;color:var(--primary);">当日总接待量：<strong id="daily-total-visitors" style="font-size:18px;">0</strong></div>
+            </div>
+            <div style="overflow-x:auto;">
+              <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">💡 接待量 = 当日数据；询单/支付/转化率按各平台延迟规则：天猫/拼多多/快手 延3天，抖音 延1天</div>
+              <table class="ranking-table" id="daily-shop-table" style="min-width:700px;">
+                <thead><tr>
+                  <th style="text-align:center;">店铺</th><th style="text-align:center;">接待量（当日）</th><th style="text-align:center;">询单</th><th style="text-align:center;">支付</th><th style="text-align:center;">转化率</th><th style="text-align:center;">目标转化</th><th style="text-align:center;">目标还需付款人数</th>
+                </tr></thead>
+                <tbody id="daily-shop-tbody"></tbody>
+              </table>
+            </div>
+            <div style="margin-top:20px;display:flex;flex-direction:column;gap:14px;">
+              <div class="form-row"><label>未成交分析</label><textarea id="daily-analysis" rows="2" placeholder="分析今日未成交原因..."></textarea></div>
+              <div class="form-row"><label>后台催付情况</label><textarea id="daily-followup" rows="2" placeholder="如：已全部催付 / 剩余XX单未催..."></textarea></div>
+              <div class="form-row"><label>客户反馈/建议</label><textarea id="daily-feedback" rows="2" placeholder="客户提出的产品/服务建议..."></textarea></div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px;">
+              <button class="btn-sm primary" onclick="submitDaily()">提交日报</button>
+              <button class="btn-sm outline" onclick="closeDailyForm()">取消</button>
+            </div>
           </div>
         </div>
-      </div>
-      <!-- 提交情况 -->
-      <div id="daily-track-area" style="display:none;">
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-            <h3 style="margin:0;">📈 日报提交情况 <span id="daily-track-date" style="font-size:13px;color:var(--text-secondary);"></span></h3>
-            <button class="btn-sm outline" onclick="closeDailyTrack()" style="font-size:12px;">返回</button>
+        <!-- 提交情况 -->
+        <div id="daily-track-area" style="display:none;">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <h3 style="margin:0;">📈 日报提交情况 <span id="daily-track-date" style="font-size:13px;color:var(--text-secondary);"></span></h3>
+              <button class="btn-sm outline" onclick="closeDailyTrack()" style="font-size:12px;">返回</button>
+            </div>
+            <div id="daily-track-list"></div>
           </div>
-          <div id="daily-track-list"></div>
         </div>
+        <!-- 提交结果卡片（截图发群用） -->
+        <div id="daily-result-area" style="display:none;"></div>
       </div>
-      <!-- 提交结果卡片（截图发群用） -->
-      <div id="daily-result-area" style="display:none;"></div>
+    </div>
+
+    <!-- 周报 Tab -->
+    <div id="report-weekly-tab" style="display:none;">
+      <div class="weekly-actions" style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <button class="btn-sm primary" onclick="openWeeklyForm()">✎ 填写本周周报</button>
+        <button class="btn-sm outline admin-only" onclick="renderWeeklyTrack()">👀 查看提交情况</button>
+        <span class="admin-only" style="font-size:12px;color:var(--text-secondary);">每周一汇报，周期为上周一至周日</span>
+      </div>
+      <div id="weekly-content">
+        <!-- 填写表单 -->
+        <div id="weekly-form-area" style="display:none;">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+              <h3 style="margin:0;">填写周报 <span id="weekly-date-label" style="font-size:13px;color:var(--text-secondary);font-weight:normal;"></span></h3>
+              <div style="font-size:14px;color:var(--primary);"><span id="weekly-group-label"></span></div>
+            </div>
+            <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <label style="font-size:13px;color:var(--text-secondary);">汇报周期</label>
+              <input type="date" id="weekly-start" onchange="onWeeklyRangeChange()">
+              <span style="color:var(--text-secondary);">至</span>
+              <input type="date" id="weekly-end" onchange="onWeeklyRangeChange()">
+            </div>
+            <div id="weekly-form-table-wrap" style="overflow-x:auto;">
+              <!-- 动态渲染指标×成员表格 -->
+            </div>
+            <div class="form-row" style="margin-top:14px;">
+              <label>本周总结 / 备注</label>
+              <textarea id="weekly-notes" rows="3" placeholder="本周重点工作、问题、下周计划..."></textarea>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px;">
+              <button class="btn-sm primary" onclick="submitWeekly()">提交周报</button>
+              <button class="btn-sm outline" onclick="closeWeeklyForm()">取消</button>
+            </div>
+          </div>
+        </div>
+        <!-- 提交情况 -->
+        <div id="weekly-track-area" style="display:none;">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <h3 style="margin:0;">📈 周报提交情况 <span id="weekly-track-date" style="font-size:13px;color:var(--text-secondary);"></span></h3>
+              <button class="btn-sm outline" onclick="closeWeeklyTrack()" style="font-size:12px;">返回</button>
+            </div>
+            <div id="weekly-track-list"></div>
+          </div>
+        </div>
+        <!-- 提交结果卡片（截图发群用） -->
+        <div id="weekly-result-area" style="display:none;"></div>
+      </div>
     </div>
   </div>
 
@@ -1833,9 +1892,14 @@ body {
 
   <!-- ===== 模板管理 ===== -->
   <div class="page" id="page-templates">
-    <div class="page-header"><h1>⚙️ 模板管理</h1><p>管理各组店铺列表，每个店铺可独立设置目标转化率</p></div>
+    <div class="page-header"><h1>⚙️ 模板管理</h1><p>管理各组店铺列表与周报模板（成员 / 汇报店铺 / 指标目标）</p></div>
     <div class="card">
       <div id="templates-content" style="text-align:center;padding:40px;color:var(--text-secondary);">加载中...</div>
+    </div>
+    <div class="card" style="margin-top:18px;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:4px;">📊 周报模板（每周一汇报）</div>
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">在此修改各组的<b>汇报成员</b>、<b>汇报店铺</b>、<b>指标目标</b>；保存后客服填写周报时会实时同步。</div>
+      <div id="weekly-templates-content" style="text-align:center;padding:20px;color:var(--text-secondary);">加载中...</div>
     </div>
   </div>
 
@@ -3005,6 +3069,15 @@ function switchPresaleTab(tab) {
     }
     renderPresaleMonthly();
   }
+}
+
+function switchReportTab(tab) {
+  document.querySelectorAll('#page-daily .presale-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  document.getElementById('report-daily-tab').style.display = tab === 'daily' ? '' : 'none';
+  document.getElementById('report-weekly-tab').style.display = tab === 'weekly' ? '' : 'none';
+  if (tab === 'weekly' && supabase) { loadWeeklyTemplates(); }
 }
 
 async function loadPresaleMonthly() {

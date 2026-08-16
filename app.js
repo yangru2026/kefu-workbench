@@ -9,7 +9,7 @@ window.onSupabaseReady = function() {
   if (currentPage === 'presale') { loadPresaleData(); subscribePresale(); }
   if (currentPage === 'members') { loadMembers(); subscribeProfiles(); }
   if (currentPage === 'staff-info') { loadStaffInfo(); subscribeStaffInfo(); }
-  if (currentPage === 'templates') { loadTemplates().then(() => renderTemplates()); subscribeTemplates(); }
+  if (currentPage === 'templates') { loadTemplates().then(() => renderTemplates()); subscribeTemplates(); loadWeeklyTemplates().then(renderWeeklyTemplates); subscribeWeeklyTemplates(); }
   if (currentPage === 'training') { if (window.loadTrainingCategories) loadTrainingCategories(); if (window.loadTrainingFromDB) loadTrainingFromDB(); if (window.renderTraining) renderTraining(); }
   if (currentPage === 'patterns') {
     // 修复: switchPage 内部已处理首次加载和数据存在时的渲染，这里只兜底，不要重复调 loadPatternsFromDB
@@ -753,6 +753,544 @@ function downloadDailyScreenshot(blob) {
   a.click();
   URL.revokeObjectURL(url);
   showToast('截图已下载（请手动复制）');
+}
+
+// ============================================================
+// 周报：每周一汇报，A/B/C 三组模板不同，店铺可在后台编辑并同步
+// ============================================================
+let weeklyTemplates = {};   // { 'A组': config, ... }
+let weeklyReports = [];
+let lastWeeklyContent = null;
+let lastWeeklyMeta = null;
+let weeklySub = null;
+let weeklyTplSub = null;
+
+async function loadWeeklyTemplates() {
+  if (!supabase) return;
+  const { data, error } = await supabase.from('weekly_templates').select('*');
+  if (error) { console.error('周报模板加载失败', error); return; }
+  const map = {};
+  (data || []).forEach(t => { map[t.group_name] = t.config || {}; });
+  weeklyTemplates = map;
+}
+
+// 把数据库里的 config 归一化成前端可用的结构
+function getWeeklyTemplate(group) {
+  const raw = weeklyTemplates[group] || {};
+  const members = Array.isArray(raw.members) ? raw.members : [];
+  const shops = Array.isArray(raw.shops) ? raw.shops : [];
+  const common = Array.isArray(raw.common) ? raw.common : [];
+  const shopTargetDefault = raw.shopTargetDefault != null ? Number(raw.shopTargetDefault) : 50;
+  const shopTargets = raw.shopTargets || {};
+  // 店铺指标自动从 shops 生成：转化率-<店名>，目标优先取 shopTargets 中的单独值
+  const shopMetrics = shops.map(s => ({
+    key: 'ws_' + s,
+    label: '转化率-' + s,
+    unit: '%',
+    target: shopTargets[s] != null ? Number(shopTargets[s]) : shopTargetDefault
+  }));
+  return { members, shops, common, shopMetrics, shopTargetDefault, shopTargets };
+}
+
+// 计算「上周一 ~ 上周日」作为默认汇报周期（按本地时区格式化，避免 toISOString 时区偏移）
+function getLastWeekRange() {
+  const now = new Date();
+  const day = now.getDay(); // 0=周日 .. 6=周六
+  const thisMon = new Date(now);
+  thisMon.setDate(now.getDate() + (day === 0 ? -6 : 1 - day));
+  thisMon.setHours(0, 0, 0, 0);
+  const lastMon = new Date(thisMon); lastMon.setDate(thisMon.getDate() - 7);
+  const lastSun = new Date(lastMon); lastSun.setDate(lastMon.getDate() + 6);
+  const fmt = d => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + dd;
+  };
+  return { start: fmt(lastMon), end: fmt(lastSun) };
+}
+
+async function loadWeeklyReports() {
+  if (!supabase || !currentUser) return;
+  const { data, error } = await supabase
+    .from('weekly_reports')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('week_start', { ascending: false })
+    .limit(20);
+  if (!error) weeklyReports = data || [];
+}
+
+// ---------- 填写周报 ----------
+async function openWeeklyForm() {
+  if (!currentUser) { showToast('请先登录'); switchPage('login'); return; }
+  const { start, end } = getLastWeekRange();
+  document.getElementById('weekly-start').value = start;
+  document.getElementById('weekly-end').value = end;
+  document.getElementById('weekly-date-label').textContent = start + ' ~ ' + end;
+  const group = currentProfile?.group_name || '';
+  document.getElementById('weekly-group-label').textContent = group ? (group + ' 周报') : '';
+
+  await loadWeeklyTemplates();
+  const tpl = getWeeklyTemplate(group);
+  const existing = weeklyReports.find(r => r.week_start === start && r.week_end === end && r.group_name === group);
+  renderWeeklyForm(tpl, existing ? existing.content : null);
+
+  document.getElementById('weekly-form-area').style.display = '';
+  document.getElementById('weekly-track-area').style.display = 'none';
+  document.getElementById('weekly-result-area').style.display = 'none';
+}
+
+function renderWeeklyForm(tpl, saved) {
+  const metrics = [...tpl.common, ...tpl.shopMetrics];
+  const savedRows = (saved && saved.rows) || [];
+  const savedMap = {};
+  savedRows.forEach(r => { savedMap[r.name] = r.values || {}; });
+
+  const head = '<th style="text-align:center;min-width:90px;background:#f5f6f8;">成员</th>' + metrics.map(m =>
+    `<th style="text-align:center;min-width:80px;font-size:12px;background:#f5f6f8;">${escapeHtml(m.label)}<br><span style="font-weight:400;color:#999;">目标 ${m.target}${m.unit || ''}</span></th>`
+  ).join('');
+
+  const body = tpl.members.map((member, mi) => {
+    const vals = savedMap[member] || {};
+    const cells = metrics.map(m => {
+      const v = vals[m.key] != null ? vals[m.key] : '';
+      return `<td style="padding:4px;"><input type="number" class="wk-input" data-member="${mi}" data-key="${escapeAttr(m.key)}" value="${v}" style="width:74px;padding:5px 4px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>`;
+    }).join('');
+    return `<tr><td style="padding:6px 8px;font-weight:600;font-size:13px;white-space:nowrap;background:#fafbff;">${escapeHtml(member)}</td>${cells}</tr>`;
+  }).join('');
+
+  document.getElementById('weekly-form-table-wrap').innerHTML =
+    `<table class="ranking-table" style="min-width:600px;font-size:13px;border-collapse:collapse;"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  document.getElementById('weekly-notes').value = (saved && saved.notes) || '';
+}
+
+function onWeeklyRangeChange() {
+  const s = document.getElementById('weekly-start').value;
+  const e = document.getElementById('weekly-end').value;
+  document.getElementById('weekly-date-label').textContent = (s && e) ? (s + ' ~ ' + e) : '';
+}
+
+async function submitWeekly() {
+  if (!currentUser) return;
+  const start = document.getElementById('weekly-start').value;
+  const end = document.getElementById('weekly-end').value;
+  if (!start || !end) { showToast('请选择汇报周期'); return; }
+  const group = currentProfile?.group_name || '';
+  const tpl = getWeeklyTemplate(group);
+  const metrics = [...tpl.common, ...tpl.shopMetrics];
+  const rowsMap = {};
+  document.querySelectorAll('#weekly-form-table-wrap .wk-input').forEach(inp => {
+    const mi = inp.dataset.member;
+    const key = inp.dataset.key;
+    const v = parseFloat(inp.value) || 0;
+    (rowsMap[mi] = rowsMap[mi] || {})[key] = v;
+  });
+  const rows = tpl.members.map((member, mi) => ({ name: member, values: rowsMap[mi] || {} }));
+  const content = { rows, shops: tpl.shops, notes: document.getElementById('weekly-notes').value.trim() };
+  const { error } = await supabase.from('weekly_reports').upsert({
+    user_id: currentUser.id,
+    group_name: group,
+    week_start: start,
+    week_end: end,
+    content,
+    status: 'submitted'
+  }, { onConflict: 'user_id,week_start' });
+  if (error) { showToast('提交失败：' + error.message); }
+  else {
+    showToast('周报提交成功');
+    lastWeeklyContent = content;
+    lastWeeklyMeta = { name: currentProfile?.name, group, start, end };
+    renderWeeklyResult(content, lastWeeklyMeta);
+    document.getElementById('weekly-form-area').style.display = 'none';
+    document.getElementById('weekly-result-area').style.display = '';
+    loadWeeklyReports();
+  }
+}
+
+function renderWeeklyResult(content, meta) {
+  lastWeeklyContent = content;
+  lastWeeklyMeta = meta;
+  const tpl = getWeeklyTemplate(meta.group || '');
+  const metrics = [...tpl.common, ...tpl.shopMetrics];
+  const rows = content.rows || [];
+  const rangeLabel = (meta.start || '') + ' ~ ' + (meta.end || '');
+
+  const head = '<th style="text-align:left;">成员</th>' + metrics.map(m =>
+    `<th style="text-align:center;font-size:12px;">${escapeHtml(m.label)}<br><span style="font-weight:400;color:#999;">目标${m.target}${m.unit || ''}</span></th>`
+  ).join('');
+  const body = rows.map(r => {
+    const vals = r.values || {};
+    const cells = metrics.map(m => {
+      const v = vals[m.key] != null ? vals[m.key] : '-';
+      let color = '';
+      if (m.unit === '%' && m.target) {
+        const num = parseFloat(v);
+        if (!isNaN(num)) color = num >= m.target ? '#16a34a' : '#ef4444';
+      }
+      return `<td style="padding:6px 8px;text-align:center;font-weight:700;font-size:13px;${color ? 'color:' + color + ';' : ''}">${v}${m.unit && v !== '-' && m.unit !== '%' ? m.unit : ''}</td>`;
+    }).join('');
+    return `<tr><td style="padding:6px 8px;font-weight:600;font-size:13px;white-space:nowrap;background:#fafbff;">${escapeHtml(r.name)}</td>${cells}</tr>`;
+  }).join('');
+
+  document.getElementById('weekly-result-area').innerHTML = `
+    <div style="max-width:820px;margin:0 auto;background:#f4f2ef;border-radius:16px;padding:20px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#2d2d2d;line-height:1.5;">
+      <div class="weekly-screenshot-card" style="background:#fff;border-radius:12px;padding:20px 18px;border:1px solid #e2e0dc;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #f0eeeb;padding-bottom:12px;">
+          <div>
+            <div style="font-size:13px;color:#7a7a7a;">${rangeLabel}</div>
+            <div style="font-size:16px;font-weight:700;color:#2d2d2d;">${escapeHtml(meta.name || '')} · ${escapeHtml(meta.group || '')} 周报</div>
+          </div>
+          <span style="font-size:11px;background:#7c6fae;color:#fff;padding:3px 12px;border-radius:10px;font-weight:600;">周报</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;min-width:560px;">
+            <thead><tr style="background:#f5f6f8;">${head}</tr></thead>
+            <tbody>${body}</tbody>
+          </table>
+        </div>
+        ${content.notes ? `<div style="margin-top:14px;font-size:12px;color:#5a5a5a;background:#fcf7ef;padding:10px 12px;border-radius:8px;border-left:3px solid #c9a66b;">${escapeHtml(content.notes)}</div>` : ''}
+        <div style="margin-top:18px;display:flex;gap:10px;justify-content:center;">
+          <button onclick="closeWeeklyForm()" style="padding:8px 22px;border-radius:8px;border:1px solid #d5d3d0;background:#f9f8f7;color:#666;font-size:14px;cursor:pointer;">返回</button>
+          <button onclick="copyWeeklyResult()" style="padding:8px 22px;border-radius:8px;border:none;background:#5a6d8a;color:#fff;font-size:14px;cursor:pointer;">📷 复制截图</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function closeWeeklyForm() {
+  document.getElementById('weekly-form-area').style.display = 'none';
+  document.getElementById('weekly-result-area').style.display = 'none';
+}
+
+// ---------- 查看提交情况（管理员/组长）----------
+async function renderWeeklyTrack() {
+  if (!supabase) return;
+  document.getElementById('weekly-form-area').style.display = 'none';
+  document.getElementById('weekly-result-area').style.display = 'none';
+  document.getElementById('weekly-track-area').style.display = '';
+  await loadWeeklyTemplates();
+  const { start, end } = getLastWeekRange();
+  document.getElementById('weekly-track-date').textContent = start + ' ~ ' + end;
+
+  const isLeader = currentProfile?.role === 'admin' || currentProfile?.role === 'leader';
+  if (!isLeader) {
+    document.getElementById('weekly-track-list').innerHTML = '<p style="text-align:center;color:var(--text-secondary);">仅管理员/组长可查看全员提交情况</p>';
+    return;
+  }
+
+  const [{ data: profiles }, { data: reports }] = await Promise.all([
+    supabase.from('profiles').select('id,name,group_name,real_name').order('name'),
+    supabase.from('weekly_reports').select('*').eq('week_start', start).eq('week_end', end)
+  ]);
+  const reportMap = {};
+  (reports || []).forEach(r => { reportMap[r.user_id] = r; });
+
+  const grouped = {};
+  (profiles || []).forEach(p => {
+    const g = p.group_name || '未分组';
+    (grouped[g] = grouped[g] || []).push(p);
+  });
+
+  let html = '';
+  const total = profiles?.length || 0;
+  const submitted = (profiles || []).filter(p => reportMap[p.id]).length;
+  html += `<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:80px;background:#eff6ff;border-radius:8px;padding:8px;text-align:center;"><div style="font-size:18px;font-weight:700;color:#2563eb;">${total}</div><div style="font-size:11px;color:#666;">客服总数</div></div>
+    <div style="flex:1;min-width:80px;background:#dcfce7;border-radius:8px;padding:8px;text-align:center;"><div style="font-size:18px;font-weight:700;color:#16a34a;">${submitted}</div><div style="font-size:11px;color:#666;">已提交</div></div>
+    <div style="flex:1;min-width:80px;background:#fff3d4;border-radius:8px;padding:8px;text-align:center;"><div style="font-size:18px;font-weight:700;color:#d97706;">${total - submitted}</div><div style="font-size:11px;color:#666;">未提交</div></div>
+  </div>`;
+
+  const groupOrder = ['A组', 'B组', 'C组'];
+  const groups = [...groupOrder.filter(g => grouped[g]), ...Object.keys(grouped).filter(g => !groupOrder.includes(g)).sort()];
+  groups.forEach(g => {
+    const members = grouped[g];
+    html += `<div style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+      <div style="padding:6px 14px;background:#f8f9ff;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;">${escapeHtml(g)} · ${members.length}人</div>
+      <div style="padding:4px 14px;">`;
+    members.forEach(m => {
+      const has = !!reportMap[m.id];
+      html += `<div class="daily-track-item" style="cursor:${has ? 'pointer' : 'default'};" onclick="${has ? "showWeeklyDetail('" + m.id + "','" + escapeAttr(m.name || '') + "')" : ''}">
+        <div class="daily-track-avatar" style="background:${has ? 'var(--success)' : 'var(--primary-light)'};">${(m.name || '?').charAt(0)}</div>
+        <div class="daily-track-info"><div class="daily-track-name">${escapeHtml(m.name || '未命名')}</div><div class="daily-track-status" style="color:${has ? 'var(--success)' : 'var(--danger)'};">${has ? '✅ 已提交' : '⏳ 未提交'}</div></div>
+      </div>`;
+    });
+    html += '</div></div>';
+  });
+  document.getElementById('weekly-track-list').innerHTML = html;
+}
+
+function closeWeeklyTrack() {
+  document.getElementById('weekly-track-area').style.display = 'none';
+}
+
+async function showWeeklyDetail(userId, userName) {
+  const { start } = getLastWeekRange();
+  const { data } = await supabase.from('weekly_reports').select('*').eq('user_id', userId).eq('week_start', start).maybeSingle();
+  const list = document.getElementById('weekly-track-list');
+  if (!data) { showToast((userName || '该客服') + ' 本周未提交周报'); return; }
+  const meta = { name: userName || data.profiles?.name || '', group: data.group_name, start: data.week_start, end: data.week_end };
+  const detail = document.createElement('div');
+  detail.innerHTML = renderWeeklyResult(data.content, meta);
+  detail.style.marginTop = '16px';
+  list.appendChild(detail);
+}
+
+// ---------- 周报截图（原生 canvas，避免 html2canvas 卡顿）----------
+function wkRoundRect(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + rr, rr);
+  ctx.arcTo(x + w, y + h, x + w - rr, y + h, rr);
+  ctx.arcTo(x, y + h, x, y + h - rr, rr);
+  ctx.arcTo(x, y, x + rr, y, rr);
+  ctx.closePath();
+}
+function wkTextWidth(ctx, text) { return ctx.measureText(text || '').width; }
+function wkWrapLines(ctx, text, maxWidth) {
+  const chars = String(text || '').split('');
+  const lines = []; let line = '';
+  for (const ch of chars) {
+    const test = line + ch;
+    if (wkTextWidth(ctx, test) > maxWidth && line) { lines.push(line); line = ch; }
+    else line = test;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+function estimateWeeklyNotesWidth(text) {
+  const c = document.createElement('canvas').getContext('2d');
+  c.font = '12px sans-serif';
+  return wkTextWidth(c, text || '');
+}
+
+function renderWeeklyReportCanvas(content, meta) {
+  const tpl = getWeeklyTemplate(meta.group || '');
+  const metrics = [...tpl.common, ...tpl.shopMetrics];
+  const rows = content.rows || [];
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+  const W = 800;
+  const PAD = 20;
+  const INNER = W - PAD * 2;
+  const memberColW = 150;
+  const M = metrics.length;
+  const metricColW = M > 0 ? Math.max(56, (INNER - memberColW) / M) : 100;
+
+  const titleH = 56;
+  const thH = 52;
+  const rowH = 32;
+  const notesH = content.notes ? (Math.ceil(estimateWeeklyNotesWidth(content.notes) / (INNER - 24)) * 18 + 28) : 0;
+  const H = PAD * 2 + titleH + thH + rows.length * rowH + notesH + 16;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  ctx.fillStyle = '#f4f2ef'; ctx.fillRect(0, 0, W, H);
+  const cardX = PAD, cardY = PAD, cardW = INNER, cardH = H - PAD * 2;
+  ctx.fillStyle = '#ffffff'; wkRoundRect(ctx, cardX, cardY, cardW, cardH, 12); ctx.fill();
+  ctx.strokeStyle = '#e2e0dc'; ctx.lineWidth = 1; ctx.stroke();
+
+  let y = cardY + 22;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#7a7a7a'; ctx.font = '13px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText((meta.start || '') + ' ~ ' + (meta.end || ''), cardX + 18, y);
+  ctx.fillStyle = '#2d2d2d'; ctx.font = 'bold 16px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText((meta.name || '') + ' · ' + (meta.group || '') + ' 周报', cardX + 18, y + 22);
+  ctx.fillStyle = '#7c6fae'; wkRoundRect(ctx, cardX + cardW - 70, y - 6, 52, 24, 10); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('周报', cardX + cardW - 44, y + 6);
+
+  y += 44;
+  ctx.strokeStyle = '#f0eeeb'; ctx.beginPath(); ctx.moveTo(cardX, y); ctx.lineTo(cardX + cardW, y); ctx.stroke();
+  y += 10;
+
+  ctx.textAlign = 'center';
+  let x = cardX + 18;
+  ctx.fillStyle = '#555'; ctx.font = 'bold 12px sans-serif';
+  ctx.fillText('成员', x + memberColW / 2, y + thH / 2);
+  x += memberColW;
+  metrics.forEach(m => {
+    ctx.fillStyle = '#555'; ctx.font = 'bold 12px sans-serif';
+    ctx.fillText(m.label, x + metricColW / 2, y + 14);
+    ctx.fillStyle = '#999'; ctx.font = '11px sans-serif';
+    ctx.fillText('目标 ' + m.target + (m.unit || ''), x + metricColW / 2, y + 32);
+    x += metricColW;
+  });
+  y += thH;
+  ctx.strokeStyle = '#f0eeeb'; ctx.beginPath(); ctx.moveTo(cardX, y); ctx.lineTo(cardX + cardW, y); ctx.stroke();
+
+  rows.forEach(r => {
+    const vals = r.values || {};
+    x = cardX + 18;
+    ctx.fillStyle = '#2d2d2d'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(r.name || '', x + 6, y + rowH / 2);
+    x += memberColW;
+    ctx.textAlign = 'center';
+    metrics.forEach(m => {
+      const v = vals[m.key] != null ? vals[m.key] : '';
+      if (v === '' || v == null) { x += metricColW; return; }
+      let color = '#2d2d2d';
+      if (m.unit === '%' && m.target) {
+        const num = parseFloat(v);
+        if (!isNaN(num)) color = num >= m.target ? '#16a34a' : '#ef4444';
+      }
+      ctx.fillStyle = color; ctx.font = 'bold 13px sans-serif';
+      ctx.fillText(String(v) + (m.unit && m.unit !== '%' ? m.unit : ''), x + metricColW / 2, y + rowH / 2);
+      x += metricColW;
+    });
+    y += rowH;
+    ctx.strokeStyle = '#f5f4f2'; ctx.beginPath(); ctx.moveTo(cardX, y); ctx.lineTo(cardX + cardW, y); ctx.stroke();
+  });
+
+  if (content.notes) {
+    y += 8;
+    ctx.fillStyle = '#fcf7ef'; wkRoundRect(ctx, cardX + 10, y, cardW - 20, notesH, 8); ctx.fill();
+    ctx.strokeStyle = '#e8dcc4'; ctx.stroke();
+    ctx.fillStyle = '#5a5a5a'; ctx.font = '12px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    wkWrapLines(ctx, content.notes, cardW - 44).forEach((ln, i) => {
+      ctx.fillText(ln, cardX + 22, y + 10 + i * 18);
+    });
+  }
+  return canvas;
+}
+
+function showWeeklyLoader() {
+  let loader = document.getElementById('weekly-screenshot-loader');
+  if (!loader) {
+    loader = document.createElement('div');
+    loader.id = 'weekly-screenshot-loader';
+    loader.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.35);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    loader.innerHTML = '<div style="background:#fff;border-radius:14px;padding:28px 36px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.2);"><div style="width:40px;height:40px;border:3px solid #e2e0dc;border-top-color:#7B9B6A;border-radius:50%;margin:0 auto 14px;animation:wkSpin 0.8s linear infinite;"></div><div style="font-size:15px;font-weight:600;color:#2C3328;">正在生成截图...</div><div style="font-size:12px;color:#8B8E87;margin-top:4px;">请稍等几秒</div></div>';
+    document.body.appendChild(loader);
+    if (!document.getElementById('wk-spin-style')) {
+      const style = document.createElement('style');
+      style.id = 'wk-spin-style';
+      style.textContent = '@keyframes wkSpin{to{transform:rotate(360deg)}}';
+      document.head.appendChild(style);
+    }
+  }
+  loader.style.display = 'flex';
+}
+function hideWeeklyLoader() {
+  const loader = document.getElementById('weekly-screenshot-loader');
+  if (loader) loader.style.display = 'none';
+}
+function downloadWeeklyScreenshot(blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `周报-${(lastWeeklyMeta && lastWeeklyMeta.start) || ''}.png`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('截图已下载（请手动复制）');
+}
+function copyWeeklyResult() {
+  showWeeklyLoader();
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    try {
+      const canvas = renderWeeklyReportCanvas(lastWeeklyContent || {}, lastWeeklyMeta || {});
+      canvas.toBlob(async (blob) => {
+        hideWeeklyLoader();
+        if (!blob) { showToast('生成图片失败'); return; }
+        try {
+          if (navigator.clipboard && navigator.clipboard.write) {
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+            showToast('✅ 截图已复制到剪贴板');
+          } else { downloadWeeklyScreenshot(blob); }
+        } catch (err) { downloadWeeklyScreenshot(blob); }
+      }, 'image/png');
+    } catch (err) {
+      hideWeeklyLoader();
+      console.error(err);
+      showToast('截图生成失败，请手动截图');
+    }
+  }));
+}
+
+// ---------- 周报模板后台管理 ----------
+function renderWeeklyTemplates() {
+  const el = document.getElementById('weekly-templates-content');
+  if (!el) return;
+  const groups = ['A组', 'B组', 'C组'];
+  el.innerHTML = groups.map(g => {
+    const tpl = getWeeklyTemplate(g);
+    const commonRows = tpl.common.map(m => `
+      <tr class="wt-common-row" data-key="${escapeAttr(m.key)}">
+        <td style="padding:4px 6px;"><input class="wt-c-label" value="${escapeHtml(m.label || '')}" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);"></td>
+        <td style="padding:4px 6px;width:70px;"><input class="wt-c-unit" value="${escapeHtml(m.unit || '')}" style="width:60px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
+        <td style="padding:4px 6px;width:80px;"><input class="wt-c-target" type="number" value="${m.target != null ? m.target : ''}" style="width:64px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
+        <td style="padding:4px 6px;width:40px;text-align:center;"><button class="btn-sm outline" style="color:var(--danger);border-color:var(--danger);padding:2px 8px;font-size:12px;" onclick="this.closest('tr').remove()">×</button></td>
+      </tr>`).join('');
+    return `<div style="margin-bottom:20px;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#f8f9ff;border-bottom:1px solid var(--border);">
+        <h3 style="margin:0;font-size:16px;">${g} · 周报模板</h3>
+        <button class="btn-sm primary" onclick="saveWeeklyTemplate('${g}')">💾 保存</button>
+      </div>
+      <div style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
+        <div class="form-row"><label>汇报成员（每行一个）</label><textarea id="wt-members-${g}" rows="2" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:var(--card-bg);color:var(--text);">${escapeHtml((tpl.members || []).join('\n'))}</textarea></div>
+        <div class="form-row"><label>汇报店铺（每行一个，改动会同步到指标列）</label><textarea id="wt-shops-${g}" rows="3" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:var(--card-bg);color:var(--text);">${escapeHtml((tpl.shops || []).join('\n'))}</textarea></div>
+        <div class="form-row" style="max-width:240px;"><label>店铺转化率默认目标(%)</label><input id="wt-shopdefault-${g}" type="number" value="${tpl.shopTargetDefault || 50}" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card-bg);color:var(--text);"></div>
+        <div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px;">通用指标（目标可改，可增删）</div>
+          <table style="width:100%;border-collapse:collapse;">
+            <thead><tr style="background:#f0f4ff;"><th style="padding:6px 8px;text-align:left;font-size:12px;">指标名</th><th style="padding:6px 8px;text-align:center;font-size:12px;width:70px;">单位</th><th style="padding:6px 8px;text-align:center;font-size:12px;width:80px;">目标</th><th style="padding:6px 8px;width:40px;"></th></tr></thead>
+            <tbody id="wt-common-${g}">${commonRows}</tbody>
+          </table>
+          <button class="btn-sm outline" style="margin-top:6px;font-size:13px;" onclick="addWtCommon('${g}')">+ 添加通用指标</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.addWtCommon = function (group) {
+  const tbody = document.getElementById('wt-common-' + group);
+  if (!tbody) return;
+  const tr = document.createElement('tr');
+  tr.className = 'wt-common-row';
+  tr.dataset.key = 'c_' + Date.now();
+  tr.innerHTML = `<td style="padding:4px 6px;"><input class="wt-c-label" value="" placeholder="新指标名" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);"></td>
+    <td style="padding:4px 6px;width:70px;"><input class="wt-c-unit" value="%" style="width:60px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
+    <td style="padding:4px 6px;width:80px;"><input class="wt-c-target" type="number" value="0" style="width:64px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
+    <td style="padding:4px 6px;width:40px;text-align:center;"><button class="btn-sm outline" style="color:var(--danger);border-color:var(--danger);padding:2px 8px;font-size:12px;" onclick="this.closest('tr').remove()">×</button></td>`;
+  tbody.appendChild(tr);
+};
+
+async function saveWeeklyTemplate(group) {
+  if (!supabase) return;
+  const members = document.getElementById('wt-members-' + group).value.split('\n').map(s => s.trim()).filter(Boolean);
+  const shops = document.getElementById('wt-shops-' + group).value.split('\n').map(s => s.trim()).filter(Boolean);
+  const shopTargetDefault = parseFloat(document.getElementById('wt-shopdefault-' + group).value) || 50;
+  const common = [];
+  document.querySelectorAll('#wt-common-' + group + ' .wt-common-row').forEach(row => {
+    const label = row.querySelector('.wt-c-label').value.trim();
+    const unit = row.querySelector('.wt-c-unit').value.trim();
+    const target = parseFloat(row.querySelector('.wt-c-target').value) || 0;
+    if (label) common.push({ key: row.dataset.key || ('c_' + common.length), label, unit, target });
+  });
+  // 保留已有店铺单独目标，新店铺用默认目标
+  const oldCfg = weeklyTemplates[group] || {};
+  const oldShopTargets = oldCfg.shopTargets || {};
+  const shopTargets = {};
+  shops.forEach(s => { shopTargets[s] = oldShopTargets[s] != null ? oldShopTargets[s] : shopTargetDefault; });
+  const config = { members, shops, common, shopTargetDefault, shopTargets };
+  const { error } = await supabase.from('weekly_templates').upsert({ group_name: group, config, updated_by: currentUser?.id }, { onConflict: 'group_name' });
+  if (error) { showToast('保存失败：' + error.message); }
+  else { showToast(group + ' 周报模板已保存'); await loadWeeklyTemplates(); renderWeeklyTemplates(); }
+}
+
+function subscribeWeeklyTemplates() {
+  if (!supabase || weeklyTplSub) return;
+  weeklyTplSub = supabase.channel('weekly_templates')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'weekly_templates' }, async () => {
+      await loadWeeklyTemplates();
+      if (currentPage === 'templates') renderWeeklyTemplates();
+    })
+    .subscribe();
 }
 
 // ---------- Canvas 原生绘制日报截图（绕过 html2canvas 卡顿）----------
@@ -1902,10 +2440,10 @@ const _origSwitchPage = switchPage;
 switchPage = function(page) {
   _origSwitchPage(page);
   if (page === 'home' && supabase) { loadAnnouncements(); subscribeAnnouncements(); }
-  if (page === 'daily' && supabase) { loadDailyReports(); subscribeDaily(); }
+  if (page === 'daily' && supabase) { loadDailyReports(); subscribeDaily(); loadWeeklyReports(); }
   if (page === 'presale' && supabase) { loadPresaleData(); subscribePresale(); }
   if (page === 'members' && supabase) { loadMembers(); subscribeProfiles(); }
-  if (page === 'templates' && supabase) { loadTemplates().then(() => renderTemplates()); subscribeTemplates(); }
+  if (page === 'templates' && supabase) { loadTemplates().then(() => renderTemplates()); subscribeTemplates(); loadWeeklyTemplates().then(renderWeeklyTemplates); subscribeWeeklyTemplates(); }
 };
 
 // ---------- 成员管理 ----------
