@@ -1823,7 +1823,7 @@ body {
     <!-- 录入原声 -->
     <div class="card" style="margin-bottom:20px;">
       <h3 style="margin-bottom:14px;">🎙 录入客户原话 <span style="font-size:12px;color:var(--text-secondary);font-weight:normal;">（原封不动，一字不改不加工）</span></h3>
-      <textarea id="voc-raw" rows="5" placeholder="把客户原话原封不动地粘贴 / 录入到这里，例如：&#10;“你们这个美瞳我戴着有点磨眼睛，但是颜色真的好看，就是想问问有没有更舒服的材质”" oninput="onVOCRawInput()" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;resize:vertical;line-height:1.6;"></textarea>
+      <textarea id="voc-raw" rows="5" placeholder="把客户原话原封不动地粘贴 / 录入到这里，例如：&#10;“你们这个美瞳我戴着有点磨眼睛，但是颜色真的好看，就是想问问有没有更舒服的材质”" oninput="onVOCRawInput();saveVOCDraft();" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;resize:vertical;line-height:1.6;"></textarea>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;">
         <button class="btn-sm primary" onclick="parseVOCAndFill()" style="padding:8px 16px;">⚡ 一键解析</button>
         <button class="btn-sm outline" onclick="openVOCBatch()" style="padding:8px 16px;">📋 批量粘贴</button>
@@ -1833,7 +1833,7 @@ body {
       <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-top:12px;">
         <div>
           <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">来源场景</label>
-          <select id="voc-scene" onchange="vocManualEdit=true" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
+          <select id="voc-scene" onchange="vocManualEdit=true;saveVOCDraft();" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
             <option value="">未分类</option>
             <option>抖音客服</option>
             <option>天猫客服</option>
@@ -1848,7 +1848,7 @@ body {
         </div>
         <div>
           <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">品牌</label>
-          <select id="voc-brand" onchange="vocManualEdit=true" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
+          <select id="voc-brand" onchange="vocManualEdit=true;saveVOCDraft();" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
             <option value="">未分类</option>
             <option>弥生</option>
             <option>极氧</option>
@@ -1856,7 +1856,7 @@ body {
         </div>
         <div>
           <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">主题</label>
-          <select id="voc-topic" onchange="vocManualEdit=true" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
+          <select id="voc-topic" onchange="vocManualEdit=true;saveVOCDraft();" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
             <option value="">未分类</option>
             <option>产品建议</option>
             <option>价格反馈</option>
@@ -1870,7 +1870,7 @@ body {
         </div>
         <div style="flex:1;min-width:170px;">
           <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">客户昵称 / 订单号（选填）</label>
-          <input id="voc-tag" type="text" placeholder="客户昵称 / 订单号" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+          <input id="voc-tag" type="text" placeholder="客户昵称 / 订单号" oninput="saveVOCDraft()" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
         </div>
         <div style="font-size:12px;color:var(--text-secondary);padding-bottom:8px;">登记人：<b id="voc-staff-label" style="color:var(--text);">-</b> · <span id="voc-team-label">-</span></div>
         <div id="voc-progress" style="font-size:12px;color:var(--text-secondary);padding:2px 0 8px;display:none;"></div>
@@ -6427,6 +6427,7 @@ function switchPage(page) {
     // 进入即拉取最新数据并渲染（录入人信息依赖 currentProfile，已就绪）
     loadVOCFromDB();
     renderVOC();
+    restoreVOCDraft(); // 恢复上次未提交的本地草稿（防刷新/断网丢数据）
   }
   if (page === 'presale' && presaleActiveTab === 'monthly') { loadPresaleMonthly(); subscribePresaleMonthly(); renderPresaleMonthly(); }
   if (page === 'staff-info') loadStaffInfo();
@@ -9932,6 +9933,36 @@ function parseVOC(text, team) {
 let vocManualEdit = false;     // 用户手动改过下拉后，停止自动覆盖
 let vocParseTimer = null;
 
+// ==================== 客户之声：本地草稿兜底（防刷新/断网丢数据） ====================
+const VOC_DRAFT_KEY = () => 'voc_draft_' + ((currentUser && currentUser.id) || 'guest');
+function saveVOCDraft() {
+  try {
+    const raw = (document.getElementById('voc-raw')?.value || '').trim();
+    const tag = (document.getElementById('voc-tag')?.value || '').trim();
+    const scene = document.getElementById('voc-scene')?.value || '';
+    const brand = document.getElementById('voc-brand')?.value || '';
+    const topic = document.getElementById('voc-topic')?.value || '';
+    if (!raw && !tag && !scene && !brand && !topic) { localStorage.removeItem(VOC_DRAFT_KEY()); return; }
+    localStorage.setItem(VOC_DRAFT_KEY(), JSON.stringify({ raw, tag, scene, brand, topic, ts: Date.now() }));
+  } catch (e) {}
+}
+function restoreVOCDraft() {
+  try {
+    const ta = document.getElementById('voc-raw');
+    if (!ta || ta.value.trim()) return; // 已在录入，不覆盖
+    const raw = localStorage.getItem(VOC_DRAFT_KEY());
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (!d || (!d.raw && !d.tag && !d.scene && !d.brand && !d.topic)) return;
+    if (d.raw) ta.value = d.raw;
+    const set = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = v; };
+    set('voc-tag', d.tag); set('voc-scene', d.scene); set('voc-brand', d.brand); set('voc-topic', d.topic);
+    vocManualEdit = true; // 恢复的草稿视为手动编辑，避免自动解析覆盖
+    showToast('📝 已恢复上次未提交的草稿，确认后点「保存这条反馈」');
+  } catch (e) {}
+}
+function clearVOCDraft() { try { localStorage.removeItem(VOC_DRAFT_KEY()); } catch (e) {} }
+
 function onVOCRawInput() {
   clearTimeout(vocParseTimer);
   vocParseTimer = setTimeout(() => {
@@ -10208,6 +10239,7 @@ async function submitVOC() {
     const tagEl = document.getElementById('voc-tag'); if (tagEl) tagEl.value = '';
     const brandEl = document.getElementById('voc-brand'); if (brandEl) brandEl.value = '';
     vocManualEdit = false;
+    clearVOCDraft();
     hideVOCParseHits();
     loadVOCFromDB(true);
   } catch (e) { showToast('⚠️ 保存异常'); console.error(e); }
