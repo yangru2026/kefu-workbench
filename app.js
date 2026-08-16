@@ -775,21 +775,23 @@ async function loadWeeklyTemplates() {
 }
 
 // 把数据库里的 config 归一化成前端可用的结构
+// config = { metrics: [{key,label,unit,target,type,shop?}] } —— 扁平指标列表，成员取自后台成员管理，店铺从 conversion/response 指标派生
 function getWeeklyTemplate(group) {
   const raw = weeklyTemplates[group] || {};
-  const members = Array.isArray(raw.members) ? raw.members : [];
-  const shops = Array.isArray(raw.shops) ? raw.shops : [];
-  const common = (Array.isArray(raw.common) ? raw.common : []).map(m => ({ ...m, type: m.type || 'direct' }));
-  const shopTargetDefault = raw.shopTargetDefault != null ? Number(raw.shopTargetDefault) : 50;
-  const shopTargets = raw.shopTargets || {};
-  // 店铺指标自动从 shops 生成：转化率-<店名>，目标优先取 shopTargets 中的单独值
-  const shopMetrics = shops.map(s => ({
-    key: 'ws_' + s,
-    label: '转化率-' + s,
-    unit: '%',
-    target: shopTargets[s] != null ? Number(shopTargets[s]) : shopTargetDefault
+  const metrics = (Array.isArray(raw.metrics) ? raw.metrics : []).map(m => ({
+    key: m.key || '',
+    label: m.label || '',
+    unit: m.unit || '',
+    target: m.target != null ? Number(m.target) : 0,
+    type: m.type || 'linked_sales',
+    shop: m.shop || ''
   }));
-  return { members, shops, common, shopMetrics, shopTargetDefault, shopTargets };
+  // 从 conversion/response 类指标里派生出本组涉及的店铺（用于原始数据录入）
+  const shops = [];
+  metrics.forEach(m => {
+    if ((m.type === 'conversion' || m.type === 'response') && m.shop && !shops.includes(m.shop)) shops.push(m.shop);
+  });
+  return { metrics, shops };
 }
 
 // 计算周报默认汇报周期：本月1号 ~ 今天（按本地时区格式化，避免 toISOString 时区偏移）
@@ -827,56 +829,57 @@ function wkMakeResult(label, value, unit, target, higherBetter) {
   return { label, value, unit, target: t, higherBetter, rate, status };
 }
 
-// 把原始数据(raw)算成结果数组：direct → conversion(合计+各店) → satisfaction → reply_rate → avg_response
+// 把原始数据(raw)按指标列表逐条算成结果数组
+// raw = { direct:{key:val}, shops:{店名:{i,p,sec,rounds}}, satisfaction:{good,bad}, reply:{total,in3} }
 function computeWeeklyResults(tpl, raw) {
   raw = raw || {};
   const direct = raw.direct || {};
   const shopsRaw = raw.shops || {};
   const satisfaction = raw.satisfaction || {};
   const reply = raw.reply || {};
-  const avg = raw.avg || {};
-  const metricMap = {};
-  (tpl.common || []).forEach(m => { metricMap[m.type] = m; });
 
+  // 全平台合计：Σ付款 / Σ询单
   let totInq = 0, totPay = 0;
   (tpl.shops || []).forEach(s => { const d = shopsRaw[s] || {}; totInq += wkNum(d.i); totPay += wkNum(d.p); });
+  // 各店响应秒/轮次 → 用于「各店平均响应」
+  const responseVals = [];
+  (tpl.shops || []).forEach(s => {
+    const d = shopsRaw[s] || {};
+    const sec = wkNum(d.sec), rounds = wkNum(d.rounds);
+    if (rounds > 0) responseVals.push(sec / rounds);
+  });
 
   const results = [];
-  if (metricMap.direct) {
-    const m = metricMap.direct;
-    results.push(wkMakeResult(m.label, wkNum(direct[m.key]), m.unit, m.target, true));
-  }
-  if (metricMap.conversion) {
-    const m = metricMap.conversion;
-    const totalRate = totInq > 0 ? (totPay / totInq * 100) : 0;
-    results.push(wkMakeResult(m.label, wkRound1(totalRate), '%', m.target, true));
-    (tpl.shops || []).forEach(s => {
-      const d = shopsRaw[s] || {};
+  (tpl.metrics || []).forEach(m => {
+    if (m.type === 'linked_sales') {
+      results.push(wkMakeResult(m.label, wkNum(direct[m.key]), m.unit, m.target, true));
+    } else if (m.type === 'overall_conversion') {
+      const v = totInq > 0 ? (totPay / totInq * 100) : 0;
+      results.push(wkMakeResult(m.label, wkRound1(v), '%', m.target, true));
+    } else if (m.type === 'conversion') {
+      const d = shopsRaw[m.shop] || {};
       const i = wkNum(d.i), p = wkNum(d.p);
-      const rate = i > 0 ? (p / i * 100) : 0;
-      const tgt = (tpl.shopTargets && tpl.shopTargets[s] != null) ? wkNum(tpl.shopTargets[s]) : wkNum(tpl.shopTargetDefault);
-      results.push(wkMakeResult('转化率-' + s, wkRound1(rate), '%', tgt, true));
-    });
-  }
-  if (metricMap.satisfaction) {
-    const m = metricMap.satisfaction;
-    const good = wkNum(satisfaction.good), bad = wkNum(satisfaction.bad);
-    const total = good + bad;
-    const v = total > 0 ? (good / total * 100) : 0;
-    results.push(wkMakeResult(m.label, wkRound1(v), '%', m.target, true));
-  }
-  if (metricMap.reply_rate) {
-    const m = metricMap.reply_rate;
-    const total = wkNum(reply.total), in3 = wkNum(reply.in3);
-    const v = total > 0 ? (in3 / total * 100) : 0;
-    results.push(wkMakeResult(m.label, wkRound1(v), '%', m.target, true));
-  }
-  if (metricMap.avg_response) {
-    const m = metricMap.avg_response;
-    const sec = wkNum(avg.sec), rounds = wkNum(avg.rounds);
-    const v = rounds > 0 ? (sec / rounds) : 0;
-    results.push(wkMakeResult(m.label, wkRound1(v), m.unit || 's', m.target, false));
-  }
+      const v = i > 0 ? (p / i * 100) : 0;
+      results.push(wkMakeResult(m.label, wkRound1(v), '%', m.target, true));
+    } else if (m.type === 'satisfaction') {
+      const good = wkNum(satisfaction.good), bad = wkNum(satisfaction.bad);
+      const total = good + bad;
+      const v = total > 0 ? (good / total * 100) : 0;
+      results.push(wkMakeResult(m.label, wkRound1(v), '%', m.target, true));
+    } else if (m.type === 'reply_rate') {
+      const total = wkNum(reply.total), in3 = wkNum(reply.in3);
+      const v = total > 0 ? (in3 / total * 100) : 0;
+      results.push(wkMakeResult(m.label, wkRound1(v), '%', m.target, true));
+    } else if (m.type === 'response') {
+      const d = shopsRaw[m.shop] || {};
+      const sec = wkNum(d.sec), rounds = wkNum(d.rounds);
+      const v = rounds > 0 ? (sec / rounds) : 0;
+      results.push(wkMakeResult(m.label, wkRound1(v), m.unit || 's', m.target, false));
+    } else if (m.type === 'avg_response') {
+      const v = responseVals.length ? (responseVals.reduce((a, b) => a + b, 0) / responseVals.length) : 0;
+      results.push(wkMakeResult(m.label, wkRound1(v), m.unit || 's', m.target, false));
+    }
+  });
   return results;
 }
 
@@ -931,60 +934,56 @@ function renderWeeklyForm(tpl, saved) {
   const shopsRaw = raw.shops || {};
   const satisfaction = raw.satisfaction || {};
   const reply = raw.reply || {};
-  const avg = raw.avg || {};
-  const metricMap = {};
-  (tpl.common || []).forEach(m => { metricMap[m.type] = m; });
+  const metrics = tpl.metrics || [];
+  const hasLinked = metrics.some(m => m.type === 'linked_sales');
+  const hasConversion = metrics.some(m => m.type === 'conversion' || m.type === 'overall_conversion');
+  const hasResponse = metrics.some(m => m.type === 'response' || m.type === 'avg_response');
+  const hasSatisfaction = metrics.some(m => m.type === 'satisfaction');
+  const hasReplyRate = metrics.some(m => m.type === 'reply_rate');
 
   let html = '';
 
-  // 1. 直接填值指标（如连带销售额）
-  if (metricMap.direct) {
-    const m = metricMap.direct;
-    html += wkSectionTitle(m.label + '（目标 ' + m.target + (m.unit || '') + '）');
+  // 1. 连带销售额（客服负责店铺合计，直接填总值）
+  if (hasLinked) {
+    const m = metrics.find(x => x.type === 'linked_sales');
+    html += wkSectionTitle(m.label + '（目标 ' + m.target + (m.unit || '') + '，客服负责店铺合计）');
     html += `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
       <input type="number" class="wk-raw" data-type="direct" data-key="${escapeAttr(m.key)}" value="${direct[m.key] != null && direct[m.key] !== '' ? direct[m.key] : ''}" style="width:180px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--card-bg);color:var(--text);">
       <span style="color:var(--text-secondary);font-size:13px;">${escapeHtml(m.unit || '')}</span>
     </div>`;
   }
 
-  // 2. 各店铺转化原始数据（付款/询单）
-  if (metricMap.conversion && (tpl.shops || []).length) {
-    const m = metricMap.conversion;
-    html += wkSectionTitle(m.label + '（各店 付款/询单，合计目标 ' + m.target + '%）');
+  // 2. 各店铺原始数据：询单/付款（转化用）；响应秒/轮次（有响应指标时采集，系统求各店平均）
+  if ((hasConversion || hasResponse) && (tpl.shops || []).length) {
+    html += wkSectionTitle('各店铺数据（询单人数 / 付款人数' + (hasResponse ? ' / 响应秒数 / 会话轮次' : '') + '）');
     html += `<table class="ranking-table" style="min-width:520px;font-size:13px;border-collapse:collapse;">
-      <thead><tr><th style="text-align:left;padding:6px 8px;">店铺</th><th style="text-align:center;padding:6px 8px;">询单人数</th><th style="text-align:center;padding:6px 8px;">付款人数</th><th style="text-align:center;padding:6px 8px;">目标转化</th></tr></thead><tbody>`;
+      <thead><tr><th style="text-align:left;padding:6px 8px;">店铺</th><th style="text-align:center;padding:6px 8px;">询单人数</th><th style="text-align:center;padding:6px 8px;">付款人数</th>${hasResponse ? '<th style="text-align:center;padding:6px 8px;">响应秒数</th><th style="text-align:center;padding:6px 8px;">会话轮次</th>' : ''}</tr></thead><tbody>`;
     (tpl.shops || []).forEach(s => {
       const d = shopsRaw[s] || {};
-      const tgt = (tpl.shopTargets && tpl.shopTargets[s] != null) ? tpl.shopTargets[s] : tpl.shopTargetDefault;
       html += `<tr>
         <td style="padding:6px 8px;font-weight:600;">${escapeHtml(s)}</td>
         <td style="padding:4px;text-align:center;"><input type="number" class="wk-raw" data-type="shop" data-shop="${escapeAttr(s)}" data-field="i" value="${d.i != null && d.i !== '' ? d.i : ''}" style="width:90px;padding:6px 4px;border:1px solid var(--border);border-radius:6px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
         <td style="padding:4px;text-align:center;"><input type="number" class="wk-raw" data-type="shop" data-shop="${escapeAttr(s)}" data-field="p" value="${d.p != null && d.p !== '' ? d.p : ''}" style="width:90px;padding:6px 4px;border:1px solid var(--border);border-radius:6px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
-        <td style="padding:6px 8px;text-align:center;color:var(--text-secondary);">${tgt}%</td>
+        ${hasResponse ? `<td style="padding:4px;text-align:center;"><input type="number" class="wk-raw" data-type="shop" data-shop="${escapeAttr(s)}" data-field="sec" value="${d.sec != null && d.sec !== '' ? d.sec : ''}" style="width:90px;padding:6px 4px;border:1px solid var(--border);border-radius:6px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
+        <td style="padding:4px;text-align:center;"><input type="number" class="wk-raw" data-type="shop" data-shop="${escapeAttr(s)}" data-field="rounds" value="${d.rounds != null && d.rounds !== '' ? d.rounds : ''}" style="width:90px;padding:6px 4px;border:1px solid var(--border);border-radius:6px;text-align:center;background:var(--card-bg);color:var(--text);"></td>` : ''}
       </tr>`;
     });
     html += `</tbody></table>`;
+    if (hasResponse) html += `<div style="font-size:12px;color:var(--text-secondary);">响应为「各店分别填写，系统自动求平均值」</div>`;
   }
 
   // 3. 满意度
-  if (metricMap.satisfaction) {
-    const m = metricMap.satisfaction;
+  if (hasSatisfaction) {
+    const m = metrics.find(x => x.type === 'satisfaction');
     html += wkSectionTitle(m.label + '（好评/(好评+差评)，目标 ' + m.target + '%）');
     html += wkRawPair('好评数量', 'satisfaction', 'good', satisfaction.good, '差评数量', 'satisfaction', 'bad', satisfaction.bad);
   }
 
   // 4. 三分钟回复率
-  if (metricMap.reply_rate) {
-    const m = metricMap.reply_rate;
+  if (hasReplyRate) {
+    const m = metrics.find(x => x.type === 'reply_rate');
     html += wkSectionTitle(m.label + '（三分钟响应轮次/总会话轮次，目标 ' + m.target + '%）');
     html += wkRawPair('总会话轮次', 'reply', 'total', reply.total, '三分钟响应轮次', 'reply', 'in3', reply.in3);
-  }
-
-  // 5. 平均响应（越低越好）
-  if (metricMap.avg_response) {
-    const m = metricMap.avg_response;
-    html += wkSectionTitle(m.label + '（总响应秒数/会话轮次，目标 ' + m.target + (m.unit || 's') + '，越低越好）');
-    html += wkRawPair('总响应秒数', 'avg', 'sec', avg.sec, '会话轮次', 'avg', 'rounds', avg.rounds);
   }
 
   if (!html) html = '<p style="color:var(--text-secondary);">该组暂未配置周报指标，请联系管理员在「模板管理 → 周报模板」中设置。</p>';
@@ -1006,7 +1005,7 @@ async function submitWeekly() {
   if (!start || !end) { showToast('请选择汇报周期'); return; }
   const group = currentProfile?.group_name || '';
   const tpl = getWeeklyTemplate(group);
-  const raw = { direct: {}, shops: {}, satisfaction: {}, reply: {}, avg: {} };
+  const raw = { direct: {}, shops: {}, satisfaction: {}, reply: {} };
   document.querySelectorAll('#weekly-form-table-wrap .wk-raw').forEach(inp => {
     const type = inp.dataset.type;
     let v = parseFloat(inp.value);
@@ -1320,79 +1319,88 @@ function copyWeeklyResult() {
   }));
 }
 
-// ---------- 周报模板后台管理 ----------
+// ---------- 周报模板后台管理（指标列表，与日报模板结构一致：左=指标/店铺名，右=目标）----------
 function renderWeeklyTemplates() {
   const el = document.getElementById('weekly-templates-content');
   if (!el) return;
   const groups = ['A组', 'B组', 'C组'];
+  const wkTypes = [
+    ['linked_sales', '连带销售额(直接填值)'],
+    ['overall_conversion', '全平台转化率(各店合计)'],
+    ['conversion', '转化率(各店付款/询单)'],
+    ['satisfaction', '满意度(好评/差评)'],
+    ['reply_rate', '三分钟回复率'],
+    ['response', '平均响应-单店(越低越好)'],
+    ['avg_response', '平均响应(各店平均)']
+  ];
   el.innerHTML = groups.map(g => {
     const tpl = getWeeklyTemplate(g);
-    const wkTypes = [['direct','直接填值'],['conversion','转化率(各店付款/询单)'],['satisfaction','满意度(好评/差评)'],['reply_rate','三分钟回复率'],['avg_response','平均响应(越低越好)']];
-    const commonRows = tpl.common.map(m => {
-      const opts = wkTypes.map(([v,t]) => `<option value="${v}" ${m.type === v ? 'selected' : ''}>${t}</option>`).join('');
-      return `<tr class="wt-common-row" data-key="${escapeAttr(m.key)}">
-        <td style="padding:4px 6px;"><input class="wt-c-label" value="${escapeHtml(m.label || '')}" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);"></td>
-        <td style="padding:4px 6px;width:150px;"><select class="wt-c-type" style="width:100%;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--card-bg);color:var(--text);">${opts}</select></td>
-        <td style="padding:4px 6px;width:64px;"><input class="wt-c-unit" value="${escapeHtml(m.unit || '')}" style="width:56px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
-        <td style="padding:4px 6px;width:70px;"><input class="wt-c-target" type="number" value="${m.target != null ? m.target : ''}" style="width:60px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
+    const rows = tpl.metrics.map(m => {
+      const opts = wkTypes.map(([v, t]) => `<option value="${v}" ${m.type === v ? 'selected' : ''}>${t}</option>`).join('');
+      const shopCell = (m.type === 'conversion' || m.type === 'response')
+        ? `<td style="padding:4px 6px;"><input class="wt-m-shop" value="${escapeAttr(m.shop || '')}" placeholder="店铺名" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);"></td>`
+        : `<td style="padding:4px 6px;text-align:center;color:#c4c4c4;font-size:12px;">—</td>`;
+      return `<tr class="wt-m-row" data-key="${escapeAttr(m.key)}">
+        <td style="padding:4px 6px;"><input class="wt-m-label" value="${escapeHtml(m.label || '')}" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);"></td>
+        <td style="padding:4px 6px;width:170px;"><select class="wt-m-type" style="width:100%;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--card-bg);color:var(--text);">${opts}</select></td>
+        <td style="padding:4px 6px;width:56px;"><input class="wt-m-unit" value="${escapeHtml(m.unit || '')}" style="width:48px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
+        <td style="padding:4px 6px;width:72px;"><input class="wt-m-target" type="number" value="${m.target != null ? m.target : ''}" style="width:62px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
+        ${shopCell}
         <td style="padding:4px 6px;width:36px;text-align:center;"><button class="btn-sm outline" style="color:var(--danger);border-color:var(--danger);padding:2px 8px;font-size:12px;" onclick="this.closest('tr').remove()">×</button></td>
       </tr>`;
     }).join('');
     return `<div style="margin-bottom:20px;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#f8f9ff;border-bottom:1px solid var(--border);">
-        <h3 style="margin:0;font-size:16px;">${g} · 周报模板</h3>
+        <h3 style="margin:0;font-size:16px;">${g} · 周报指标模板</h3>
         <button class="btn-sm primary" onclick="saveWeeklyTemplate('${g}')">💾 保存</button>
       </div>
-      <div style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
-        <div class="form-row"><label>汇报成员（每行一个）</label><textarea id="wt-members-${g}" rows="2" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:var(--card-bg);color:var(--text);">${escapeHtml((tpl.members || []).join('\n'))}</textarea></div>
-        <div class="form-row"><label>汇报店铺（每行一个，改动会同步到指标列）</label><textarea id="wt-shops-${g}" rows="3" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:var(--card-bg);color:var(--text);">${escapeHtml((tpl.shops || []).join('\n'))}</textarea></div>
-        <div class="form-row" style="max-width:240px;"><label>店铺转化率默认目标(%)</label><input id="wt-shopdefault-${g}" type="number" value="${tpl.shopTargetDefault || 50}" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card-bg);color:var(--text);"></div>
-        <div>
-          <div style="font-size:13px;font-weight:600;margin-bottom:4px;">通用指标（目标可改，可增删）</div>
-          <table style="width:100%;border-collapse:collapse;">
-            <thead><tr style="background:#f0f4ff;"><th style="padding:6px 8px;text-align:left;font-size:12px;">指标名</th><th style="padding:6px 8px;text-align:center;font-size:12px;width:150px;">类型</th><th style="padding:6px 8px;text-align:center;font-size:12px;width:64px;">单位</th><th style="padding:6px 8px;text-align:center;font-size:12px;width:70px;">目标</th><th style="padding:6px 8px;width:36px;"></th></tr></thead>
-            <tbody id="wt-common-${g}">${commonRows}</tbody>
-          </table>
-          <button class="btn-sm outline" style="margin-top:6px;font-size:13px;" onclick="addWtCommon('${g}')">+ 添加通用指标</button>
-        </div>
+      <div style="padding:12px 16px;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px;">指标列表（左=指标/店铺名，右=目标；可改、可增、可删；成员取自后台「成员管理」）</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f0f4ff;">
+            <th style="padding:6px 8px;text-align:left;font-size:12px;">指标名</th>
+            <th style="padding:6px 8px;text-align:center;font-size:12px;width:170px;">类型</th>
+            <th style="padding:6px 8px;text-align:center;font-size:12px;width:56px;">单位</th>
+            <th style="padding:6px 8px;text-align:center;font-size:12px;width:72px;">目标</th>
+            <th style="padding:6px 8px;text-align:center;font-size:12px;">店铺(转化率/响应填)</th>
+            <th style="padding:6px 8px;width:36px;"></th>
+          </tr></thead>
+          <tbody id="wt-metrics-${g}">${rows}</tbody>
+        </table>
+        <button class="btn-sm outline" style="margin-top:6px;font-size:13px;" onclick="addWtMetric('${g}')">+ 添加指标</button>
       </div>
     </div>`;
   }).join('');
 }
 
-window.addWtCommon = function (group) {
-  const tbody = document.getElementById('wt-common-' + group);
+window.addWtMetric = function (group) {
+  const tbody = document.getElementById('wt-metrics-' + group);
   if (!tbody) return;
   const tr = document.createElement('tr');
-  tr.className = 'wt-common-row';
-  tr.dataset.key = 'c_' + Date.now();
-  tr.innerHTML = `<td style="padding:4px 6px;"><input class="wt-c-label" value="" placeholder="新指标名" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);"></td>
-    <td style="padding:4px 6px;width:150px;"><select class="wt-c-type" style="width:100%;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--card-bg);color:var(--text);"><option value="direct" selected>直接填值</option><option value="conversion">转化率(各店付款/询单)</option><option value="satisfaction">满意度(好评/差评)</option><option value="reply_rate">三分钟回复率</option><option value="avg_response">平均响应(越低越好)</option></select></td>
-    <td style="padding:4px 6px;width:64px;"><input class="wt-c-unit" value="%" style="width:56px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
-    <td style="padding:4px 6px;width:70px;"><input class="wt-c-target" type="number" value="0" style="width:60px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
+  tr.className = 'wt-m-row';
+  tr.dataset.key = 'm_' + Date.now();
+  tr.innerHTML = `<td style="padding:4px 6px;"><input class="wt-m-label" value="" placeholder="新指标名" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);"></td>
+    <td style="padding:4px 6px;width:170px;"><select class="wt-m-type" style="width:100%;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--card-bg);color:var(--text);"><option value="conversion" selected>转化率(各店付款/询单)</option><option value="linked_sales">连带销售额(直接填值)</option><option value="overall_conversion">全平台转化率(各店合计)</option><option value="satisfaction">满意度(好评/差评)</option><option value="reply_rate">三分钟回复率</option><option value="response">平均响应-单店(越低越好)</option><option value="avg_response">平均响应(各店平均)</option></select></td>
+    <td style="padding:4px 6px;width:56px;"><input class="wt-m-unit" value="%" style="width:48px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
+    <td style="padding:4px 6px;width:72px;"><input class="wt-m-target" type="number" value="0" style="width:62px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
+    <td style="padding:4px 6px;"><input class="wt-m-shop" value="" placeholder="店铺名" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);"></td>
     <td style="padding:4px 6px;width:36px;text-align:center;"><button class="btn-sm outline" style="color:var(--danger);border-color:var(--danger);padding:2px 8px;font-size:12px;" onclick="this.closest('tr').remove()">×</button></td>`;
   tbody.appendChild(tr);
 };
 
 async function saveWeeklyTemplate(group) {
   if (!supabase) return;
-  const members = document.getElementById('wt-members-' + group).value.split('\n').map(s => s.trim()).filter(Boolean);
-  const shops = document.getElementById('wt-shops-' + group).value.split('\n').map(s => s.trim()).filter(Boolean);
-  const shopTargetDefault = parseFloat(document.getElementById('wt-shopdefault-' + group).value) || 50;
-  const common = [];
-  document.querySelectorAll('#wt-common-' + group + ' .wt-common-row').forEach(row => {
-    const label = row.querySelector('.wt-c-label').value.trim();
-    const unit = row.querySelector('.wt-c-unit').value.trim();
-    const target = parseFloat(row.querySelector('.wt-c-target').value) || 0;
-    const type = row.querySelector('.wt-c-type') ? row.querySelector('.wt-c-type').value : 'direct';
-    if (label) common.push({ key: row.dataset.key || ('c_' + common.length), label, unit, target, type });
+  const metrics = [];
+  document.querySelectorAll('#wt-metrics-' + group + ' .wt-m-row').forEach(row => {
+    const label = row.querySelector('.wt-m-label').value.trim();
+    if (!label) return;
+    const type = row.querySelector('.wt-m-type').value;
+    const unit = row.querySelector('.wt-m-unit').value.trim();
+    const target = parseFloat(row.querySelector('.wt-m-target').value) || 0;
+    const shop = (type === 'conversion' || type === 'response') ? row.querySelector('.wt-m-shop').value.trim() : '';
+    metrics.push({ key: row.dataset.key || ('m_' + Date.now() + '_' + metrics.length), label, unit, target, type, shop });
   });
-  // 保留已有店铺单独目标，新店铺用默认目标
-  const oldCfg = weeklyTemplates[group] || {};
-  const oldShopTargets = oldCfg.shopTargets || {};
-  const shopTargets = {};
-  shops.forEach(s => { shopTargets[s] = oldShopTargets[s] != null ? oldShopTargets[s] : shopTargetDefault; });
-  const config = { members, shops, common, shopTargetDefault, shopTargets };
+  const config = { metrics };
   const { error } = await supabase.from('weekly_templates').upsert({ group_name: group, config, updated_by: currentUser?.id }, { onConflict: 'group_name' });
   if (error) { showToast('保存失败：' + error.message); }
   else { showToast(group + ' 周报模板已保存'); await loadWeeklyTemplates(); renderWeeklyTemplates(); }

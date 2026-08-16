@@ -2,15 +2,22 @@
 -- 周报功能：周报模板表 + 周报表
 -- ============================================================
 
--- 周报模板表：按 A/B/C 组分别配置成员、店铺、通用指标、店铺默认目标
+-- 周报模板表：按 A/B/C 组分别配置指标列表
 -- config 结构：
 -- {
---   "members": ["成员1","成员2"],                       -- 可编辑
---   "shops":   ["店铺A","店铺B"],                         -- 可编辑，改动会自动同步到指标列
---   "common":  [{"key":"...","label":"...","unit":"...","target":数字,"type":"direct|conversion|satisfaction|reply_rate|avg_response"}],  -- 通用指标(带类型)
---   "shopTargetDefault": 50,                             -- 店铺转化率默认目标
---   "shopTargets": {"店铺A":55,"店铺B":60}               -- 每个店铺单独目标（按店铺名保存）
+--   "metrics": [
+--     {"key":"唯一键","label":"指标名（可含店铺名）","unit":"单位","target":数字,"type":"指标类型","shop":"店铺名(仅conversion/response填写)"}
+--   ]
 -- }
+-- 指标 type 含义：
+--   linked_sales      连带销售额，直接填总值（客服负责店铺合计），达标=值≥目标
+--   overall_conversion 全平台转化率 = Σ各店付款 / Σ各店询单
+--   conversion        单店转化率 = 该店付款/询单
+--   satisfaction      满意度 = 好评/(好评+差评)*100
+--   reply_rate        三分钟回复率 = 三分钟响应轮次/总会话轮次*100
+--   response          单店平均响应 = 该店响应秒/轮次（越低越好）
+--   avg_response      各店平均响应 = 所有店铺 响应秒/轮次 求平均（越低越好）
+-- 成员不存模板，直接取自后台「成员管理」的组身份；店铺从 conversion/response 指标自动派生。
 CREATE TABLE IF NOT EXISTS weekly_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   group_name TEXT NOT NULL UNIQUE,
@@ -32,7 +39,7 @@ CREATE POLICY "weekly_templates_write_admin"
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','leader')))
   WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','leader')));
 
--- 周报表：存储每周汇报内容（成员 × 指标 的填写值）
+-- 周报表：存储每周汇报内容（原始录入数据，指标由系统计算）
 CREATE TABLE IF NOT EXISTS weekly_reports (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id),
@@ -64,47 +71,39 @@ CREATE POLICY "weekly_reports_update_own"
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
 
--- 默认模板数据（如已在后台修改过，ON CONFLICT 不会覆盖）
--- common 指标 type 含义：
---   direct      直接填值（如连带销售额），结果=填值，达标=值≥目标
---   conversion  转化率：由各店 付款/询单 自动计算，并汇总全平台合计=Σ付款/Σ询单
---   satisfaction 满意度=好评/(好评+差评)*100
---   reply_rate  三分钟回复率=三分钟响应轮次/总会话轮次*100
---   avg_response 平均响应=总响应秒数/会话轮次（越低越好）
+-- 默认模板数据（ON CONFLICT 覆盖刷新，重跑可更新指标/目标）
 INSERT INTO weekly_templates (group_name, config) VALUES
 ('A组', '{
-  "members": ["马雷旭","小暖"],
-  "shops": ["快手弥生","天猫弥生","天猫YH"],
-  "common": [
-    {"key":"linked_sales","label":"连带销售额","unit":"元","target":8000,"type":"direct"},
-    {"key":"overall_conversion","label":"全平台转化率","unit":"%","target":50,"type":"conversion"},
-    {"key":"satisfaction","label":"满意度","unit":"%","target":98,"type":"satisfaction"},
+  "metrics": [
+    {"key":"linked_sales","label":"连带销售额","unit":"元","target":8000,"type":"linked_sales"},
+    {"key":"overall_conversion","label":"全平台转化率","unit":"%","target":50,"type":"overall_conversion"},
+    {"key":"conv_douyidian","label":"转化率-抖一店","unit":"%","target":50,"type":"conversion","shop":"抖一店"},
+    {"key":"conv_tmallms","label":"转化率-天猫弥生","unit":"%","target":50,"type":"conversion","shop":"天猫弥生"},
+    {"key":"conv_tmalljy","label":"转化率-天猫极氧","unit":"%","target":50,"type":"conversion","shop":"天猫极氧"},
+    {"key":"conv_ksms","label":"转化率-快手弥生","unit":"%","target":50,"type":"conversion","shop":"快手弥生"},
+    {"key":"satisfaction","label":"满意度-售前全平台满意度","unit":"%","target":98,"type":"satisfaction"},
     {"key":"response_3min","label":"三分钟回复率","unit":"%","target":100,"type":"reply_rate"}
-  ],
-  "shopTargetDefault": 50,
-  "shopTargets": {"快手弥生":35,"天猫弥生":55,"天猫YH":58}
+  ]
 }'),
 ('B组', '{
-  "members": ["李烁南","小态","小歪","小朗"],
-  "shops": ["拼多多1店","拼多多2店","拼多多3店","拼多多4店","拼多多5店","拼多多6店"],
-  "common": [
-    {"key":"linked_sales","label":"连带销售额","unit":"元","target":8000,"type":"direct"},
-    {"key":"overall_conversion","label":"全平台转化率","unit":"%","target":42,"type":"conversion"},
-    {"key":"avg_response","label":"平均响应","unit":"s","target":15,"type":"avg_response"}
-  ],
-  "shopTargetDefault": 42,
-  "shopTargets": {}
+  "metrics": [
+    {"key":"conv_pdd1","label":"转化率-拼多多1店","unit":"%","target":42,"type":"conversion","shop":"拼多多1店"},
+    {"key":"conv_pdd2","label":"转化率-拼多多2店","unit":"%","target":42,"type":"conversion","shop":"拼多多2店"},
+    {"key":"conv_pdd3","label":"转化率-拼多多3店","unit":"%","target":42,"type":"conversion","shop":"拼多多3店"},
+    {"key":"conv_pdd4","label":"转化率-拼多多4店","unit":"%","target":42,"type":"conversion","shop":"拼多多4店"},
+    {"key":"conv_pdd5","label":"转化率-拼多多5店","unit":"%","target":42,"type":"conversion","shop":"拼多多5店"},
+    {"key":"conv_dousan","label":"转化率-抖三店","unit":"%","target":42,"type":"conversion","shop":"抖三店"},
+    {"key":"overall_conversion","label":"全平台转化率","unit":"%","target":42,"type":"overall_conversion"},
+    {"key":"avg_response","label":"响应（各店平均）","unit":"s","target":15,"type":"avg_response"}
+  ]
 }'),
 ('C组', '{
-  "members": ["小七","小火","小熊","小茜","小猫"],
-  "shops": ["抖音官方店","抖音电子"],
-  "common": [
-    {"key":"linked_sales","label":"连带销售额","unit":"元","target":8000,"type":"direct"},
-    {"key":"overall_conversion","label":"全平台转化率","unit":"%","target":57,"type":"conversion"},
+  "metrics": [
+    {"key":"conv_douer","label":"转化率-抖二店","unit":"%","target":57,"type":"conversion","shop":"抖二店"},
+    {"key":"conv_dousi","label":"转化率-抖四店","unit":"%","target":57,"type":"conversion","shop":"抖四店"},
+    {"key":"overall_conversion","label":"全平台转化率","unit":"%","target":57,"type":"overall_conversion"},
     {"key":"satisfaction","label":"满意度","unit":"%","target":98,"type":"satisfaction"},
-    {"key":"avg_response","label":"平均响应","unit":"s","target":10,"type":"avg_response"}
-  ],
-  "shopTargetDefault": 57,
-  "shopTargets": {"抖音官方店":55,"抖音电子":60}
+    {"key":"avg_response","label":"响应（各店平均）","unit":"s","target":10,"type":"avg_response"}
+  ]
 }')
 ON CONFLICT (group_name) DO UPDATE SET config = EXCLUDED.config, updated_at = now();
