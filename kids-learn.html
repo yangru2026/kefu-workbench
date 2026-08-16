@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>👶 宝宝学习工作台</title>
+<title>🌟 张依诺的学习乐园</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; padding: 0; }
@@ -180,7 +180,7 @@
 
 <div class="topbar">
   <span class="logo">🧒</span>
-  <span class="name" id="kidName">宝贝<small>学习工作台</small></span>
+  <span class="name" id="kidName">张依诺<small>学习乐园</small></span>
   <button class="pill" onclick="editName()">⭐ <span id="pointVal">0</span> 分<span class="edit">改名字</span></button>
   <button class="pill star">🌟 <span id="starVal">0</span></button>
 </div>
@@ -270,7 +270,7 @@ const MODULES = {
 };
 function defaultState(){
   return {
-    kidName: '宝贝',
+    kidName: '张依诺',
     totalPoints: 0,
     stars: 0,
     modules: {
@@ -319,7 +319,7 @@ function addStars(n){ state.stars += n; saveState(); refreshTop(); }
 function refreshTop(){
   $('pointVal').textContent = state.totalPoints;
   $('starVal').textContent = state.stars;
-  $('kidName').innerHTML = state.kidName + '<small>学习工作台</small>';
+  $('kidName').innerHTML = state.kidName + '<small>学习乐园</small>';
 }
 
 /* ===================== 首页 ===================== */
@@ -668,7 +668,7 @@ function switchTab(tab){
   }
 }
 function editName(){
-  const n=prompt('给宝宝起个名字吧：', state.kidName);
+  const n=prompt('给宝贝起个名字吧：', state.kidName);
   if(n && n.trim()){ state.kidName=n.trim(); saveState(); refreshTop(); }
 }
 
