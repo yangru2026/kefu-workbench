@@ -792,22 +792,18 @@ function getWeeklyTemplate(group) {
   return { members, shops, common, shopMetrics, shopTargetDefault, shopTargets };
 }
 
-// 计算「上周一 ~ 上周日」作为默认汇报周期（按本地时区格式化，避免 toISOString 时区偏移）
-function getLastWeekRange() {
+// 计算周报默认汇报周期：本月1号 ~ 今天（按本地时区格式化，避免 toISOString 时区偏移）
+function getWeeklyReportRange() {
   const now = new Date();
-  const day = now.getDay(); // 0=周日 .. 6=周六
-  const thisMon = new Date(now);
-  thisMon.setDate(now.getDate() + (day === 0 ? -6 : 1 - day));
-  thisMon.setHours(0, 0, 0, 0);
-  const lastMon = new Date(thisMon); lastMon.setDate(thisMon.getDate() - 7);
-  const lastSun = new Date(lastMon); lastSun.setDate(lastMon.getDate() + 6);
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now);
   const fmt = d => {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
     return y + '-' + m + '-' + dd;
   };
-  return { start: fmt(lastMon), end: fmt(lastSun) };
+  return { start: fmt(start), end: fmt(end) };
 }
 
 // ---------- 周报指标计算引擎 ----------
@@ -898,7 +894,7 @@ async function loadWeeklyReports() {
 // ---------- 填写周报 ----------
 async function openWeeklyForm() {
   if (!currentUser) { showToast('请先登录'); switchPage('login'); return; }
-  const { start, end } = getLastWeekRange();
+  const { start, end } = getWeeklyReportRange();
   document.getElementById('weekly-start').value = start;
   document.getElementById('weekly-end').value = end;
   document.getElementById('weekly-date-label').textContent = start + ' ~ ' + end;
@@ -1061,8 +1057,8 @@ function renderWeeklyResult(content, meta) {
     </tr>`).join('');
 
   document.getElementById('weekly-result-area').innerHTML = `
-    <div style="max-width:760px;margin:0 auto;background:#f4f2ef;border-radius:16px;padding:20px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#2d2d2d;line-height:1.5;">
-      <div class="weekly-screenshot-card" style="background:#fff;border-radius:12px;padding:20px 18px;border:1px solid #e2e0dc;">
+    <div style="max-width:760px;margin:0 auto;background:#edf5ff;border-radius:16px;padding:20px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#2d2d2d;line-height:1.5;">
+      <div class="weekly-screenshot-card" style="background:#fff;border-radius:12px;padding:20px 18px;border:1px solid #c8d8ea;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #f0eeeb;padding-bottom:12px;">
           <div>
             <div style="font-size:13px;color:#7a7a7a;">${rangeLabel}</div>
@@ -1101,7 +1097,7 @@ async function renderWeeklyTrack() {
   document.getElementById('weekly-result-area').style.display = 'none';
   document.getElementById('weekly-track-area').style.display = '';
   await loadWeeklyTemplates();
-  const { start, end } = getLastWeekRange();
+  const { start, end } = getWeeklyReportRange();
   document.getElementById('weekly-track-date').textContent = start + ' ~ ' + end;
 
   const isLeader = currentProfile?.role === 'admin' || currentProfile?.role === 'leader';
@@ -1156,7 +1152,7 @@ function closeWeeklyTrack() {
 }
 
 async function showWeeklyDetail(userId, userName) {
-  const { start } = getLastWeekRange();
+  const { start } = getWeeklyReportRange();
   const { data } = await supabase.from('weekly_reports').select('*').eq('user_id', userId).eq('week_start', start).maybeSingle();
   const list = document.getElementById('weekly-track-list');
   if (!data) { showToast((userName || '该客服') + ' 本周未提交周报'); return; }
@@ -1215,9 +1211,9 @@ function renderWeeklyReportCanvas(content, meta) {
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
 
-  ctx.fillStyle = '#f4f2ef'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#edf5ff'; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = '#ffffff'; wkRoundRect(ctx, cardX, cardY, cardW, H - PAD * 2, 12); ctx.fill();
-  ctx.strokeStyle = '#e2e0dc'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.strokeStyle = '#c8d8ea'; ctx.lineWidth = 1; ctx.stroke();
 
   let y = cardY + 20;
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
