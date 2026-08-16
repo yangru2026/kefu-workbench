@@ -231,7 +231,12 @@ const HANZI_PY = [
   ['爸','bà'],['妈','mā'],['我','wǒ'],['大','dà'],['小','xiǎo'],['上','shàng'],['下','xià'],
   ['人','rén'],['口','kǒu'],['手','shǒu'],['日','rì'],['月','yuè'],['水','shuǐ'],['火','huǒ'],
   ['木','mù'],['中','zhōng'],['国','guó'],['天','tiān'],['山','shān'],['马','mǎ'],['牛','niú'],
-  ['花','huā'],['鸟','niǎo'],['虫','chóng'],['云','yún'],['雨','yǔ'],['风','fēng'],['车','chē']
+  ['花','huā'],['鸟','niǎo'],['虫','chóng'],['云','yún'],['雨','yǔ'],['风','fēng'],['车','chē'],
+  ['书','shū'],['笔','bǐ'],['门','mén'],['鱼','yú'],['羊','yáng'],['猫','māo'],['狗','gǒu'],
+  ['红','hóng'],['白','bái'],['黑','hēi'],['黄','huáng'],['学','xué'],['生','shēng'],['老','lǎo'],
+  ['师','shī'],['走','zǒu'],['笑','xiào'],['多','duō'],['少','shǎo'],['好','hǎo'],['来','lái'],
+  ['星','xīng'],['光','guāng'],['春','chūn'],['雪','xuě'],['东','dōng'],['西','xī'],['男','nán'],
+  ['女','nǚ'],['年','nián']
 ];
 const READING_PASSAGES = [
   { title:'小公鸡找朋友', text:'小公鸡想找一个朋友。他先去找小鸭，小鸭说：“我会游泳，你不会。”他又去找小鸟，小鸟说：“我会飞，你不会。”最后他认识了小羊，他们一起在草地上玩，成了好朋友。',
@@ -245,7 +250,31 @@ const READING_PASSAGES = [
   { title:'爱吃蔬菜的小兔', text:'兔妈妈种了许多蔬菜：红红的西红柿，绿绿的黄瓜，长长的萝卜。小兔原来不爱吃蔬菜，看见颜色这么好看，就尝了一口，哇，真甜！从那以后，小兔爱上了吃蔬菜。',
     qs:[ {q:'兔妈妈种了什么？',opts:['水果','蔬菜','花'],a:1},
          {q:'小兔一开始爱吃什么？',opts:['不爱吃蔬菜','只吃萝卜','爱吃所有菜'],a:0},
-         {q:'小兔后来为什么爱吃蔬菜？',opts:['妈妈逼的','觉得好看又甜','肚子饿'],a:1} ] }
+         {q:'小兔后来为什么爱吃蔬菜？',opts:['妈妈逼的','觉得好看又甜','肚子饿'],a:1} ] },
+  { title:'小熊过桥', text:'小熊要过一座独木桥。桥很窄，小熊有点害怕。小鸟飞过来说：“别怕，眼睛看前面，慢慢走。”小熊照着做，果然稳稳地走过了桥。他高兴地笑了。',
+    qs:[ {q:'小熊过的桥是什么样的？',opts:['很宽的大桥','很窄的独木桥','没有桥'],a:1},
+         {q:'谁鼓励了小熊？',opts:['小鸟','小鱼','大树'],a:0},
+         {q:'小熊为什么能过桥？',opts:['因为桥变宽了','因为他看前面慢慢走','因为别人背他'],a:1} ] },
+  { title:'秋天的果园', text:'秋天到了，果园里真热闹。苹果红了，梨子黄了，葡萄紫了。小朋友们帮爷爷摘果子，一篮一篮装得满满的。爷爷笑着说：“今年又是大丰收！”',
+    qs:[ {q:'故事发生在什么季节？',opts:['春天','夏天','秋天'],a:2},
+         {q:'葡萄是什么颜色？',opts:['红色','紫色','黄色'],a:1},
+         {q:'小朋友们帮爷爷做什么？',opts:['摘果子','种树','吃饭'],a:0} ] },
+  { title:'粗心的小猴', text:'小猴做作业总是粗心。今天考试，他把“6”看成了“9”，把加法算成了减法，结果错了好多题。猴妈妈对他说：“慢慢看，认真算，细心才能考得好。”小猴点点头。',
+    qs:[ {q:'小猴为什么错了很多题？',opts:['因为题目太难','因为他粗心看错算错','因为他不会写名字'],a:1},
+         {q:'小猴把“6”看成了什么？',opts:['8','9','0'],a:1},
+         {q:'猴妈妈建议小猴怎么做？',opts:['快点写','慢慢看认真算','不写了'],a:1} ] },
+  { title:'小小志愿者', text:'周末，小动物们去公园做志愿者。小兔捡垃圾，小松鼠扶老奶奶过马路，小刺猬给小花浇水。虽然有点累，但大家心里都甜甜的，因为帮助别人很快乐。',
+    qs:[ {q:'小动物们去哪里做志愿者？',opts:['学校','公园','超市'],a:1},
+         {q:'小松鼠做了什么？',opts:['捡垃圾','扶老奶奶过马路','浇花'],a:1},
+         {q:'大家心里为什么甜甜的？',opts:['因为吃了糖','因为帮助别人很快乐','因为不累'],a:1} ] },
+  { title:'月亮船', text:'晚上，小星星坐上了一艘月亮船。月亮船在夜空中慢慢飘，把银色的光洒向大地。小河边，青蛙在唱歌；大树上，知了在睡觉。小星星看着，不知不觉也闭上了眼睛。',
+    qs:[ {q:'小星星坐上了什么？',opts:['小船','月亮船','飞机'],a:1},
+         {q:'谁在大树上睡觉？',opts:['青蛙','知了','小鸟'],a:1},
+         {q:'这个故事发生在什么时候？',opts:['早上','中午','晚上'],a:2} ] },
+  { title:'小猫钓鱼', text:'小猫和猫妈妈去河边钓鱼。蝴蝶飞来了，小猫去追蝴蝶；蜻蜓飞来了，小猫又去捉蜻蜓。半天过去了，猫妈妈钓了好几条鱼，小猫一条也没有。猫妈妈说：“做事情要专心呀。”',
+    qs:[ {q:'小猫一开始钓到鱼了吗？',opts:['钓到很多','一条也没有','和妈妈一样多'],a:1},
+         {q:'小猫为什么没钓到鱼？',opts:['因为河里没有鱼','因为他去追蝴蝶捉蜻蜓不专心','因为妈妈不让'],a:1},
+         {q:'猫妈妈告诉小猫什么道理？',opts:['要早起','做事情要专心','要多吃鱼'],a:1} ] }
 ];
 const ENGLISH_LETTERS = [
   ['A','apple','🍎'],['B','ball','⚽'],['C','cat','🐱'],['D','dog','🐶'],['E','egg','🥚'],
@@ -255,18 +284,35 @@ const ENGLISH_LETTERS = [
   ['U','umbrella','☂️'],['V','violin','🎻'],['W','water','💧'],['X','box','📦'],['Y','yellow','💛'],['Z','zoo','🦁']
 ];
 const ENGLISH_WORDS = [
+  // 颜色
   ['red','红色','🔴'],['blue','蓝色','🔵'],['yellow','黄色','💛'],['green','绿色','💚'],
+  ['orange','橙色','🟠'],['black','黑色','⚫'],['white','白色','⚪'],['pink','粉色','🌸'],
+  // 动物
   ['cat','猫','🐱'],['dog','狗','🐶'],['bird','鸟','🐦'],['fish','鱼','🐟'],
-  ['one','一','1️⃣'],['two','二','2️⃣'],['three','三','3️⃣'],['apple','苹果','🍎']
+  ['pig','猪','🐷'],['cow','牛','🐮'],['duck','鸭','🦆'],['rabbit','兔子','🐰'],
+  ['lion','狮子','🦁'],['tiger','老虎','🐯'],['elephant','大象','🐘'],['panda','熊猫','🐼'],
+  // 数字
+  ['one','一','1️⃣'],['two','二','2️⃣'],['three','三','3️⃣'],['four','四','4️⃣'],
+  ['five','五','5️⃣'],['six','六','6️⃣'],['seven','七','7️⃣'],['eight','八','8️⃣'],['nine','九','9️⃣'],['ten','十','🔟'],
+  // 食物
+  ['apple','苹果','🍎'],['banana','香蕉','🍌'],['egg','鸡蛋','🥚'],['milk','牛奶','🥛'],
+  ['water','水','💧'],['rice','米饭','🍚'],['bread','面包','🍞'],
+  // 家人
+  ['mom','妈妈','👩'],['dad','爸爸','👨'],['baby','宝宝','👶'],['grandma','奶奶','👵'],['grandpa','爷爷','👴'],
+  // 身体
+  ['eye','眼睛','👁️'],['ear','耳朵','👂'],['nose','鼻子','👃'],['mouth','嘴巴','👄'],['hand','手','✋'],['foot','脚','🦶'],
+  // 自然 / 物品
+  ['sun','太阳','☀️'],['moon','月亮','🌙'],['star','星星','⭐'],['tree','树','🌳'],['flower','花','🌸'],
+  ['book','书','📖'],['ball','球','⚽'],['car','汽车','🚗']
 ];
 
 /* ===================== 状态 ===================== */
 const STORE_KEY = 'kids_learn_v1';
 const MODULES = {
-  pinyin:  { name:'拼音',   icon:'🔤', color:'orange', max:4, desc:'声母 · 韵母 · 整体认读' },
-  reading: { name:'语文阅读', icon:'📖', color:'green',  max:3, desc:'读短文 · 练理解' },
-  math:    { name:'数学解决问题', icon:'➕', color:'purple', max:4, desc:'看图列式 · 应用题' },
-  english: { name:'英语启蒙', icon:'🔤', color:'orange', max:3, desc:'字母 · 单词 · 听音' }
+  pinyin:  { name:'拼音',   icon:'🔤', color:'orange', max:6, desc:'声母 · 韵母 · 整体认读 · 拼写' },
+  reading: { name:'语文阅读', icon:'📖', color:'green',  max:6, desc:'读短文 · 练理解' },
+  math:    { name:'数学解决问题', icon:'➕', color:'purple', max:6, desc:'读题解题 · 应用题闯关' },
+  english: { name:'英语启蒙', icon:'🔤', color:'orange', max:5, desc:'字母 · 单词 · 听音 · 句子' }
 };
 function defaultState(){
   return {
@@ -285,12 +331,22 @@ function defaultState(){
       { id:3, emoji:'🏞️', name:'去公园玩一次', cost:80 },
       { id:4, emoji:'🎨', name:'画画的自由时间', cost:40 }
     ],
-    redeemed: []
+    redeemed: [],
+    pending: [],          // 孩子申请的奖励，待家长确认
+    parentPin: '1234'     // 家长门禁密码，家长可在家长面板修改
   };
 }
 let state = loadState();
 function loadState(){
-  try { const s = JSON.parse(localStorage.getItem(STORE_KEY)); if (s && s.modules) return s; } catch(e){}
+  try {
+    const s = JSON.parse(localStorage.getItem(STORE_KEY));
+    if (s && s.modules) {
+      const d = defaultState();
+      if (!Array.isArray(s.pending)) s.pending = [];
+      if (!s.parentPin) s.parentPin = d.parentPin;
+      return s;
+    }
+  } catch(e){}
   return defaultState();
 }
 function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
@@ -300,14 +356,28 @@ function $(id){ return document.getElementById(id); }
 function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function pickN(arr, n){ const c = arr.slice(); const out=[]; while(out.length<n && c.length){ out.push(c.splice(Math.floor(Math.random()*c.length),1)[0]); } return out; }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+/* 预加载语音列表，按语言挑一个合适的嗓音（很多设备默认没有中文嗓音时会静音） */
+let _voices = [];
+function loadVoices(){ try { _voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : []; } catch(e){ _voices=[]; } }
+if ('speechSynthesis' in window) { loadVoices(); window.speechSynthesis.onvoiceschanged = loadVoices; }
+function pickVoice(lang){
+  if(!_voices.length) return null;
+  const pre = (lang||'zh').slice(0,2).toLowerCase();
+  return _voices.find(v=> (v.lang||'').toLowerCase().indexOf(pre)===0) || null;
+}
 function speak(text, lang){
+  if(!text) return;
+  if (!('speechSynthesis' in window)){ toast('当前设备暂不支持发音哦'); return; }
   try {
-    if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
+    const ss = window.speechSynthesis;
+    if (ss.speaking || ss.pending) ss.cancel();   // 先停掉上一段，避免叠音
     const u = new SpeechSynthesisUtterance(text);
     u.lang = lang || 'zh-CN';
-    u.rate = 0.9; u.pitch = 1.1;
-    window.speechSynthesis.speak(u);
+    u.rate = 0.85; u.pitch = 1.1;
+    const v = pickVoice(lang); if (v) u.voice = v;
+    u.onerror = ()=>{};
+    // Chrome 有个 bug：cancel 后立刻 speak 会被一起取消，稍延迟一帧可规避
+    setTimeout(()=>{ try { window.speechSynthesis.speak(u); } catch(e){} }, 60);
   } catch(e){}
 }
 function toast(msg){
@@ -402,8 +472,8 @@ function pinyinRefHtml(){
   groups.forEach(g=>{ h+='<div class="ref-title">🌟 '+g[0]+'（'+g[1].length+'个）</div><div class="ref-grid">'; g[1].forEach(y=> h+='<div class="ref-chip">'+y+'</div>'); h+='</div>'; });
   h+='<div class="ref-title">🌟 整体认读音节（'+ZHENGTI.length+'个）</div><div class="ref-grid">';
   ZHENGTI.forEach(z=> h+='<div class="ref-chip">'+z+'</div>'); h+='</div>';
-  h+='<div class="ref-title">🔡 常见汉字读音</div>';
-  HANZI_PY.slice(0,12).forEach(([hz,py])=>{ h+='<div class="pinyin-row"><span class="py">'+py+'</span><span class="hz">'+hz+'</span><button class="speak" onclick="speak(\''+hz+'\',\'zh-CN\')">🔊 听</button></div>'; });
+  h+='<div class="ref-title">🔡 常见汉字读音（'+HANZI_PY.length+'个，点🔊听发音）</div>';
+  HANZI_PY.forEach(([hz,py])=>{ h+='<div class="pinyin-row"><span class="py">'+py+'</span><span class="hz">'+hz+'</span><button class="speak" onclick="speak(\''+hz+'\',\'zh-CN\')">🔊 听</button></div>'; });
   return h;
 }
 function englishRefHtml(){
@@ -429,8 +499,7 @@ function buildQuestions(mod, level){
   return out;
 }
 function genPinyin(level){
-  const r = Math.random();
-  if(level===1){ // 声母韵母整体认读分类
+  if(level===1){ // 分类
     const pool = shuffle([
       {v:rand(SHENGMU),t:'声母'},{v:rand(YUNMU_ALL),t:'韵母'},{v:rand(ZHENGTI),t:'整体认读'}
     ]);
@@ -438,11 +507,10 @@ function genPinyin(level){
     return { prompt:'「'+item.v+'」属于哪一类？', options:['声母','韵母','整体认读'], answer:['声母','韵母','整体认读'].indexOf(item.t), speakText:item.v, speakLang:'zh-CN' };
   }
   if(level===2){ // 给汉字选声母
-    const [hz,py] = rand(HANZI_PY); const sm = py.replace(/[aoeiuü].*/,'').replace(/^([zcs]h?|r).*/,'$1');
+    const [hz,py] = rand(HANZI_PY);
     const sheng = py[0]==='y'||py[0]==='w' ? py[0] : (py.startsWith('zh')?'zh':py.startsWith('ch')?'ch':py.startsWith('sh')?'sh':py[0]);
-    const ans = SHENGMU.indexOf(sheng);
     const opts = shuffle([sheng].concat(pickN(SHENGMU.filter(x=>x!==sheng),3)));
-    return { prompt:'「'+hz+'」的声母是？', options:opts, answer:opts.indexOf(sheng), speakText:hz, speakLang:'zh-CN' };
+    return { prompt:'🔊「'+hz+'」的声母是？', options:opts, answer:opts.indexOf(sheng), speakText:hz, speakLang:'zh-CN' };
   }
   if(level===3){ // 给汉字选韵母
     const [hz,py] = rand(HANZI_PY);
@@ -451,36 +519,70 @@ function genPinyin(level){
     if(py[0]==='w' && yun.indexOf('u')>=0) yun = yun.replace('u','ü');
     if(!YUNMU_ALL.includes(yun)) yun = rand(YUNMU_ALL);
     const opts = shuffle([yun].concat(pickN(YUNMU_ALL.filter(x=>x!==yun),3)));
-    return { prompt:'「'+hz+'」的韵母是？', options:opts, answer:opts.indexOf(yun), speakText:hz, speakLang:'zh-CN' };
+    return { prompt:'🔊「'+hz+'」的韵母是？', options:opts, answer:opts.indexOf(yun), speakText:hz, speakLang:'zh-CN' };
   }
-  // level4 混合：听音选正确拼音
+  if(level===4){ // 听音选正确拼音
+    const [hz,py] = rand(HANZI_PY);
+    const opts = shuffle([py].concat(pickN(HANZI_PY.filter(x=>x[1]!==py).map(x=>x[1]),3)));
+    return { prompt:'听一听，选出「'+hz+'」的拼音', options:opts, answer:opts.indexOf(py), speakText:hz, speakLang:'zh-CN' };
+  }
+  if(level===5){ // 给拼音选汉字（反选）
+    const [hz,py] = rand(HANZI_PY);
+    const opts = shuffle([hz].concat(pickN(HANZI_PY.filter(x=>x[0]!==hz).map(x=>x[0]),3)));
+    return { prompt:'「'+py+'」是哪个字？', options:opts, answer:opts.indexOf(hz), speakText:py, speakLang:'zh-CN' };
+  }
+  // level6 综合：听音选拼音 / 反选 随机
+  if(Math.random()<0.5){
+    const [hz,py] = rand(HANZI_PY);
+    const opts = shuffle([py].concat(pickN(HANZI_PY.filter(x=>x[1]!==py).map(x=>x[1]),3)));
+    return { prompt:'听一听，选出「'+hz+'」的拼音', options:opts, answer:opts.indexOf(py), speakText:hz, speakLang:'zh-CN' };
+  }
   const [hz,py] = rand(HANZI_PY);
-  const opts = shuffle([py].concat(pickN(HANZI_PY.filter(x=>x[1]!==py).map(x=>x[1]),3)));
-  return { prompt:'听一听，选出「'+hz+'」的拼音', options:opts, answer:opts.indexOf(py), speakText:hz, speakLang:'zh-CN' };
+  const opts = shuffle([hz].concat(pickN(HANZI_PY.filter(x=>x[0]!==hz).map(x=>x[0]),3)));
+  return { prompt:'「'+py+'」是哪个字？', options:opts, answer:opts.indexOf(hz), speakText:py, speakLang:'zh-CN' };
+}
+function mathOpts(ans){
+  const cand=[ans+1,ans-1,ans+2,ans-2,ans+3,ans-3,ans+5,ans-5];
+  const opts = shuffle([ans].concat(pickN(cand.filter(v=>v>=0&&v!==ans),3)));
+  return { options:opts, answer:opts.indexOf(ans) };
 }
 function genMath(level){
-  const a = Math.floor(Math.random()*9)+1;
-  const b = Math.floor(Math.random()*9)+1;
-  let q, ans, mk;
-  if(level===1){
-    if(Math.random()<0.5){ ans=a+b; q=''+a+' + '+b+' = ?'; }
-    else { const x=Math.max(a,b), y=Math.min(a,b); ans=x-y; q=''+x+' - '+y+' = ?'; }
-  } else if(level===2){
-    const x=Math.floor(Math.random()*15)+5, y=Math.floor(Math.random()*10)+1;
-    if(Math.random()<0.5){ ans=x+y; q=''+x+' + '+y+' = ?'; }
-    else { const big=Math.max(x,y), sm=Math.min(x,y); ans=big-sm; q=''+big+' - '+sm+' = ?'; }
-  } else if(level===3){
-    const who=['树上有','操场有','盘子里有','书包里有'][Math.floor(Math.random()*4)];
-    const act=['飞走','吃掉','拿走','借给同学'][Math.floor(Math.random()*4)];
-    const x=Math.floor(Math.random()*12)+6, y=Math.floor(Math.random()*5)+1;
-    ans=x-y; q=who+x+'只，'+act+y+'只，还剩几只？';
-  } else {
-    const x=Math.floor(Math.random()*20)+10, y=Math.floor(Math.random()*8)+2, z=Math.floor(Math.random()*8)+2;
-    if(Math.random()<0.5){ ans=x-y+z; q='小红有'+x+'元，买文具花'+y+'元，妈妈又给'+z+'元，现在有多少元？'; }
-    else { ans=x+y-z; q='停车场原来有'+x+'辆车，又开来'+y+'辆，开走'+z+'辆，现在有几辆？'; }
+  let text, ans;
+  const subj=['小羊','小鸡','苹果','气球','糖果','星星','小鱼'][Math.floor(Math.random()*7)];
+  if(level===1){ // 10以内 加减应用题
+    const a=Math.floor(Math.random()*6)+2, b=Math.floor(Math.random()*5)+1;
+    if(Math.random()<0.5){ ans=a+b; text='草地上有'+a+'只'+subj+'，又跑来'+b+'只，一共有几只'+subj+'？'; }
+    else { const x=Math.max(a,b), y=Math.min(a,b); ans=x-y; text='盘子里有'+x+'个'+subj+'，吃掉'+y+'个，还剩几个？'; }
+  } else if(level===2){ // 20以内 加减应用题
+    const a=Math.floor(Math.random()*12)+5, b=Math.floor(Math.random()*9)+1;
+    const thing=['铅笔','饼干','积木','橘子','贴纸','小花'][Math.floor(Math.random()*6)];
+    if(Math.random()<0.5){ ans=a+b; text='小明有'+a+'支'+thing+'，妈妈又给他'+b+'支，现在一共有几支？'; }
+    else { const x=Math.max(a,b), y=Math.min(a,b); ans=x-y; text='停车场原来有'+x+'辆'+thing+'，开走'+y+'辆，还剩几辆？'; }
+  } else if(level===3){ // 两步应用题
+    const a=Math.floor(Math.random()*10)+6, b=Math.floor(Math.random()*5)+1, c=Math.floor(Math.random()*4)+1;
+    ans=a+b-c;
+    text='小红有'+a+'颗糖，妈妈又给她'+b+'颗，她分给妹妹'+c+'颗，小红还剩几颗糖？';
+  } else if(level===4){ // 比较应用题
+    const a=Math.floor(Math.random()*10)+5, b=Math.floor(Math.random()*6)+1;
+    const big=['红花','男生','大苹果','白兔'][Math.floor(Math.random()*4)];
+    const small=['黄花','女生','小苹果','灰兔'][Math.floor(Math.random()*4)];
+    if(Math.random()<0.5){ ans=a+b; text='花园里有'+a+'朵'+big+'，'+small+'比'+big+'多'+b+'朵，'+small+'有几朵？'; }
+    else { ans=a-b; text='花园里有'+a+'朵'+big+'，'+small+'比'+big+'少'+b+'朵，'+small+'有几朵？'; }
+  } else if(level===5){ // 倍数 / 等分（二年级）
+    if(Math.random()<0.5){
+      const a=Math.floor(Math.random()*6)+3, b=Math.floor(Math.random()*2)+2;
+      ans=a*b; text='一本书'+a+'元，铅笔盒的价钱是书的'+b+'倍，铅笔盒多少钱？';
+    } else {
+      const b=Math.floor(Math.random()*3)+2, q=Math.floor(Math.random()*4)+2; const a=b*q;
+      ans=q; text='有'+a+'个橘子，平均放在'+b+'个盘子里，每个盘子放几个？';
+    }
+  } else { // level6 混合两步 + 较大数
+    const a=Math.floor(Math.random()*15)+20, b=Math.floor(Math.random()*8)+3, c=Math.floor(Math.random()*6)+2;
+    if(Math.random()<0.5){ ans=a-b+c; text='公交车上原来有'+a+'人，到站下去'+b+'人，又上来'+c+'人，现在车上有几人？'; }
+    else { ans=a+b-c; text='文具店进了'+a+'支笔，卖出'+b+'支，又进了'+c+'支，现在有几支笔？'; }
   }
-  const opts = shuffle([ans].concat(pickN([ans+1,ans-1,ans+2,ans-2].filter(v=>v>=0&&v!==ans),3)));
-  return { prompt:q, options:opts, answer:opts.indexOf(ans) };
+  const o = mathOpts(ans);
+  return { prompt:text+'（算出是多少，选一选）', options:o.options, answer:o.answer, speakText:text, speakLang:'zh-CN' };
 }
 function genEnglish(level){
   if(level===1){ // 听音选字母
@@ -493,10 +595,20 @@ function genEnglish(level){
     const opts = shuffle([w].concat(pickN(ENGLISH_LETTERS.filter(x=>x[1]!==w).map(x=>x[1]),3)));
     return { prompt:'字母「'+L+'」的例词是？ '+e, options:opts, answer:opts.indexOf(w), speakText:w, speakLang:'en-US' };
   }
-  // level3 听音选单词
+  if(level===3){ // 听音选单词
+    const [w,c,e] = rand(ENGLISH_WORDS);
+    const opts = shuffle([w].concat(pickN(ENGLISH_WORDS.filter(x=>x[0]!==w).map(x=>x[0]),3)));
+    return { prompt:e+' 「'+c+'」用英语怎么说？', options:opts, answer:opts.indexOf(w), speakText:w, speakLang:'en-US' };
+  }
+  if(level===4){ // 看中文选英语
+    const [w,c,e] = rand(ENGLISH_WORDS);
+    const opts = shuffle([w].concat(pickN(ENGLISH_WORDS.filter(x=>x[0]!==w).map(x=>x[0]),3)));
+    return { prompt:'「'+c+'」用英语怎么说？ '+e, options:opts, answer:opts.indexOf(w), speakLang:'zh-CN' };
+  }
+  // level5 听音选中文意思
   const [w,c,e] = rand(ENGLISH_WORDS);
-  const opts = shuffle([w].concat(pickN(ENGLISH_WORDS.filter(x=>x[0]!==w).map(x=>x[0]),3)));
-  return { prompt:e+' 「'+c+'」用英语怎么说？', options:opts, answer:opts.indexOf(w), speakText:w, speakLang:'en-US' };
+  const opts = shuffle([c].concat(pickN(ENGLISH_WORDS.filter(x=>x[0]!==w).map(x=>x[1]),3)));
+  return { prompt:'🔊 听一听，「'+w+'」是什么意思？', options:opts, answer:opts.indexOf(c), speakText:w, speakLang:'en-US' };
 }
 function buildReading(level){
   const p = READING_PASSAGES[(level-1) % READING_PASSAGES.length];
@@ -596,50 +708,130 @@ function finishQuiz(){
 function renderReward(){
   let html='<button class="close" onclick="switchTab(\'home\')">×</button>';
   html+='<h2>🎁 奖励墙</h2>';
-  html+='<p class="tip">攒够积分就能兑换小奖励～ 兑换后记得让爸爸妈妈确认哦！当前积分：⭐ '+state.totalPoints+'</p>';
+  html+='<p class="tip">想兑换奖励，点「申请兑换」👉 发给爸爸妈妈确认，通过后就可以啦！当前积分：⭐ '+state.totalPoints+'</p>';
+  html+='<button class="btn purple" style="margin-bottom:6px;" onclick="openParentPanel()">👨‍👩‍👧 家长入口（确认兑换 / 管理奖励）</button>';
   html+='<div id="rewardList"></div>';
-  html+='<div class="section-title">➕ 家长添加奖励</div>';
-  html+='<input class="txt" id="rwEmoji" placeholder="表情，如 🍦">';
-  html+='<input class="txt" id="rwName" placeholder="奖励名称，如 吃一个冰淇淋">';
-  html+='<input class="txt" id="rwCost" placeholder="需要多少分，如 30" type="number">';
-  html+='<button class="btn orange" onclick="addReward()">添加奖励</button>';
+  if(state.pending.length){
+    html+='<div class="section-title">⏳ 已申请，等家长确认</div><div id="pendingList"></div>';
+  }
   if(state.redeemed.length){
     html+='<div class="section-title">✅ 已兑换</div><div id="redeemedList"></div>';
   }
   openSheet(html);
   renderRewardList();
+  renderPending();
   renderRedeemed();
 }
 function renderRewardList(){
   const box=$('rewardList'); if(!box) return; box.innerHTML='';
-  if(!state.rewards.length){ box.innerHTML='<div class="empty">还没有奖励，家长先添加一个吧～</div>'; return; }
+  if(!state.rewards.length){ box.innerHTML='<div class="empty">还没有奖励，请家长从「家长入口」添加～</div>'; return; }
   state.rewards.forEach(r=>{
     const can = state.totalPoints >= r.cost;
     const el=document.createElement('div'); el.className='reward';
     el.innerHTML='<span class="emoji">'+r.emoji+'</span><div class="info"><b>'+r.name+'</b><div class="cost">需要 '+r.cost+' 分</div></div>';
     const btn=document.createElement('button');
-    btn.className='btn '+(can?'green':'ghost'); btn.textContent= can?'兑换':'分不够'; btn.disabled=!can;
-    btn.onclick=()=>redeem(r.id);
+    btn.className='btn '+(can?'green':'ghost'); btn.textContent= can?'申请兑换':'分不够'; btn.disabled=!can;
+    btn.onclick=()=>requestReward(r.id);
     el.appendChild(btn);
-    const del=document.createElement('button'); del.className='speak'; del.style.cssText='margin-left:6px;'; del.textContent='🗑';
-    del.onclick=()=>{ if(confirm('删除这个奖励？')){ state.rewards=state.rewards.filter(x=>x.id!==r.id); saveState(); renderRewardList(); } };
-    el.appendChild(del);
     box.appendChild(el);
   });
 }
-function redeem(id){
+function requestReward(id){
   const r=state.rewards.find(x=>x.id===id); if(!r) return;
-  if(state.totalPoints < r.cost){ toast('积分不够哦'); return; }
-  state.totalPoints -= r.cost;
-  state.redeemed.unshift({ emoji:r.emoji, name:r.name, cost:r.cost, time:Date.now() });
-  saveState(); refreshTop(); toast('🎉 兑换成功！记得找爸妈确认～');
-  renderRewardList(); renderRedeemed();
+  if(state.totalPoints < r.cost){ toast('积分还不够哦，再攒攒～'); return; }
+  if(state.pending.some(p=>p.rid===id)){ toast('这个奖励已经在等家长确认啦'); return; }
+  state.totalPoints -= r.cost;               // 先预留积分
+  state.pending.unshift({ rid:id, emoji:r.emoji, name:r.name, cost:r.cost, time:Date.now() });
+  saveState(); refreshTop();
+  toast('📨 已发给爸爸妈妈确认～（先预留了 '+r.cost+' 分）');
+  renderRewardList(); renderPending();
+}
+function renderPending(){
+  const box=$('pendingList'); if(!box) return; box.innerHTML='';
+  state.pending.forEach((p,i)=>{
+    const el=document.createElement('div'); el.className='reward';
+    el.innerHTML='<span class="emoji">'+p.emoji+'</span><div class="info"><b>'+p.name+'</b><div>已申请 · 扣 '+p.cost+' 分，等家长确认</div></div>';
+    const del=document.createElement('button'); del.className='btn ghost'; del.style.cssText='width:auto;padding:8px 12px;font-size:13px;';
+    del.textContent='撤回';
+    del.onclick=()=>{
+      state.pending.splice(i,1); state.totalPoints += p.cost; saveState(); refreshTop();
+      toast('已撤回，积分已退回'); renderRewardList(); renderPending();
+    };
+    el.appendChild(del);
+    box.appendChild(el);
+  });
 }
 function renderRedeemed(){
   const box=$('redeemedList'); if(!box) return; box.innerHTML='';
   state.redeemed.forEach(r=>{
     const el=document.createElement('div'); el.className='reward';
-    el.innerHTML='<span class="emoji">'+r.emoji+'</span><div class="info"><b>'+r.name+'</b><div>已用 '+r.cost+' 分兑换 · 待确认</div></div>';
+    el.innerHTML='<span class="emoji">'+r.emoji+'</span><div class="info"><b>'+r.name+'</b><div>已兑换 · 家长已确认 ✅</div></div>';
+    box.appendChild(el);
+  });
+}
+/* ---------- 家长面板（PIN 门禁） ---------- */
+function openParentPanel(){
+  const pin = prompt('请输入家长密码（默认 1234）：', '');
+  if(pin===null) return;
+  if(pin !== String(state.parentPin)){ toast('密码不对，无法进入家长入口'); return; }
+  renderParentPanel();
+}
+function renderParentPanel(){
+  let html='<button class="close" onclick="renderReward()">×</button>';
+  html+='<h2>👨‍👩‍👧 家长入口</h2>';
+  html+='<p class="tip">'+state.kidName+' 当前积分：⭐ '+state.totalPoints+' ｜ 已兑换 '+state.redeemed.length+' 项</p>';
+  html+='<div class="section-title">⏳ 待确认兑换（'+state.pending.length+'）</div>';
+  if(!state.pending.length){ html+='<div class="empty">暂时没有待确认的申请～</div>'; }
+  else { html+='<div id="parentPending"></div>'; }
+  html+='<div class="section-title">➕ 添加奖励</div>';
+  html+='<input class="txt" id="rwEmoji" placeholder="表情，如 🍦">';
+  html+='<input class="txt" id="rwName" placeholder="奖励名称，如 吃一个冰淇淋">';
+  html+='<input class="txt" id="rwCost" placeholder="需要多少分，如 30" type="number">';
+  html+='<button class="btn orange" onclick="addReward()">添加奖励</button>';
+  html+='<div class="section-title">🛠 管理奖励</div><div id="parentRewardList"></div>';
+  html+='<div class="section-title">🔑 修改家长密码</div>';
+  html+='<input class="txt" id="newPin" placeholder="输入新密码（数字）" type="number">';
+  html+='<button class="btn ghost" onclick="changePin()">保存新密码</button>';
+  openSheet(html);
+  renderParentPending();
+  renderParentRewards();
+}
+function renderParentPending(){
+  const box=$('parentPending'); if(!box) return; box.innerHTML='';
+  state.pending.forEach((p,i)=>{
+    const el=document.createElement('div'); el.className='reward';
+    el.innerHTML='<span class="emoji">'+p.emoji+'</span><div class="info"><b>'+p.name+'</b><div>扣 '+p.cost+' 分</div></div>';
+    const ok=document.createElement('button'); ok.className='btn green'; ok.style.cssText='width:auto;padding:8px 12px;font-size:13px;'; ok.textContent='批准';
+    ok.onclick=()=>approveReward(i);
+    const no=document.createElement('button'); no.className='btn ghost'; no.style.cssText='width:auto;padding:8px 12px;font-size:13px;margin-left:6px;'; no.textContent='拒绝';
+    no.onclick=()=>rejectReward(i);
+    el.appendChild(ok); el.appendChild(no);
+    box.appendChild(el);
+  });
+}
+function approveReward(i){
+  const p=state.pending[i]; if(!p) return;
+  state.pending.splice(i,1);
+  state.redeemed.unshift({ emoji:p.emoji, name:p.name, cost:p.cost, time:Date.now() });
+  saveState(); toast('✅ 已批准：'+p.name);
+  renderParentPanel();
+}
+function rejectReward(i){
+  const p=state.pending[i]; if(!p) return;
+  state.pending.splice(i,1);
+  state.totalPoints += p.cost; saveState(); refreshTop();
+  toast('已拒绝，积分已退回：'+p.name);
+  renderParentPanel();
+}
+function renderParentRewards(){
+  const box=$('parentRewardList'); if(!box) return; box.innerHTML='';
+  if(!state.rewards.length){ box.innerHTML='<div class="empty">还没有奖励</div>'; return; }
+  state.rewards.forEach(r=>{
+    const el=document.createElement('div'); el.className='reward';
+    el.innerHTML='<span class="emoji">'+r.emoji+'</span><div class="info"><b>'+r.name+'</b><div class="cost">需要 '+r.cost+' 分</div></div>';
+    const del=document.createElement('button'); del.className='btn ghost'; del.style.cssText='width:auto;padding:8px 12px;font-size:13px;'; del.textContent='删除';
+    del.onclick=()=>{ if(confirm('删除这个奖励？')){ state.rewards=state.rewards.filter(x=>x.id!==r.id); saveState(); renderParentRewards(); } };
+    el.appendChild(del);
     box.appendChild(el);
   });
 }
@@ -652,7 +844,14 @@ function addReward(){
   state.rewards.push({ id:Date.now(), emoji, name, cost });
   saveState(); toast('已添加奖励');
   $('rwEmoji').value=''; $('rwName').value=''; $('rwCost').value='';
-  renderRewardList();
+  renderParentRewards();
+}
+function changePin(){
+  const v=($('newPin').value||'').trim();
+  if(!v){ toast('请输入新密码'); return; }
+  state.parentPin = v; saveState();
+  toast('🔑 家长密码已修改');
+  $('newPin').value='';
 }
 
 /* ===================== 弹层 / Tab ===================== */
