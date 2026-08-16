@@ -824,7 +824,7 @@ function wkMakeResult(label, value, unit, target, higherBetter) {
   const rate = (t > 0 && value != null) ? (higherBetter ? (value / t) : (t / value)) : 0;
   let status = 'failed';
   if (rate >= 1) status = 'done';
-  else if (rate >= 0.9) status = 'near';
+  else if (rate >= 0.98) status = 'near';
   else status = 'failed';
   return { label, value, unit, target: t, higherBetter, rate, status };
 }
@@ -1049,9 +1049,9 @@ function renderWeeklyResult(content, meta) {
   const rows = results.map(r => `
     <tr>
       <td style="padding:7px 10px;font-weight:600;font-size:12px;white-space:nowrap;">${escapeHtml(r.label)}</td>
-      <td style="padding:7px 10px;text-align:center;font-weight:700;font-size:13px;">${wkFmtNum(r.value)}${r.unit || ''}</td>
+      <td style="padding:7px 10px;text-align:center;font-weight:800;font-size:13px;">${wkFmtNum(r.value)}${r.unit || ''}</td>
       <td style="padding:7px 10px;text-align:center;font-size:12px;color:#666;">${wkFmtNum(r.target)}${r.unit || ''}</td>
-      <td style="padding:7px 10px;text-align:center;font-weight:700;font-size:12px;color:${WK_STATUS_COLOR[r.status]};">${Math.round(r.rate * 100)}%</td>
+      <td style="padding:7px 10px;text-align:center;font-weight:800;font-size:12px;color:${WK_STATUS_COLOR[r.status]};">${Math.round(r.rate * 100)}%</td>
     </tr>`).join('');
 
   document.getElementById('weekly-result-area').innerHTML = `
@@ -1243,11 +1243,11 @@ function renderWeeklyReportCanvas(content, meta) {
     ctx.fillStyle = '#2d2d2d'; ctx.font = 'bold 12px sans-serif';
     ctx.fillText(r.label, cardX + 16, y + rowH / 2);
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#2d2d2d'; ctx.font = 'bold 13px sans-serif';
+    ctx.fillStyle = '#2d2d2d'; ctx.font = '800 13px sans-serif';
     ctx.fillText(wkFmtNum(r.value) + (r.unit || ''), cardX + colLabel + colResult / 2, y + rowH / 2);
     ctx.fillStyle = '#666'; ctx.font = '12px sans-serif';
     ctx.fillText(wkFmtNum(r.target) + (r.unit || ''), cardX + colLabel + colResult + colTarget / 2, y + rowH / 2);
-    ctx.fillStyle = color; ctx.font = 'bold 12px sans-serif';
+    ctx.fillStyle = color; ctx.font = '800 12px sans-serif';
     ctx.fillText(ratePct + '%', cardX + colLabel + colResult + colTarget + colRate / 2, y + rowH / 2);
     y += rowH;
     ctx.strokeStyle = '#f3f1f8'; ctx.beginPath(); ctx.moveTo(cardX, y); ctx.lineTo(cardX + cardW, y); ctx.stroke();
