@@ -22,10 +22,12 @@ CREATE TABLE IF NOT EXISTS weekly_templates (
 
 ALTER TABLE weekly_templates ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "weekly_templates_select_all"
+DROP POLICY IF EXISTS "weekly_templates_select_all" ON weekly_templates;
+CREATE POLICY "weekly_templates_select_all"
   ON weekly_templates FOR SELECT TO authenticated USING (true);
 
-CREATE POLICY IF NOT EXISTS "weekly_templates_write_admin"
+DROP POLICY IF EXISTS "weekly_templates_write_admin" ON weekly_templates;
+CREATE POLICY "weekly_templates_write_admin"
   ON weekly_templates FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','leader')))
   WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','leader')));
@@ -46,15 +48,18 @@ CREATE TABLE IF NOT EXISTS weekly_reports (
 
 ALTER TABLE weekly_reports ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "weekly_reports_select_own"
+DROP POLICY IF EXISTS "weekly_reports_select_own" ON weekly_reports;
+CREATE POLICY "weekly_reports_select_own"
   ON weekly_reports FOR SELECT TO authenticated
   USING (user_id = auth.uid() OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','leader')));
 
-CREATE POLICY IF NOT EXISTS "weekly_reports_write_own"
+DROP POLICY IF EXISTS "weekly_reports_write_own" ON weekly_reports;
+CREATE POLICY "weekly_reports_write_own"
   ON weekly_reports FOR INSERT TO authenticated
   WITH CHECK (user_id = auth.uid());
 
-CREATE POLICY IF NOT EXISTS "weekly_reports_update_own"
+DROP POLICY IF EXISTS "weekly_reports_update_own" ON weekly_reports;
+CREATE POLICY "weekly_reports_update_own"
   ON weekly_reports FOR UPDATE TO authenticated
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
