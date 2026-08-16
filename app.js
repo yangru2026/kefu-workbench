@@ -779,7 +779,7 @@ function getWeeklyTemplate(group) {
   const raw = weeklyTemplates[group] || {};
   const members = Array.isArray(raw.members) ? raw.members : [];
   const shops = Array.isArray(raw.shops) ? raw.shops : [];
-  const common = Array.isArray(raw.common) ? raw.common : [];
+  const common = (Array.isArray(raw.common) ? raw.common : []).map(m => ({ ...m, type: m.type || 'direct' }));
   const shopTargetDefault = raw.shopTargetDefault != null ? Number(raw.shopTargetDefault) : 50;
   const shopTargets = raw.shopTargets || {};
   // 店铺指标自动从 shops 生成：转化率-<店名>，目标优先取 shopTargets 中的单独值
@@ -808,6 +808,80 @@ function getLastWeekRange() {
     return y + '-' + m + '-' + dd;
   };
   return { start: fmt(lastMon), end: fmt(lastSun) };
+}
+
+// ---------- 周报指标计算引擎 ----------
+function wkNum(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+function wkRound1(n) { return Math.round(n * 10) / 10; }
+function wkFmtNum(n) {
+  if (n == null || n === '') return '-';
+  const x = wkRound1(n);
+  return (Math.round(x * 10) / 10 % 1 === 0) ? String(x) : x.toFixed(1);
+}
+const WK_STATUS_COLOR = { done: '#16a34a', near: '#d97706', failed: '#ef4444' };
+const WK_STATUS_TEXT = { done: '达标', near: '接近', failed: '未完成' };
+// 单条结果：rate=完成率(值/目标 或 目标/值)，status done/near/failed
+function wkMakeResult(label, value, unit, target, higherBetter) {
+  const t = wkNum(target);
+  const rate = (t > 0 && value != null) ? (higherBetter ? (value / t) : (t / value)) : 0;
+  let status = 'failed';
+  if (rate >= 1) status = 'done';
+  else if (rate >= 0.9) status = 'near';
+  else status = 'failed';
+  return { label, value, unit, target: t, higherBetter, rate, status };
+}
+
+// 把原始数据(raw)算成结果数组：direct → conversion(合计+各店) → satisfaction → reply_rate → avg_response
+function computeWeeklyResults(tpl, raw) {
+  raw = raw || {};
+  const direct = raw.direct || {};
+  const shopsRaw = raw.shops || {};
+  const satisfaction = raw.satisfaction || {};
+  const reply = raw.reply || {};
+  const avg = raw.avg || {};
+  const metricMap = {};
+  (tpl.common || []).forEach(m => { metricMap[m.type] = m; });
+
+  let totInq = 0, totPay = 0;
+  (tpl.shops || []).forEach(s => { const d = shopsRaw[s] || {}; totInq += wkNum(d.i); totPay += wkNum(d.p); });
+
+  const results = [];
+  if (metricMap.direct) {
+    const m = metricMap.direct;
+    results.push(wkMakeResult(m.label, wkNum(direct[m.key]), m.unit, m.target, true));
+  }
+  if (metricMap.conversion) {
+    const m = metricMap.conversion;
+    const totalRate = totInq > 0 ? (totPay / totInq * 100) : 0;
+    results.push(wkMakeResult(m.label, wkRound1(totalRate), '%', m.target, true));
+    (tpl.shops || []).forEach(s => {
+      const d = shopsRaw[s] || {};
+      const i = wkNum(d.i), p = wkNum(d.p);
+      const rate = i > 0 ? (p / i * 100) : 0;
+      const tgt = (tpl.shopTargets && tpl.shopTargets[s] != null) ? wkNum(tpl.shopTargets[s]) : wkNum(tpl.shopTargetDefault);
+      results.push(wkMakeResult('转化率-' + s, wkRound1(rate), '%', tgt, true));
+    });
+  }
+  if (metricMap.satisfaction) {
+    const m = metricMap.satisfaction;
+    const good = wkNum(satisfaction.good), bad = wkNum(satisfaction.bad);
+    const total = good + bad;
+    const v = total > 0 ? (good / total * 100) : 0;
+    results.push(wkMakeResult(m.label, wkRound1(v), '%', m.target, true));
+  }
+  if (metricMap.reply_rate) {
+    const m = metricMap.reply_rate;
+    const total = wkNum(reply.total), in3 = wkNum(reply.in3);
+    const v = total > 0 ? (in3 / total * 100) : 0;
+    results.push(wkMakeResult(m.label, wkRound1(v), '%', m.target, true));
+  }
+  if (metricMap.avg_response) {
+    const m = metricMap.avg_response;
+    const sec = wkNum(avg.sec), rounds = wkNum(avg.rounds);
+    const v = rounds > 0 ? (sec / rounds) : 0;
+    results.push(wkMakeResult(m.label, wkRound1(v), m.unit || 's', m.target, false));
+  }
+  return results;
 }
 
 async function loadWeeklyReports() {
@@ -841,27 +915,85 @@ async function openWeeklyForm() {
   document.getElementById('weekly-result-area').style.display = 'none';
 }
 
+function wkSectionTitle(t) {
+  return `<div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:8px;">${escapeHtml(t)}</div>`;
+}
+function wkRawPair(l1, t1, f1, v1, l2, t2, f2, v2) {
+  const val = (x) => (x != null && x !== '' ? x : '');
+  return `<div style="display:flex;gap:14px;flex-wrap:wrap;">
+    <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text-secondary);">${escapeHtml(l1)}
+      <input type="number" class="wk-raw" data-type="${t1}" data-key="${escapeAttr(f1)}" value="${val(v1)}" style="width:130px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--card-bg);color:var(--text);"></label>
+    <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text-secondary);">${escapeHtml(l2)}
+      <input type="number" class="wk-raw" data-type="${t2}" data-key="${escapeAttr(f2)}" value="${val(v2)}" style="width:130px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--card-bg);color:var(--text);"></label>
+  </div>`;
+}
+
+// 填写周报：只渲染当前登录用户(group=profile.group_name)的原始数据输入
 function renderWeeklyForm(tpl, saved) {
-  const metrics = [...tpl.common, ...tpl.shopMetrics];
-  const savedRows = (saved && saved.rows) || [];
-  const savedMap = {};
-  savedRows.forEach(r => { savedMap[r.name] = r.values || {}; });
+  const raw = (saved && saved.raw) || {};
+  const direct = raw.direct || {};
+  const shopsRaw = raw.shops || {};
+  const satisfaction = raw.satisfaction || {};
+  const reply = raw.reply || {};
+  const avg = raw.avg || {};
+  const metricMap = {};
+  (tpl.common || []).forEach(m => { metricMap[m.type] = m; });
 
-  const head = '<th style="text-align:center;min-width:90px;background:#f5f6f8;">成员</th>' + metrics.map(m =>
-    `<th style="text-align:center;min-width:80px;font-size:12px;background:#f5f6f8;">${escapeHtml(m.label)}<br><span style="font-weight:400;color:#999;">目标 ${m.target}${m.unit || ''}</span></th>`
-  ).join('');
+  let html = '';
 
-  const body = tpl.members.map((member, mi) => {
-    const vals = savedMap[member] || {};
-    const cells = metrics.map(m => {
-      const v = vals[m.key] != null ? vals[m.key] : '';
-      return `<td style="padding:4px;"><input type="number" class="wk-input" data-member="${mi}" data-key="${escapeAttr(m.key)}" value="${v}" style="width:74px;padding:5px 4px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>`;
-    }).join('');
-    return `<tr><td style="padding:6px 8px;font-weight:600;font-size:13px;white-space:nowrap;background:#fafbff;">${escapeHtml(member)}</td>${cells}</tr>`;
-  }).join('');
+  // 1. 直接填值指标（如连带销售额）
+  if (metricMap.direct) {
+    const m = metricMap.direct;
+    html += wkSectionTitle(m.label + '（目标 ' + m.target + (m.unit || '') + '）');
+    html += `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <input type="number" class="wk-raw" data-type="direct" data-key="${escapeAttr(m.key)}" value="${direct[m.key] != null && direct[m.key] !== '' ? direct[m.key] : ''}" style="width:180px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--card-bg);color:var(--text);">
+      <span style="color:var(--text-secondary);font-size:13px;">${escapeHtml(m.unit || '')}</span>
+    </div>`;
+  }
 
-  document.getElementById('weekly-form-table-wrap').innerHTML =
-    `<table class="ranking-table" style="min-width:600px;font-size:13px;border-collapse:collapse;"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  // 2. 各店铺转化原始数据（付款/询单）
+  if (metricMap.conversion && (tpl.shops || []).length) {
+    const m = metricMap.conversion;
+    html += wkSectionTitle(m.label + '（各店 付款/询单，合计目标 ' + m.target + '%）');
+    html += `<table class="ranking-table" style="min-width:520px;font-size:13px;border-collapse:collapse;">
+      <thead><tr><th style="text-align:left;padding:6px 8px;">店铺</th><th style="text-align:center;padding:6px 8px;">询单人数</th><th style="text-align:center;padding:6px 8px;">付款人数</th><th style="text-align:center;padding:6px 8px;">目标转化</th></tr></thead><tbody>`;
+    (tpl.shops || []).forEach(s => {
+      const d = shopsRaw[s] || {};
+      const tgt = (tpl.shopTargets && tpl.shopTargets[s] != null) ? tpl.shopTargets[s] : tpl.shopTargetDefault;
+      html += `<tr>
+        <td style="padding:6px 8px;font-weight:600;">${escapeHtml(s)}</td>
+        <td style="padding:4px;text-align:center;"><input type="number" class="wk-raw" data-type="shop" data-shop="${escapeAttr(s)}" data-field="i" value="${d.i != null && d.i !== '' ? d.i : ''}" style="width:90px;padding:6px 4px;border:1px solid var(--border);border-radius:6px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
+        <td style="padding:4px;text-align:center;"><input type="number" class="wk-raw" data-type="shop" data-shop="${escapeAttr(s)}" data-field="p" value="${d.p != null && d.p !== '' ? d.p : ''}" style="width:90px;padding:6px 4px;border:1px solid var(--border);border-radius:6px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
+        <td style="padding:6px 8px;text-align:center;color:var(--text-secondary);">${tgt}%</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+
+  // 3. 满意度
+  if (metricMap.satisfaction) {
+    const m = metricMap.satisfaction;
+    html += wkSectionTitle(m.label + '（好评/(好评+差评)，目标 ' + m.target + '%）');
+    html += wkRawPair('好评数量', 'satisfaction', 'good', satisfaction.good, '差评数量', 'satisfaction', 'bad', satisfaction.bad);
+  }
+
+  // 4. 三分钟回复率
+  if (metricMap.reply_rate) {
+    const m = metricMap.reply_rate;
+    html += wkSectionTitle(m.label + '（三分钟响应轮次/总会话轮次，目标 ' + m.target + '%）');
+    html += wkRawPair('总会话轮次', 'reply', 'total', reply.total, '三分钟响应轮次', 'reply', 'in3', reply.in3);
+  }
+
+  // 5. 平均响应（越低越好）
+  if (metricMap.avg_response) {
+    const m = metricMap.avg_response;
+    html += wkSectionTitle(m.label + '（总响应秒数/会话轮次，目标 ' + m.target + (m.unit || 's') + '，越低越好）');
+    html += wkRawPair('总响应秒数', 'avg', 'sec', avg.sec, '会话轮次', 'avg', 'rounds', avg.rounds);
+  }
+
+  if (!html) html = '<p style="color:var(--text-secondary);">该组暂未配置周报指标，请联系管理员在「模板管理 → 周报模板」中设置。</p>';
+
+  document.getElementById('weekly-form-table-wrap').innerHTML = `<div style="display:flex;flex-direction:column;gap:18px;">${html}</div>`;
   document.getElementById('weekly-notes').value = (saved && saved.notes) || '';
 }
 
@@ -878,16 +1010,20 @@ async function submitWeekly() {
   if (!start || !end) { showToast('请选择汇报周期'); return; }
   const group = currentProfile?.group_name || '';
   const tpl = getWeeklyTemplate(group);
-  const metrics = [...tpl.common, ...tpl.shopMetrics];
-  const rowsMap = {};
-  document.querySelectorAll('#weekly-form-table-wrap .wk-input').forEach(inp => {
-    const mi = inp.dataset.member;
-    const key = inp.dataset.key;
-    const v = parseFloat(inp.value) || 0;
-    (rowsMap[mi] = rowsMap[mi] || {})[key] = v;
+  const raw = { direct: {}, shops: {}, satisfaction: {}, reply: {}, avg: {} };
+  document.querySelectorAll('#weekly-form-table-wrap .wk-raw').forEach(inp => {
+    const type = inp.dataset.type;
+    let v = parseFloat(inp.value);
+    if (isNaN(v)) v = '';
+    if (type === 'direct') raw.direct[inp.dataset.key] = v;
+    else if (type === 'shop') {
+      const s = inp.dataset.shop, f = inp.dataset.field;
+      raw.shops[s] = raw.shops[s] || {}; raw.shops[s][f] = v;
+    } else {
+      raw[type] = raw[type] || {}; raw[type][inp.dataset.key] = v;
+    }
   });
-  const rows = tpl.members.map((member, mi) => ({ name: member, values: rowsMap[mi] || {} }));
-  const content = { rows, shops: tpl.shops, notes: document.getElementById('weekly-notes').value.trim() };
+  const content = { raw, notes: document.getElementById('weekly-notes').value.trim() };
   const { error } = await supabase.from('weekly_reports').upsert({
     user_id: currentUser.id,
     group_name: group,
@@ -912,29 +1048,20 @@ function renderWeeklyResult(content, meta) {
   lastWeeklyContent = content;
   lastWeeklyMeta = meta;
   const tpl = getWeeklyTemplate(meta.group || '');
-  const metrics = [...tpl.common, ...tpl.shopMetrics];
-  const rows = content.rows || [];
+  const results = computeWeeklyResults(tpl, (content && content.raw) || {});
   const rangeLabel = (meta.start || '') + ' ~ ' + (meta.end || '');
 
-  const head = '<th style="text-align:left;">成员</th>' + metrics.map(m =>
-    `<th style="text-align:center;font-size:12px;">${escapeHtml(m.label)}<br><span style="font-weight:400;color:#999;">目标${m.target}${m.unit || ''}</span></th>`
-  ).join('');
-  const body = rows.map(r => {
-    const vals = r.values || {};
-    const cells = metrics.map(m => {
-      const v = vals[m.key] != null ? vals[m.key] : '-';
-      let color = '';
-      if (m.unit === '%' && m.target) {
-        const num = parseFloat(v);
-        if (!isNaN(num)) color = num >= m.target ? '#16a34a' : '#ef4444';
-      }
-      return `<td style="padding:6px 8px;text-align:center;font-weight:700;font-size:13px;${color ? 'color:' + color + ';' : ''}">${v}${m.unit && v !== '-' && m.unit !== '%' ? m.unit : ''}</td>`;
-    }).join('');
-    return `<tr><td style="padding:6px 8px;font-weight:600;font-size:13px;white-space:nowrap;background:#fafbff;">${escapeHtml(r.name)}</td>${cells}</tr>`;
-  }).join('');
+  const rows = results.map(r => `
+    <tr>
+      <td style="padding:8px 10px;font-weight:600;font-size:13px;white-space:nowrap;">${escapeHtml(r.label)}</td>
+      <td style="padding:8px 10px;text-align:center;font-weight:700;font-size:14px;">${wkFmtNum(r.value)}${r.unit || ''}</td>
+      <td style="padding:8px 10px;text-align:center;font-size:13px;color:#666;">${wkFmtNum(r.target)}${r.unit || ''}</td>
+      <td style="padding:8px 10px;text-align:center;font-weight:700;font-size:13px;color:${WK_STATUS_COLOR[r.status]};">${Math.round(r.rate * 100)}%</td>
+      <td style="padding:8px 10px;text-align:center;font-size:12px;color:${WK_STATUS_COLOR[r.status]};">${WK_STATUS_TEXT[r.status]}</td>
+    </tr>`).join('');
 
   document.getElementById('weekly-result-area').innerHTML = `
-    <div style="max-width:820px;margin:0 auto;background:#f4f2ef;border-radius:16px;padding:20px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#2d2d2d;line-height:1.5;">
+    <div style="max-width:760px;margin:0 auto;background:#f4f2ef;border-radius:16px;padding:20px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#2d2d2d;line-height:1.5;">
       <div class="weekly-screenshot-card" style="background:#fff;border-radius:12px;padding:20px 18px;border:1px solid #e2e0dc;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #f0eeeb;padding-bottom:12px;">
           <div>
@@ -943,13 +1070,17 @@ function renderWeeklyResult(content, meta) {
           </div>
           <span style="font-size:11px;background:#7c6fae;color:#fff;padding:3px 12px;border-radius:10px;font-weight:600;">周报</span>
         </div>
-        <div style="overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;min-width:560px;">
-            <thead><tr style="background:#f5f6f8;">${head}</tr></thead>
-            <tbody>${body}</tbody>
-          </table>
-        </div>
-        ${content.notes ? `<div style="margin-top:14px;font-size:12px;color:#5a5a5a;background:#fcf7ef;padding:10px 12px;border-radius:8px;border-left:3px solid #c9a66b;">${escapeHtml(content.notes)}</div>` : ''}
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f5f6f8;font-size:12px;color:#666;">
+            <th style="text-align:left;padding:8px 10px;">指标</th>
+            <th style="text-align:center;padding:8px 10px;">结果</th>
+            <th style="text-align:center;padding:8px 10px;">目标</th>
+            <th style="text-align:center;padding:8px 10px;">完成率</th>
+            <th style="text-align:center;padding:8px 10px;">状态</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        ${content && content.notes ? `<div style="margin-top:14px;font-size:12px;color:#5a5a5a;background:#fcf7ef;padding:10px 12px;border-radius:8px;border-left:3px solid #c9a66b;">${escapeHtml(content.notes)}</div>` : ''}
         <div style="margin-top:18px;display:flex;gap:10px;justify-content:center;">
           <button onclick="closeWeeklyForm()" style="padding:8px 22px;border-radius:8px;border:1px solid #d5d3d0;background:#f9f8f7;color:#666;font-size:14px;cursor:pointer;">返回</button>
           <button onclick="copyWeeklyResult()" style="padding:8px 22px;border-radius:8px;border:none;background:#5a6d8a;color:#fff;font-size:14px;cursor:pointer;">📷 复制截图</button>
@@ -1067,22 +1198,17 @@ function estimateWeeklyNotesWidth(text) {
 
 function renderWeeklyReportCanvas(content, meta) {
   const tpl = getWeeklyTemplate(meta.group || '');
-  const metrics = [...tpl.common, ...tpl.shopMetrics];
-  const rows = content.rows || [];
+  const results = computeWeeklyResults(tpl, (content && content.raw) || {});
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-  const W = 800;
+  const W = 600;
   const PAD = 20;
-  const INNER = W - PAD * 2;
-  const memberColW = 150;
-  const M = metrics.length;
-  const metricColW = M > 0 ? Math.max(56, (INNER - memberColW) / M) : 100;
-
-  const titleH = 56;
-  const thH = 52;
-  const rowH = 32;
-  const notesH = content.notes ? (Math.ceil(estimateWeeklyNotesWidth(content.notes) / (INNER - 24)) * 18 + 28) : 0;
-  const H = PAD * 2 + titleH + thH + rows.length * rowH + notesH + 16;
+  const cardX = PAD, cardY = PAD, cardW = W - PAD * 2;
+  const colLabel = 200, colResult = 120, colTarget = 120;
+  const colRate = cardW - colLabel - colResult - colTarget;
+  const titleH = 54, thH = 34, rowH = 34;
+  const notesH = (content && content.notes) ? (Math.ceil(estimateWeeklyNotesWidth(content.notes) / (cardW - 24)) * 18 + 24) : 0;
+  const H = PAD * 2 + titleH + thH + results.length * rowH + notesH + 10;
 
   const canvas = document.createElement('canvas');
   canvas.width = W * dpr; canvas.height = H * dpr;
@@ -1090,64 +1216,51 @@ function renderWeeklyReportCanvas(content, meta) {
   ctx.scale(dpr, dpr);
 
   ctx.fillStyle = '#f4f2ef'; ctx.fillRect(0, 0, W, H);
-  const cardX = PAD, cardY = PAD, cardW = INNER, cardH = H - PAD * 2;
-  ctx.fillStyle = '#ffffff'; wkRoundRect(ctx, cardX, cardY, cardW, cardH, 12); ctx.fill();
+  ctx.fillStyle = '#ffffff'; wkRoundRect(ctx, cardX, cardY, cardW, H - PAD * 2, 12); ctx.fill();
   ctx.strokeStyle = '#e2e0dc'; ctx.lineWidth = 1; ctx.stroke();
 
-  let y = cardY + 22;
+  let y = cardY + 20;
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
   ctx.fillStyle = '#7a7a7a'; ctx.font = '13px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
   ctx.fillText((meta.start || '') + ' ~ ' + (meta.end || ''), cardX + 18, y);
   ctx.fillStyle = '#2d2d2d'; ctx.font = 'bold 16px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
   ctx.fillText((meta.name || '') + ' · ' + (meta.group || '') + ' 周报', cardX + 18, y + 22);
-  ctx.fillStyle = '#7c6fae'; wkRoundRect(ctx, cardX + cardW - 70, y - 6, 52, 24, 10); ctx.fill();
+  ctx.fillStyle = '#7c6fae'; wkRoundRect(ctx, cardX + cardW - 70, y - 4, 52, 24, 10); ctx.fill();
   ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
-  ctx.fillText('周报', cardX + cardW - 44, y + 6);
+  ctx.fillText('周报', cardX + cardW - 44, y + 8);
 
-  y += 44;
+  y += titleH - 6;
   ctx.strokeStyle = '#f0eeeb'; ctx.beginPath(); ctx.moveTo(cardX, y); ctx.lineTo(cardX + cardW, y); ctx.stroke();
-  y += 10;
+  y += 6;
 
+  ctx.textAlign = 'left'; ctx.fillStyle = '#666'; ctx.font = 'bold 12px sans-serif';
+  ctx.fillText('指标', cardX + 18, y + thH / 2);
   ctx.textAlign = 'center';
-  let x = cardX + 18;
-  ctx.fillStyle = '#555'; ctx.font = 'bold 12px sans-serif';
-  ctx.fillText('成员', x + memberColW / 2, y + thH / 2);
-  x += memberColW;
-  metrics.forEach(m => {
-    ctx.fillStyle = '#555'; ctx.font = 'bold 12px sans-serif';
-    ctx.fillText(m.label, x + metricColW / 2, y + 14);
-    ctx.fillStyle = '#999'; ctx.font = '11px sans-serif';
-    ctx.fillText('目标 ' + m.target + (m.unit || ''), x + metricColW / 2, y + 32);
-    x += metricColW;
-  });
+  ctx.fillText('结果', cardX + colLabel + colResult / 2, y + thH / 2);
+  ctx.fillText('目标', cardX + colLabel + colResult + colTarget / 2, y + thH / 2);
+  ctx.fillText('完成率', cardX + colLabel + colResult + colTarget + colRate / 2, y + thH / 2);
   y += thH;
   ctx.strokeStyle = '#f0eeeb'; ctx.beginPath(); ctx.moveTo(cardX, y); ctx.lineTo(cardX + cardW, y); ctx.stroke();
 
-  rows.forEach(r => {
-    const vals = r.values || {};
-    x = cardX + 18;
-    ctx.fillStyle = '#2d2d2d'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'left';
-    ctx.fillText(r.name || '', x + 6, y + rowH / 2);
-    x += memberColW;
+  results.forEach(r => {
+    const ratePct = Math.round(r.rate * 100);
+    const color = WK_STATUS_COLOR[r.status];
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#2d2d2d'; ctx.font = 'bold 13px sans-serif';
+    ctx.fillText(r.label, cardX + 18, y + rowH / 2);
     ctx.textAlign = 'center';
-    metrics.forEach(m => {
-      const v = vals[m.key] != null ? vals[m.key] : '';
-      if (v === '' || v == null) { x += metricColW; return; }
-      let color = '#2d2d2d';
-      if (m.unit === '%' && m.target) {
-        const num = parseFloat(v);
-        if (!isNaN(num)) color = num >= m.target ? '#16a34a' : '#ef4444';
-      }
-      ctx.fillStyle = color; ctx.font = 'bold 13px sans-serif';
-      ctx.fillText(String(v) + (m.unit && m.unit !== '%' ? m.unit : ''), x + metricColW / 2, y + rowH / 2);
-      x += metricColW;
-    });
+    ctx.fillStyle = '#2d2d2d'; ctx.font = 'bold 14px sans-serif';
+    ctx.fillText(wkFmtNum(r.value) + (r.unit || ''), cardX + colLabel + colResult / 2, y + rowH / 2);
+    ctx.fillStyle = '#666'; ctx.font = '13px sans-serif';
+    ctx.fillText(wkFmtNum(r.target) + (r.unit || ''), cardX + colLabel + colResult + colTarget / 2, y + rowH / 2);
+    ctx.fillStyle = color; ctx.font = 'bold 13px sans-serif';
+    ctx.fillText(ratePct + '%', cardX + colLabel + colResult + colTarget + colRate / 2, y + rowH / 2);
     y += rowH;
     ctx.strokeStyle = '#f5f4f2'; ctx.beginPath(); ctx.moveTo(cardX, y); ctx.lineTo(cardX + cardW, y); ctx.stroke();
   });
 
-  if (content.notes) {
-    y += 8;
+  if (content && content.notes) {
+    y += 6;
     ctx.fillStyle = '#fcf7ef'; wkRoundRect(ctx, cardX + 10, y, cardW - 20, notesH, 8); ctx.fill();
     ctx.strokeStyle = '#e8dcc4'; ctx.stroke();
     ctx.fillStyle = '#5a5a5a'; ctx.font = '12px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
@@ -1218,13 +1331,17 @@ function renderWeeklyTemplates() {
   const groups = ['A组', 'B组', 'C组'];
   el.innerHTML = groups.map(g => {
     const tpl = getWeeklyTemplate(g);
-    const commonRows = tpl.common.map(m => `
-      <tr class="wt-common-row" data-key="${escapeAttr(m.key)}">
+    const wkTypes = [['direct','直接填值'],['conversion','转化率(各店付款/询单)'],['satisfaction','满意度(好评/差评)'],['reply_rate','三分钟回复率'],['avg_response','平均响应(越低越好)']];
+    const commonRows = tpl.common.map(m => {
+      const opts = wkTypes.map(([v,t]) => `<option value="${v}" ${m.type === v ? 'selected' : ''}>${t}</option>`).join('');
+      return `<tr class="wt-common-row" data-key="${escapeAttr(m.key)}">
         <td style="padding:4px 6px;"><input class="wt-c-label" value="${escapeHtml(m.label || '')}" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);"></td>
-        <td style="padding:4px 6px;width:70px;"><input class="wt-c-unit" value="${escapeHtml(m.unit || '')}" style="width:60px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
-        <td style="padding:4px 6px;width:80px;"><input class="wt-c-target" type="number" value="${m.target != null ? m.target : ''}" style="width:64px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
-        <td style="padding:4px 6px;width:40px;text-align:center;"><button class="btn-sm outline" style="color:var(--danger);border-color:var(--danger);padding:2px 8px;font-size:12px;" onclick="this.closest('tr').remove()">×</button></td>
-      </tr>`).join('');
+        <td style="padding:4px 6px;width:150px;"><select class="wt-c-type" style="width:100%;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--card-bg);color:var(--text);">${opts}</select></td>
+        <td style="padding:4px 6px;width:64px;"><input class="wt-c-unit" value="${escapeHtml(m.unit || '')}" style="width:56px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
+        <td style="padding:4px 6px;width:70px;"><input class="wt-c-target" type="number" value="${m.target != null ? m.target : ''}" style="width:60px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
+        <td style="padding:4px 6px;width:36px;text-align:center;"><button class="btn-sm outline" style="color:var(--danger);border-color:var(--danger);padding:2px 8px;font-size:12px;" onclick="this.closest('tr').remove()">×</button></td>
+      </tr>`;
+    }).join('');
     return `<div style="margin-bottom:20px;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#f8f9ff;border-bottom:1px solid var(--border);">
         <h3 style="margin:0;font-size:16px;">${g} · 周报模板</h3>
@@ -1237,7 +1354,7 @@ function renderWeeklyTemplates() {
         <div>
           <div style="font-size:13px;font-weight:600;margin-bottom:4px;">通用指标（目标可改，可增删）</div>
           <table style="width:100%;border-collapse:collapse;">
-            <thead><tr style="background:#f0f4ff;"><th style="padding:6px 8px;text-align:left;font-size:12px;">指标名</th><th style="padding:6px 8px;text-align:center;font-size:12px;width:70px;">单位</th><th style="padding:6px 8px;text-align:center;font-size:12px;width:80px;">目标</th><th style="padding:6px 8px;width:40px;"></th></tr></thead>
+            <thead><tr style="background:#f0f4ff;"><th style="padding:6px 8px;text-align:left;font-size:12px;">指标名</th><th style="padding:6px 8px;text-align:center;font-size:12px;width:150px;">类型</th><th style="padding:6px 8px;text-align:center;font-size:12px;width:64px;">单位</th><th style="padding:6px 8px;text-align:center;font-size:12px;width:70px;">目标</th><th style="padding:6px 8px;width:36px;"></th></tr></thead>
             <tbody id="wt-common-${g}">${commonRows}</tbody>
           </table>
           <button class="btn-sm outline" style="margin-top:6px;font-size:13px;" onclick="addWtCommon('${g}')">+ 添加通用指标</button>
@@ -1254,9 +1371,10 @@ window.addWtCommon = function (group) {
   tr.className = 'wt-common-row';
   tr.dataset.key = 'c_' + Date.now();
   tr.innerHTML = `<td style="padding:4px 6px;"><input class="wt-c-label" value="" placeholder="新指标名" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);"></td>
-    <td style="padding:4px 6px;width:70px;"><input class="wt-c-unit" value="%" style="width:60px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
-    <td style="padding:4px 6px;width:80px;"><input class="wt-c-target" type="number" value="0" style="width:64px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
-    <td style="padding:4px 6px;width:40px;text-align:center;"><button class="btn-sm outline" style="color:var(--danger);border-color:var(--danger);padding:2px 8px;font-size:12px;" onclick="this.closest('tr').remove()">×</button></td>`;
+    <td style="padding:4px 6px;width:150px;"><select class="wt-c-type" style="width:100%;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--card-bg);color:var(--text);"><option value="direct" selected>直接填值</option><option value="conversion">转化率(各店付款/询单)</option><option value="satisfaction">满意度(好评/差评)</option><option value="reply_rate">三分钟回复率</option><option value="avg_response">平均响应(越低越好)</option></select></td>
+    <td style="padding:4px 6px;width:64px;"><input class="wt-c-unit" value="%" style="width:56px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
+    <td style="padding:4px 6px;width:70px;"><input class="wt-c-target" type="number" value="0" style="width:60px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
+    <td style="padding:4px 6px;width:36px;text-align:center;"><button class="btn-sm outline" style="color:var(--danger);border-color:var(--danger);padding:2px 8px;font-size:12px;" onclick="this.closest('tr').remove()">×</button></td>`;
   tbody.appendChild(tr);
 };
 
@@ -1270,7 +1388,8 @@ async function saveWeeklyTemplate(group) {
     const label = row.querySelector('.wt-c-label').value.trim();
     const unit = row.querySelector('.wt-c-unit').value.trim();
     const target = parseFloat(row.querySelector('.wt-c-target').value) || 0;
-    if (label) common.push({ key: row.dataset.key || ('c_' + common.length), label, unit, target });
+    const type = row.querySelector('.wt-c-type') ? row.querySelector('.wt-c-type').value : 'direct';
+    if (label) common.push({ key: row.dataset.key || ('c_' + common.length), label, unit, target, type });
   });
   // 保留已有店铺单独目标，新店铺用默认目标
   const oldCfg = weeklyTemplates[group] || {};
