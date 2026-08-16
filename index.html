@@ -7784,8 +7784,8 @@ function renderEditorForm(pattern) {
       + types.map(ty => '<option value="' + ty + '"' + ((t.type||'')===ty?' selected':'') + '>' + ty + '</option>').join('')
       + '</select></div></div>';
   }
-  html += '<div class="modal-field"><label>花色名称 ' + (b.isNew ? '' : '<span style="color:#e17055;">(只读)</span>') + '</label>'
-    + '<input id="ef-name" value="' + escapeHtml(t.name || '') + '"' + (b.isNew ? '' : ' readonly') + '></div>'
+  html += '<div class="modal-field"><label>花色名称</label>'
+    + '<input id="ef-name" value="' + escapeHtml(t.name || '') + '"></div>'
     + '<div class="modal-field-row"><div class="modal-field"><label>系列 <span style="font-weight:400;color:var(--text-muted);">(可选已有或输入新系列)</span></label><div class="series-input-wrap"><input id="ef-series" list="ef-series-list" value="' + escapeHtml(t.series || '') + '" placeholder="选择或输入系列..."><datalist id="ef-series-list">' + seriesOptions + '</datalist></div></div>'
     + '<div class="modal-field"><label>色系</label><select id="ef-color">'
     + (() => { const mc = patternCategories.filter(c => c.category_type === 'color').map(c => c.name); const colors = mc.length > 0 ? mc : ['棕色系','黑灰色系','蓝色系','绿色系','粉色系','紫色系','灰色系','混血色','粉紫色系']; return colors.map(c => '<option value="' + c + '"' + ((t.color||'')===c?' selected':'') + '>' + c + '</option>').join(''); })()
