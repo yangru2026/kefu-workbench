@@ -1,82 +1,11 @@
 -- ============================================================
--- 周报功能：周报模板表 + 周报表
+-- 迁移：把周报模板的「满意度」从单指标改为「分店好评/差评 + 系统自动合计」
+-- 运行前请确认：此迁移会覆盖 A/B/C 三组的 config 为最新默认结构。
+-- 如你已在模板里做了其他自定义修改，请先在 Supabase 备份 weekly_templates 表。
 -- ============================================================
 
--- 周报模板表：按 A/B/C 组分别配置指标列表
--- config 结构：
--- {
---   "metrics": [
---     {"key":"唯一键","label":"指标名","unit":"单位","target":数字,"type":"指标类型","shop":"店铺名"}
---   ]
--- }
--- 指标 type 含义：
---   linked_sales      连带销售额，直接填总值（客服负责店铺合计），达标=值≥目标
---   overall_conversion 全平台转化率 = Σ各店付款 / Σ各店询单
---   conversion        单店转化率 = 该店付款/询单
---   satisfaction      满意度：
---                     - 填 shop  → 该分店输入「好评数量 / 差评数量」
---                     - 不填 shop → 系统自动按组合计：好评/(好评+差评)*100
---   reply_rate        三分钟回复率 = 三分钟响应轮次/总会话轮次*100
---   response          单店平均响应 = 该店响应秒/轮次（越低越好）
---   avg_response      各店平均响应 = 所有店铺 响应秒/轮次 求平均（越低越好）
--- 指标顺序以 metrics 数组顺序为准，前端可用 ▲▼ 手动排序。
--- 成员不存模板，直接取自后台「成员管理」的组身份；店铺从 conversion/response/satisfaction 指标自动派生。
-CREATE TABLE IF NOT EXISTS weekly_templates (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  group_name TEXT NOT NULL UNIQUE,
-  config JSONB NOT NULL DEFAULT '{}',
-  updated_by UUID REFERENCES auth.users(id),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
-ALTER TABLE weekly_templates ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "weekly_templates_select_all" ON weekly_templates;
-CREATE POLICY "weekly_templates_select_all"
-  ON weekly_templates FOR SELECT TO authenticated USING (true);
-
-DROP POLICY IF EXISTS "weekly_templates_write_admin" ON weekly_templates;
-CREATE POLICY "weekly_templates_write_admin"
-  ON weekly_templates FOR ALL TO authenticated
-  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','leader')))
-  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','leader')));
-
--- 周报表：存储每周汇报内容（原始录入数据，指标由系统计算）
-CREATE TABLE IF NOT EXISTS weekly_reports (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id),
-  group_name TEXT NOT NULL,
-  week_start DATE NOT NULL,
-  week_end DATE NOT NULL,
-  content JSONB NOT NULL DEFAULT '{}',
-  status TEXT NOT NULL DEFAULT 'submitted' CHECK (status IN ('draft','submitted')),
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(user_id, week_start)
-);
-
-ALTER TABLE weekly_reports ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "weekly_reports_select_own" ON weekly_reports;
-CREATE POLICY "weekly_reports_select_own"
-  ON weekly_reports FOR SELECT TO authenticated
-  USING (user_id = auth.uid() OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','leader')));
-
-DROP POLICY IF EXISTS "weekly_reports_write_own" ON weekly_reports;
-CREATE POLICY "weekly_reports_write_own"
-  ON weekly_reports FOR INSERT TO authenticated
-  WITH CHECK (user_id = auth.uid());
-
-DROP POLICY IF EXISTS "weekly_reports_update_own" ON weekly_reports;
-CREATE POLICY "weekly_reports_update_own"
-  ON weekly_reports FOR UPDATE TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
-
--- 默认模板数据（ON CONFLICT 覆盖刷新，重跑可更新指标/目标）
-INSERT INTO weekly_templates (group_name, config) VALUES
-('A组', '{
+UPDATE weekly_templates
+SET config = '{
   "metrics": [
     {"key":"linked_sales","label":"连带销售额","unit":"元","target":8000,"type":"linked_sales","sort_order":0},
     {"key":"overall_conversion","label":"全平台转化率","unit":"%","target":50,"type":"overall_conversion","sort_order":1},
@@ -91,8 +20,11 @@ INSERT INTO weekly_templates (group_name, config) VALUES
     {"key":"satisfaction_total","label":"满意度-售前全平台满意度","unit":"%","target":98,"type":"satisfaction","sort_order":10},
     {"key":"response_3min","label":"三分钟回复率","unit":"%","target":100,"type":"reply_rate","sort_order":11}
   ]
-}'),
-('B组', '{
+}'::jsonb
+WHERE group_name = 'A组';
+
+UPDATE weekly_templates
+SET config = '{
   "metrics": [
     {"key":"conv_pdd1","label":"转化率-拼多多1店","unit":"%","target":42,"type":"conversion","shop":"拼多多1店","sort_order":0},
     {"key":"conv_pdd2","label":"转化率-拼多多2店","unit":"%","target":42,"type":"conversion","shop":"拼多多2店","sort_order":1},
@@ -105,8 +37,11 @@ INSERT INTO weekly_templates (group_name, config) VALUES
     {"key":"overall_conversion","label":"全平台转化率","unit":"%","target":42,"type":"overall_conversion","sort_order":8},
     {"key":"avg_response","label":"响应（各店平均）","unit":"s","target":15,"type":"avg_response","sort_order":9}
   ]
-}'),
-('C组', '{
+}'::jsonb
+WHERE group_name = 'B组';
+
+UPDATE weekly_templates
+SET config = '{
   "metrics": [
     {"key":"conv_douer","label":"转化率-抖二店","unit":"%","target":57,"type":"conversion","shop":"抖二店","sort_order":0},
     {"key":"conv_dousi","label":"转化率-抖四店","unit":"%","target":57,"type":"conversion","shop":"抖四店","sort_order":1},
@@ -116,5 +51,5 @@ INSERT INTO weekly_templates (group_name, config) VALUES
     {"key":"satisfaction_total","label":"满意度","unit":"%","target":98,"type":"satisfaction","sort_order":5},
     {"key":"avg_response","label":"响应（各店平均）","unit":"s","target":10,"type":"avg_response","sort_order":6}
   ]
-}')
-ON CONFLICT (group_name) DO UPDATE SET config = EXCLUDED.config, updated_at = now();
+}'::jsonb
+WHERE group_name = 'C组';

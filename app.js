@@ -764,6 +764,7 @@ let lastWeeklyContent = null;
 let lastWeeklyMeta = null;
 let weeklySub = null;
 let weeklyTplSub = null;
+let weeklyEditingSavedRaw = null; // 当前正在编辑的已存周报原始数据（用于提交时保留旧字段）
 
 async function loadWeeklyTemplates() {
   if (!supabase) return;
@@ -775,21 +776,23 @@ async function loadWeeklyTemplates() {
 }
 
 // 把数据库里的 config 归一化成前端可用的结构
-// config = { metrics: [{key,label,unit,target,type,shop?}] } —— 扁平指标列表，成员取自后台成员管理，店铺从 conversion/response 指标派生
+// config = { metrics: [{key,label,unit,target,type,shop?,sort_order?}] }
+// 指标顺序以 metrics 数组本身为准；店铺从 conversion/response/satisfaction 指标派生
 function getWeeklyTemplate(group) {
   const raw = weeklyTemplates[group] || {};
-  const metrics = (Array.isArray(raw.metrics) ? raw.metrics : []).map(m => ({
+  const metrics = (Array.isArray(raw.metrics) ? raw.metrics : []).map((m, idx) => ({
     key: m.key || '',
     label: m.label || '',
     unit: m.unit || '',
     target: m.target != null ? Number(m.target) : 0,
     type: m.type || 'linked_sales',
-    shop: m.shop || ''
+    shop: m.shop || '',
+    sort_order: m.sort_order != null ? Number(m.sort_order) : idx
   }));
-  // 从 conversion/response 类指标里派生出本组涉及的店铺（用于原始数据录入）
+  // 从 conversion/response/satisfaction 类指标里派生出本组涉及的店铺（用于原始数据录入）
   const shops = [];
   metrics.forEach(m => {
-    if ((m.type === 'conversion' || m.type === 'response') && m.shop && !shops.includes(m.shop)) shops.push(m.shop);
+    if ((m.type === 'conversion' || m.type === 'response' || m.type === 'satisfaction') && m.shop && !shops.includes(m.shop)) shops.push(m.shop);
   });
   return { metrics, shops };
 }
@@ -852,6 +855,25 @@ function computeWeeklyResults(tpl, raw) {
     if (sec > 0) responseVals.push(sec);
   });
 
+  // 满意度：先按所有 type=satisfaction 且带 shop 的分店指标汇总合计好评/差评
+  let satGoodTotal = 0, satBadTotal = 0, satHasShopData = false;
+  (tpl.metrics || []).forEach(m => {
+    if (m.type === 'satisfaction' && m.shop) {
+      const d = (satisfaction.shops && satisfaction.shops[m.shop]) || {};
+      const g = wkNum(d.good), b = wkNum(d.bad);
+      satGoodTotal += g;
+      satBadTotal += b;
+      if (g > 0 || b > 0) satHasShopData = true;
+    }
+  });
+  // 兼容旧数据：如果分店都没有填，则回退到 satisfaction.good/bad（旧版单一合计）
+  if (!satHasShopData) {
+    satGoodTotal = wkNum(satisfaction.good);
+    satBadTotal = wkNum(satisfaction.bad);
+  }
+  const satTotal = satGoodTotal + satBadTotal;
+  const satRate = satTotal > 0 ? (satGoodTotal / satTotal * 100) : 0;
+
   const results = [];
   (tpl.metrics || []).forEach(m => {
     if (m.type === 'linked_sales') {
@@ -865,10 +887,9 @@ function computeWeeklyResults(tpl, raw) {
       const v = i > 0 ? (p / i * 100) : 0;
       results.push(wkMakeResult(m.label, wkRound1(v), '%', m.target, true));
     } else if (m.type === 'satisfaction') {
-      const good = wkNum(satisfaction.good), bad = wkNum(satisfaction.bad);
-      const total = good + bad;
-      const v = total > 0 ? (good / total * 100) : 0;
-      results.push(wkMakeResult(m.label, wkRound1(v), '%', m.target, true));
+      // 只有「无店铺」的满意度指标才输出结果（系统合计）；分店指标只参与汇总，不单独显示
+      if (m.shop) return;
+      results.push(wkMakeResult(m.label, wkRound1(satRate), '%', m.target, true));
     } else if (m.type === 'reply_rate') {
       const total = wkNum(reply.total), in3 = wkNum(reply.in3);
       const v = total > 0 ? (in3 / total * 100) : 0;
@@ -909,7 +930,8 @@ async function openWeeklyForm() {
   await loadWeeklyTemplates();
   const tpl = getWeeklyTemplate(group);
   const existing = weeklyReports.find(r => r.week_start === start && r.week_end === end && r.group_name === group);
-  renderWeeklyForm(tpl, existing ? existing.content : null);
+  weeklyEditingSavedRaw = existing ? existing.content : null;
+  renderWeeklyForm(tpl, weeklyEditingSavedRaw);
 
   document.getElementById('weekly-form-area').style.display = '';
   document.getElementById('weekly-track-area').style.display = 'none';
@@ -973,10 +995,32 @@ function renderWeeklyForm(tpl, saved) {
     if (hasResponse) html += `<div style="font-size:12px;color:var(--text-secondary);">响应为「各店分别填写平均响应秒数，系统自动求各店平均值」</div>`;
   }
 
-  // 3. 满意度
-  if (hasSatisfaction) {
-    const m = metrics.find(x => x.type === 'satisfaction');
-    html += wkSectionTitle(m.label + '（好评/(好评+差评)，目标 ' + m.target + '%）');
+  // 3. 满意度：分店填写好评/差评，系统自动按组合计
+  const satMetrics = metrics.filter(m => m.type === 'satisfaction');
+  const satShopMetrics = satMetrics.filter(m => m.shop);
+  const satTotalMetric = satMetrics.find(m => !m.shop);
+  if (satShopMetrics.length) {
+    const title = satTotalMetric
+      ? satTotalMetric.label + '（目标 ' + satTotalMetric.target + '%，系统自动计算：好评/(好评+差评)）'
+      : '满意度（分店填写好评/差评，系统自动按组合计）';
+    html += wkSectionTitle(title);
+    html += `<table class="ranking-table" style="min-width:420px;font-size:13px;border-collapse:collapse;">
+      <thead><tr><th style="text-align:left;padding:6px 8px;">店铺</th><th style="text-align:center;padding:6px 8px;">好评数量</th><th style="text-align:center;padding:6px 8px;">差评数量</th></tr></thead><tbody>`;
+    satShopMetrics.forEach(m => {
+      const shopRaw = (satisfaction.shops && satisfaction.shops[m.shop]) || {};
+      html += `<tr>
+        <td style="padding:6px 8px;font-weight:600;">${escapeHtml(m.shop)}</td>
+        <td style="padding:4px;text-align:center;"><input type="number" class="wk-raw" data-type="satisfaction-shop" data-shop="${escapeAttr(m.shop)}" data-field="good" value="${shopRaw.good != null && shopRaw.good !== '' ? shopRaw.good : ''}" style="width:100px;padding:6px 4px;border:1px solid var(--border);border-radius:6px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
+        <td style="padding:4px;text-align:center;"><input type="number" class="wk-raw" data-type="satisfaction-shop" data-shop="${escapeAttr(m.shop)}" data-field="bad" value="${shopRaw.bad != null && shopRaw.bad !== '' ? shopRaw.bad : ''}" style="width:100px;padding:6px 4px;border:1px solid var(--border);border-radius:6px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+    if (satTotalMetric) {
+      html += `<div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">截图/结果页仅显示「${escapeHtml(satTotalMetric.label)}」的合计计算值，不展示各店明细。</div>`;
+    }
+  } else if (satTotalMetric) {
+    // 只有合计指标，没有分店指标：保留旧版兼容（单一好评/差评输入）
+    html += wkSectionTitle(satTotalMetric.label + '（好评/(好评+差评)，目标 ' + satTotalMetric.target + '%）');
     html += wkRawPair('好评数量', 'satisfaction', 'good', satisfaction.good, '差评数量', 'satisfaction', 'bad', satisfaction.bad);
   }
 
@@ -1006,7 +1050,13 @@ async function submitWeekly() {
   if (!start || !end) { showToast('请选择汇报周期'); return; }
   const group = currentProfile?.group_name || '';
   const tpl = getWeeklyTemplate(group);
-  const raw = { direct: {}, shops: {}, satisfaction: {}, reply: {} };
+  const savedRaw = (weeklyEditingSavedRaw && weeklyEditingSavedRaw.raw) || {};
+  const raw = {
+    direct: {},
+    shops: {},
+    satisfaction: { ...(savedRaw.satisfaction || {}), shops: {} },
+    reply: {}
+  };
   document.querySelectorAll('#weekly-form-table-wrap .wk-raw').forEach(inp => {
     const type = inp.dataset.type;
     let v = parseFloat(inp.value);
@@ -1015,6 +1065,9 @@ async function submitWeekly() {
     else if (type === 'shop') {
       const s = inp.dataset.shop, f = inp.dataset.field;
       raw.shops[s] = raw.shops[s] || {}; raw.shops[s][f] = v;
+    } else if (type === 'satisfaction-shop') {
+      const s = inp.dataset.shop, f = inp.dataset.field;
+      raw.satisfaction.shops[s] = raw.satisfaction.shops[s] || {}; raw.satisfaction.shops[s][f] = v;
     } else {
       raw[type] = raw[type] || {}; raw[type][inp.dataset.key] = v;
     }
@@ -1328,20 +1381,27 @@ function renderWeeklyTemplates() {
     ['linked_sales', '连带销售额(直接填值)'],
     ['overall_conversion', '全平台转化率(各店合计)'],
     ['conversion', '转化率(各店付款/询单)'],
-    ['satisfaction', '满意度(好评/差评)'],
+    ['satisfaction', '满意度(分店好评/差评)'],
     ['reply_rate', '三分钟回复率'],
     ['response', '平均响应-单店(越低越好)'],
     ['avg_response', '平均响应(各店平均)']
   ];
   el.innerHTML = groups.map(g => {
     const tpl = getWeeklyTemplate(g);
-    const rows = tpl.metrics.map(m => {
+    const rows = tpl.metrics.map((m, idx) => {
       const opts = wkTypes.map(([v, t]) => `<option value="${v}" ${m.type === v ? 'selected' : ''}>${t}</option>`).join('');
-      const shopCell = (m.type === 'conversion' || m.type === 'response')
-        ? `<td style="padding:4px 6px;"><input class="wt-m-shop" value="${escapeAttr(m.shop || '')}" placeholder="店铺名" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);"></td>`
+      const needsShop = (m.type === 'conversion' || m.type === 'response' || m.type === 'satisfaction');
+      const shopCell = needsShop
+        ? `<td style="padding:4px 6px;"><input class="wt-m-shop" value="${escapeAttr(m.shop || '')}" placeholder="${m.type === 'satisfaction' ? '分店名（空=系统自动合计）' : '店铺名'}" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);"></td>`
         : `<td style="padding:4px 6px;text-align:center;color:#c4c4c4;font-size:12px;">—</td>`;
       return `<tr class="wt-m-row" data-key="${escapeAttr(m.key)}">
-        <td style="padding:4px 6px;"><input class="wt-m-label" value="${escapeHtml(m.label || '')}" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);"></td>
+        <td style="padding:4px 6px;white-space:nowrap;">
+          <span class="wt-m-sort" style="display:inline-flex;flex-direction:column;gap:0;vertical-align:middle;margin-right:4px;">
+            <button class="btn-sm outline" style="padding:0 4px;font-size:10px;line-height:1;min-height:18px;" onclick="moveWtMetric(this,-1)" title="上移">▲</button>
+            <button class="btn-sm outline" style="padding:0 4px;font-size:10px;line-height:1;min-height:18px;" onclick="moveWtMetric(this,1)" title="下移">▼</button>
+          </span>
+          <input class="wt-m-label" value="${escapeHtml(m.label || '')}" style="width:calc(100% - 36px);padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);">
+        </td>
         <td style="padding:4px 6px;width:170px;"><select class="wt-m-type" style="width:100%;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--card-bg);color:var(--text);">${opts}</select></td>
         <td style="padding:4px 6px;width:56px;"><input class="wt-m-unit" value="${escapeHtml(m.unit || '')}" style="width:48px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
         <td style="padding:4px 6px;width:72px;"><input class="wt-m-target" type="number" value="${m.target != null ? m.target : ''}" style="width:62px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
@@ -1355,14 +1415,14 @@ function renderWeeklyTemplates() {
         <button class="btn-sm primary" onclick="saveWeeklyTemplate('${g}')">💾 保存</button>
       </div>
       <div style="padding:12px 16px;">
-        <div style="font-size:13px;font-weight:600;margin-bottom:4px;">指标列表（左=指标/店铺名，右=目标；可改、可增、可删；成员取自后台「成员管理」）</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px;">指标列表（可拖拽排序：用左侧 ▲▼ 调整顺序；满意度填「店铺名」表示分店输入，留空表示系统自动按组合计）</div>
         <table style="width:100%;border-collapse:collapse;">
           <thead><tr style="background:#f0f4ff;">
             <th style="padding:6px 8px;text-align:left;font-size:12px;">指标名</th>
             <th style="padding:6px 8px;text-align:center;font-size:12px;width:170px;">类型</th>
             <th style="padding:6px 8px;text-align:center;font-size:12px;width:56px;">单位</th>
             <th style="padding:6px 8px;text-align:center;font-size:12px;width:72px;">目标</th>
-            <th style="padding:6px 8px;text-align:center;font-size:12px;">店铺(转化率/响应填)</th>
+            <th style="padding:6px 8px;text-align:center;font-size:12px;">店铺(转化率/响应/满意度填)</th>
             <th style="padding:6px 8px;width:36px;"></th>
           </tr></thead>
           <tbody id="wt-metrics-${g}">${rows}</tbody>
@@ -1379,8 +1439,14 @@ window.addWtMetric = function (group) {
   const tr = document.createElement('tr');
   tr.className = 'wt-m-row';
   tr.dataset.key = 'm_' + Date.now();
-  tr.innerHTML = `<td style="padding:4px 6px;"><input class="wt-m-label" value="" placeholder="新指标名" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);"></td>
-    <td style="padding:4px 6px;width:170px;"><select class="wt-m-type" style="width:100%;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--card-bg);color:var(--text);"><option value="conversion" selected>转化率(各店付款/询单)</option><option value="linked_sales">连带销售额(直接填值)</option><option value="overall_conversion">全平台转化率(各店合计)</option><option value="satisfaction">满意度(好评/差评)</option><option value="reply_rate">三分钟回复率</option><option value="response">平均响应-单店(越低越好)</option><option value="avg_response">平均响应(各店平均)</option></select></td>
+  tr.innerHTML = `<td style="padding:4px 6px;white-space:nowrap;">
+      <span class="wt-m-sort" style="display:inline-flex;flex-direction:column;gap:0;vertical-align:middle;margin-right:4px;">
+        <button class="btn-sm outline" style="padding:0 4px;font-size:10px;line-height:1;min-height:18px;" onclick="moveWtMetric(this,-1)" title="上移">▲</button>
+        <button class="btn-sm outline" style="padding:0 4px;font-size:10px;line-height:1;min-height:18px;" onclick="moveWtMetric(this,1)" title="下移">▼</button>
+      </span>
+      <input class="wt-m-label" value="" placeholder="新指标名" style="width:calc(100% - 36px);padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);">
+    </td>
+    <td style="padding:4px 6px;width:170px;"><select class="wt-m-type" style="width:100%;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--card-bg);color:var(--text);"><option value="conversion" selected>转化率(各店付款/询单)</option><option value="linked_sales">连带销售额(直接填值)</option><option value="overall_conversion">全平台转化率(各店合计)</option><option value="satisfaction">满意度(分店好评/差评)</option><option value="reply_rate">三分钟回复率</option><option value="response">平均响应-单店(越低越好)</option><option value="avg_response">平均响应(各店平均)</option></select></td>
     <td style="padding:4px 6px;width:56px;"><input class="wt-m-unit" value="%" style="width:48px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
     <td style="padding:4px 6px;width:72px;"><input class="wt-m-target" type="number" value="0" style="width:62px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center;background:var(--card-bg);color:var(--text);"></td>
     <td style="padding:4px 6px;"><input class="wt-m-shop" value="" placeholder="店铺名" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card-bg);color:var(--text);"></td>
@@ -1388,28 +1454,62 @@ window.addWtMetric = function (group) {
   tbody.appendChild(tr);
 };
 
+window.moveWtMetric = function (btn, dir) {
+  const row = btn.closest('tr');
+  const tbody = row && row.parentElement;
+  if (!tbody) return;
+  if (dir === -1 && row.previousElementSibling) {
+    tbody.insertBefore(row, row.previousElementSibling);
+  } else if (dir === 1 && row.nextElementSibling) {
+    tbody.insertBefore(row.nextElementSibling, row);
+  }
+};
+
+let isSavingWeeklyTemplate = false;
 async function saveWeeklyTemplate(group) {
   if (!supabase) return;
-  const metrics = [];
-  document.querySelectorAll('#wt-metrics-' + group + ' .wt-m-row').forEach(row => {
-    const label = row.querySelector('.wt-m-label').value.trim();
-    if (!label) return;
-    const type = row.querySelector('.wt-m-type').value;
-    const unit = row.querySelector('.wt-m-unit').value.trim();
-    const target = parseFloat(row.querySelector('.wt-m-target').value) || 0;
-    const shop = (type === 'conversion' || type === 'response') ? row.querySelector('.wt-m-shop').value.trim() : '';
-    metrics.push({ key: row.dataset.key || ('m_' + Date.now() + '_' + metrics.length), label, unit, target, type, shop });
-  });
-  const config = { metrics };
-  const { error } = await supabase.from('weekly_templates').upsert({ group_name: group, config, updated_by: currentUser?.id }, { onConflict: 'group_name' });
-  if (error) { showToast('保存失败：' + error.message); }
-  else { showToast(group + ' 周报模板已保存'); await loadWeeklyTemplates(); renderWeeklyTemplates(); }
+  if (isSavingWeeklyTemplate) { showToast('正在保存，请稍候'); return; }
+  isSavingWeeklyTemplate = true;
+  try {
+    const metrics = [];
+    document.querySelectorAll('#wt-metrics-' + group + ' .wt-m-row').forEach((row, idx) => {
+      const label = row.querySelector('.wt-m-label').value.trim();
+      if (!label) return;
+      const type = row.querySelector('.wt-m-type').value;
+      const unit = row.querySelector('.wt-m-unit').value.trim();
+      const target = parseFloat(row.querySelector('.wt-m-target').value) || 0;
+      const shopInput = row.querySelector('.wt-m-shop');
+      const needsShop = (type === 'conversion' || type === 'response' || type === 'satisfaction');
+      const shop = needsShop ? (shopInput ? shopInput.value.trim() : '') : '';
+      metrics.push({
+        key: row.dataset.key || ('m_' + Date.now() + '_' + metrics.length),
+        label, unit, target, type, shop,
+        sort_order: idx
+      });
+    });
+    const config = { metrics };
+    const { data, error } = await supabase.from('weekly_templates').upsert(
+      { group_name: group, config, updated_by: currentUser?.id },
+      { onConflict: 'group_name' }
+    ).select().single();
+    if (error) { showToast('保存失败：' + error.message); }
+    else {
+      showToast(group + ' 周报模板已保存');
+      // 直接用返回结果更新本地缓存，避免Realtime竞争导致旧数据覆盖
+      if (data && data.config) weeklyTemplates[group] = data.config;
+      renderWeeklyTemplates();
+    }
+  } finally {
+    isSavingWeeklyTemplate = false;
+  }
 }
 
 function subscribeWeeklyTemplates() {
   if (!supabase || weeklyTplSub) return;
   weeklyTplSub = supabase.channel('weekly_templates')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'weekly_templates' }, async () => {
+      // 保存过程中忽略Realtime，防止旧快照覆盖当前编辑
+      if (isSavingWeeklyTemplate) return;
       await loadWeeklyTemplates();
       if (currentPage === 'templates') renderWeeklyTemplates();
     })
