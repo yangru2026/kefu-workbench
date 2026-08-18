@@ -485,18 +485,30 @@ function initSupabaseClient() {
   return false;
 }
 
-function loadSupabaseScript() {
+function loadScriptOne(src) {
   return new Promise((resolve, reject) => {
     const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-    s.onload = () => {
-      window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      window.__qcSupabase = window.supabase;
-      resolve();
-    };
-    s.onerror = () => reject(new Error('supabase-js 加载失败'));
+    s.src = src; s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('脚本加载失败：' + src));
     document.head.appendChild(s);
   });
+}
+
+async function loadSupabaseScript() {
+  // 优先加载本地，避免 CDN 在国内不稳定
+  try {
+    await loadScriptOne('lib/supabase.min.js');
+    window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    window.__qcSupabase = window.supabase;
+    return;
+  } catch (e) {
+    console.warn('本地 supabase-js 加载失败，尝试 CDN', e.message);
+  }
+  // fallback CDN
+  await loadScriptOne('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js');
+  window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  window.__qcSupabase = window.supabase;
 }
 
 var supabase = null;
