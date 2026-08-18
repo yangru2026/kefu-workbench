@@ -59,6 +59,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .toast.show{opacity:1;transform:translateX(0)}
 .toast.error{background:var(--red)}
 .footer{text-align:center;font-size:11px;color:var(--text2);margin-top:30px}
+
+/* 图片放大预览（支持长图滚动 / 缩放，客服查看页内直接看大图） */
+.img-preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;justify-content:center;align-items:center;z-index:2000;padding:0}
+.img-preview-overlay.active{display:flex;flex-direction:column}
+#imgPreviewWrapper{overflow:auto;-webkit-overflow-scrolling:touch;width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:pan-y}
+#imgPreviewWrapper.zoomed{cursor:grab;touch-action:none}
+#imgPreviewSrc{display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;transition:transform .12s ease;transform-origin:0 0;will-change:transform}
+#imgPreviewSrc.clickable{cursor:zoom-in}
+.img-preview-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.18);color:#fff;border:none;width:38px;height:38px;border-radius:50%;font-size:20px;cursor:pointer;z-index:3}
+.img-preview-close:hover{background:rgba(255,255,255,.35)}
+.img-preview-name{position:absolute;bottom:14px;left:0;right:0;color:#fff;font-size:12px;text-align:center;pointer-events:none;text-shadow:0 1px 3px rgba(0,0,0,.6);padding:0 20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.img-preview-toolbar{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;background:rgba(0,0,0,.55);padding:6px 10px;border-radius:24px;z-index:3}
+.img-preview-toolbar button{background:rgba(255,255,255,.15);color:#fff;border:none;width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.img-preview-toolbar button:hover{background:rgba(255,255,255,.3)}
+.img-preview-hint{position:absolute;top:16px;left:50%;transform:translateX(-50%);color:#fff;font-size:12px;background:rgba(0,0,0,.45);padding:5px 12px;border-radius:14px;z-index:3;pointer-events:none}
 </style>
 </head>
 <body>
@@ -70,6 +85,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
   <div id="app"><div class="notice">⏳ 正在加载…</div></div>
 </div>
 <div class="toast" id="toast"></div>
+
+<!-- 图片放大预览 -->
+<div class="img-preview-overlay" id="imgPreview" onclick="closeImgPreview()">
+<div class="img-preview-hint">点击图片放大 · 用下方按钮缩放 · 长图可上下滑动</div>
+<button class="img-preview-close" onclick="closeImgPreview()">×</button>
+<div id="imgPreviewWrapper" onmousedown="imgDragStart(event)">
+<img id="imgPreviewSrc" class="clickable" src="" alt="" onclick="event.stopPropagation();imgToggleZoom()">
+</div>
+<div class="img-preview-name" id="imgPreviewName"></div>
+<div class="img-preview-toolbar" onclick="event.stopPropagation()">
+<button title="缩小" onclick="imgZoomStep(-0.3)">－</button>
+<span class="zoom-reset" id="imgZoomLabel" onclick="imgResetZoom()">100%</span>
+<button title="放大" onclick="imgZoomStep(0.3)">＋</button>
+<button title="适应宽度" onclick="imgFitWidth()">⤢</button>
+</div>
+</div>
 
 <script>
 const SUPABASE_URL = 'https://ienmejlxukhrxjjxvfqf.supabase.co';
@@ -150,7 +181,7 @@ async function fillImages(containerId, ids){
     const url=await getImageUrl(id); if(!url) continue;
     const d=document.createElement('div'); d.className='record-img-item';
     d.innerHTML='<img src="'+url+'" alt="" loading="lazy">';
-    d.onclick=()=>window.open(url,'_blank');
+    d.onclick=()=>previewShareImage(url);
     c.appendChild(d);
   }
 }
@@ -186,6 +217,103 @@ async function doConfirm(){
     btn.disabled=false; btn.textContent='✅ 确认收到';
   }
 }
+
+/* ==================== 图片放大预览 ==================== */
+let imgZoomScale = 1, imgTranslateX = 0, imgTranslateY = 0;
+function previewImage(url, name) {
+  const img = document.getElementById('imgPreviewSrc');
+  img.src = url;
+  document.getElementById('imgPreviewName').textContent = name || '';
+  imgZoomScale = 1; imgTranslateX = 0; imgTranslateY = 0;
+  document.getElementById('imgPreview').classList.add('active');
+  document.getElementById('imgPreviewWrapper').classList.remove('zoomed');
+  img.classList.add('clickable');
+  updateImgTransform();
+  img.onload = function() {
+    const wrap = document.getElementById('imgPreviewWrapper');
+    if (img.naturalWidth > wrap.clientWidth) imgFitWidth(true);
+    else { imgZoomScale = 1; updateImgTransform(); }
+  };
+}
+function previewShareImage(url) { previewImage(url, ''); }
+function imgFitWidth(silent) {
+  const img = document.getElementById('imgPreviewSrc');
+  const wrap = document.getElementById('imgPreviewWrapper');
+  const scaleX = wrap.clientWidth / img.naturalWidth;
+  const scaleY = wrap.clientHeight / img.naturalHeight;
+  imgZoomScale = Math.min(scaleX, scaleY, 1) || 1;
+  imgTranslateX = 0; imgTranslateY = 0;
+  document.getElementById('imgPreviewWrapper').classList.toggle('zoomed', imgZoomScale > 1.001);
+  img.classList.toggle('clickable', imgZoomScale <= 1.001);
+  updateImgTransform();
+}
+function imgToggleZoom() {
+  const img = document.getElementById('imgPreviewSrc');
+  if (imgZoomScale > 1.001) { imgResetZoom(); }
+  else { imgZoomScale = 2; imgTranslateX = 0; imgTranslateY = 0; document.getElementById('imgPreviewWrapper').classList.add('zoomed'); img.classList.remove('clickable'); updateImgTransform(); }
+}
+function imgZoomStep(d) {
+  imgZoomScale = Math.max(0.5, Math.min(5, imgZoomScale + d));
+  document.getElementById('imgPreviewWrapper').classList.toggle('zoomed', imgZoomScale > 1.001);
+  document.getElementById('imgPreviewSrc').classList.toggle('clickable', imgZoomScale <= 1.001);
+  updateImgTransform();
+}
+function imgResetZoom() {
+  imgZoomScale = 1; imgTranslateX = 0; imgTranslateY = 0;
+  document.getElementById('imgPreviewWrapper').classList.remove('zoomed');
+  document.getElementById('imgPreviewSrc').classList.add('clickable');
+  updateImgTransform();
+}
+function closeImgPreview() {
+  document.getElementById('imgPreview').classList.remove('active');
+  document.getElementById('imgPreviewSrc').src = '';
+}
+function updateImgTransform() {
+  const img = document.getElementById('imgPreviewSrc');
+  img.style.transform = 'translate(' + imgTranslateX + 'px, ' + imgTranslateY + 'px) scale(' + imgZoomScale + ')';
+  document.getElementById('imgZoomLabel').textContent = Math.round(imgZoomScale * 100) + '%';
+}
+function imgWheelZoom(e) {
+  if (!e.ctrlKey && !e.metaKey) return;
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? -0.15 : 0.15;
+  const oldScale = imgZoomScale;
+  imgZoomScale = Math.max(0.5, Math.min(5, imgZoomScale + delta));
+  if (imgZoomScale !== oldScale) {
+    document.getElementById('imgPreviewWrapper').classList.toggle('zoomed', imgZoomScale > 1.001);
+    document.getElementById('imgPreviewSrc').classList.toggle('clickable', imgZoomScale <= 1.001);
+    updateImgTransform();
+  }
+}
+let imgIsDragging = false, imgDragStartX = 0, imgDragStartY = 0;
+function imgDragStart(e) {
+  if (imgZoomScale <= 1) return;
+  imgIsDragging = true;
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  imgDragStartX = clientX - imgTranslateX;
+  imgDragStartY = clientY - imgTranslateY;
+  document.getElementById('imgPreviewWrapper').style.cursor = 'grabbing';
+  document.addEventListener('mousemove', imgDragMove);
+  document.addEventListener('mouseup', imgDragEnd);
+}
+function imgDragMove(e) {
+  if (!imgIsDragging) return;
+  e.preventDefault();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  imgTranslateX = clientX - imgDragStartX;
+  imgTranslateY = clientY - imgDragStartY;
+  updateImgTransform();
+}
+function imgDragEnd() {
+  imgIsDragging = false;
+  document.getElementById('imgPreviewWrapper').style.cursor = 'grab';
+  document.removeEventListener('mousemove', imgDragMove);
+  document.removeEventListener('mouseup', imgDragEnd);
+}
+// 滚轮缩放（Ctrl+滚轮）；普通滚轮交给容器滚动长图
+document.getElementById('imgPreviewWrapper').addEventListener('wheel', imgWheelZoom, { passive: false });
 
 (async function(){
   const token=getToken();

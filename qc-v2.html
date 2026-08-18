@@ -193,12 +193,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .close-btn:hover{color:var(--red)}
 
 /* ===== Image Preview ===== */
-.img-preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;justify-content:center;align-items:center;z-index:2000;padding:20px}
+.img-preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;justify-content:center;align-items:center;z-index:2000;padding:0}
 .img-preview-overlay.active{display:flex;flex-direction:column}
-.img-preview-overlay img{max-width:90%;max-height:80vh;object-fit:contain;border-radius:8px}
-.img-preview-close{position:absolute;top:20px;right:20px;background:rgba(255,255,255,.2);color:#fff;border:none;width:38px;height:38px;border-radius:50%;font-size:18px;cursor:pointer}
-.img-preview-close:hover{background:rgba(255,255,255,.4)}
-.img-preview-name{color:#fff;margin-top:10px;font-size:13px;text-align:center}
+/* 滚动容器：长图可上下滑动，短图居中；图片按原始比例显示不模糊 */
+#imgPreviewWrapper{overflow:auto;-webkit-overflow-scrolling:touch;width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:pan-y}
+#imgPreviewWrapper.zoomed{cursor:grab;touch-action:none}
+#imgPreviewSrc{display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;transition:transform .12s ease;transform-origin:0 0;will-change:transform}
+#imgPreviewSrc.clickable{cursor:zoom-in}
+.img-preview-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.18);color:#fff;border:none;width:38px;height:38px;border-radius:50%;font-size:20px;cursor:pointer;z-index:3}
+.img-preview-close:hover{background:rgba(255,255,255,.35)}
+.img-preview-name{position:absolute;bottom:14px;left:0;right:0;color:#fff;font-size:12px;text-align:center;pointer-events:none;text-shadow:0 1px 3px rgba(0,0,0,.6);padding:0 20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.img-preview-toolbar{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;background:rgba(0,0,0,.55);padding:6px 10px;border-radius:24px;z-index:3}
+.img-preview-toolbar button{background:rgba(255,255,255,.15);color:#fff;border:none;width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.img-preview-toolbar button:hover{background:rgba(255,255,255,.3)}
+.img-preview-toolbar .zoom-reset{min-width:54px;width:auto;border-radius:18px;font-size:13px;font-family:monospace;padding:0 8px}
+.img-preview-hint{position:absolute;top:16px;left:16px;color:rgba(255,255,255,.7);font-size:12px;background:rgba(0,0,0,.45);padding:5px 10px;border-radius:6px;z-index:3;pointer-events:none}
 
 /* ===== Coach Mode ===== */
 .coach-card{background:#fff;border-radius:12px;padding:18px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid var(--border)}
@@ -355,12 +364,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <button class="sev-btn important" data-val="严重" onclick="setSeverity(this,'严重')">严重问题</button>
 <button class="sev-btn critical" data-val="严重需整改" onclick="setSeverity(this,'严重需整改')">严重需整改</button>
 </div></div>
-<div class="form-item"><label id="sceneLabel">客户问题 / 聊天记录截图</label>
+<div class="form-item"><label id="sceneLabel">💬 聊天记录 <span style="font-weight:400;color:var(--text2)">（客户问题 + 客服回复，可粘贴截图）</span></label>
 <div class="paste-zone" id="zoneScene" tabindex="0">
 <div class="paste-hint">💡 在此输入文字描述，或 <kbd>Ctrl+V</kbd> 粘贴截图 / <kbd>拖拽</kbd> 图片到此处</div>
-<textarea class="paste-textarea" id="inpScene" placeholder="描述客户遇到的问题..."></textarea>
+<textarea class="paste-textarea" id="inpScene" placeholder="粘贴聊天记录截图，或描述客户的问题..."></textarea>
 <div class="paste-images" id="imgScene"></div></div></div>
-<div class="form-item" id="rowReply"><label>客服实际回复 / 聊天记录截图</label>
+<div class="form-item" id="rowReply"><label>💬 客服回复 <span style="font-weight:400;color:var(--text2)">（如与客户问题在同一截图，可只填上方聊天记录）</span></label>
 <div class="paste-zone" id="zoneReply" tabindex="0">
 <div class="paste-hint">💡 在此输入文字描述，或 <kbd>Ctrl+V</kbd> 粘贴截图 / <kbd>拖拽</kbd> 图片到此处</div>
 <textarea class="paste-textarea" id="inpReply" placeholder="描述客服的回复内容..."></textarea>
@@ -439,12 +448,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 
 <!-- Image Preview -->
 <div class="img-preview-overlay" id="imgPreview" onclick="closeImgPreview()">
-<div style="position:absolute;top:20px;left:20px"><span id="imgZoomLabel" style="background:rgba(0,0,0,.6);color:#fff;padding:4px 10px;border-radius:4px;font-size:12px;font-family:monospace">100%</span></div>
+<div class="img-preview-hint">点击图片放大 · 滚轮/Ctrl+滚轮缩放 · 长图可上下滑动</div>
 <button class="img-preview-close" onclick="closeImgPreview()">×</button>
-<div id="imgPreviewWrapper" style="overflow:hidden;width:90%;height:80vh;display:flex;align-items:center;justify-content:center;cursor:grab" onmousedown="imgDragStart(event)">
-<img id="imgPreviewSrc" src="" alt="" style="max-width:100%;max-height:100%;object-fit:contain;transition:transform .1s;transform-origin:center center">
+<div id="imgPreviewWrapper" onmousedown="imgDragStart(event)">
+<img id="imgPreviewSrc" class="clickable" src="" alt="" onclick="event.stopPropagation();imgToggleZoom()">
 </div>
 <div class="img-preview-name" id="imgPreviewName"></div>
+<div class="img-preview-toolbar" onclick="event.stopPropagation()">
+<button title="缩小" onclick="imgZoomStep(-0.3)">－</button>
+<span class="zoom-reset" id="imgZoomLabel" onclick="imgResetZoom()">100%</span>
+<button title="放大" onclick="imgZoomStep(0.3)">＋</button>
+<button title="适应宽度" onclick="imgFitWidth()">⤢</button>
+</div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1486,22 +1501,61 @@ function closeEditModal() {
 let imgZoomScale = 1, imgTranslateX = 0, imgTranslateY = 0;
 
 function previewImage(url, name) {
-  document.getElementById('imgPreviewSrc').src = url;
+  const img = document.getElementById('imgPreviewSrc');
+  img.src = url;
+  img.style.transform = 'none';
   document.getElementById('imgPreviewName').textContent = name;
   imgZoomScale = 1; imgTranslateX = 0; imgTranslateY = 0;
-  updateImgTransform();
   document.getElementById('imgPreview').classList.add('active');
-  const wrapper = document.getElementById('imgPreviewWrapper');
-  wrapper.addEventListener('wheel', imgWheelZoom, {passive:false});
-  wrapper.addEventListener('dblclick', imgDblClick);
+  document.getElementById('imgPreviewWrapper').classList.remove('zoomed');
+  img.classList.add('clickable');
+  updateImgTransform();
+  // 待图片加载后，若原图比容器宽则默认适应宽度（长图可在容器内上下滑动）
+  img.onload = function() {
+    const wrap = document.getElementById('imgPreviewWrapper');
+    if (img.naturalWidth > wrap.clientWidth) imgFitWidth(true);
+    else { imgZoomScale = 1; updateImgTransform(); }
+  };
+}
+
+// 适应宽度：长图完整铺满宽度，竖向溢出时由容器滚动
+function imgFitWidth(silent) {
+  const img = document.getElementById('imgPreviewSrc');
+  const wrap = document.getElementById('imgPreviewWrapper');
+  const scaleX = wrap.clientWidth / img.naturalWidth;
+  const scaleY = wrap.clientHeight / img.naturalHeight;
+  // 取能完整显示整张图且不超出容器的缩放（长图按宽度，短图按高度）
+  imgZoomScale = Math.min(scaleX, scaleY, 1) || 1;
+  imgTranslateX = 0; imgTranslateY = 0;
+  document.getElementById('imgPreviewWrapper').classList.toggle('zoomed', imgZoomScale > 1.001);
+  img.classList.toggle('clickable', imgZoomScale <= 1.001);
+  updateImgTransform();
+  if (!silent) {}
+}
+
+function imgToggleZoom() {
+  const img = document.getElementById('imgPreviewSrc');
+  if (imgZoomScale > 1.001) { imgResetZoom(); }
+  else { imgZoomScale = 2; imgTranslateX = 0; imgTranslateY = 0; document.getElementById('imgPreviewWrapper').classList.add('zoomed'); img.classList.remove('clickable'); updateImgTransform(); }
+}
+
+function imgZoomStep(d) {
+  imgZoomScale = Math.max(0.5, Math.min(5, imgZoomScale + d));
+  document.getElementById('imgPreviewWrapper').classList.toggle('zoomed', imgZoomScale > 1.001);
+  document.getElementById('imgPreviewSrc').classList.toggle('clickable', imgZoomScale <= 1.001);
+  updateImgTransform();
+}
+
+function imgResetZoom() {
+  imgZoomScale = 1; imgTranslateX = 0; imgTranslateY = 0;
+  document.getElementById('imgPreviewWrapper').classList.remove('zoomed');
+  document.getElementById('imgPreviewSrc').classList.add('clickable');
+  updateImgTransform();
 }
 
 function closeImgPreview() {
   document.getElementById('imgPreview').classList.remove('active');
   document.getElementById('imgPreviewSrc').src = '';
-  const wrapper = document.getElementById('imgPreviewWrapper');
-  wrapper.removeEventListener('wheel', imgWheelZoom);
-  wrapper.removeEventListener('dblclick', imgDblClick);
 }
 
 function updateImgTransform() {
@@ -1511,25 +1565,23 @@ function updateImgTransform() {
 }
 
 function imgWheelZoom(e) {
-  if (!e.ctrlKey && !e.metaKey) return;
+  if (!e.ctrlKey && !e.metaKey) return;   // 普通滚轮交给容器滚动（长图上下滑）
   e.preventDefault();
   const delta = e.deltaY > 0 ? -0.15 : 0.15;
   const oldScale = imgZoomScale;
   imgZoomScale = Math.max(0.5, Math.min(5, imgZoomScale + delta));
-  if (imgZoomScale !== oldScale) updateImgTransform();
+  if (imgZoomScale !== oldScale) {
+    document.getElementById('imgPreviewWrapper').classList.toggle('zoomed', imgZoomScale > 1.001);
+    document.getElementById('imgPreviewSrc').classList.toggle('clickable', imgZoomScale <= 1.001);
+    updateImgTransform();
+  }
 }
 
-function imgDblClick(e) {
-  e.stopPropagation();
-  imgZoomScale = 1; imgTranslateX = 0; imgTranslateY = 0;
-  updateImgTransform();
-}
-
-let imgIsDragging = false, imgDragStartX = 0, imgDragStartY = 0;
+let imgIsDragging = false, imgDragStartX = 0, imgDragStartY = 0, imgMoved = false;
 
 function imgDragStart(e) {
-  if (imgZoomScale <= 1) return;
-  imgIsDragging = true;
+  if (imgZoomScale <= 1) return;   // 未放大时长图用原生滚动，不拦截拖动
+  imgIsDragging = true; imgMoved = false;
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
   const clientY = e.touches ? e.touches[0].clientY : e.clientY;
   imgDragStartX = clientX - imgTranslateX;
@@ -1541,7 +1593,7 @@ function imgDragStart(e) {
 
 function imgDragMove(e) {
   if (!imgIsDragging) return;
-  e.preventDefault();
+  e.preventDefault(); imgMoved = true;
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
   const clientY = e.touches ? e.touches[0].clientY : e.clientY;
   imgTranslateX = clientX - imgDragStartX;
@@ -1833,7 +1885,9 @@ function closeSnippetManager() {
 function renderSnippetManager() {
   const arr = qcSnippets[snipManagerType] || [];
   const typeName = snipManagerType === 'correct' ? '正确做法 / 建议话术' : '产品知识点 / 销售技巧';
-  let html = '<p style="font-size:12px;color:var(--text2);margin:0 0 4px">当前分类：<b>' + typeName + '</b> · 团队共用，所有客服可见</p><div class="snip-mgr-list">';
+  let html = '<p style="font-size:12px;color:var(--text2);margin:0 0 4px">当前分类：<b>' + typeName + '</b> · 团队共用，所有客服可见</p>';
+  html += '<div style="margin:0 0 10px"><button class="btn btn-i" onclick="seedOfficialSnippets()" style="font-size:11px;padding:5px 12px">📥 加载官方推荐模板（美瞳售前接待）</button></div>';
+  html += '<div class="snip-mgr-list">';
   arr.forEach(s => {
     html += '<div class="snip-mgr-item" data-id="' + escapeHtml(s.id) + '">'
       + '<div class="snip-mgr-top"><span class="snip-mgr-title">' + escapeHtml(s.title) + '</span>'
@@ -1908,6 +1962,42 @@ async function moveSnippet(id, dir) {
   } catch(e) { showToast('⚠️ 排序失败：' + e.message, true); }
 }
 
+/* 官方推荐模板：美瞳商家售前接待的正确做法 / 知识点，一键加载到话术库 */
+const OFFICIAL_SNIPPETS = [
+  { type:'correct', title:'未确认度数盲目推荐', content:'✅ 正确做法：先询问顾客是否已知晓眼部参数（度数 / 散光 / 基弧）。若不清楚，建议其到线下眼科或医院测光，拿到准确数据后再推荐合适抛型与度数，避免盲目下单导致佩戴不适或退换。' },
+  { type:'correct', title:'抛型 / 材质选择不当', content:'✅ 正确做法：根据每日佩戴时长与预算推荐抛型——日抛舒适卫生，适合敏感眼 / 偶尔佩戴；月抛 / 半年抛性价比高，适合长期佩戴。主动说明材质差异：硅水凝胶透氧更高，适合长时间佩戴。' },
+  { type:'correct', title:'花色与肤色 / 瞳孔搭配生硬', content:'✅ 正确做法：结合顾客肤色、原瞳色、妆容风格推荐款式。自然款选棕 / 黑 / 巧；混血款（灰 / 蓝 / 绿）需搭配妆容。提醒首次佩戴者从自然款过渡，避免突兀。' },
+  { type:'correct', title:'未告知佩戴 / 护理注意事项', content:'✅ 正确做法：下单前提醒佩戴时长（每日 ≤8 小时、绝不戴过夜）、必须使用护理液、保持手卫生、到期及时更换；强调如出现红痒干涩立即停戴并就医，建立专业可信形象。' },
+  { type:'correct', title:'未做售后跟进 / 复购引导', content:'✅ 正确做法：发货后主动跟进佩戴体验，提醒首次佩戴有适应期；到期前提醒更换，并顺带推荐连带产品（护理液 / 润眼液），提升复购与客情。' },
+  { type:'correct', title:'催单 / 逼单过度引起反感', content:'✅ 正确做法：以专业建议替代硬性推销。先解决顾客疑虑，再自然引导下单；用"建议 / 推荐"语气而非"必须买"，尊重顾客决策节奏。' },
+  { type:'correct', title:'未确认禁忌人群', content:'✅ 正确做法：主动询问是否处于孕期 / 经期 / 感冒、是否有干眼 / 结膜炎史。禁忌人群（如严重干眼、角膜炎活动期）应建议暂缓佩戴，体现责任感与专业度。' },
+  { type:'correct', title:'参数解释不清（基弧 / 直径 / 含水量）', content:'✅ 正确做法：用通俗语言解释——基弧贴合眼球弧度（常见 8.4–8.8）；直径 14.0–14.5mm 越大越显瞳；含水量并非越高越好，40%–60% 适中。避免堆砌术语让顾客困惑。' },
+  { type:'knowledge', title:'美瞳材质与透氧', content:'硅水凝胶（Silicone Hydrogel）透氧量是普通水凝胶的数倍，适合长时间 / 每日佩戴；水凝胶更柔软便宜，适合短时使用。透氧越高，角膜越不易缺氧发红。' },
+  { type:'knowledge', title:'抛型周期怎么选', content:'日抛：免护理、最卫生，单价高；月抛 / 季抛 / 半年抛：需每日护理，性价比高；年抛现已较少推荐。按佩戴频率与预算组合推荐。' }
+];
+
+async function seedOfficialSnippets() {
+  if (!isAdmin) return;
+  if (!window.supabase) { showToast('⚠️ supabase 未初始化', true); return; }
+  let added = 0, skipped = 0;
+  try {
+    for (const tpl of OFFICIAL_SNIPPETS) {
+      const arr = qcSnippets[tpl.type] || [];
+      if (arr.some(s => s.title === tpl.title)) { skipped++; continue; }
+      const maxSort = arr.reduce((m, s) => Math.max(m, s.sort_order || 0), 0);
+      const { data, error } = await supabase.from('qc_snippets').insert({
+        type: tpl.type, title: tpl.title, content: tpl.content, sort_order: maxSort + 1, created_by: 'official'
+      }).select().single();
+      if (error) throw error;
+      (qcSnippets[tpl.type] = qcSnippets[tpl.type] || []).push(data);
+      added++;
+    }
+    refreshSnippetSelects();
+    renderSnippetManager();
+    showToast('✅ 已加载官方模板：新增 ' + added + ' 条，已存在 ' + skipped + ' 条');
+  } catch(e) { showToast('⚠️ 加载失败：' + e.message, true); }
+}
+
 /* ==================== 客服姓名 / 店铺 基础表 ==================== */
 let qcStaffs = [];   // [{id, name, sort_order, is_active}]
 let qcShops = [];
@@ -1920,12 +2010,12 @@ function refreshStaffShopSelects() {
   const curStaff = inpStaff ? inpStaff.value : '';
   const curShop = inpShop ? inpShop.value : '';
   if (inpStaff) {
-    const list = qcStaffs.filter(s => s.is_active !== false).map(s => s.name);
+    const list = qcStaffs.filter(s => s.is_active !== false).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)||(a.name||'').localeCompare(b.name||'')).map(s => s.name);
     inpStaff.innerHTML = '<option value="">请选择</option>' + list.map(n => '<option value="' + escapeHtml(n) + '"' + (n===curStaff?' selected':'') + '>' + escapeHtml(n) + '</option>').join('');
     if (curStaff && !list.includes(curStaff)) { ensureSelectOption('inpStaff', curStaff); inpStaff.value = curStaff; }
   }
   if (inpShop) {
-    const list = qcShops.filter(s => s.is_active !== false).map(s => s.name);
+    const list = qcShops.filter(s => s.is_active !== false).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)||(a.name||'').localeCompare(b.name||'')).map(s => s.name);
     inpShop.innerHTML = '<option value="">请选择</option>' + list.map(n => '<option value="' + escapeHtml(n) + '"' + (n===curShop?' selected':'') + '>' + escapeHtml(n) + '</option>').join('');
     if (curShop && !list.includes(curShop)) { ensureSelectOption('inpShop', curShop); inpShop.value = curShop; }
   }
