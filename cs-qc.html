@@ -184,7 +184,7 @@ details.mech summary{cursor:pointer;font-size:13px;font-weight:600}
 <script>
 /* ==================== Supabase Init ==================== */
 const SUPABASE_URL = 'https://ienmejlxukhrxjjxvfqf.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imllbm1lamx4dWtoeHJ4amp4dmZxZiIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzQ5NzU5NjgyLCJleHAiOjIwNjUzMzU2ODJ9.ABuL_Bn3o4Jp3gN1CFn8_FqFzSmS5xKQHj5jcE-akMk';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imllbm1lamx4dWtocnhqanh2ZnFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMTgyMjgsImV4cCI6MjEwMDc5NDIyOH0.Z6n6eMSgTVSFeXg1y8Inzh5LQenSgonNWE2plZM29co';
 // 关键修复：用独立变量 SB_NS 引用 Supabase UMD 全局命名空间，避免下方 `var supabase` 提升后遮蔽它导致 createClient 报 undefined
 var SB_NS = window.supabase;
 var supabase = window.__csQcSupabase || (SB_NS && SB_NS.createClient ? SB_NS.createClient(SUPABASE_URL, SUPABASE_KEY) : null);
