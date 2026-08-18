@@ -111,6 +111,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 /* ===== Snippet bar ===== */
 .snippet-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px}
 .snippet-bar select{padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:#fff;font-family:inherit;max-width:320px}
+.snip-manage-btn{font-size:11px;padding:4px 10px;border:1px solid var(--border);background:#fff;border-radius:6px;cursor:pointer;margin-left:2px}
+.snip-manage-btn:hover{border-color:var(--primary);color:var(--primary)}
+.snip-mgr-list{display:flex;flex-direction:column;gap:10px;max-height:58vh;overflow:auto;margin-top:10px}
+.snip-mgr-item{border:1px solid var(--border);border-radius:8px;padding:10px}
+.snip-mgr-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.snip-mgr-title{font-weight:600;font-size:13px}
+.snip-mgr-actions{display:flex;gap:6px;flex-wrap:wrap}
+.btn-mgr{font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:#fff;cursor:pointer}
+.btn-mgr.del{color:#c0392b;border-color:#e6b3ad}
+.btn-mgr.save{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn-mgr:hover{filter:brightness(.97)}
+.snip-mgr-item input,.snip-mgr-item textarea{width:100%;margin-top:6px;font-family:inherit;font-size:12px;padding:6px;border:1px solid var(--border);border-radius:6px;box-sizing:border-box}
+.mgr-new-row{border:1px dashed var(--primary);border-radius:8px;padding:10px;margin-top:10px}
+.mgr-new-row b{font-size:12px}
 /* ===== Record collapse ===== */
 .record-card .record-toggle{cursor:pointer;user-select:none}
 .record-card .record-chevron{transition:transform .2s;display:inline-block;font-size:11px;color:var(--text2)}
@@ -310,7 +324,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <div class="form-item" id="rowCorrect"><label>正确做法 / 建议话术 <span style="font-weight:400;color:var(--text2)">(可添加多条，自动编号)</span></label>
 <div id="correctList"><div class="correct-row"><textarea class="paste-textarea correct-item" placeholder="第1条建议话术..." style="min-height:60px"></textarea></div></div>
 <button class="btn btn-s" onclick="addCorrectRow()" style="margin-top:6px;font-size:11px;padding:5px 12px">➕ 添加话术</button>
-<div class="snippet-bar"><select onchange="insertSnippetFromSelect(this,'correct')"><option value="">💡 插入常用正确做法…</option><option>开场白需主动问候，确认客户需求后再推荐产品</option><option>高峰期设置自动回复，确保 3 分钟内首次响应</option><option>推荐产品前先确认近视度数、基弧、直径等参数</option><option>催付话术需自然不催促，强调活动时效与库存</option><option>退换货需登记订单号并走标准 SOP 流程</option></select></div></div>
+<div class="snippet-bar"><select id="snipCorrectSel" onchange="insertSnippetFromSelect(this,'correct')"><option value="">💡 插入常用正确做法…</option></select><button class="snip-manage-btn" id="snipMgrBtnCorrect" onclick="openSnippetManager('correct')" style="display:none">✏️ 管理</button></div></div>
 </div>
 <div class="form-item" id="rowKnowledge"><label>📚 产品知识点 / 销售技巧</label>
 <div id="knowledgeList"><div class="knowledge-row"><textarea class="paste-textarea knowledge-item" placeholder="第1条知识点..." style="min-height:60px"></textarea></div></div>
@@ -318,7 +332,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <div class="paste-zone" id="zoneKnowledge" tabindex="0" style="margin-top:10px">
 <div class="paste-hint">💡 知识点配图：Ctrl+V 粘贴 / 拖拽图片</div>
 <div class="paste-images" id="imgKnowledge"></div></div>
-<div class="snippet-bar"><select onchange="insertSnippetFromSelect(this,'knowledge')"><option value="">📚 插入常用知识点…</option><option>基弧 8.6 / 直径 14.2mm / 透氧量 DK/L 按客户眼部参数推荐</option><option>美瞳日抛/月抛佩戴时长与护理要点</option><option>散光客户需推荐定制散光片，不可随意替代</option><option>敏感眼优先推荐硅水凝胶材质降低干涩感</option></select></div></div>
+<div class="snippet-bar"><select id="snipKnowledgeSel" onchange="insertSnippetFromSelect(this,'knowledge')"><option value="">📚 插入常用知识点…</option></select><button class="snip-manage-btn" id="snipMgrBtnKnowledge" onclick="openSnippetManager('knowledge')" style="display:none">✏️ 管理</button></div></div>
 <div class="form-item" id="rowNote"><label>备注（可选）</label><input type="text" id="inpNote" placeholder="补充说明"></div>
 <div class="btn-group">
 <button class="btn btn-p" id="btnAddRecord" onclick="addRecord(false)">➕ 保存</button>
@@ -455,6 +469,8 @@ function updateAdminUI() {
     addBtn.disabled = true;
     addBtn.textContent = '🔒 只读模式';
   }
+  const mbc = document.getElementById('snipMgrBtnCorrect'); if (mbc) mbc.style.display = isAdmin ? '' : 'none';
+  const mbk = document.getElementById('snipMgrBtnKnowledge'); if (mbk) mbk.style.display = isAdmin ? '' : 'none';
   renderRecords();
 }
 
@@ -725,13 +741,64 @@ function applyQcEntryMode() {
 
 // 片段库：从下拉把预设话术追加到对应文本框，减少重复打字
 function insertSnippetFromSelect(sel, type) {
-  const text = sel.value;
+  const id = sel.value;
+  if (!id) return;
+  const arr = (qcSnippets[type] || []);
+  const item = arr.find(s => String(s.id) === String(id));
+  const text = item ? item.content : '';
   if (!text) return;
   const list = document.getElementById(type === 'correct' ? 'correctList' : 'knowledgeList');
   const all = list.querySelectorAll('textarea');
   const ta = all[all.length - 1];
   if (ta) ta.value = ta.value ? (ta.value + '\n' + text) : text;
   sel.selectedIndex = 0;
+}
+
+// 话术库（团队共用，存 Supabase qc_snippets 表）
+let qcSnippets = { correct: [], knowledge: [] };
+// 表未建/无网络时的兜底，保证功能不退化
+const QC_SNIPPETS_FALLBACK = {
+  correct: [
+    '开场白需主动问候，确认客户需求后再推荐产品',
+    '高峰期设置自动回复，确保 3 分钟内首次响应',
+    '推荐产品前先确认近视度数、基弧、直径等参数',
+    '催付话术需自然不催促，强调活动时效与库存',
+    '退换货需登记订单号并走标准 SOP 流程'
+  ],
+  knowledge: [
+    '基弧 8.6 / 直径 14.2mm / 透氧量 DK/L 按客户眼部参数推荐',
+    '美瞳日抛/月抛佩戴时长与护理要点',
+    '散光客户需推荐定制散光片，不可随意替代',
+    '敏感眼优先推荐硅水凝胶材质降低干涩感'
+  ]
+};
+async function loadSnippets() {
+  try {
+    if (!window.supabase) throw new Error('supabase 未初始化');
+    const { data, error } = await supabase.from('qc_snippets').select('*').order('sort_order', { ascending: true });
+    if (error) throw error;
+    qcSnippets = { correct: [], knowledge: [] };
+    (data || []).forEach(s => {
+      if (s.type === 'correct' || s.type === 'knowledge') qcSnippets[s.type].push(s);
+    });
+  } catch(e) {
+    console.warn('loadSnippets 失败，使用内置兜底:', e.message);
+    qcSnippets = {
+      correct: (QC_SNIPPETS_FALLBACK.correct || []).map((c, i) => ({ id: 'fb_c' + i, type: 'correct', title: c, content: c, sort_order: i })),
+      knowledge: (QC_SNIPPETS_FALLBACK.knowledge || []).map((c, i) => ({ id: 'fb_k' + i, type: 'knowledge', title: c, content: c, sort_order: i }))
+    };
+  }
+  refreshSnippetSelects();
+}
+function refreshSnippetSelects() {
+  fillSnipSelect('snipCorrectSel', qcSnippets.correct, '💡 插入常用正确做法…');
+  fillSnipSelect('snipKnowledgeSel', qcSnippets.knowledge, '📚 插入常用知识点…');
+}
+function fillSnipSelect(selId, arr, placeholder) {
+  const sel = document.getElementById(selId);
+  if (!sel) return;
+  sel.innerHTML = '<option value="">' + placeholder + '</option>' +
+    (arr || []).map(s => '<option value="' + escapeHtml(s.id) + '">' + escapeHtml(s.title) + '</option>').join('');
 }
 
 // 列表卡片折叠
@@ -1444,6 +1511,95 @@ function exportCSV() {
   showToast('📤 CSV 已导出');
 }
 
+/* ==================== 话术库管理 ==================== */
+let snipManagerType = 'correct';
+function openSnippetManager(type) {
+  if (!isAdmin) { showToast('⚠️ 仅管理员可管理话术库', true); return; }
+  snipManagerType = type;
+  renderSnippetManager();
+  document.getElementById('snipMgrModal').classList.add('active');
+}
+function closeSnippetManager() {
+  document.getElementById('snipMgrModal').classList.remove('active');
+}
+function renderSnippetManager() {
+  const arr = qcSnippets[snipManagerType] || [];
+  const typeName = snipManagerType === 'correct' ? '正确做法 / 建议话术' : '产品知识点 / 销售技巧';
+  let html = '<p style="font-size:12px;color:var(--text2);margin:0 0 4px">当前分类：<b>' + typeName + '</b> · 团队共用，所有客服可见</p><div class="snip-mgr-list">';
+  arr.forEach(s => {
+    html += '<div class="snip-mgr-item" data-id="' + escapeHtml(s.id) + '">'
+      + '<div class="snip-mgr-top"><span class="snip-mgr-title">' + escapeHtml(s.title) + '</span>'
+      + '<span class="snip-mgr-actions"><button class="btn-mgr" onclick="moveSnippet(\'' + escapeHtml(s.id) + '\',-1)">▲</button><button class="btn-mgr" onclick="moveSnippet(\'' + escapeHtml(s.id) + '\',1)">▼</button><button class="btn-mgr del" onclick="deleteSnippet(\'' + escapeHtml(s.id) + '\')">🗑️</button></span></div>'
+      + '<input onchange="updateSnippetField(\'' + escapeHtml(s.id) + '\',\'title\',this.value)" value="' + escapeHtml(s.title) + '" placeholder="标题（下拉显示）">'
+      + '<textarea onchange="updateSnippetField(\'' + escapeHtml(s.id) + '\',\'content\',this.value)" placeholder="话术内容（插入到文本框）">' + escapeHtml(s.content) + '</textarea>'
+      + '</div>';
+  });
+  html += '</div>';
+  html += '<div class="mgr-new-row"><b>➕ 新增话术</b>'
+    + '<input id="newSnipTitle" placeholder="标题（必填）" style="margin-top:6px">'
+    + '<textarea id="newSnipContent" placeholder="话术内容" style="margin-top:6px;min-height:50px"></textarea>'
+    + '<button class="btn-mgr save" style="margin-top:6px" onclick="addSnippet()">保存新增</button></div>';
+  document.getElementById('snipMgrBody').innerHTML = html;
+}
+async function updateSnippetField(id, field, val) {
+  if (!isAdmin) return;
+  const arr = qcSnippets[snipManagerType] || [];
+  const s = arr.find(x => String(x.id) === String(id));
+  if (!s) return;
+  s[field] = val;
+  try {
+    if (window.supabase) await supabase.from('qc_snippets').update({ [field]: val, updated_at: new Date().toISOString() }).eq('id', s.id);
+    showToast('✅ 已保存');
+  } catch(e) { showToast('⚠️ 保存失败：' + e.message, true); }
+}
+async function addSnippet() {
+  if (!isAdmin) return;
+  const title = (document.getElementById('newSnipTitle').value || '').trim();
+  const content = (document.getElementById('newSnipContent').value || '').trim();
+  if (!title) { showToast('请输入标题', true); return; }
+  const maxSort = (qcSnippets[snipManagerType] || []).reduce((m, s) => Math.max(m, s.sort_order || 0), 0);
+  try {
+    if (!window.supabase) throw new Error('supabase 未初始化');
+    const { data, error } = await supabase.from('qc_snippets').insert({
+      type: snipManagerType, title, content, sort_order: maxSort + 1, created_by: (currentAuthUser && currentAuthUser.phone) || ''
+    }).select().single();
+    if (error) throw error;
+    qcSnippets[snipManagerType].push(data);
+    refreshSnippetSelects();
+    renderSnippetManager();
+    showToast('✅ 已新增');
+  } catch(e) { showToast('⚠️ 新增失败：' + e.message, true); }
+}
+async function deleteSnippet(id) {
+  if (!isAdmin) return;
+  try {
+    if (window.supabase) await supabase.from('qc_snippets').delete().eq('id', id);
+    qcSnippets[snipManagerType] = (qcSnippets[snipManagerType] || []).filter(s => String(s.id) !== String(id));
+    refreshSnippetSelects();
+    renderSnippetManager();
+    showToast('🗑️ 已删除');
+  } catch(e) { showToast('⚠️ 删除失败：' + e.message, true); }
+}
+async function moveSnippet(id, dir) {
+  const arr = qcSnippets[snipManagerType] || [];
+  const i = arr.findIndex(s => String(s.id) === String(id));
+  if (i < 0) return;
+  const j = i + dir;
+  if (j < 0 || j >= arr.length) return;
+  const a = arr[i], b = arr[j];
+  const ta = a.sort_order, tb = b.sort_order;
+  a.sort_order = tb; b.sort_order = ta;
+  arr.splice(i, 1); arr.splice(j, 0, a);
+  try {
+    if (window.supabase) {
+      await supabase.from('qc_snippets').update({ sort_order: tb, updated_at: new Date().toISOString() }).eq('id', a.id);
+      await supabase.from('qc_snippets').update({ sort_order: ta, updated_at: new Date().toISOString() }).eq('id', b.id);
+    }
+    refreshSnippetSelects();
+    renderSnippetManager();
+  } catch(e) { showToast('⚠️ 排序失败：' + e.message, true); }
+}
+
 /* ==================== Init ==================== */
 function prefillLast() {
   try {
@@ -1470,6 +1626,7 @@ function init() {
         applyQcEntryMode();
         prefillLast();
         updateAdminUI();
+        loadSnippets();
       });
     });
   })();
@@ -1482,5 +1639,12 @@ if (document.readyState === 'loading') {
   init();
 }
 </script>
+
+<!-- 话术库管理 Modal -->
+<div class="modal-overlay" id="snipMgrModal"><div class="modal" style="max-width:560px">
+<div class="modal-header"><h3>✏️ 话术库管理</h3><button class="close-btn" onclick="closeSnippetManager()">×</button></div>
+<div class="modal-body" id="snipMgrBody" style="padding:14px"></div>
+</div></div>
+
 </body>
 </html>
