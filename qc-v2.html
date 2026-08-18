@@ -259,6 +259,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .analysis-grid{grid-template-columns:repeat(2,1fr)}
 .compare-row{flex-direction:column}
 }
+
+/* ===== 分享给客服：勾选框 / 批量条 / 状态徽标 ===== */
+.sel-checkbox{width:16px;height:16px;cursor:pointer;accent-color:var(--primary);margin-right:2px;flex:0 0 auto}
+.record-card.selected{border-color:var(--primary);box-shadow:0 0 0 2px rgba(123,155,106,.25)}
+.bulk-bar{display:none;align-items:center;gap:12px;background:linear-gradient(90deg,rgba(123,155,106,.12),rgba(123,155,106,.04));border:1px solid var(--primary-light);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--text)}
+.bulk-bar.show{display:flex}
+.bulk-bar .bulk-count{font-weight:600;color:var(--primary)}
+.share-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;white-space:nowrap}
+.share-badge.pending{background:#fef3c7;color:#b45309}
+.share-badge.confirmed{background:#dcfce7;color:#16a34a}
+.share-link-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;background:#f8faf5;border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.share-link-row .sl-staff{font-weight:600;color:var(--primary);min-width:90px}
+.share-link-row .sl-url{flex:1;font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.share-link-row .sl-confirmed{font-size:11px;color:#16a34a;font-weight:600}
 </style>
 </head>
 <body>
@@ -358,6 +372,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <div><label>日期从：</label><input type="date" id="filterDateFrom" onchange="renderRecords()"></div>
 <div><label>到：</label><input type="date" id="filterDateTo" onchange="renderRecords()"></div>
 <div><button class="btn btn-s" onclick="clearFilters()" style="font-size:11px;padding:4px 10px">清除</button></div>
+</div>
+<div class="bulk-bar" id="bulkBar">
+  <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="selAllBox" onchange="toggleSelectAll(this)" style="width:16px;height:16px;accent-color:var(--primary)"> 全选本页</label>
+  <span class="bulk-count" id="bulkCount">已选 0 条</span>
+  <button class="btn btn-p" onclick="sendShare()" style="font-size:12px;padding:6px 16px">📤 发送给客服</button>
+  <button class="btn btn-s" onclick="clearSelection()" style="font-size:12px;padding:6px 14px">取消选择</button>
 </div>
 <div id="recordList" class="record-list"></div>
 </div></div>
@@ -968,6 +988,124 @@ function formatNumberedHtml(text) {
   return lines.map((line, i) => '<div style="margin-bottom:3px"><span style="display:inline-block;min-width:20px;font-weight:600;color:var(--primary)">' + (i+1) + '.</span>' + escapeHtml(line) + '</div>').join('');
 }
 
+/* ==================== 分享给客服（一对一看 + 确认）==================== */
+let qcShares = [];
+let selectedRecordIds = new Set();
+
+function genToken() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 's_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+}
+
+function getShareInfo(r) {
+  const id = Number(r.id);
+  const sh = (qcShares || []).find(s => (s.record_ids || []).some(x => Number(x) === id));
+  if (!sh) return null;
+  return { share: sh, confirmed: !!sh.confirmed_at, confirmedAt: sh.confirmed_at };
+}
+
+async function loadShares() {
+  try {
+    if (!window.supabase) return;
+    const { data, error } = await supabase.from('qc_shares').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    qcShares = data || [];
+  } catch(e) {
+    console.warn('loadShares 失败（qc_shares 表可能未建）:', e.message);
+    qcShares = [];
+  }
+}
+
+function toggleSelectRecord(id) {
+  const nid = Number(id);
+  if (selectedRecordIds.has(nid)) selectedRecordIds.delete(nid);
+  else selectedRecordIds.add(nid);
+  const card = document.querySelector('.record-card[data-id="' + nid + '"]');
+  if (card) card.classList.toggle('selected', selectedRecordIds.has(nid));
+  updateBulkBar();
+}
+
+function toggleSelectAll(box) {
+  const list = getFilteredRecords();
+  if (box.checked) list.forEach(r => selectedRecordIds.add(r.id));
+  else list.forEach(r => selectedRecordIds.delete(r.id));
+  document.querySelectorAll('.sel-checkbox').forEach(cb => { cb.checked = box.checked; });
+  document.querySelectorAll('.record-card').forEach(card => card.classList.toggle('selected', box.checked));
+  updateBulkBar();
+}
+
+function clearSelection() {
+  selectedRecordIds.clear();
+  document.querySelectorAll('.sel-checkbox').forEach(cb => cb.checked = false);
+  document.querySelectorAll('.record-card').forEach(card => card.classList.remove('selected'));
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulkBar');
+  const cnt = document.getElementById('bulkCount');
+  if (!bar) return;
+  const n = selectedRecordIds.size;
+  if (isAdmin && n > 0) { bar.classList.add('show'); cnt.textContent = '已选 ' + n + ' 条'; }
+  else { bar.classList.remove('show'); }
+}
+
+async function sendShare() {
+  if (!isAdmin) { showToast('⚠️ 只读模式，无法发送', true); return; }
+  if (selectedRecordIds.size === 0) { showToast('请先勾选要发送的记录', true); return; }
+  const chosen = records.filter(r => selectedRecordIds.has(r.id));
+  const byStaff = {};
+  chosen.forEach(r => { (byStaff[r.staff] = byStaff[r.staff] || []).push(r.id); });
+  const createdBy = (typeof currentAuthUser !== 'undefined' && currentAuthUser && currentAuthUser.phone) ? currentAuthUser.phone : '管理员';
+  const links = [];
+  try {
+    for (const staff of Object.keys(byStaff)) {
+      const ids = byStaff[staff].map(Number);
+      const token = genToken();
+      const { data, error } = await supabase.from('qc_shares').insert({
+        token, staff, record_ids: ids, record_count: ids.length, created_by: createdBy
+      }).select().single();
+      if (error) throw error;
+      qcShares.unshift(data);
+      const url = new URL('qc-share.html?token=' + token, location.href).href;
+      links.push({ staff, url, count: ids.length });
+    }
+    showToast('✅ 已生成 ' + links.length + ' 个分享链接');
+    renderShareModal(links);
+    renderRecords();
+    clearSelection();
+  } catch(e) {
+    console.error(e);
+    showToast('发送失败：' + e.message, true);
+  }
+}
+
+function renderShareModal(links) {
+  const body = document.getElementById('shareModalBody');
+  if (!body) return;
+  body.innerHTML = '<p style="font-size:12px;color:var(--text2);margin-bottom:10px">把下面链接发给对应客服，对方点开即可一对一看并确认：</p>'
+    + links.map(l => '<div class="share-link-row"><span class="sl-staff">' + escapeHtml(l.staff) + '</span>'
+      + '<span class="sl-url">' + escapeHtml(l.url) + '</span>'
+      + '<button class="btn btn-s" style="font-size:11px;padding:4px 12px" onclick="copyShareLink(\'' + l.url.replace(/'/g, "\\'") + '\')">📋 复制</button></div>').join('');
+  document.getElementById('shareModal').classList.add('active');
+}
+
+function copyShareLink(url) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => showToast('✅ 链接已复制')).catch(() => fallbackCopy(url));
+  } else fallbackCopy(url);
+}
+function fallbackCopy(url) {
+  const ta = document.createElement('textarea'); ta.value = url; document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); showToast('✅ 链接已复制'); } catch(e) { showToast('复制失败，请手动复制', true); }
+  document.body.removeChild(ta);
+}
+
+function closeShareModal() {
+  const m = document.getElementById('shareModal');
+  if (m) m.classList.remove('active');
+}
+
 async function renderRecords() {
   const list = getFilteredRecords();
   const el = document.getElementById('recordList');
@@ -986,8 +1124,14 @@ async function renderRecords() {
     const statusText = r.status==='pending'?'待讲解':'已讲解';
     const statusClass = r.status==='pending'?'pending':'done';
 
-    html += '<div class="record-card ' + statusClass + ' collapsed" data-id="' + r.id + '">'
+    const selAttr = isAdmin ? '' : ' style="display:none"';
+    const si = getShareInfo(r);
+    const shareBadge = si ? (si.confirmed ? '<span class="share-badge confirmed">✅ 已确认</span>' : '<span class="share-badge pending">📤 已发送·待确认</span>') : '';
+    const selChk = '<input type="checkbox" class="sel-checkbox" data-id="' + r.id + '"' + (selectedRecordIds.has(r.id)?' checked':'') + selAttr + ' onclick="event.stopPropagation();toggleSelectRecord(\'' + r.id + '\')">';
+    const selCls = selectedRecordIds.has(r.id) ? ' selected' : '';
+    html += '<div class="record-card ' + statusClass + selCls + ' collapsed" data-id="' + r.id + '">'
       + '<div class="record-header record-toggle" onclick="toggleRecordCard(\'' + r.id + '\')"><div class="record-info">'
+      + selChk
       + '<span class="record-chevron">▾</span>'
       + '<span class="record-name">' + escapeHtml(r.staff) + '</span>'
       + '<span class="record-shop">' + escapeHtml(r.shop) + '</span>'
@@ -995,6 +1139,7 @@ async function renderRecords() {
       + '<span class="record-date">📅 ' + r.date + '</span>'
       + '<span class="record-status ' + statusClass + '">' + statusText + '</span>'
       + (r.severity!=='一般' ? '<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:' + sevColor + '20;color:' + sevColor + ';font-weight:600">' + r.severity + '</span>' : '')
+      + shareBadge
       + '</div></div>'
       + '<div class="record-tags">' + tagHtml + '</div>'
       + '<div class="record-body">';
@@ -1627,6 +1772,7 @@ function init() {
         prefillLast();
         updateAdminUI();
         loadSnippets();
+        loadShares().then(renderRecords);
       });
     });
   })();
@@ -1644,6 +1790,12 @@ if (document.readyState === 'loading') {
 <div class="modal-overlay" id="snipMgrModal"><div class="modal" style="max-width:560px">
 <div class="modal-header"><h3>✏️ 话术库管理</h3><button class="close-btn" onclick="closeSnippetManager()">×</button></div>
 <div class="modal-body" id="snipMgrBody" style="padding:14px"></div>
+</div></div>
+
+<!-- 分享链接弹窗 -->
+<div class="modal-overlay" id="shareModal"><div class="modal" style="max-width:640px">
+<div class="modal-header"><h3>📤 发送给客服的链接</h3><button class="close-btn" onclick="closeShareModal()">×</button></div>
+<div class="modal-body" id="shareModalBody" style="padding:16px"></div>
 </div></div>
 
 </body>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>质检反馈 · 一对一查看</title>
+<style>
+:root {
+  --primary: #7C9A5E; --primary-light: #A8C08E;
+  --bg: #F7F5F0; --card: #fff; --text: #3D4A33; --text2: #7A8B6E; --border: #E2E0D8;
+  --sidebar-bg: #3D4A33; --success: #4CAF50; --red: #E57373; --blue: #64B5F6;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);min-height:100vh;color:var(--text)}
+.container{max-width:820px;margin:0 auto;padding:24px 16px 60px}
+.header{text-align:center;margin-bottom:22px}
+.header h1{font-size:21px;font-weight:600;color:var(--primary);margin-bottom:6px}
+.header p{font-size:13px;color:var(--text2)}
+
+/* 提示 / 错误 */
+.notice{background:#fff;border:1px solid var(--border);border-radius:12px;padding:40px 20px;text-align:center;color:var(--text2);font-size:14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+
+/* 记录卡片（只读） */
+.record-card{background:var(--card);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.04);margin-bottom:16px;overflow:hidden;border:1px solid var(--border)}
+.record-header{padding:14px 18px;border-bottom:1px solid var(--border);background:rgba(123,155,106,.05)}
+.record-info{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.record-name{font-weight:600;color:var(--text)}
+.record-shop{font-size:12px;color:#fff;background:var(--primary);padding:2px 8px;border-radius:10px}
+.record-cid{font-size:12px;color:var(--text2)}
+.record-date{font-size:12px;color:var(--text2)}
+.record-status{font-size:11px;padding:3px 10px;border-radius:4px;font-weight:500}
+.record-status.pending{background:#fee2e2;color:#dc2626}
+.record-status.done{background:#dcfce7;color:#16a34a}
+.sev-tag{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600}
+.record-tags{display:flex;gap:6px;flex-wrap:wrap;padding:10px 18px 0}
+.record-tag{font-size:11px;padding:2px 10px;border-radius:10px;background:rgba(123,155,106,.12);color:var(--primary)}
+.record-body{padding:14px 18px}
+.record-section{margin-bottom:12px}
+.record-section-title{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px}
+.record-section-text{padding:10px 12px;border-radius:8px;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+.record-img-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.record-img-item{cursor:zoom-in;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:#f3f3f3}
+.record-img-item img{width:100%;display:block}
+
+/* 确认区 */
+.confirm-box{background:#fff;border:1px solid var(--primary-light);border-radius:12px;padding:18px;margin:8px 0 24px;box-shadow:0 1px 3px rgba(123,155,106,.08)}
+.confirm-box h3{font-size:14px;color:var(--primary);margin-bottom:10px}
+.confirm-box textarea{width:100%;min-height:70px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;outline:none}
+.confirm-box textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(123,155,106,.1)}
+.btn{padding:9px 18px;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-primary{background:var(--primary);color:#fff;font-weight:600}
+.btn-primary:hover{background:var(--primary-light)}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed}
+.confirmed-state{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:12px;padding:16px 18px;margin:8px 0 24px;font-size:14px}
+.confirmed-state .ct{font-weight:600;font-size:15px;margin-bottom:4px}
+
+/* Toast */
+.toast{position:fixed;top:20px;right:20px;background:var(--sidebar-bg);color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;z-index:9999;opacity:0;transform:translateX(20px);transition:all .3s;pointer-events:none;max-width:400px}
+.toast.show{opacity:1;transform:translateX(0)}
+.toast.error{background:var(--red)}
+.footer{text-align:center;font-size:11px;color:var(--text2);margin-top:30px}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>👀 一对一质检反馈</h1>
+    <p>以下是专属于你的质检记录，看完请点「确认收到」</p>
+  </div>
+  <div id="app"><div class="notice">⏳ 正在加载…</div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://ienmejlxukhrxjjxvfqf.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imllbm1lamx4dWtoeHJ4amp4dmZxZiIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzQ5NzU5NjgyLCJleHAiOjIwNjUzMzU2ODJ9.ABuL_Bn3o4Jp3gN1CFn8_FqFzSmS5xKQHj5jcE-akMk';
+let supabase = null;
+let currentShare = null;
+let currentRecords = [];
+
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => { t.className = 'toast' + (isError ? ' error' : ''); }, 2600);
+}
+function escapeHtml(text){ if(!text) return ''; const d=document.createElement('div'); d.textContent=text; return d.innerHTML; }
+function formatNumberedHtml(text){
+  if(!text) return '';
+  const lines=text.split('\n').map(l=>l.trim()).filter(l=>l);
+  if(lines.length<=1) return escapeHtml(text);
+  return lines.map((l,i)=>'<div style="margin-bottom:3px"><span style="display:inline-block;min-width:20px;font-weight:600;color:var(--primary)">'+(i+1)+'.</span>'+escapeHtml(l)+'</div>').join('');
+}
+async function getImageUrl(id){
+  try{ const {data}=supabase.storage.from('qc-images').getPublicUrl('qc/'+id+'.jpg'); return data&&data.publicUrl?data.publicUrl:''; }catch(e){return '';}
+}
+
+function getToken(){
+  const p = new URLSearchParams(location.search);
+  return p.get('token') || '';
+}
+
+async function loadSupabase(){
+  return new Promise((resolve,reject)=>{
+    if(supabase) return resolve();
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+    s.onload=()=>{ supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY); resolve(); };
+    s.onerror=()=>reject(new Error('supabase-js 加载失败'));
+    document.head.appendChild(s);
+  });
+}
+
+function renderRecord(r){
+  const sevColor = r.severity==='一般'?'#F5A623':r.severity==='严重'?'#E57373':'#7E57C2';
+  const statusText = r.status==='pending'?'待讲解':'已讲解';
+  const statusClass = r.status==='pending'?'pending':'done';
+  const tagHtml=(r.tags||[]).map(t=>'<span class="record-tag">'+escapeHtml(t)+'</span>').join('');
+  let h='<div class="record-card" data-id="'+r.id+'">'
+    +'<div class="record-header"><div class="record-info">'
+    +'<span class="record-name">'+escapeHtml(r.staff)+'</span>'
+    +'<span class="record-shop">'+escapeHtml(r.shop)+'</span>'
+    + (r.customer_id?'<span class="record-cid">👤 '+escapeHtml(r.customer_id)+'</span>':'')
+    +'<span class="record-date">📅 '+r.date+'</span>'
+    +'<span class="record-status '+statusClass+'">'+statusText+'</span>'
+    + (r.severity&&r.severity!=='一般'?'<span class="sev-tag" style="background:'+sevColor+'20;color:'+sevColor+'">'+escapeHtml(r.severity)+'</span>':'')
+    +'</div></div>'
+    + (tagHtml?'<div class="record-tags">'+tagHtml+'</div>':'')
+    +'<div class="record-body">';
+  if(r.scene) h+='<div class="record-section"><div class="record-section-title">🗣️ 客户问题</div><div class="record-section-text">'+escapeHtml(r.scene)+'</div></div>';
+  if((r.scene_images||[]).length) h+='<div class="record-section"><div class="record-section-title">📸 客户问题截图</div><div class="record-img-grid" id="sceneImg_'+r.id+'"></div></div>';
+  if(r.reply) h+='<div class="record-section"><div class="record-section-title">💬 客服回复</div><div class="record-section-text">'+escapeHtml(r.reply)+'</div></div>';
+  if((r.reply_images||[]).length) h+='<div class="record-section"><div class="record-section-title">📸 客服回复截图</div><div class="record-img-grid" id="replyImg_'+r.id+'"></div></div>';
+  h+='<div class="record-section"><div class="record-section-title">❌ 问题描述</div><div class="record-section-text" style="background:#fff5f5;border:1px solid #fecaca;color:#991b1b">'+escapeHtml(r.problem)+'</div></div>';
+  if(r.correct) h+='<div class="record-section"><div class="record-section-title">✅ 正确做法 / 建议</div><div class="record-section-text" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534">'+formatNumberedHtml(r.correct)+'</div></div>';
+  if(r.knowledge) h+='<div class="record-section"><div class="record-section-title">📚 知识点 / 销售技巧</div><div class="record-section-text" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af">'+formatNumberedHtml(r.knowledge)+'</div></div>';
+  if((r.knowledge_images||[]).length) h+='<div class="record-section"><div class="record-section-title">📸 知识点配图</div><div class="record-img-grid" id="knowledgeImg_'+r.id+'"></div></div>';
+  if(r.note) h+='<div class="record-section"><div class="record-section-title">📝 备注</div><div class="record-section-text">'+escapeHtml(r.note)+'</div></div>';
+  if(r.coach_date) h+='<div class="record-section"><div class="record-section-title">📢 讲解记录</div><div class="record-section-text" style="background:rgba(123,155,106,.05);border:1px solid rgba(123,155,106,.2);color:var(--primary)">📅 讲解日期：'+r.coach_date+(r.coach_note?'<br>📝 讲解备注：'+escapeHtml(r.coach_note):'')+'</div></div>';
+  h+='</div></div>';
+  return h;
+}
+async function loadImages(r){
+  if((r.scene_images||[]).length) await fillImages('sceneImg_'+r.id, r.scene_images);
+  if((r.reply_images||[]).length) await fillImages('replyImg_'+r.id, r.reply_images);
+  if((r.knowledge_images||[]).length) await fillImages('knowledgeImg_'+r.id, r.knowledge_images);
+}
+async function fillImages(containerId, ids){
+  const c=document.getElementById(containerId); if(!c) return; c.innerHTML='';
+  for(const id of ids){
+    const url=await getImageUrl(id); if(!url) continue;
+    const d=document.createElement('div'); d.className='record-img-item';
+    d.innerHTML='<img src="'+url+'" alt="" loading="lazy">';
+    d.onclick=()=>window.open(url,'_blank');
+    c.appendChild(d);
+  }
+}
+
+function renderConfirmArea(){
+  const app=document.getElementById('app');
+  const box=document.getElementById('confirmArea');
+  if(!box) return;
+  if(currentShare.confirmed_at){
+    const d=new Date(currentShare.confirmed_at);
+    const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+    box.innerHTML='<div class="confirmed-state"><div class="ct">✅ 你已于 '+ds+' 确认收到</div>'+(currentShare.confirm_note?'📝 你的备注：'+escapeHtml(currentShare.confirm_note):'感谢你的查看！')+'</div>';
+  } else {
+    box.innerHTML='<div class="confirm-box"><h3>📝 确认收到</h3>'
+      +'<textarea id="confirmNote" placeholder="可填写一句话备注（可选）…"></textarea>'
+      +'<div style="margin-top:12px;text-align:right"><button class="btn btn-primary" id="confirmBtn" onclick="doConfirm()">✅ 确认收到</button></div></div>';
+  }
+}
+
+async function doConfirm(){
+  const btn=document.getElementById('confirmBtn'); if(!btn) return;
+  const note=(document.getElementById('confirmNote').value||'').trim();
+  btn.disabled=true; btn.textContent='提交中…';
+  try{
+    const {error}=await supabase.from('qc_shares').update({confirmed_at:new Date().toISOString(), confirm_note:note}).eq('token',currentShare.token);
+    if(error) throw error;
+    currentShare.confirmed_at=new Date().toISOString();
+    currentShare.confirm_note=note;
+    renderConfirmArea();
+    showToast('✅ 已确认收到');
+  }catch(e){
+    console.error(e); showToast('确认失败：'+e.message,true);
+    btn.disabled=false; btn.textContent='✅ 确认收到';
+  }
+}
+
+(async function(){
+  const token=getToken();
+  if(!token){ document.getElementById('app').innerHTML='<div class="notice">⚠️ 链接缺少 token，无法打开。</div>'; return; }
+  try{ await loadSupabase(); }catch(e){ document.getElementById('app').innerHTML='<div class="notice">⚠️ 加载失败：'+escapeHtml(e.message)+'</div>'; return; }
+  // 加载分享
+  const {data:share,error}=await supabase.from('qc_shares').select('*').eq('token',token).single();
+  if(error||!share){ document.getElementById('app').innerHTML='<div class="notice">⚠️ 链接无效或已失效，请向发送人确认。</div>'; return; }
+  currentShare=share;
+  // 加载记录
+  const ids=(share.record_ids||[]).map(Number);
+  let records=[];
+  if(ids.length){
+    const {data:recs,error:rerr}=await supabase.from('qc_records').select('*').in('id',ids);
+    if(!rerr) records=recs||[];
+  }
+  currentRecords=records;
+  const staff=escapeHtml(share.staff);
+  const headerHtml='<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:18px;box-shadow:0 1px 3px rgba(0,0,0,.04)">'
+    +'<div style="font-size:15px;font-weight:600;color:var(--text)">亲爱的 <b style="color:var(--primary)">'+staff+'</b>，以下是发给你的 <b>'+records.length+'</b> 条一对一质检反馈</div>'
+    +'<div style="font-size:12px;color:var(--text2);margin-top:4px">请逐条查看，看完点下方「确认收到」即可。</div></div>';
+  const cardsHtml=records.length?records.map(renderRecord).join(''):'<div class="notice">该分享暂无质检记录。</div>';
+  document.getElementById('app').innerHTML=headerHtml+cardsHtml+'<div id="confirmArea"></div>';
+  for(const r of records) await loadImages(r);
+  renderConfirmArea();
+})();
+</script>
+<div class="footer">客服质检工作台 · 一对一反馈</div>
+</body>
+</html>
