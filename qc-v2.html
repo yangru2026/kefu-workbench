@@ -273,6 +273,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .share-link-row .sl-staff{font-weight:600;color:var(--primary);min-width:90px}
 .share-link-row .sl-url{flex:1;font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .share-link-row .sl-confirmed{font-size:11px;color:#16a34a;font-weight:600}
+
+/* ===== 确认状态汇总视图 ===== */
+.cs-badge{display:inline-block;min-width:18px;height:18px;line-height:18px;padding:0 5px;border-radius:9px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;text-align:center;margin-left:4px;vertical-align:middle}
+.cs-badge.zero{display:none}
+.cs-kpi-row{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.cs-kpi{flex:1;min-width:110px;background:#f8faf5;border:1px solid var(--border);border-radius:10px;padding:12px 14px;text-align:center}
+.cs-kpi .n{font-size:22px;font-weight:700;line-height:1.1}
+.cs-kpi .l{font-size:12px;color:var(--text2);margin-top:2px}
+.cs-kpi.total .n{color:#475569}
+.cs-kpi.confirmed .n{color:#16a34a}
+.cs-kpi.pending .n{color:#d97706}
+.cs-kpi.overdue .n{color:#dc2626}
+.cs-filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.cs-filter{font-size:12px;padding:5px 14px;border-radius:16px;border:1px solid var(--border);background:#fff;color:var(--text2);cursor:pointer}
+.cs-filter.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.cs-list{max-height:52vh;overflow:auto}
+.cs-row{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:#fff}
+.cs-row.overdue{border-color:#fecaca;background:#fff5f5}
+.cs-row.confirmed{background:#f9fefb}
+.cs-staff{font-weight:600;color:var(--text);min-width:72px}
+.cs-count{font-size:12px;color:var(--text2);min-width:48px;text-align:center}
+.cs-sent{font-size:11px;color:var(--text2);min-width:120px}
+.cs-status-cell{min-width:130px}
+.cs-status{font-size:12px;font-weight:600;line-height:1.3}
+.cs-status .cs-sub{font-size:10px;font-weight:400;color:var(--text2)}
+.cs-status.confirmed{color:#16a34a}
+.cs-status.pending{color:#d97706}
+.cs-status.overdue{color:#dc2626}
+.cs-actions{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+.cs-empty{text-align:center;color:var(--text2);padding:30px 0;font-size:13px}
 </style>
 </head>
 <body>
@@ -361,6 +391,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <button class="btn btn-i" onclick="openCoachMode()" style="font-size:11px;padding:5px 12px">🎯 讲解模式</button>
 <button class="btn btn-y" onclick="openAnalysisMode()" style="font-size:11px;padding:5px 12px">📊 质检分析</button>
 <button class="btn btn-s" onclick="exportCSV()" style="font-size:11px;padding:5px 12px">📤 导出CSV</button>
+<button class="btn btn-i" onclick="openConfirmStatus()" style="font-size:11px;padding:5px 12px">📊 确认状态 <span id="csBadge" class="cs-badge zero">0</span></button>
 <button class="btn btn-s" onclick="loadRecords(true)" style="font-size:11px;padding:5px 12px">🔄 刷新</button>
 </div></div>
 <div class="panel-body">
@@ -1016,6 +1047,128 @@ async function loadShares() {
   }
 }
 
+/* ==================== 确认状态汇总视图 ==================== */
+const CONFIRM_OVERDUE_DAYS = 3;
+
+function fmtTime(ts) {
+  if (!ts) return '-';
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return '-';
+  const p = n => (n < 10 ? '0' + n : '' + n);
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+function daysSince(ts) {
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return 0;
+  return Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
+}
+function isOverdue(s) {
+  if (s.confirmed_at) return false;
+  return daysSince(s.created_at) > CONFIRM_OVERDUE_DAYS;
+}
+function shareStatusOf(s) {
+  if (s.confirmed_at) return 'confirmed';
+  return isOverdue(s) ? 'overdue' : 'pending';
+}
+
+function updateCsBadge() {
+  const badge = document.getElementById('csBadge');
+  if (!badge) return;
+  const shares = qcShares || [];
+  const pendingCount = shares.filter(s => !s.confirmed_at).length; // 待确认 + 逾期
+  badge.textContent = pendingCount;
+  badge.classList.toggle('zero', pendingCount === 0);
+}
+
+async function openConfirmStatus() {
+  if (window.supabase) await loadShares();
+  updateCsBadge();
+  renderConfirmStatus('all');
+  document.getElementById('confirmStatusModal').classList.add('active');
+}
+function closeConfirmStatus() {
+  const m = document.getElementById('confirmStatusModal');
+  if (m) m.classList.remove('active');
+}
+
+function renderConfirmStatus(filter) {
+  const shares = qcShares || [];
+  const total = shares.length;
+  const confirmed = shares.filter(s => s.confirmed_at).length;
+  const overdue = shares.filter(isOverdue).length;
+  const pending = total - confirmed - overdue;
+
+  document.getElementById('csKpiTotal').textContent = total;
+  document.getElementById('csKpiConfirmed').textContent = confirmed;
+  document.getElementById('csKpiPending').textContent = pending;
+  document.getElementById('csKpiOverdue').textContent = overdue;
+
+  let list = shares.slice();
+  if (filter === 'confirmed') list = list.filter(s => s.confirmed_at);
+  else if (filter === 'overdue') list = list.filter(isOverdue);
+  else if (filter === 'pending') list = list.filter(s => !s.confirmed_at && !isOverdue(s));
+  const order = { overdue: 0, pending: 1, confirmed: 2 };
+  list.sort((a, b) => {
+    const ra = order[shareStatusOf(a)], rb = order[shareStatusOf(b)];
+    if (ra !== rb) return ra - rb;
+    return new Date(b.created_at) - new Date(a.created_at);
+  });
+
+  const el = document.getElementById('csList');
+  if (!list.length) {
+    el.innerHTML = '<div class="cs-empty">📭 暂无相关分享记录</div>';
+  } else {
+    el.innerHTML = list.map(s => {
+      const st = shareStatusOf(s);
+      let statusHtml;
+      if (st === 'confirmed') {
+        statusHtml = '<span class="cs-status confirmed">✅ 已确认<br><span class="cs-sub">' + fmtTime(s.confirmed_at) + '</span></span>';
+      } else if (st === 'overdue') {
+        statusHtml = '<span class="cs-status overdue">⚠️ 逾期未确认<br><span class="cs-sub">已发 ' + daysSince(s.created_at) + ' 天</span></span>';
+      } else {
+        statusHtml = '<span class="cs-status pending">📤 待确认<br><span class="cs-sub">已发 ' + daysSince(s.created_at) + ' 天</span></span>';
+      }
+      const url = new URL('qc-share.html?token=' + s.token, location.href).href;
+      const actions = '<button class="btn btn-s" style="font-size:11px;padding:4px 10px" onclick="copyShareLink(\'' + url.replace(/'/g, "\\'") + '\')">📋 复制链接</button>'
+        + (st !== 'confirmed' ? '<button class="btn btn-p" style="font-size:11px;padding:4px 10px" onclick="remindShare(\'' + s.token.replace(/'/g, "\\'") + '\')">🔔 催一下</button>' : '')
+        + (isAdmin ? '<button class="btn btn-r" style="font-size:11px;padding:4px 10px" onclick="revokeShare(' + s.id + ')">🗑️ 撤销</button>' : '');
+      return '<div class="cs-row ' + st + '">'
+        + '<div class="cs-staff">' + escapeHtml(s.staff) + '</div>'
+        + '<div class="cs-count">' + (s.record_count || 0) + ' 条</div>'
+        + '<div class="cs-sent">' + fmtTime(s.created_at) + '</div>'
+        + '<div class="cs-status-cell">' + statusHtml + '</div>'
+        + '<div class="cs-actions">' + actions + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  document.querySelectorAll('.cs-filter').forEach(b => b.classList.toggle('active', b.dataset.f === filter));
+}
+
+function remindShare(token) {
+  const s = (qcShares || []).find(x => x.token === token);
+  if (!s) return;
+  const url = new URL('qc-share.html?token=' + token, location.href).href;
+  copyShareLink(url);
+  showToast('🔔 已复制「' + (s.staff || '客服') + '」的确认链接，去催一下~');
+}
+
+async function revokeShare(id) {
+  if (!isAdmin) { showToast('⚠️ 仅管理员可撤销', true); return; }
+  if (!confirm('撤销后客服将无法再打开该确认链接，确定？')) return;
+  try {
+    const { error } = await supabase.from('qc_shares').delete().eq('id', id);
+    if (error) throw error;
+    qcShares = (qcShares || []).filter(x => x.id !== id);
+    renderConfirmStatus(document.querySelector('.cs-filter.active') ? document.querySelector('.cs-filter.active').dataset.f : 'all');
+    updateCsBadge();
+    showToast('🗑️ 已撤销分享');
+  } catch (e) {
+    console.error(e);
+    showToast('撤销失败：' + e.message, true);
+  }
+}
+
 function toggleSelectRecord(id) {
   const nid = Number(id);
   if (selectedRecordIds.has(nid)) selectedRecordIds.delete(nid);
@@ -1073,6 +1226,7 @@ async function sendShare() {
     showToast('✅ 已生成 ' + links.length + ' 个分享链接');
     renderShareModal(links);
     renderRecords();
+    updateCsBadge();
     clearSelection();
   } catch(e) {
     console.error(e);
@@ -1772,7 +1926,7 @@ function init() {
         prefillLast();
         updateAdminUI();
         loadSnippets();
-        loadShares().then(renderRecords);
+        loadShares().then(() => { renderRecords(); updateCsBadge(); });
       });
     });
   })();
@@ -1796,6 +1950,27 @@ if (document.readyState === 'loading') {
 <div class="modal-overlay" id="shareModal"><div class="modal" style="max-width:640px">
 <div class="modal-header"><h3>📤 发送给客服的链接</h3><button class="close-btn" onclick="closeShareModal()">×</button></div>
 <div class="modal-body" id="shareModalBody" style="padding:16px"></div>
+</div></div>
+
+<!-- 确认状态汇总弹窗 -->
+<div class="modal-overlay" id="confirmStatusModal"><div class="modal" style="max-width:820px">
+<div class="modal-header"><h3>📊 质检确认状态汇总</h3><button class="close-btn" onclick="closeConfirmStatus()">×</button></div>
+<div class="modal-body" style="padding:16px">
+  <div class="cs-kpi-row">
+    <div class="cs-kpi total"><div class="n" id="csKpiTotal">0</div><div class="l">分享批次</div></div>
+    <div class="cs-kpi confirmed"><div class="n" id="csKpiConfirmed">0</div><div class="l">已确认</div></div>
+    <div class="cs-kpi pending"><div class="n" id="csKpiPending">0</div><div class="l">待确认</div></div>
+    <div class="cs-kpi overdue"><div class="n" id="csKpiOverdue">0</div><div class="l">逾期未确认</div></div>
+  </div>
+  <div class="cs-filters">
+    <span class="cs-filter active" data-f="all" onclick="renderConfirmStatus('all')">全部</span>
+    <span class="cs-filter" data-f="pending" onclick="renderConfirmStatus('pending')">待确认</span>
+    <span class="cs-filter" data-f="overdue" onclick="renderConfirmStatus('overdue')">逾期</span>
+    <span class="cs-filter" data-f="confirmed" onclick="renderConfirmStatus('confirmed')">已确认</span>
+    <span style="margin-left:auto;font-size:11px;color:var(--text2);align-self:center">超过 3 天未确认标记为逾期</span>
+  </div>
+  <div class="cs-list" id="csList"></div>
+</div>
 </div></div>
 
 </body>
