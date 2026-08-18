@@ -650,7 +650,8 @@ async function uploadPendingImages(type) {
       const filePath = 'qc/' + img.id + '.jpg';
       const { error } = await supabase.storage.from('qc-images').upload(filePath, img.blob, { upsert: true, contentType: 'image/jpeg' });
       if (!error) { ids.push(img.id); img.uploaded = true; }
-    } catch(e) { console.warn('Upload error:', e); }
+      else { showToast('⚠️ 图片上传失败：' + error.message, true); console.warn('Upload error:', error); }
+    } catch(e) { showToast('⚠️ 图片上传失败：' + e.message, true); console.warn('Upload error:', e); }
   }
   return ids;
 }
