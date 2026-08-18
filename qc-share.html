@@ -130,15 +130,45 @@ function getToken(){
   return p.get('token') || '';
 }
 
-async function loadSupabase(){
+function setLoadingStatus(html){
+  document.getElementById('app').innerHTML='<div class="notice">'+html+'</div>';
+}
+
+function withTimeout(promise, ms, label){
+  return Promise.race([
+    promise,
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error(label+'（超时 '+ms+'ms）')), ms))
+  ]);
+}
+
+function loadScriptOne(src){
   return new Promise((resolve,reject)=>{
-    if(supabase) return resolve();
     const s=document.createElement('script');
-    s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-    s.onload=()=>{ supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY); resolve(); };
-    s.onerror=()=>reject(new Error('supabase-js 加载失败'));
+    s.src=src; s.async=true;
+    s.onload=()=>resolve(); s.onerror=()=>reject(new Error('脚本加载失败：'+src));
     document.head.appendChild(s);
   });
+}
+
+async function loadSupabase(){
+  if(supabase) return;
+  // 多 CDN fallback：jsdelivr 在国内可能不稳定，优先尝试多个源
+  const cdnList=[
+    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
+    'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js',
+    'https://cdn.bootcdn.net/ajax/libs/supabase/2.39.0/supabase.min.js'
+  ];
+  let lastErr=null;
+  for(let i=0;i<cdnList.length;i++){
+    setLoadingStatus('⏳ 正在连接服务… <span style="font-size:12px;color:var(--text2)">（尝试节点 '+(i+1)+'/'+cdnList.length+'）</span>');
+    try{
+      await withTimeout(loadScriptOne(cdnList[i]), 10000, '加载 supabase-js 超时');
+      if(!window.supabase || !window.supabase.createClient) throw new Error('supabase 对象不可用');
+      supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+      return;
+    }catch(e){ lastErr=e; console.warn('supabase-js fallback '+i, e.message); }
+  }
+  throw lastErr || new Error('所有 supabase-js 节点均加载失败，请检查网络');
 }
 
 function renderRecord(r){
@@ -318,17 +348,38 @@ document.getElementById('imgPreviewWrapper').addEventListener('wheel', imgWheelZ
 (async function(){
   const token=getToken();
   if(!token){ document.getElementById('app').innerHTML='<div class="notice">⚠️ 链接缺少 token，无法打开。</div>'; return; }
-  try{ await loadSupabase(); }catch(e){ document.getElementById('app').innerHTML='<div class="notice">⚠️ 加载失败：'+escapeHtml(e.message)+'</div>'; return; }
+  try{
+    await withTimeout(loadSupabase(), 35000, '初始化服务超时');
+  }catch(e){
+    console.error(e);
+    document.getElementById('app').innerHTML='<div class="notice"><div style="font-size:16px;margin-bottom:8px">⚠️ 连接服务失败</div>'
+      +'<div style="font-size:13px;line-height:1.6">'+escapeHtml(e.message)+'<br><br>'
+      +'可能原因：<br>1. 当前网络较慢或无法访问 Supabase；<br>2. 公司网络/微信浏览器拦截了外部脚本。<br><br>'
+      +'建议：切换到 4G/5G 网络重试，或把链接复制到手机浏览器打开。</div></div>';
+    return;
+  }
   // 加载分享
-  const {data:share,error}=await supabase.from('qc_shares').select('*').eq('token',token).single();
-  if(error||!share){ document.getElementById('app').innerHTML='<div class="notice">⚠️ 链接无效或已失效，请向发送人确认。</div>'; return; }
+  let share=null, shareErr=null;
+  try{
+    const res=await withTimeout(supabase.from('qc_shares').select('*').eq('token',token).single(), 15000, '查询分享信息超时');
+    share=res.data; shareErr=res.error;
+  }catch(e){ shareErr=e; }
+  if(shareErr||!share){
+    const detail = shareErr && (shareErr.message || shareErr.code || JSON.stringify(shareErr));
+    document.getElementById('app').innerHTML='<div class="notice"><div style="font-size:16px;margin-bottom:8px">⚠️ 链接无效或已失效</div>'
+      +'<div style="font-size:13px;color:var(--text2)">'+(detail?escapeHtml(detail):'请向发送人确认链接是否正确。')+'</div></div>';
+    return;
+  }
   currentShare=share;
   // 加载记录
-  const ids=(share.record_ids||[]).map(Number);
+  const ids=(share.record_ids||[]).map(Number).filter(id=>!isNaN(id));
   let records=[];
   if(ids.length){
-    const {data:recs,error:rerr}=await supabase.from('qc_records').select('*').in('id',ids);
-    if(!rerr) records=recs||[];
+    try{
+      const res=await withTimeout(supabase.from('qc_records').select('*').in('id',ids), 15000, '查询质检记录超时');
+      if(res.error) throw res.error;
+      records=res.data||[];
+    }catch(e){ console.error('load records err', e); }
   }
   currentRecords=records;
   const staff=escapeHtml(share.staff);
