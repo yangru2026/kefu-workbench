@@ -101,6 +101,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .btn-y{background:var(--yellow);color:#fff}
 .btn:disabled{opacity:.5;pointer-events:none}
 
+/* ===== Mode toggle (极速/完整) ===== */
+.mode-toggle{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.mode-btn{padding:5px 14px;font-size:12px;cursor:pointer;border:none;background:#fff;color:var(--text2);font-family:inherit;font-weight:500;transition:all .15s}
+.mode-btn:hover{background:#f1f5f9}
+.mode-btn.active{background:var(--primary);color:#fff}
+.qc-sync-badge{font-size:11px;color:var(--success);display:inline-flex;align-items:center;gap:3px}
+.qc-sync-badge.off{color:var(--text2)}
+/* ===== Snippet bar ===== */
+.snippet-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.snippet-bar select{padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:#fff;font-family:inherit;max-width:320px}
+/* ===== Record collapse ===== */
+.record-card .record-toggle{cursor:pointer;user-select:none}
+.record-card .record-chevron{transition:transform .2s;display:inline-block;font-size:11px;color:var(--text2)}
+.record-card.collapsed .record-chevron{transform:rotate(-90deg)}
+.record-card.collapsed .record-body{display:none}
+
 /* ===== Filter Bar ===== */
 .filter-bar{background:#f8fafc;border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .filter-bar label{font-size:12px;color:var(--text2);font-weight:500}
@@ -245,11 +261,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 
 <!-- Add Record Form -->
 <div class="panel-card" id="addPanel">
-<div class="panel-header"><span>📝 新增质检记录</span><span id="adminBadge"></span></div>
+<div class="panel-header"><span>📝 新增质检记录</span>
+<span style="display:flex;gap:8px;align-items:center">
+<span class="qc-sync-badge off" id="qcSyncBadge">☁️ 未同步</span>
+<span class="mode-toggle"><button class="mode-btn active" id="modeQuick" onclick="setQcEntryMode('quick')">⚡ 极速</button><button class="mode-btn" id="modeFull" onclick="setQcEntryMode('full')">📋 完整</button></span>
+<span id="adminBadge"></span>
+</span></div>
 <div class="panel-body">
 <div class="form-grid">
 <div class="form-item"><label>客服姓名 <span style="color:var(--red)">*</span></label><input type="text" id="inpStaff" placeholder="如：小张" list="staffList"><datalist id="staffList"></datalist></div>
-<div class="form-item"><label>客户ID <span style="font-weight:400;color:var(--text2)">(网名/订单号)</span></label><input type="text" id="inpCustomerId" placeholder="客户网名或订单号"></div>
+<div class="form-item" id="rowCustomerId"><label>客户ID <span style="font-weight:400;color:var(--text2)">(网名/订单号)</span></label><input type="text" id="inpCustomerId" placeholder="客户网名或订单号"></div>
 <div class="form-item"><label>所属店铺 <span style="color:var(--red)">*</span></label>
 <select id="inpShop"><option value="">请选择</option>
 <option>抖音1店</option><option>抖音2店</option><option>抖音3店</option>
@@ -258,7 +279,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <option>天猫MS</option><option>天猫极氧</option>
 </select></div>
 </div>
-<div class="form-item"><label>质检日期</label><input type="date" id="inpDate" style="max-width:200px"></div>
+<div class="form-item" id="rowDate"><label>质检日期</label><input type="date" id="inpDate" style="max-width:200px"></div>
 <div class="form-item"><label>问题分类 <span style="color:var(--red)">*</span></label>
 <div class="tag-group" id="tagGroup">
 <span class="tag-item" data-val="话术问题" onclick="toggleTag(this)">话术问题</span>
@@ -274,31 +295,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <button class="sev-btn important" data-val="严重" onclick="setSeverity(this,'严重')">严重问题</button>
 <button class="sev-btn critical" data-val="严重需整改" onclick="setSeverity(this,'严重需整改')">严重需整改</button>
 </div></div>
-<div class="form-item"><label>客户问题 / 聊天记录截图</label>
+<div class="form-item"><label id="sceneLabel">客户问题 / 聊天记录截图</label>
 <div class="paste-zone" id="zoneScene" tabindex="0">
 <div class="paste-hint">💡 在此输入文字描述，或 <kbd>Ctrl+V</kbd> 粘贴截图 / <kbd>拖拽</kbd> 图片到此处</div>
 <textarea class="paste-textarea" id="inpScene" placeholder="描述客户遇到的问题..."></textarea>
 <div class="paste-images" id="imgScene"></div></div></div>
-<div class="form-item"><label>客服实际回复 / 聊天记录截图</label>
+<div class="form-item" id="rowReply"><label>客服实际回复 / 聊天记录截图</label>
 <div class="paste-zone" id="zoneReply" tabindex="0">
 <div class="paste-hint">💡 在此输入文字描述，或 <kbd>Ctrl+V</kbd> 粘贴截图 / <kbd>拖拽</kbd> 图片到此处</div>
 <textarea class="paste-textarea" id="inpReply" placeholder="描述客服的回复内容..."></textarea>
 <div class="paste-images" id="imgReply"></div></div></div>
 <div class="form-grid">
 <div class="form-item"><label>问题描述 <span style="color:var(--red)">*</span></label><textarea class="paste-textarea" id="inpProblem" placeholder="详细描述问题所在..." style="min-height:80px"></textarea></div>
-<div class="form-item"><label>正确做法 / 建议话术 <span style="font-weight:400;color:var(--text2)">(可添加多条，自动编号)</span></label>
+<div class="form-item" id="rowCorrect"><label>正确做法 / 建议话术 <span style="font-weight:400;color:var(--text2)">(可添加多条，自动编号)</span></label>
 <div id="correctList"><div class="correct-row"><textarea class="paste-textarea correct-item" placeholder="第1条建议话术..." style="min-height:60px"></textarea></div></div>
-<button class="btn btn-s" onclick="addCorrectRow()" style="margin-top:6px;font-size:11px;padding:5px 12px">➕ 添加话术</button></div>
+<button class="btn btn-s" onclick="addCorrectRow()" style="margin-top:6px;font-size:11px;padding:5px 12px">➕ 添加话术</button>
+<div class="snippet-bar"><select onchange="insertSnippetFromSelect(this,'correct')"><option value="">💡 插入常用正确做法…</option><option>开场白需主动问候，确认客户需求后再推荐产品</option><option>高峰期设置自动回复，确保 3 分钟内首次响应</option><option>推荐产品前先确认近视度数、基弧、直径等参数</option><option>催付话术需自然不催促，强调活动时效与库存</option><option>退换货需登记订单号并走标准 SOP 流程</option></select></div></div>
 </div>
-<div class="form-item"><label>📚 产品知识点 / 销售技巧</label>
+<div class="form-item" id="rowKnowledge"><label>📚 产品知识点 / 销售技巧</label>
 <div id="knowledgeList"><div class="knowledge-row"><textarea class="paste-textarea knowledge-item" placeholder="第1条知识点..." style="min-height:60px"></textarea></div></div>
 <button class="btn btn-s" onclick="addKnowledgeRow()" style="margin-top:6px;font-size:11px;padding:5px 12px">➕ 添加知识点</button>
 <div class="paste-zone" id="zoneKnowledge" tabindex="0" style="margin-top:10px">
 <div class="paste-hint">💡 知识点配图：Ctrl+V 粘贴 / 拖拽图片</div>
-<div class="paste-images" id="imgKnowledge"></div></div></div>
-<div class="form-item"><label>备注（可选）</label><input type="text" id="inpNote" placeholder="补充说明"></div>
+<div class="paste-images" id="imgKnowledge"></div></div>
+<div class="snippet-bar"><select onchange="insertSnippetFromSelect(this,'knowledge')"><option value="">📚 插入常用知识点…</option><option>基弧 8.6 / 直径 14.2mm / 透氧量 DK/L 按客户眼部参数推荐</option><option>美瞳日抛/月抛佩戴时长与护理要点</option><option>散光客户需推荐定制散光片，不可随意替代</option><option>敏感眼优先推荐硅水凝胶材质降低干涩感</option></select></div></div>
+<div class="form-item" id="rowNote"><label>备注（可选）</label><input type="text" id="inpNote" placeholder="补充说明"></div>
 <div class="btn-group">
-<button class="btn btn-p" id="btnAddRecord" onclick="addRecord()">➕ 保存质检记录</button>
+<button class="btn btn-p" id="btnAddRecord" onclick="addRecord(false)">➕ 保存</button>
+<button class="btn btn-g" id="btnAddContinue" onclick="addRecord(true)">⏭️ 保存并继续</button>
 <button class="btn btn-s" onclick="clearForm()">清空表单</button></div>
 </div></div>
 
@@ -309,6 +333,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <button class="btn btn-i" onclick="openCoachMode()" style="font-size:11px;padding:5px 12px">🎯 讲解模式</button>
 <button class="btn btn-y" onclick="openAnalysisMode()" style="font-size:11px;padding:5px 12px">📊 质检分析</button>
 <button class="btn btn-s" onclick="exportCSV()" style="font-size:11px;padding:5px 12px">📤 导出CSV</button>
+<button class="btn btn-s" onclick="loadRecords(true)" style="font-size:11px;padding:5px 12px">🔄 刷新</button>
 </div></div>
 <div class="panel-body">
 <div class="filter-bar">
@@ -396,11 +421,13 @@ var supabase = null;
 
 /* ==================== Auth State ==================== */
 let isAdmin = false;
+let adminSetByParent = false;
 let currentAuthUser = null;
 
 // Called by parent page
 window.setQcMode = function(admin) {
   isAdmin = admin;
+  adminSetByParent = true;
   updateAdminUI();
 };
 
@@ -408,8 +435,8 @@ window.setQcMode = function(admin) {
 async function checkAuth() {
   const { data: { session } } = await supabase.auth.getSession();
   currentAuthUser = session?.user || null;
-  // Check if admin (phone-based)
-  if (currentAuthUser && currentAuthUser.phone) {
+  // Check if admin (phone-based) — 但父窗口已明确设置的管理员模式优先，避免被覆盖成只读
+  if (!adminSetByParent && currentAuthUser && currentAuthUser.phone) {
     const adminPhones = ['13800138000']; // default admin, will be overridden by parent
     isAdmin = currentAuthUser.app_metadata?.role === 'admin' || adminPhones.includes(currentAuthUser.phone);
   }
@@ -463,18 +490,19 @@ function thisWeekStart() {
 }
 
 /* ==================== Supabase CRUD ==================== */
-async function loadRecords() {
+async function loadRecords(showMsg) {
   try {
     const { data, error } = await supabase.from('qc_records').select('*').order('created_at', { ascending: false });
-    if (error) { console.warn('Load records error:', error); records = []; }
-    else { records = data || []; }
-  } catch(e) { console.error(e); records = []; }
+    if (error) { console.warn('Load records error:', error); records = []; setSyncBadge(false, '加载失败'); }
+    else { records = data || []; setSyncBadge(true, '已同步云端'); }
+  } catch(e) { console.error(e); records = []; setSyncBadge(false, '加载失败'); }
 
   document.getElementById('inpDate').value = todayStr();
   updateFilterOptions();
   updateStats();
   renderRecords();
   setupPasteHandlers();
+  if (showMsg) showToast('🔄 已刷新列表');
 }
 
 async function syncRecord(record) {
@@ -671,6 +699,71 @@ function addKnowledgeRow() {
   div.querySelector('textarea').focus();
 }
 
+/* ==================== 极速/完整模式 + 片段库 + 折叠 + 同步状态 ==================== */
+let qcEntryMode = 'quick';
+
+function setQcEntryMode(m) {
+  qcEntryMode = m;
+  const q = document.getElementById('modeQuick'), f = document.getElementById('modeFull');
+  if (q) q.classList.toggle('active', m === 'quick');
+  if (f) f.classList.toggle('active', m === 'full');
+  applyQcEntryMode();
+}
+
+function applyQcEntryMode() {
+  const quick = qcEntryMode === 'quick';
+  const set = (id, show) => { const el = document.getElementById(id); if (el) el.style.display = show ? '' : 'none'; };
+  set('rowCustomerId', !quick);
+  set('rowDate', !quick);
+  set('rowReply', !quick);
+  set('rowCorrect', !quick);
+  set('rowKnowledge', !quick);
+  set('rowNote', !quick);
+  const sceneLabel = document.getElementById('sceneLabel');
+  if (sceneLabel) sceneLabel.textContent = quick ? '聊天记录 / 截图（Ctrl+V 直接粘贴）' : '客户问题 / 聊天记录截图';
+}
+
+// 片段库：从下拉把预设话术追加到对应文本框，减少重复打字
+function insertSnippetFromSelect(sel, type) {
+  const text = sel.value;
+  if (!text) return;
+  const list = document.getElementById(type === 'correct' ? 'correctList' : 'knowledgeList');
+  const all = list.querySelectorAll('textarea');
+  const ta = all[all.length - 1];
+  if (ta) ta.value = ta.value ? (ta.value + '\n' + text) : text;
+  sel.selectedIndex = 0;
+}
+
+// 列表卡片折叠
+function toggleRecordCard(id) {
+  const card = document.querySelector('.record-card[data-id="' + id + '"]');
+  if (card) card.classList.toggle('collapsed');
+}
+
+// 同步状态徽标
+function setSyncBadge(ok, text) {
+  const el = document.getElementById('qcSyncBadge');
+  if (!el) return;
+  el.className = 'qc-sync-badge' + (ok ? '' : ' off');
+  el.textContent = (ok ? '☁️ ' : '⚠️ ') + (text || (ok ? '已同步云端' : '未同步'));
+}
+
+// 快捷键：Ctrl/⌘+Enter 保存并继续；极速模式下数字 1-6 快速选分类
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    const t = e.target;
+    if (t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT')) {
+      e.preventDefault();
+      addRecord(true);
+    }
+  }
+  if (qcEntryMode === 'quick' && /^[1-6]$/.test(e.key) && document.activeElement === document.body) {
+    const tags = ['话术问题','响应问题','流程问题','态度问题','产品知识','其他'];
+    const el = document.querySelector('#tagGroup .tag-item[data-val="' + tags[parseInt(e.key,10)-1] + '"]');
+    if (el) toggleTag(el);
+  }
+});
+
 function setSeverity(btn, val) {
   document.querySelectorAll('#sevGroup .sev-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -697,7 +790,14 @@ function clearForm() {
   clearPendingImages();
 }
 
-async function addRecord() {
+// 保存并继续时：清空除姓名/店铺外的所有内容，便于连检同一人
+function clearFormKeep(staff, shop) {
+  clearForm();
+  if (staff) document.getElementById('inpStaff').value = staff;
+  if (shop) document.getElementById('inpShop').value = shop;
+}
+
+async function addRecord(continueFlag) {
   if (!isAdmin) { showToast('⚠️ 只读模式，无法新增', true); return; }
   const staff = document.getElementById('inpStaff').value.trim();
   const customerId = document.getElementById('inpCustomerId').value.trim();
@@ -712,8 +812,10 @@ async function addRecord() {
   if (!problem) { showToast('请输入问题描述', true); return; }
   if (currentTags.length === 0) { showToast('请选择至少一个问题分类', true); return; }
 
+  // id 用 时间戳*1000+随机数，避免同毫秒保存/跨设备冲突
+  const id = Date.now() * 1000 + Math.floor(Math.random() * 1000);
   const record = {
-    id: Date.now(),
+    id,
     staff, customerId, shop, date: date || todayStr(),
     tags: [...currentTags],
     severity: currentSeverity,
@@ -729,18 +831,23 @@ async function addRecord() {
   };
 
   const ok = await syncRecord(record);
-  if (!ok) return;
+  if (!ok) { setSyncBadge(false, '保存失败'); return; }
 
   records.unshift(record);
   saveLocalCache();
+  // 记住本次姓名/店铺，便于连检（下次进页面自动预填）
+  try { localStorage.setItem('qc_last_staff', staff); localStorage.setItem('qc_last_shop', shop); } catch(e){}
+  setSyncBadge(true, '已保存到云端');
 
-  const lastStaff = staff, lastShop = shop;
   updateStats();
   renderRecords();
-  clearForm();
-  document.getElementById('inpStaff').value = lastStaff;
-  document.getElementById('inpShop').value = lastShop;
-  showToast('✅ 质检记录已保存');
+
+  if (continueFlag) {
+    clearFormKeep(staff, shop);
+  } else {
+    clearForm();
+  }
+  showToast('✅ 质检记录已保存' + (continueFlag ? '（已保留姓名/店铺）' : ''));
 }
 
 /* ==================== Local cache (for offline fallback) ==================== */
@@ -812,8 +919,9 @@ async function renderRecords() {
     const statusText = r.status==='pending'?'待讲解':'已讲解';
     const statusClass = r.status==='pending'?'pending':'done';
 
-    html += '<div class="record-card ' + statusClass + '" data-id="' + r.id + '">'
-      + '<div class="record-header"><div class="record-info">'
+    html += '<div class="record-card ' + statusClass + ' collapsed" data-id="' + r.id + '">'
+      + '<div class="record-header record-toggle" onclick="toggleRecordCard(\'' + r.id + '\')"><div class="record-info">'
+      + '<span class="record-chevron">▾</span>'
       + '<span class="record-name">' + escapeHtml(r.staff) + '</span>'
       + '<span class="record-shop">' + escapeHtml(r.shop) + '</span>'
       + (r.customer_id ? '<span class="record-cid">👤 ' + escapeHtml(r.customer_id) + '</span>' : '')
@@ -1337,6 +1445,15 @@ function exportCSV() {
 }
 
 /* ==================== Init ==================== */
+function prefillLast() {
+  try {
+    const s = localStorage.getItem('qc_last_staff');
+    const sh = localStorage.getItem('qc_last_shop');
+    if (s) document.getElementById('inpStaff').value = s;
+    if (sh) document.getElementById('inpShop').value = sh;
+  } catch(e){}
+}
+
 function init() {
   loadLocalCache();
   (async function() {
@@ -1350,6 +1467,8 @@ function init() {
     }
     checkAuth().then(() => {
       loadRecords().then(() => {
+        applyQcEntryMode();
+        prefillLast();
         updateAdminUI();
       });
     });
