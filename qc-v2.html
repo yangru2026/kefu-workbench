@@ -132,6 +132,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .ss-tab{flex:1;font-size:13px;padding:8px 0;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;color:var(--text2);font-weight:600}
 .ss-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .ss-tab:hover{filter:brightness(.98)}
+#ssNewName{resize:vertical}
 /* ===== Record collapse ===== */
 .record-card .record-toggle{cursor:pointer;user-select:none}
 .record-card .record-chevron{transition:transform .2s;display:inline-block;font-size:11px;color:var(--text2)}
@@ -2002,23 +2003,43 @@ function renderSsMgr() {
 async function addSs() {
   if (!isAdmin) return;
   const inp = document.getElementById('ssNewName');
-  const name = (inp.value || '').trim();
-  if (!name) { showToast('请输入名称', true); return; }
+  const raw = (inp.value || '').trim();
+  if (!raw) { showToast('请输入名称', true); return; }
+  // 支持回车 / 英文逗号 / 中文逗号 分隔，自动去重
+  const names = [...new Set(raw.split(/[\n,，]+/).map(n => n.trim()).filter(Boolean))];
+  if (!names.length) { showToast('未解析到有效名称', true); return; }
   const arr = currentSsArr();
-  if (arr.some(s => s.name === name)) { showToast('⚠️ 已存在：' + name, true); return; }
-  const maxSort = arr.reduce((m, s) => Math.max(m, s.sort_order || 0), 0);
+  const existing = new Set(arr.map(s => s.name));
+  const toAdd = names.filter(n => {
+    if (existing.has(n)) return false;
+    existing.add(n); // 同一批里也避免重复
+    return true;
+  });
+  const skipped = names.length - toAdd.length;
+  if (!toAdd.length) { showToast('⚠️ 全部已存在，未添加', true); return; }
+  let maxSort = arr.reduce((m, s) => Math.max(m, s.sort_order || 0), 0);
+  const added = [];
   try {
     if (!window.supabase) throw new Error('supabase 未初始化');
-    const { data, error } = await supabase.from(currentSsTable()).insert({
-      name, sort_order: maxSort + 1, is_active: true
-    }).select().single();
-    if (error) throw error;
-    arr.push(data);
+    for (const name of toAdd) {
+      const { data, error } = await supabase.from(currentSsTable()).insert({
+        name, sort_order: ++maxSort, is_active: true
+      }).select().single();
+      if (error) throw error;
+      arr.push(data);
+      added.push(name);
+    }
     refreshStaffShopSelects();
     renderSsMgr();
     inp.value = '';
-    showToast('✅ 已新增：' + name);
-  } catch(e) { showToast('⚠️ 新增失败：' + e.message, true); }
+    let msg = '✅ 已新增 ' + added.length + ' 个' + (ssTab==='staff'?'客服':'店铺');
+    if (skipped) msg += '（跳过 ' + skipped + ' 个重复）';
+    showToast(msg);
+  } catch(e) {
+    refreshStaffShopSelects();
+    renderSsMgr();
+    showToast('⚠️ 新增中断：' + e.message + (added.length ? '（已成功 ' + added.length + ' 个）' : ''), true);
+  }
 }
 async function deleteSs(id) {
   if (!isAdmin) return;
@@ -2126,8 +2147,9 @@ if (document.readyState === 'loading') {
     <button class="ss-tab" id="ssTabShop" onclick="setSsTab('shop')">所属店铺</button>
   </div>
   <div id="ssMgrList"></div>
-  <div class="mgr-new-row"><b>➕ 新增<span id="ssNewLabel">客服</span></b>
-    <input id="ssNewName" placeholder="输入名称后点保存" style="margin-top:6px;width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;box-sizing:border-box;font-family:inherit;font-size:12px">
+  <div class="mgr-new-row"><b>➕ 批量新增<span id="ssNewLabel">客服</span></b>
+    <textarea id="ssNewName" placeholder="可粘贴多个，用回车 / 逗号 / ， 分隔" rows="3" style="margin-top:6px;width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;box-sizing:border-box;font-family:inherit;font-size:12px;resize:vertical"></textarea>
+    <div style="font-size:11px;color:var(--text2);margin-top:4px">支持一次添加多个，自动去重，已存在会自动跳过</div>
     <button class="btn-mgr save" style="margin-top:6px" onclick="addSs()">保存新增</button></div>
 </div>
 </div></div>
