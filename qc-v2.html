@@ -125,6 +125,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .snip-mgr-item input,.snip-mgr-item textarea{width:100%;margin-top:6px;font-family:inherit;font-size:12px;padding:6px;border:1px solid var(--border);border-radius:6px;box-sizing:border-box}
 .mgr-new-row{border:1px dashed var(--primary);border-radius:8px;padding:10px;margin-top:10px}
 .mgr-new-row b{font-size:12px}
+/* ===== Staff/Shop manager ===== */
+.mini-manage{margin-left:4px;font-size:11px;line-height:1;padding:1px 5px;border:1px solid var(--border);border-radius:5px;background:#fff;cursor:pointer;color:var(--text2);vertical-align:middle}
+.mini-manage:hover{color:var(--primary);border-color:var(--primary)}
+.ss-tabs{display:flex;gap:8px;margin-bottom:10px}
+.ss-tab{flex:1;font-size:13px;padding:8px 0;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;color:var(--text2);font-weight:600}
+.ss-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.ss-tab:hover{filter:brightness(.98)}
 /* ===== Record collapse ===== */
 .record-card .record-toggle{cursor:pointer;user-select:none}
 .record-card .record-chevron{transition:transform .2s;display:inline-block;font-size:11px;color:var(--text2)}
@@ -327,15 +334,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 </span></div>
 <div class="panel-body">
 <div class="form-grid">
-<div class="form-item"><label>客服姓名 <span style="color:var(--red)">*</span></label><input type="text" id="inpStaff" placeholder="如：小张" list="staffList"><datalist id="staffList"></datalist></div>
+<div class="form-item"><label>客服姓名 <span style="color:var(--red)">*</span><button type="button" class="mini-manage" onclick="openSsMgr('staff')" title="管理客服姓名">⚙️</button></label><select id="inpStaff" style="width:100%"><option value="">请选择</option></select></div>
 <div class="form-item" id="rowCustomerId"><label>客户ID <span style="font-weight:400;color:var(--text2)">(网名/订单号)</span></label><input type="text" id="inpCustomerId" placeholder="客户网名或订单号"></div>
-<div class="form-item"><label>所属店铺 <span style="color:var(--red)">*</span></label>
-<select id="inpShop"><option value="">请选择</option>
-<option>抖音1店</option><option>抖音2店</option><option>抖音3店</option>
-<option>快手MS</option>
-<option>拼多多1店</option><option>拼多多2店</option><option>拼多多3店</option><option>拼多多4店</option><option>拼多多5店</option>
-<option>天猫MS</option><option>天猫极氧</option>
-</select></div>
+<div class="form-item"><label>所属店铺 <span style="color:var(--red)">*</span><button type="button" class="mini-manage" onclick="openSsMgr('shop')" title="管理店铺">⚙️</button></label><select id="inpShop" style="width:100%"><option value="">请选择</option></select></div>
 </div>
 <div class="form-item" id="rowDate"><label>质检日期</label><input type="date" id="inpDate" style="max-width:200px"></div>
 <div class="form-item"><label>问题分类 <span style="color:var(--red)">*</span></label>
@@ -982,15 +983,18 @@ function loadLocalCache() {
 
 /* ==================== Filter & Render ==================== */
 function updateFilterOptions() {
-  const staffs = [...new Set(records.map(r => r.staff))].sort();
-  const shops = [...new Set(records.map(r => r.shop))].sort();
+  // 合并：历史记录中出现过的值 + 基础表（qc_staffs / qc_shops）中的有效值，去重排序
+  const staffNames = new Set(records.map(r => r.staff).filter(Boolean));
+  qcStaffs.forEach(s => { if (s.is_active !== false) staffNames.add(s.name); });
+  const shopNames = new Set(records.map(r => r.shop).filter(Boolean));
+  qcShops.forEach(s => { if (s.is_active !== false) shopNames.add(s.name); });
+  const staffs = [...staffNames].sort();
+  const shops = [...shopNames].sort();
   const fStaff = document.getElementById('filterStaff');
   const fShop = document.getElementById('filterShop');
   const curStaff = fStaff.value, curShop = fShop.value;
-  fStaff.innerHTML = '<option value="">全部</option>' + staffs.map(s => '<option value="' + s + '"' + (s===curStaff?' selected':'') + '>' + s + '</option>').join('');
-  fShop.innerHTML = '<option value="">全部</option>' + shops.map(s => '<option value="' + s + '"' + (s===curShop?' selected':'') + '>' + s + '</option>').join('');
-  const dl = document.getElementById('staffList');
-  dl.innerHTML = staffs.map(s => '<option value="' + s + '">').join('');
+  fStaff.innerHTML = '<option value="">全部</option>' + staffs.map(s => '<option value="' + escapeHtml(s) + '"' + (s===curStaff?' selected':'') + '>' + escapeHtml(s) + '</option>').join('');
+  fShop.innerHTML = '<option value="">全部</option>' + shops.map(s => '<option value="' + escapeHtml(s) + '"' + (s===curShop?' selected':'') + '>' + escapeHtml(s) + '</option>').join('');
 }
 
 function getFilteredRecords() {
@@ -1397,15 +1401,19 @@ async function editRecord(id) {
   editSeverity = r.severity;
   editTags = [...(r.tags||[])];
 
-  const shops = ['抖音1店','抖音2店','抖音3店','快手MS','拼多多1店','拼多多2店','拼多多3店','拼多多4店','拼多多5店','天猫MS','天猫极氧'];
-  const shopOpts = shops.map(s => '<option value="' + s + '"' + (s===r.shop?' selected':'') + '>' + s + '</option>').join('');
+  const shopList = qcShops.filter(s => s.is_active !== false).map(s => s.name);
+  if (r.shop && !shopList.includes(r.shop)) shopList.unshift(r.shop);
+  const shopOpts = shopList.map(s => '<option value="' + escapeHtml(s) + '"' + (s===r.shop?' selected':'') + '>' + escapeHtml(s) + '</option>').join('');
+  const staffList = qcStaffs.filter(s => s.is_active !== false).map(s => s.name);
+  if (r.staff && !staffList.includes(r.staff)) staffList.unshift(r.staff);
+  const staffOpts = staffList.map(s => '<option value="' + escapeHtml(s) + '"' + (s===r.staff?' selected':'') + '>' + escapeHtml(s) + '</option>').join('');
 
   const tags = ['话术问题','响应问题','流程问题','态度问题','产品知识','其他'];
   const tagHtml = tags.map(t => '<span class="tag-item' + ((r.tags||[]).includes(t)?' active':'') + '" data-val="' + t + '" onclick="toggleEditTag(this)">' + t + '</span>').join('');
 
   document.getElementById('editBody').innerHTML =
     '<div class="form-grid">'
-    + '<div class="form-item"><label>客服姓名</label><input type="text" id="editStaff" value="' + escapeHtml(r.staff) + '"></div>'
+    + '<div class="form-item"><label>客服姓名</label><select id="editStaff">' + staffOpts + '</select></div>'
     + '<div class="form-item"><label>客户ID</label><input type="text" id="editCustomerId" value="' + escapeHtml(r.customer_id||'') + '"></div>'
     + '<div class="form-item"><label>所属店铺</label><select id="editShop">' + shopOpts + '</select></div>'
     + '</div>'
@@ -1899,14 +1907,175 @@ async function moveSnippet(id, dir) {
   } catch(e) { showToast('⚠️ 排序失败：' + e.message, true); }
 }
 
+/* ==================== 客服姓名 / 店铺 基础表 ==================== */
+let qcStaffs = [];   // [{id, name, sort_order, is_active}]
+let qcShops = [];
+
+// 用基础表数据刷新所有相关下拉框（新增表单 / 筛选）
+function refreshStaffShopSelects() {
+  // 新增表单
+  const inpStaff = document.getElementById('inpStaff');
+  const inpShop = document.getElementById('inpShop');
+  const curStaff = inpStaff ? inpStaff.value : '';
+  const curShop = inpShop ? inpShop.value : '';
+  if (inpStaff) {
+    const list = qcStaffs.filter(s => s.is_active !== false).map(s => s.name);
+    inpStaff.innerHTML = '<option value="">请选择</option>' + list.map(n => '<option value="' + escapeHtml(n) + '"' + (n===curStaff?' selected':'') + '>' + escapeHtml(n) + '</option>').join('');
+    if (curStaff && !list.includes(curStaff)) { ensureSelectOption('inpStaff', curStaff); inpStaff.value = curStaff; }
+  }
+  if (inpShop) {
+    const list = qcShops.filter(s => s.is_active !== false).map(s => s.name);
+    inpShop.innerHTML = '<option value="">请选择</option>' + list.map(n => '<option value="' + escapeHtml(n) + '"' + (n===curShop?' selected':'') + '>' + escapeHtml(n) + '</option>').join('');
+    if (curShop && !list.includes(curShop)) { ensureSelectOption('inpShop', curShop); inpShop.value = curShop; }
+  }
+  // 筛选下拉（合并历史值，见 updateFilterOptions）
+  updateFilterOptions();
+}
+
+async function loadStaffs() {
+  try {
+    if (!window.supabase) return;
+    const { data, error } = await supabase.from('qc_staffs').select('*').order('sort_order', { ascending: true }).order('name', { ascending: true });
+    if (error) throw error;
+    qcStaffs = data || [];
+  } catch(e) {
+    qcStaffs = [];
+    console.warn('loadStaffs failed:', e.message);
+  }
+  refreshStaffShopSelects();
+}
+
+async function loadShops() {
+  try {
+    if (!window.supabase) return;
+    const { data, error } = await supabase.from('qc_shops').select('*').order('sort_order', { ascending: true }).order('name', { ascending: true });
+    if (error) throw error;
+    qcShops = data || [];
+  } catch(e) {
+    qcShops = [];
+    console.warn('loadShops failed:', e.message);
+  }
+  refreshStaffShopSelects();
+}
+
+/* ===== 管理弹窗 ===== */
+let ssTab = 'staff';  // 'staff' | 'shop'
+function openSsMgr(tab) {
+  if (!isAdmin) { showToast('⚠️ 仅管理员可管理', true); return; }
+  ssTab = tab || 'staff';
+  document.getElementById('ssMgrModal').classList.add('active');
+  renderSsMgr();
+}
+function closeSsMgr() { document.getElementById('ssMgrModal').classList.remove('active'); }
+function setSsTab(t) {
+  ssTab = t;
+  document.getElementById('ssTabStaff').classList.toggle('active', t === 'staff');
+  document.getElementById('ssTabShop').classList.toggle('active', t === 'shop');
+  const inp = document.getElementById('ssNewName');
+  if (inp) inp.value = '';
+  renderSsMgr();
+}
+function currentSsArr() { return ssTab === 'staff' ? qcStaffs : qcShops; }
+function currentSsTable() { return ssTab === 'staff' ? 'qc_staffs' : 'qc_shops'; }
+function renderSsMgr() {
+  const lbl = document.getElementById('ssNewLabel');
+  if (lbl) lbl.textContent = (ssTab === 'staff' ? '客服' : '店铺');
+  document.getElementById('ssTabStaff').classList.toggle('active', ssTab === 'staff');
+  document.getElementById('ssTabShop').classList.toggle('active', ssTab === 'shop');
+  const arr = currentSsArr().slice().sort((a,b) => (a.sort_order||0)-(b.sort_order||0) || (a.name||'').localeCompare(b.name||''));
+  let html = '<div class="snip-mgr-list">';
+  if (arr.length === 0) {
+    html += '<div style="color:var(--text2);font-size:13px;padding:8px 0">暂无数据，请在下方新增。</div>';
+  }
+  arr.forEach((s, i) => {
+    html += '<div class="snip-mgr-item">'
+      + '<div class="snip-mgr-top"><span class="snip-mgr-title">' + escapeHtml(s.name) + '</span>'
+      + '<span class="snip-mgr-actions">'
+      + '<button class="btn-mgr" onclick="moveSs(\'' + escapeHtml(s.id) + '\',-1)">▲</button>'
+      + '<button class="btn-mgr" onclick="moveSs(\'' + escapeHtml(s.id) + '\',1)">▼</button>'
+      + '<button class="btn-mgr del" onclick="deleteSs(\'' + escapeHtml(s.id) + '\')">🗑️</button>'
+      + '</span></div></div>';
+  });
+  html += '</div>';
+  document.getElementById('ssMgrList').innerHTML = html;
+}
+async function addSs() {
+  if (!isAdmin) return;
+  const inp = document.getElementById('ssNewName');
+  const name = (inp.value || '').trim();
+  if (!name) { showToast('请输入名称', true); return; }
+  const arr = currentSsArr();
+  if (arr.some(s => s.name === name)) { showToast('⚠️ 已存在：' + name, true); return; }
+  const maxSort = arr.reduce((m, s) => Math.max(m, s.sort_order || 0), 0);
+  try {
+    if (!window.supabase) throw new Error('supabase 未初始化');
+    const { data, error } = await supabase.from(currentSsTable()).insert({
+      name, sort_order: maxSort + 1, is_active: true
+    }).select().single();
+    if (error) throw error;
+    arr.push(data);
+    refreshStaffShopSelects();
+    renderSsMgr();
+    inp.value = '';
+    showToast('✅ 已新增：' + name);
+  } catch(e) { showToast('⚠️ 新增失败：' + e.message, true); }
+}
+async function deleteSs(id) {
+  if (!isAdmin) return;
+  const arr = currentSsArr();
+  const item = arr.find(x => String(x.id) === String(id));
+  if (!item) return;
+  if (!confirm('确认删除「' + item.name + '」？\n（仅从选择列表移除，已存在的质检记录不受影响）')) return;
+  try {
+    if (window.supabase) await supabase.from(currentSsTable()).delete().eq('id', id);
+    const idx = arr.findIndex(x => String(x.id) === String(id));
+    if (idx >= 0) arr.splice(idx, 1);
+    refreshStaffShopSelects();
+    renderSsMgr();
+    showToast('🗑️ 已删除：' + item.name);
+  } catch(e) { showToast('⚠️ 删除失败：' + e.message, true); }
+}
+async function moveSs(id, dir) {
+  const arr = currentSsArr().slice().sort((a,b) => (a.sort_order||0)-(b.sort_order||0) || (a.name||'').localeCompare(b.name||''));
+  const i = arr.findIndex(s => String(s.id) === String(id));
+  if (i < 0) return;
+  const j = i + dir;
+  if (j < 0 || j >= arr.length) return;
+  const a = arr[i], b = arr[j];
+  const ta = a.sort_order, tb = b.sort_order;
+  a.sort_order = tb; b.sort_order = ta;
+  try {
+    if (window.supabase) {
+      await supabase.from(currentSsTable()).update({ sort_order: tb }).eq('id', a.id);
+      await supabase.from(currentSsTable()).update({ sort_order: ta }).eq('id', b.id);
+    }
+    const parent = currentSsArr();
+    const ia = parent.findIndex(x => String(x.id) === String(a.id));
+    const ib = parent.findIndex(x => String(x.id) === String(b.id));
+    if (ia >= 0) parent[ia].sort_order = tb;
+    if (ib >= 0) parent[ib].sort_order = ta;
+    refreshStaffShopSelects();
+    renderSsMgr();
+  } catch(e) { showToast('⚠️ 排序失败：' + e.message, true); }
+}
+
 /* ==================== Init ==================== */
 function prefillLast() {
   try {
     const s = localStorage.getItem('qc_last_staff');
     const sh = localStorage.getItem('qc_last_shop');
-    if (s) document.getElementById('inpStaff').value = s;
-    if (sh) document.getElementById('inpShop').value = sh;
+    if (s) { ensureSelectOption('inpStaff', s); document.getElementById('inpStaff').value = s; }
+    if (sh) { ensureSelectOption('inpShop', sh); document.getElementById('inpShop').value = sh; }
   } catch(e){}
+}
+// 若 select 中不存在该 option 则先补上（兼容历史值未纳入基础表的情况）
+function ensureSelectOption(selId, val) {
+  const el = document.getElementById(selId);
+  if (!el || !val) return;
+  if ([...el.options].some(o => o.value === val)) return;
+  const opt = document.createElement('option');
+  opt.value = val; opt.textContent = val;
+  el.appendChild(opt);
 }
 
 function init() {
@@ -1926,6 +2095,8 @@ function init() {
         prefillLast();
         updateAdminUI();
         loadSnippets();
+        loadStaffs();
+        loadShops();
         loadShares().then(() => { renderRecords(); updateCsBadge(); });
       });
     });
@@ -1944,6 +2115,21 @@ if (document.readyState === 'loading') {
 <div class="modal-overlay" id="snipMgrModal"><div class="modal" style="max-width:560px">
 <div class="modal-header"><h3>✏️ 话术库管理</h3><button class="close-btn" onclick="closeSnippetManager()">×</button></div>
 <div class="modal-body" id="snipMgrBody" style="padding:14px"></div>
+</div></div>
+
+<!-- 客服姓名 / 店铺 管理 Modal -->
+<div class="modal-overlay" id="ssMgrModal"><div class="modal" style="max-width:560px">
+<div class="modal-header"><h3>👥 客服姓名 / 店铺管理</h3><button class="close-btn" onclick="closeSsMgr()">×</button></div>
+<div class="modal-body" style="padding:14px">
+  <div class="ss-tabs">
+    <button class="ss-tab active" id="ssTabStaff" onclick="setSsTab('staff')">客服姓名</button>
+    <button class="ss-tab" id="ssTabShop" onclick="setSsTab('shop')">所属店铺</button>
+  </div>
+  <div id="ssMgrList"></div>
+  <div class="mgr-new-row"><b>➕ 新增<span id="ssNewLabel">客服</span></b>
+    <input id="ssNewName" placeholder="输入名称后点保存" style="margin-top:6px;width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;box-sizing:border-box;font-family:inherit;font-size:12px">
+    <button class="btn-mgr save" style="margin-top:6px" onclick="addSs()">保存新增</button></div>
+</div>
 </div></div>
 
 <!-- 分享链接弹窗 -->
