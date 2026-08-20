@@ -696,25 +696,19 @@ function setupZone(zoneId, imgContainerId, type) {
   const zone = document.getElementById(zoneId);
   const imgContainer = document.getElementById(imgContainerId);
   zone.addEventListener('paste', async (e) => {
-    e.preventDefault();
     const items = e.clipboardData.items;
     let hasImage = false;
     for (let item of items) {
+      if (item.type.indexOf('image') !== -1) hasImage = true;
+    }
+    if (!hasImage) return; // 纯文字粘贴不拦截，由浏览器默认处理
+    e.preventDefault();
+    for (let item of items) {
       if (item.type.indexOf('image') !== -1) {
-        hasImage = true;
         const blob = item.getAsFile();
         const id = 'img_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
         pendingImages[type].push({ id, blob, uploaded: false });
         renderPendingImage(imgContainer, id, blob, type);
-      }
-    }
-    if (!hasImage) {
-      const text = e.clipboardData.getData('text');
-      const ta = zone.querySelector('textarea');
-      if (ta) {
-        const start = ta.selectionStart;
-        ta.value = ta.value.substring(0,start) + text + ta.value.substring(end);
-        ta.selectionStart = ta.selectionEnd = start + text.length;
       }
     }
   });
