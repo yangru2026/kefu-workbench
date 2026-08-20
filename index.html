@@ -8132,11 +8132,19 @@ function showLightboxImage() {
   cancelLightboxPreload();
 
   hdEl.classList.remove('loaded');
-  hdEl.classList.add('thumb-placeholder');
   hdEl.removeAttribute('data-hd');
-  // 先显示已缓存的缩略图（即时可见，减少黑屏等待感），后台再加载高清中图
-  hdEl.src = img.thumb || '';
   loader.classList.add('show');
+
+  // 判断当前图片来源：Supabase Storage 图片没有本地 hd 中图，thumb / hd 是同一 URL
+  // 这种情况下无需模糊占位，直接显示原图等它自然加载即可；避免 1.3MB 大图被 CSS 模糊
+  const isSameSrc = img.thumb && (img.thumb === img.hd || img.thumb === img.large || !img.large);
+  if (isSameSrc) {
+    hdEl.src = img.hd || img.thumb || '';
+  } else {
+    hdEl.classList.add('thumb-placeholder');
+    // 先显示已缓存的缩略图（即时可见，减少黑屏等待感），后台再加载高清中图
+    hdEl.src = img.thumb || '';
+  }
 
   document.getElementById('lightbox-counter').textContent =
     lightboxImages.length > 1 ? (lightboxIdx + 1) + ' / ' + lightboxImages.length : '';
@@ -8169,23 +8177,32 @@ function loadLightboxHd(largeUrl, fallbackUrl) {
   const loader = document.getElementById('lightbox-loader');
 
   // 构建候选 URL 队列：CDN 中图 -> 直接源中图 -> CDN 原图 -> 直接源原图
+  // 注意：Supabase Storage URL 经过 toDirectUrl 后不变，需要去重
   const candidates = [];
   function addCandidate(url) {
     if (!url) return;
+    const direct = toDirectUrl(url);
     if (!candidates.includes(url)) candidates.push(url);
+    if (direct && direct !== url && !candidates.includes(direct)) candidates.push(direct);
   }
   addCandidate(largeUrl);
-  addCandidate(toDirectUrl(largeUrl));
   addCandidate(fallbackUrl);
-  addCandidate(toDirectUrl(fallbackUrl));
+
+  // 判断是否为 Supabase Storage 图片（中国大陆访问较慢，需要更长的超时）
+  const hasSupabaseUrl = candidates.some(u => u.includes('supabase.co'));
+  const LOAD_TIMEOUT = hasSupabaseUrl ? 20000 : 5000;
 
   let candidateIdx = 0;
   let timeoutTimer = null;
+  let hasFailed = false;
 
   function applyLoaded(url) {
     if (timeoutTimer) { clearTimeout(timeoutTimer); timeoutTimer = null; }
     resetLightboxStatus();
-    hdEl.src = url;
+    // 若 hdEl 当前 src 已是同一张图（Supabase 无中图情况），避免再次赋值造成闪烁
+    if (hdEl.src !== url) {
+      hdEl.src = url;
+    }
     hdEl.crossOrigin = 'anonymous';
     hdEl.setAttribute('data-hd', url);
     void hdEl.offsetWidth;
@@ -8194,13 +8211,24 @@ function loadLightboxHd(largeUrl, fallbackUrl) {
     loader.classList.remove('show');
   }
 
+  function showLoadingSlow() {
+    if (!hdEl.classList.contains('loaded') && !hasFailed) {
+      setLightboxStatus('图片较大，加载中…');
+    }
+  }
+
+  function showError() {
+    hasFailed = true;
+    resetLightboxStatus();
+    setLightboxStatus('图片加载失败，可点击重试', true);
+    loader.classList.add('show');
+  }
+
   function tryNext() {
     cancelLightboxPreload();
     if (candidateIdx >= candidates.length) {
       if (timeoutTimer) { clearTimeout(timeoutTimer); timeoutTimer = null; }
-      resetLightboxStatus();
-      setLightboxStatus('图片加载失败，可点击重试', true);
-      loader.classList.add('show');
+      showError();
       return;
     }
     const url = candidates[candidateIdx++];
@@ -8211,12 +8239,12 @@ function loadLightboxHd(largeUrl, fallbackUrl) {
     lightboxCurrentPreload.src = url;
   }
 
-  // 5秒超时：若当前图片仍未加载完，自动切换到下一个候选源
+  // 超时处理：先提示"加载中"，继续等待；只有真正 onerror 才切换候选或失败
   timeoutTimer = setTimeout(() => {
     if (!hdEl.classList.contains('loaded')) {
-      tryNext();
+      showLoadingSlow();
     }
-  }, 5000);
+  }, LOAD_TIMEOUT);
 
   cancelLightboxPreload();
   tryNext();

@@ -1,71 +1,46 @@
 # 尤赫客服工作台 - 项目记忆
 
-## 已完成功能
-- **客服信息管理** (2026-07-30): 侧边栏「📋 客服信息」入口，管理员可编辑、搜索、复制、导出CSV。新增 Supabase 表 overtime_records 和 compensatory_leave_records，加班调休按小时累计，逐笔记录日期和小时数，调休从累计加班中扣除，实时显示剩余可调时长。
-- **培训资料 & 花色素材实时同步** (2026-07-30): 迁移到 Supabase（training_materials + pattern_assets 表），管理员可直接在页面上增删改，所有客服实时更新，不再需要导出 config.json 部署。
-- **培训资料分类管理** (2026-07-30): training_categories 表，管理员可增删改分类，级联更新资料 category 字段，实时同步。
-- **花色素材分类管理** (2026-07-30): pattern_categories 表，四种维度（品牌/抛型/系列/色系）均可管理，级联更新 pattern_assets 对应字段，实时同步。右侧菜单改为右键触发。
-- **质检工具接入** (2026-07-31): 侧边栏「🔍 质检工具」入口，独立 qc.html (iframe 内嵌)，数据存储升级到 Supabase（qc_records 表 + qc-images Storage bucket），全员可查看、管理员可增删改。功能：录入/筛选/标记讲解/编辑/删除/讲解模式/质检分析/导出CSV/图片粘贴预览缩放。
-- **性能优化** (2026-07-31): 首屏懒加载（tesseract.js 改为按需加载）、页面切换按需加载数据、花色搜索防抖 250ms、质检页复用父窗口 supabase client。
-- **花色下架标记** (2026-07-31): pattern_assets 新增 is_discontinued 字段，管理员可标记下架/取消下架，自动生成「📦 下架花色」分类。
-- **飞书多维表格同步** (2026-07-31): Supabase Edge Function (feishu-sync) 接收飞书事件订阅/手动触发，拉取多维表格记录同步到 pattern_assets。工作台花色素材页新增「🔄 从飞书同步」按钮(admin-only)。需执行 feishu_sync_migration.sql，部署指南见 feishu-sync-deploy-guide.md。
-- **花色素材页加载性能优化** (2026-08-08): 三层方案全做。**A 修代码bug**：`app.js` 第14行 onSupabaseReady 重复调 loadPatternsFromDB+render，进入花色页重复 render 2 遍；**B 缩略图**（核心，357张原图 66.3MB → WebP 缩略图 11.3MB 节省 83%）：`generate_thumbnails.py` 批量生成 + 数据库加 `thumb_eye_url` / `thumb_lens_url` + renderPatterns 默认用缩略图 + hover 用 `data-lens-src` 延迟加载 + 前6张 `fetchpriority="high"` + `decoding="async"`；**C 分页**：每页20个 + "加载更多"按钮 + 切换筛选自动重置。**预期首屏从 8秒 → 1-1.5秒**。需执行 add_thumb_columns.sql。
-- **花色素材四项改进** (2026-08-08): ①Lightbox大图加载优化（限制900px+超时提示+重试按钮）；②卡片下架标记（meta-row标签+名称删除线）；③直径分类维度（第5维度，品牌>抛型>直径>系列>色系>状态，add_diameter_category.sql）；④色系分类合并整理（merge_color_categories.sql 将60+非标准值归一到9个标准分类，前端删除色系时弹出合并对话框支持"合并到其他色系"）。
-- **花色素材继续优化** (2026-08-08): ①Lightbox中图加速（900px WebP，357张27.9MB，优先加载中图失败回退原图，generate_large_images.py）；②直径值去重归一（normalize_diameter.sql 把14.5mm/14.5统一为14.5）；③删除分类通用合并对话框（直径/抛型/系列/色系删除时都支持合并到其他分类）；④卡片管理按钮对管理员默认可见（无需先开"管理模式"即可标记下架/编辑/删除）。
-- **花色素材问题修复** (2026-08-08): ①提供 add_discontinued_column.sql 添加 is_discontinued 字段解决下架标记失败；②修复 normalize_diameter.sql 的 CHECK 约束错误；③图片 URL 统一加 `?v=2` 缓存版本号强制刷新，hover lens 优先加载中图。
-- **Lightbox 高清图加载慢彻底解决** (2026-08-08): 三管齐下：①中图从 900px/quality82 降到 600px/quality70，357张从 27.9MB → 11.8MB（平均34KB）；②全站花色图片 URL 走 jsDelivr CDN 加速（国内节点快于 GitHub Pages）；③lightbox 交互重构：点击瞬间直接显示已缓存缩略图，后台静默加载高清中图，加载完淡入替换，失败保持缩略图不转圈。
-- **Lightbox 大图清晰度修复** (2026-08-08): 600px 中图在 900px lightbox 容器内被放大导致模糊。重新生成 **1200px/quality 82** 高清中图，357张共36.3MB（平均104KB），1200px 超过容器尺寸保证高清不模糊；中图 URL 加 `?v=3` 版本号强制刷新 jsDelivr 旧缓存。
-- **Lightbox 最终修复** (2026-08-08): ①中图目录从 `large/` 改为 `hd/` 彻底避开 jsDelivr CDN 旧缓存；②lightbox 不再用缩略图占位，直接 spinner→加载完 1200px 中图淡入；③图片加 `crossOrigin=anonymous` 修复 canvas 跨域复制；④复制功能不再 `window.open` 跳转网页，改为 canvas→fetch→下载文件。
-- **Lightbox 居中修复** (2026-08-08): 移除 absolute 定位的高清图叠加结构，改为普通 flex 布局自然居中，删除废弃的 lightbox-thumb 模糊占位图。
-- **飞书多表同步** (2026-08-08): Edge Function 改造为多表同步（花色素材/排班表/客服排名/售前月度），通过 action 参数区分。排班表改为 Supabase 数据驱动（schedule_data 表）+ Realtime + 单元格编辑保存。客服排名改为 Supabase 数据驱动（ranking_data 表）+ 月份切换 + 编辑保存。售前数据新增月度汇总 tab（presale_monthly 表），A/B/C 三组按月存档/补录/编辑。需执行 `feishu_multi_sync_migration.sql`，部署指南见 `feishu-multi-sync-deploy-guide.md`，飞书表格设计见 `feishu-tables-design.md`。
-- **客服排名 & 售前月度 Excel 导入** (2026-08-08): 引入 SheetJS 解析 `.xlsx/.xls/.csv`，客服排名页和售前月度汇总页新增「📥 导入Excel」按钮(admin-only)。自动识别中/英文表头，支持多种月份格式，导入后按唯一键 upsert 到 Supabase 并刷新页面。
-- **飞书多表同步上线** (2026-08-08): 飞书自建应用(App ID: cli_aafc447873a1dbc3) + Edge Function 部署完成。飞书多维表格(app_token: GQBkbeK4raE8k6s1zQOcGgHlnZf)含排班表/客服排名/售前月度数据3张表。Supabase secrets 已配置 7 个环境变量。前端 authToken 已填入。排班表同步测试通过(18条)。工作流：飞书表格编辑→工作台点「🔄 从飞书同步」→自动更新。FEISHU_PATTERN_TABLE_ID 未设置（花色素材在另一个 bitable）。
-- **花色素材飞书同步 insert-only + 附件 + 新款置顶 + 基弧/定轴** (2026-08-08): 花色素材同步改为只新增不覆盖（ignore-duplicates），移除标记下架逻辑。前端按 created_at 降序排列新款置顶，30天内新增花色显示🆕标签。花色图/上眼图支持飞书附件字段（自动下载→上传Supabase Storage）。新增基弧(base_curve)和定轴(fixed_axis)参数及筛选维度。已执行SQL: add_created_at_column / create_pattern_images_bucket / add_base_curve_fixed_axis / add_pattern_unique_constraint。FEISHU_PATTERN_TABLE_ID=tblPsLQKmM9XSHLm。首次同步成功(5款新款,7张图片)。
-- **花色素材附件支持** (2026-08-08): 飞书表格「花色图」「上眼图」改为附件字段，Edge Function 自动下载附件→上传到 Supabase Storage→存储公开URL。需执行 `create_pattern_images_bucket.sql` 创建 pattern-images bucket。
-- **花色素材新增基弧和定轴参数** (2026-08-08): pattern_assets 新增 base_curve 和 fixed_axis 字段。基弧为筛选维度（数据驱动，值如8.6/8.7/8.8），定轴为筛选标签（有值=定轴款）。筛选层级：品牌>抛型>直径>基弧>系列>色系>定轴>状态。需执行 `add_base_curve_fixed_axis.sql`。
-- **花色图附件字段支持** (2026-08-08): 飞书表格花色图/上眼图改为附件字段，同步时自动从飞书下载图片→上传到 Supabase Storage（`pattern-images` bucket）→存储公开URL。同时兼容文本URL字段。需执行 `create_pattern_images_bucket.sql`。
-- **客服申请审批系统** (2026-08-11): 客服可提交换班/加班/调休申请，管理员审批通过后自动联动更新排班表/加班时长/调休时长。cs_requests 表（type/status/target_date/shift_from/shift_to/hours/reason），RLS 全员可查看新增、仅管理员可审批。换班通过→自动修改 schedule_data 当天班次；加班通过→自动 insert overtime_records；调休通过→自动 insert compensatory_leave_records。侧边栏「📝 申请审批」入口，待审批 badge。需执行 `create_cs_requests_table.sql`。
-- **连带成交登记同步** (2026-08-12): 新增 `cross_sales` 表实时同步飞书连带成交登记表。工作台新增「🛒 连带成交」页面，自动展示第二单销售额排名（按日/按月切换），下方显示成交明细。Edge Function `feishu-sync` 新增 `sync_cross_sales` action 和 `FEISHU_CROSS_SALES_TABLE_ID` 环境变量。支持页面协作权限，管理员可邀请客服协助维护。**使用模式**：历史数据从飞书一次性同步或「📥 导入Excel」，日常由客服点「➕ 新增登记」直接登记（所有登录客服可 INSERT，更新/删除仅限 admin/leader，需执行 `create_cross_sales_table.sql` + `add_cross_sales_insert_policy.sql`）。
+## 已完成功能摘要
+- **客服信息管理**：Supabase 表 `cs_info` + 加班/调休小时累计（`overtime_records`/`compensatory_leave_records`）。
+- **培训资料 & 花色素材**：迁移到 Supabase（`training_materials`/`pattern_assets`/`training_categories`/`pattern_categories`），管理员页面直接维护，全员实时同步。
+- **质检工具**：`qc_records` + `qc-images` Storage，支持录入/筛选/讲解/编辑/删除/导出。
+- **花色素材性能**：缩略图/中图（1200px WebP）+ jsDelivr CDN + 分页/懒加载。
+- **花色素材同步**：飞书附件自动下载上传到 Supabase Storage（`pattern-images` bucket）；新增 `base_curve`/`fixed_axis`、`is_discontinued`、新款🆕标签。
+- **飞书多表同步**：排班表/客服排名/售前月度/连带成交均接入 Supabase，支持 Excel 导入。
+- **客服申请审批**：`cs_requests` 表，审批通过后自动联动排班/加班/调休。
+- **连带成交**：`cross_sales` 表，按店铺/产品分组管理，支持页面协作权限。
 
 ## 待开发功能清单
-
-以下功能已规划，待后续逐一开发完善：
-
 1. **周报** - 每周数据汇总报告
-2. ~~**售前月度数据汇总** - 月度售前数据统计与分析~~ ✅ 已完成
+2. ~~售前月度数据汇总~~ ✅
 3. **积分卡** - 客服积分/绩效卡
-4. ~~**质检工具接入** - 接入质检相关工具或系统~~ ✅ 已完成
-5. ~~**权限开放功能** - 更细粒度的权限控制~~ ✅ 已完成（页面协作权限系统，管理员可邀请客服协作编辑特定页面）
+4. ~~质检工具接入~~ ✅
+5. ~~权限开放功能~~ ✅
 6. **审单统计功能** - 订单审核统计
 
 ## 技术栈
 - 前端：原生 HTML/CSS/JS，部署于 GitHub Pages
-- 后端：Supabase (ienmejlxukhrxjjxvfqf.supabase.co)
+- 后端：Supabase (`ienmejlxukhrxjjxvfqf.supabase.co`)
 - 访问地址：https://yangru2026.github.io/kefu-workbench/
 
----
+## Supabase anon public key 管理（重要）
+- **首次刷新记录**：2026-08-18，旧 key 失效后从 Project Settings → API 复制新 key，已替换 5 个文件并 commit `83fa2e4`。
+- **涉及文件**：`cs-qc.html` `diagnose.html` `qc-share.html` `qc-v2.html` `qc.html`
+- **key 位置**：https://supabase.com/dashboard/project/ienmejlxukhrxjjxvfqf/settings/api → 复制 "anon public"
+- **快速诊断**：`curl -o /dev/null -w "%{http_code}" -H "apikey: <KEY>" -H "Authorization: Bearer <KEY>" "https://ienmejlxukhrxjjxvfqf.supabase.co/rest/v1/qc_shares?select=id&limit=1"` → 200 有效，401 失效。
+- **缓存问题**：GitHub Pages 会缓存静态文件，部署后若仍报旧错误，客服需 `Ctrl+Shift+R` 强制刷新。
+
+## 花色素材图片链路
+- 旧花色：GitHub Pages `/patterns/` → jsDelivr CDN；中图 `/patterns/hd/*.webp?v=3`（1200px/quality 82）。
+- 新花色（飞书附件同步）：Supabase Storage `pattern-images` bucket，公开 URL；单张常 1MB+，国内访问慢（6s+）。
+- **已知问题**：Supabase Storage 未启用 Image Transformations，无法动态生成中图；lightbox 大图需走原图。
 
 ## 辽哥健身房（微信小程序）
 - 本地：`fitness-miniapp/`
-- 技术栈：微信小程序原生框架（WXML + WXSS + JS）
-- AppID：wx4d7fb2ba6a586905
-- 动作GIF来源：jsDelivr CDN (ExerciseGymGifsDB)
-- 动作视频来源：Cloudflare R2 CDN (free-exercise-db-with-videos, 1080p MP4)
-- 视频CDN域名：pub-585d42eb1aa64a67aedf483ec328d3fe.r2.dev（需在微信后台配置 downloadFile 合法域名）
-- 5 Tab 结构：训练/跟练/计时/饮食/我的
-- v2.0 功能：模板计划+自由训练+居家模板、跟练播放器、饮食记录、体重BMI、社交分享
-- v2.2 新增功能：
-  - 饮食拍照识别热量（百度AI菜品识别API，200+菜品热量库兜底）
-  - 运动卡路里自动记录（MET代谢当量公式，50+动作MET值）
-  - 体重维度记录（胸/腰/臀/大腿/臂围）+ Canvas体重趋势折线图
-- 视频教程：81%动作有1080p视频，无视频的动作回退GIF动图
-- 真人视频管理：支持自定义上传真人示范视频（云存储URL或本地相册）
-- B站帕梅拉视频：10个跟练课程接入帕梅拉真人完整视频链接
-
----
+- AppID：`wx4d7fb2ba6a586905`
+- 状态：主体认证已完成（30元），ICP 备案待推进。
 
 ## 前端改动验证方法（本沙箱可复用）
-- **语法检查**：`node -e "..."` 提取 inline `<script>`（正则 `/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g`）逐段 `new Function(m[1])` 校验。注意：Write 工具与 Bash 看到**不同文件系统**，校验脚本须在同一条 Bash 内用 `node -e` 或 heredoc 完成，不要 Write 后再跨工具读。
-- **无头浏览器冒烟测试**：`puppeteer-core`（**绝对路径 require** `C:\Users\Administrator\.workbuddy\binaries\node\workspace\node_modules\puppeteer-core`）+ Edge（`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`，headless:'new', args:['--no-sandbox']），本地 `http.createServer` 起服务加载页面，检查 `console`/`pageerror` 与新函数 `typeof`。
-- **坑**：`NODE_PATH` 在此环境不生效，必须绝对路径 require；`puppeteer-core` 依赖 `proxy-agent`（其 `dist/index.js` 缺失，需本地 stub）；测试脚本用 heredoc 写在**同一条 Bash 命令**里（规避 Write/Bash 文件系统不一致）。
-- **线上验证**：GitHub Pages 部署后 `curl` 拉 index.html 查标记；但本沙箱**外网极慢（~0.2KB/s）**，420KB 文件常超时，以 `git push` 成功 + 本地冒烟测试通过为准，勿因 curl 超时误判未部署。
+- **语法检查**：`node -e "..."` 提取 inline `<script>` 逐段 `new Function(m[1])` 校验。
+- **无头浏览器冒烟测试**：`puppeteer-core`（绝对路径 require）+ Edge headless，本地起服务加载页面检查 `console`/`pageerror`。
+- **线上验证**：以 `git push` 成功 + 本地冒烟测试为准，勿因本沙箱外网慢而误判未部署。
