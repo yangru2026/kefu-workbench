@@ -74,6 +74,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .paste-img-box img{max-width:100%;max-height:100%;object-fit:contain}
 .paste-img-box .del-img{position:absolute;top:2px;right:2px;width:20px;height:20px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .paste-img-box .del-img:hover{background:var(--red)}
+.edit-img-list{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 6px}
+.edit-img-item{position:relative;width:88px;height:88px;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:#f8fafc}
+.edit-img-item img{width:100%;height:100%;object-fit:cover}
 
 /* ===== Tags ===== */
 .tag-group{display:flex;flex-wrap:wrap;gap:8px}
@@ -146,6 +149,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 /* ===== Modal ===== */
 .modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;justify-content:center;align-items:center;z-index:1000;padding:20px}
 .modal-overlay.active{display:flex}
+#editModal{z-index:1100}
 .modal{background:#fff;width:100%;max-width:700px;max-height:92vh;border-radius:14px;padding:0;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,.1);display:flex;flex-direction:column}
 .modal-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
 .modal-header h3{margin:0;font-size:15px}
@@ -454,9 +458,9 @@ async function syncRecord(record) {
   if (!isAdmin) { showToast('⚠️ 只读模式，无法保存', true); return; }
   try {
     // Upload pending images first
-    record.sceneImages = await uploadPendingImages('scene');
-    record.replyImages = await uploadPendingImages('reply');
-    record.knowledgeImages = await uploadPendingImages('knowledge');
+    record.sceneImages = [].concat(record.keepSceneImages || [], await uploadPendingImages('scene'));
+    record.replyImages = [].concat(record.keepReplyImages || [], await uploadPendingImages('reply'));
+    record.knowledgeImages = [].concat(record.keepKnowledgeImages || [], await uploadPendingImages('knowledge'));
 
     const r = {
       id: record.id,
@@ -918,10 +922,13 @@ async function editRecord(id) {
     + '<button class="sev-btn critical' + (r.severity==='严重需整改'?' active':'') + '" onclick="setEditSev(this,\'严重需整改\')">严重需整改</button>'
     + '</div></div>'
     + '<div class="form-item" id="rowEditPenalty"><label>💰 扣罚金额(元) <span style="font-weight:400;color:var(--text2)">(一般提醒不扣钱)</span></label><input type="number" id="editPenalty" min="0" step="0.01" placeholder="一般提醒留空；其他类型时填" value="' + ((r.penalty_amount!=null?r.penalty_amount:(r.penaltyAmount||0))||'') + '"' + (r.severity==='一般'?' disabled':'') + ' style="max-width:200px"></div>'
+    + '<div class="form-item"><label>📸 客户问题截图（可删除，保存生效）</label><div id="editImgScene" class="edit-img-list"></div></div>'
     + '<div class="form-item"><label>客户问题</label><textarea class="paste-textarea" id="editScene">' + escapeHtml(r.scene||'') + '</textarea></div>'
+    + '<div class="form-item"><label>📸 客服回复截图（可删除，保存生效）</label><div id="editImgReply" class="edit-img-list"></div></div>'
     + '<div class="form-item"><label>客服回复</label><textarea class="paste-textarea" id="editReply">' + escapeHtml(r.reply||'') + '</textarea></div>'
     + '<div class="form-item"><label>问题描述</label><textarea class="paste-textarea" id="editProblem">' + escapeHtml(r.problem||'') + '</textarea></div>'
     + '<div class="form-item"><label>正确做法</label><textarea class="paste-textarea" id="editCorrect" style="min-height:100px">' + escapeHtml(r.correct||'') + '</textarea></div>'
+    + '<div class="form-item"><label>📸 知识点配图（可删除，保存生效）</label><div id="editImgKnowledge" class="edit-img-list"></div></div>'
     + '<div class="form-item"><label>知识点</label><textarea class="paste-textarea" id="editKnowledge" style="min-height:100px">' + escapeHtml(r.knowledge||'') + '</textarea></div>'
     + '<div class="form-item"><label>备注</label><input type="text" id="editNote" value="' + escapeHtml(r.note||'') + '"></div>'
     + '<div class="form-grid">'
@@ -929,7 +936,33 @@ async function editRecord(id) {
     + '<div class="form-item"><label>讲解备注</label><input type="text" id="editCoachNote" value="' + escapeHtml(r.coach_note||'') + '"></div>'
     + '<div class="form-item"><label>状态</label><select id="editStatus"><option value="pending"' + (r.status==='pending'?' selected':'') + '>待讲解</option><option value="done"' + (r.status==='done'?' selected':'') + '>已讲解</option></select></div>'
     + '</div>';
+  await renderEditImages(r);
   document.getElementById('editModal').classList.add('active');
+}
+
+async function renderEditImages(r) {
+  const defs = [['scene','editImgScene'],['reply','editImgReply'],['knowledge','editImgKnowledge']];
+  for (const [type, id] of defs) {
+    const container = document.getElementById(id);
+    if (!container) continue;
+    const imgs = (r[type + '_images'] || []);
+    let html = '';
+    for (const imgId of imgs) {
+      const url = await getImageUrl(imgId);
+      if (!url) continue;
+      html += '<div class="edit-img-item"><img src="' + url + '" onclick="previewImage(\'' + url + '\',\'' + imgId + '\')" style="cursor:zoom-in" alt=""><button class="del-img" onclick="event.stopPropagation();removeEditImage(\'' + type + '\',\'' + imgId + '\')">×</button></div>';
+    }
+    container.innerHTML = html || '<div style="font-size:12px;color:var(--text2)">无</div>';
+  }
+}
+
+function removeEditImage(type, imgId) {
+  const r = records.find(x => x.id == editingId);
+  if (!r) return;
+  const key = type + '_images';
+  if (!r[key]) r[key] = [];
+  r[key] = r[key].filter(x => x !== imgId);
+  renderEditImages(r);
 }
 
 function toggleEditTag(el) {
@@ -968,6 +1001,10 @@ async function saveEdit() {
   r.penalty_amount = parseFloat(document.getElementById('editPenalty').value) || 0;
   if (editTags.length) r.tags = [...editTags];
   if (editSeverity) r.severity = editSeverity;
+  // 保留已有图片，仅追加本次新增（编辑弹窗不提供贴图，故 keep 即原图）
+  r.keepSceneImages = r.scene_images || [];
+  r.keepReplyImages = r.reply_images || [];
+  r.keepKnowledgeImages = r.knowledge_images || [];
 
   await syncRecord(r);
   updateStats(); renderRecords();
