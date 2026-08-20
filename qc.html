@@ -274,6 +274,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <button class="sev-btn important" data-val="严重" onclick="setSeverity(this,'严重')">严重问题</button>
 <button class="sev-btn critical" data-val="严重需整改" onclick="setSeverity(this,'严重需整改')">严重需整改</button>
 </div></div>
+<div class="form-item" id="rowPenalty"><label>💰 扣罚金额(元) <span style="font-weight:400;color:var(--text2)">(一般提醒不扣钱，选其他类型时填写)</span></label><input type="number" id="inpPenalty" min="0" step="0.01" placeholder="一般提醒留空；严重/严重需整改时填" disabled style="max-width:200px"></div>
 <div class="form-item"><label>客户问题 / 聊天记录截图</label>
 <div class="paste-zone" id="zoneScene" tabindex="0">
 <div class="paste-hint">💡 在此输入文字描述，或 <kbd>Ctrl+V</kbd> 粘贴截图 / <kbd>拖拽</kbd> 图片到此处</div>
@@ -477,6 +478,7 @@ async function syncRecord(record) {
       status: record.status,
       coach_date: record.coachDate || '',
       coach_note: record.coachNote || '',
+      penalty_amount: record.penaltyAmount || record.penalty_amount || 0,
       created_by: currentAuthUser?.phone || ''
     };
 
@@ -647,6 +649,10 @@ function setSeverity(btn, val) {
   document.querySelectorAll('#sevGroup .sev-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   currentSeverity = val;
+  const inpPenalty = document.getElementById('inpPenalty');
+  if (!inpPenalty) return;
+  if (val === '一般') { inpPenalty.value = ''; inpPenalty.disabled = true; }
+  else { inpPenalty.disabled = false; }
 }
 
 function clearForm() {
@@ -666,6 +672,7 @@ function clearForm() {
   currentSeverity = '一般';
   document.querySelectorAll('#sevGroup .sev-btn').forEach(b => b.classList.remove('active'));
   document.querySelector('#sevGroup .sev-btn[data-val="一般"]').classList.add('active');
+  const inpPenalty = document.getElementById('inpPenalty'); if (inpPenalty) { inpPenalty.value = ''; inpPenalty.disabled = true; }
   clearPendingImages();
 }
 
@@ -695,6 +702,7 @@ async function addRecord() {
     correct: correctItems.length ? correctItems.join('\n') : '',
     knowledge: knowledgeItems.length ? knowledgeItems.join('\n') : '',
     note: document.getElementById('inpNote').value.trim(),
+    penaltyAmount: parseFloat(document.getElementById('inpPenalty').value) || 0,
     sceneImages: [], replyImages: [], knowledgeImages: [],
     status: 'pending', coachDate: '', coachNote: '',
     created_at: new Date().toISOString()
@@ -792,6 +800,7 @@ async function renderRecords() {
       + '<span class="record-date">📅 ' + r.date + '</span>'
       + '<span class="record-status ' + statusClass + '">' + statusText + '</span>'
       + (r.severity!=='一般' ? '<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:' + sevColor + '20;color:' + sevColor + ';font-weight:600">' + r.severity + '</span>' : '')
+      + (((r.penalty_amount!=null?r.penalty_amount:(r.penaltyAmount||0))>0) ? '<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#fdecea;color:#c0392b;font-weight:700">💰 扣 ¥'+((r.penalty_amount!=null?r.penalty_amount:(r.penaltyAmount||0)))+'</span>' : '')
       + '</div></div>'
       + '<div class="record-tags">' + tagHtml + '</div>'
       + '<div class="record-body">';
@@ -914,6 +923,7 @@ async function editRecord(id) {
     + '<button class="sev-btn important' + (r.severity==='严重'?' active':'') + '" onclick="setEditSev(this,\'严重\')">严重问题</button>'
     + '<button class="sev-btn critical' + (r.severity==='严重需整改'?' active':'') + '" onclick="setEditSev(this,\'严重需整改\')">严重需整改</button>'
     + '</div></div>'
+    + '<div class="form-item" id="rowEditPenalty"><label>💰 扣罚金额(元) <span style="font-weight:400;color:var(--text2)">(一般提醒不扣钱)</span></label><input type="number" id="editPenalty" min="0" step="0.01" placeholder="一般提醒留空；其他类型时填" value="' + ((r.penalty_amount!=null?r.penalty_amount:(r.penaltyAmount||0))||'') + '"' + (r.severity==='一般'?' disabled':'') + ' style="max-width:200px"></div>'
     + '<div class="form-item"><label>客户问题</label><textarea class="paste-textarea" id="editScene">' + escapeHtml(r.scene||'') + '</textarea></div>'
     + '<div class="form-item"><label>客服回复</label><textarea class="paste-textarea" id="editReply">' + escapeHtml(r.reply||'') + '</textarea></div>'
     + '<div class="form-item"><label>问题描述</label><textarea class="paste-textarea" id="editProblem">' + escapeHtml(r.problem||'') + '</textarea></div>'
@@ -938,6 +948,10 @@ function setEditSev(btn, val) {
   btn.parentElement.querySelectorAll('.sev-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   editSeverity = val;
+  const inpPenalty = document.getElementById('editPenalty');
+  if (!inpPenalty) return;
+  if (val === '一般') { inpPenalty.value = ''; inpPenalty.disabled = true; }
+  else { inpPenalty.disabled = false; }
 }
 
 async function saveEdit() {
@@ -957,6 +971,7 @@ async function saveEdit() {
   r.coach_date = document.getElementById('editCoachDate').value;
   r.coach_note = document.getElementById('editCoachNote').value.trim();
   r.status = document.getElementById('editStatus').value;
+  r.penalty_amount = parseFloat(document.getElementById('editPenalty').value) || 0;
   if (editTags.length) r.tags = [...editTags];
   if (editSeverity) r.severity = editSeverity;
 
@@ -1229,6 +1244,21 @@ function renderAnalysisSheet() {
     html += '</div></div>';
   }
 
+  // 扣罚汇总
+  const penaltyRecs = allRecs.filter(r => ((r.penalty_amount!=null?r.penalty_amount:(r.penaltyAmount||0))||0) > 0);
+  if (penaltyRecs.length) {
+    const totalPenalty = penaltyRecs.reduce((s,r)=>s+((r.penalty_amount!=null?r.penalty_amount:(r.penaltyAmount||0))||0),0);
+    const byMonth = {};
+    penaltyRecs.forEach(r => { const m = (r.date||'').substring(0,7); if (m) byMonth[m] = (byMonth[m]||0) + ((r.penalty_amount!=null?r.penalty_amount:(r.penaltyAmount||0))||0); });
+    const monthList = Object.entries(byMonth).sort((a,b)=>a[0].localeCompare(b[0]));
+    html += '<div class="analysis-section"><h4>💰 扣罚汇总</h4>'
+      + '<div class="analysis-grid"><div class="analysis-kpi"><div class="num" style="color:#c0392b">¥' + totalPenalty + '</div><div class="lbl">扣罚总额</div></div><div class="analysis-kpi"><div class="num" style="color:#c0392b">' + penaltyRecs.length + '</div><div class="lbl">扣罚条数</div></div></div>';
+    if (monthList.length) {
+      html += '<div style="margin-top:8px"><b>按月汇总：</b>' + monthList.map(([m,v])=>'<span style="display:inline-block;margin:3px 6px;padding:2px 8px;border-radius:4px;background:#fdecea;color:#c0392b;font-weight:600">'+m+' ¥'+v+'</span>').join('') + '</div>';
+    }
+    html += '</div>';
+  }
+
   if (repeats.length) {
     html += '<div class="analysis-section"><h4>🔁 重复问题检测（≥2次）</h4><table class="repeat-table"><tr><th>分类</th><th>次数</th><th>占比</th><th>建议</th></tr>';
     repeats.forEach(([tag,count]) => {
@@ -1264,7 +1294,8 @@ function renderAllStaffSummary(el) {
   const totalTags = tagList.reduce((s,[,c])=>s+c,0);
 
   let html = '<div class="analysis-header"><h2>📊 全部客服汇总分析</h2><p>' + todayStr() + ' | ' + records.length + '条记录 | ' + allStaff.length + '位客服</p></div>';
-  html += '<div class="analysis-grid"><div class="analysis-kpi"><div class="num">' + records.length + '</div><div class="lbl">质检总数</div></div><div class="analysis-kpi"><div class="num" style="color:var(--red)">' + pendingTotal + '</div><div class="lbl">待讲解</div></div><div class="analysis-kpi"><div class="num" style="color:var(--success)">' + doneTotal + '</div><div class="lbl">已讲解</div></div><div class="analysis-kpi"><div class="num">' + allStaff.length + '</div><div class="lbl">涉及客服</div></div></div>';
+  const totalPenaltyAll = records.reduce((s,r)=>s+((r.penalty_amount!=null?r.penalty_amount:(r.penaltyAmount||0))||0),0);
+  html += '<div class="analysis-grid"><div class="analysis-kpi"><div class="num">' + records.length + '</div><div class="lbl">质检总数</div></div><div class="analysis-kpi"><div class="num" style="color:var(--red)">' + pendingTotal + '</div><div class="lbl">待讲解</div></div><div class="analysis-kpi"><div class="num" style="color:var(--success)">' + doneTotal + '</div><div class="lbl">已讲解</div></div><div class="analysis-kpi"><div class="num">' + allStaff.length + '</div><div class="lbl">涉及客服</div></div><div class="analysis-kpi"><div class="num" style="color:#c0392b">¥' + totalPenaltyAll + '</div><div class="lbl">扣罚总额</div></div></div>';
 
   // Per-staff breakdown
   html += '<div class="analysis-section"><h4>👥 各客服质检分布</h4>';
@@ -1294,10 +1325,11 @@ function closeAnalysisModal() { document.getElementById('analysisModal').classLi
 function exportCSV() {
   const list = getFilteredRecords();
   if (!list.length) { showToast('没有可导出的数据'); return; }
-  const header = '日期,客服,客户ID,店铺,问题分类,严重程度,状态,客户问题,客服回复,问题描述,正确做法,知识点,备注,讲解日期,讲解备注';
+  const header = '日期,客服,客户ID,店铺,问题分类,严重程度,状态,扣罚金额,客户问题,客服回复,问题描述,正确做法,知识点,备注,讲解日期,讲解备注';
   const rows = list.map(r => {
     const escape = v => { if (!v) return ''; v = String(v).replace(/"/g,'""'); return '"' + v + '"'; };
-    return [r.date, r.staff, r.customer_id||'', r.shop, (r.tags||[]).join(';'), r.severity, r.status==='pending'?'待讲解':'已讲解', r.scene, r.reply, r.problem, r.correct, r.knowledge, r.note, r.coach_date, r.coach_note].map(escape).join(',');
+    const pa = (r.penalty_amount!=null?r.penalty_amount:(r.penaltyAmount||0))||0;
+    return [r.date, r.staff, r.customer_id||'', r.shop, (r.tags||[]).join(';'), r.severity, r.status==='pending'?'待讲解':'已讲解', pa, r.scene, r.reply, r.problem, r.correct, r.knowledge, r.note, r.coach_date, r.coach_note].map(escape).join(',');
   });
   const csv = '\uFEFF' + header + '\n' + rows.join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });

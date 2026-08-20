@@ -193,8 +193,9 @@ function renderRecord(r){
     + (r.customer_id?'<span class="record-cid">👤 '+escapeHtml(r.customer_id)+'</span>':'')
     +'<span class="record-date">📅 '+r.date+'</span>'
     +'<span class="record-status '+statusClass+'">'+statusText+'</span>'
-    + (r.severity&&r.severity!=='一般'?'<span class="sev-tag" style="background:'+sevColor+'20;color:'+sevColor+'">'+escapeHtml(r.severity)+'</span>':'')
-    +'</div></div>'
+  + (r.severity&&r.severity!=='一般'?'<span class="sev-tag" style="background:'+sevColor+'20;color:'+sevColor+'">'+escapeHtml(r.severity)+'</span>':'')
+  + (((r.penalty_amount||r.penaltyAmount||0))>0?'<span class="sev-tag" style="background:#fdecea;color:#c0392b">💰 扣 ¥'+(r.penalty_amount||r.penaltyAmount||0)+'</span>':'')
+  +'</div></div>'
     + (tagHtml?'<div class="record-tags">'+tagHtml+'</div>':'')
     +'<div class="record-body">';
   if(r.scene) h+='<div class="record-section"><div class="record-section-title">🗣️ 客户问题</div><div class="record-section-text">'+escapeHtml(r.scene)+'</div></div>';
