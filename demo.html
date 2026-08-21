@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>尤赫客服管理工作台 · 演示版</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f4f6f8; color: #333; }
+  .topbar { background: linear-gradient(135deg, #7b9b6a, #5e7d4f); color: #fff; padding: 18px 24px; }
+  .topbar h1 { font-size: 20px; font-weight: 700; }
+  .topbar .sub { font-size: 13px; opacity: .92; margin-top: 4px; }
+  .banner { background: #fff7e6; border-bottom: 1px solid #ffe7ba; color: #ad6800; font-size: 13px; padding: 10px 24px; }
+  .modules { max-width: 1100px; margin: 16px auto; padding: 0 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .mod { background: #fff; border: 1px solid #eaeaea; border-radius: 10px; padding: 14px 16px; }
+  .mod .t { font-weight: 600; font-size: 14px; color: #5e7d4f; }
+  .mod .d { font-size: 12px; color: #777; margin-top: 6px; line-height: 1.6; }
+  .frame-wrap { max-width: 1100px; margin: 8px auto 40px; padding: 0 16px; }
+  .frame-wrap .hint { font-size: 12px; color: #999; margin-bottom: 8px; }
+  iframe { width: 100%; height: 78vh; border: 1px solid #e3e3e3; border-radius: 12px; background: #fff; }
+  @media (max-width: 600px) { iframe { height: 70vh; } }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>尤赫客服管理工作台</h1>
+    <div class="sub">售前客服团队 · 质检 / 扣罚 / 跨店登记 / 花色素材 / 周报 一体化管理</div>
+  </div>
+  <div class="banner">📋 演示模式：下方所有数据均为<b>脱敏示例</b>（客服名、客户ID、聊天记录均为虚构），仅用于展示功能，不可编辑保存。完整版已在实际团队使用中运行。</div>
+  <div class="modules">
+    <div class="mod"><div class="t">🔍 质检 + 扣罚系统</div><div class="d">记录聊天质检，一般提醒不扣钱，严重类自定义扣罚金额，自动按客服/按月汇总。</div></div>
+    <div class="mod"><div class="t">👥 客服信息</div><div class="d">客服档案、加班 / 调休时长累计管理。</div></div>
+    <div class="mod"><div class="t">🎨 花色素材</div><div class="d">美瞳花色图库，支持命名 / 排序 / 停用，缩略图加速。</div></div>
+    <div class="mod"><div class="t">🔗 跨店登记</div><div class="d">多店铺连带成交登记，提成核算与对账。</div></div>
+    <div class="mod"><div class="t">📊 周报模板</div><div class="d">按店好评差评跟踪，可编辑指标，一键生成。</div></div>
+    <div class="mod"><div class="t">📚 培训资料</div><div class="d">话术沉淀、知识点库实时同步全员。</div></div>
+  </div>
+  <div class="frame-wrap">
+    <div class="hint">▼ 质检 + 扣罚系统（脱敏演示，可滚动查看列表 / 分析 / 讲解模式）</div>
+    <iframe src="qc-v2.html?demo=1" title="质检演示"></iframe>
+  </div>
+</body>
+</html>

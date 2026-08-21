@@ -516,10 +516,27 @@ async function loadSupabaseScript() {
   window.__qcSupabase = window.supabase;
 }
 
+/* ==================== DEMO MODE（投稿演示·脱敏） ==================== */
+const DEMO = new URLSearchParams(location.search).has('demo');
+// 内联占位聊天截图（不依赖外部图床，国内访问稳定）
+const DEMO_CHAT_SVG = "<svg xmlns='http://www.w3.org/2000/svg' width='320' height='200'><rect width='320' height='200' fill='rgb(245,245,245)'/><text x='16' y='30' font-family='sans-serif' font-size='13' fill='rgb(102,102,102)'>客户：这款美瞳度数怎么选？</text><rect x='16' y='40' width='250' height='42' rx='8' fill='rgb(227,242,253)'/><text x='28' y='66' font-family='sans-serif' font-size='13' fill='rgb(21,101,192)'>客服：按近视度数+散光换算即可</text><rect x='70' y='92' width='234' height='42' rx='8' fill='white' stroke='rgb(221,221,221)'/><text x='82' y='118' font-family='sans-serif' font-size='13' fill='rgb(51,51,51)'>客户：好的，那我拍度数款~</text></svg>";
+const DEMO_IMG = 'data:image/svg+xml,' + encodeURIComponent(DEMO_CHAT_SVG);
+// 脱敏假数据：客服名/客户ID 均为示例，聊天场景虚构
+const DEMO_STAFFS = ['示例客服A', '示例客服B', '示例客服C'];
+const DEMO_SHOPS = ['淘宝旗舰店', '抖音直播间', '私域微信'];
+const DEMO_RECORDS = [
+  { id: 9000000000001, staff:'示例客服A', customer_id:'C-2026****8832', shop:'淘宝旗舰店', date:'2026-08-19', tags:['发货时效','催付'], severity:'一般', scene:'客户咨询发货时间，客服已告知48小时内', reply:'亲，现货拍下48小时内发出哦~', problem:'回复偏机械，未主动确认收货地址', correct:'可补充“已为您核对默认地址，如需修改请留言”', knowledge:'现货发货时效 SOP', note:'', scene_images:[DEMO_IMG], reply_images:[], knowledge_images:[], status:'done', coach_date:'2026-08-19', coach_note:'语气可更亲切', penalty_amount:0, created_at:'2026-08-19T10:00:00Z' },
+  { id: 9000000000002, staff:'示例客服B', customer_id:'C-2026****1175', shop:'抖音直播间', date:'2026-08-19', tags:['退换货','度数换算'], severity:'严重', scene:'客户买错度数要求退，客服未核实订单直接承诺退款', reply:'给您退款哈', problem:'未核实订单状态即承诺退款，存在资损风险', correct:'先查订单→确认未发货→引导平台退款流程', knowledge:'退换货核实 SOP', note:'需重点培训', scene_images:[], reply_images:[], knowledge_images:[], status:'pending', coach_date:'', coach_note:'', penalty_amount:20, created_at:'2026-08-19T14:20:00Z' },
+  { id: 9000000000003, staff:'示例客服C', customer_id:'C-2026****6609', shop:'私域微信', date:'2026-08-20', tags:['投诉','服务态度'], severity:'严重需整改', scene:'客户投诉响应慢，客服隔了3小时才回', reply:'抱歉久等了', problem:'响应超时，未先安抚情绪', correct:'设置快捷“已读回执+预计回复时间”', knowledge:'投诉处理话术', note:'本月第二次', scene_images:[DEMO_IMG], reply_images:[], knowledge_images:[], status:'pending', coach_date:'', coach_note:'', penalty_amount:50, created_at:'2026-08-20T09:10:00Z' },
+  { id: 9000000000004, staff:'示例客服A', customer_id:'C-2026****2048', shop:'淘宝旗舰店', date:'2026-08-20', tags:['产品咨询'], severity:'一般', scene:'客户问含水量区别', reply:'日抛建议选高含水更舒适', problem:'无', correct:'', knowledge:'美瞳参数科普', note:'', scene_images:[], reply_images:[], knowledge_images:[], status:'done', coach_date:'2026-08-20', coach_note:'优秀回复', penalty_amount:0, created_at:'2026-08-20T11:30:00Z' },
+  { id: 9000000000005, staff:'示例客服B', customer_id:'C-2026****7751', shop:'抖音直播间', date:'2026-08-21', tags:['催付','活动规则'], severity:'一般', scene:'客户问满减叠加', reply:'单品券与店铺券可叠加', problem:'未说明使用门槛', correct:'需补充“满199可用”', knowledge:'活动规则速查', note:'', scene_images:[], reply_images:[], knowledge_images:[], status:'pending', coach_date:'', coach_note:'', penalty_amount:0, created_at:'2026-08-21T08:00:00Z' },
+  { id: 9000000000006, staff:'示例客服C', customer_id:'C-2026****3390', shop:'私域微信', date:'2026-08-21', tags:['连带成交','话术'], severity:'严重', scene:'客户问搭配，客服未做连带推荐', reply:'这款单独卖的', problem:'错失连带成交机会', correct:'主动推荐“同系列护理液+伴侣盒”组合', knowledge:'连带成交话术', note:'', scene_images:[DEMO_IMG], reply_images:[], knowledge_images:[], status:'pending', coach_date:'', coach_note:'', penalty_amount:30, created_at:'2026-08-21T10:45:00Z' }
+];
+
 var supabase = null;
 
 /* ==================== Auth State ==================== */
-let isAdmin = false;
+let isAdmin = DEMO;
 let adminSetByParent = false;
 let currentAuthUser = null;
 
@@ -592,6 +609,14 @@ function thisWeekStart() {
 
 /* ==================== Supabase CRUD ==================== */
 async function loadRecords(showMsg) {
+  if (DEMO) {
+    records = JSON.parse(JSON.stringify(DEMO_RECORDS));
+    document.getElementById('inpDate').value = todayStr();
+    updateFilterOptions(); updateStats(); renderRecords(); setupPasteHandlers();
+    setSyncBadge(true, '📋 演示模式');
+    if (showMsg) showToast('📋 演示模式：数据为脱敏示例');
+    return;
+  }
   try {
     const { data, error } = await supabase.from('qc_records').select('*').order('created_at', { ascending: false });
     if (error) { console.warn('Load records error:', error); records = []; setSyncBadge(false, '加载失败'); }
@@ -607,6 +632,7 @@ async function loadRecords(showMsg) {
 }
 
 async function syncRecord(record) {
+  if (DEMO) { showToast('📋 演示模式：数据仅供展示，不可保存', true); return false; }
   if (!isAdmin) { showToast('⚠️ 只读模式，无法保存', true); return; }
   try {
     // Upload pending images first
@@ -675,6 +701,7 @@ async function uploadPendingImages(type) {
 }
 
 async function getImageUrl(id) {
+  if (typeof id === 'string' && id.startsWith('data:')) return id;
   try {
     const { data } = supabase.storage.from('qc-images').getPublicUrl('qc/' + id + '.jpg');
     return data?.publicUrl || '';
@@ -2345,6 +2372,18 @@ function ensureSelectOption(selId, val) {
 }
 
 function init() {
+  if (DEMO) {
+    loadLocalCache();
+    records = JSON.parse(JSON.stringify(DEMO_RECORDS));
+    document.getElementById('inpDate').value = todayStr();
+    qcStaffs = DEMO_STAFFS.slice(); qcShops = DEMO_SHOPS.slice(); refreshStaffShopSelects();
+    updateFilterOptions(); updateStats(); renderRecords(); setupPasteHandlers();
+    setSyncBadge(true, '📋 演示模式');
+    updateAdminUI();
+    loadSnippets();
+    showToast('📋 演示模式：数据为脱敏示例，不可保存', true);
+    return;
+  }
   loadLocalCache();
   (async function() {
     try {
