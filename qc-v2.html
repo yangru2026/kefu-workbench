@@ -77,6 +77,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .edit-img-list{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 6px}
 .edit-img-item{position:relative;width:88px;height:88px;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:#f8fafc}
 .edit-img-item img{width:100%;height:100%;object-fit:cover}
+.edit-img-add{width:88px;height:88px;border:1.5px dashed var(--primary-light);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--primary);font-size:12px;cursor:pointer;background:rgba(123,155,106,.04);transition:all .2s;user-select:none}
+.edit-img-add:hover{background:rgba(123,155,106,.1);border-color:var(--primary)}
+.edit-img-add:active{transform:scale(.96)}
 
 /* ===== Tags ===== */
 .tag-group{display:flex;flex-wrap:wrap;gap:8px}
@@ -1469,6 +1472,7 @@ async function editRecord(id) {
   const r = records.find(x => x.id == id);
   if (!r) return;
   editingId = id;
+  clearPendingImages(); // 清空上一次的待上传图片，避免串台
   editSeverity = r.severity;
   editTags = [...(r.tags||[])];
 
@@ -1519,14 +1523,47 @@ async function renderEditImages(r) {
   for (const [type, id] of defs) {
     const container = document.getElementById(id);
     if (!container) continue;
+    container.innerHTML = '';
+    // 已有图片
     const imgs = (r[type + '_images'] || []);
-    let html = '';
     for (const imgId of imgs) {
       const url = await getImageUrl(imgId);
       if (!url) continue;
-      html += '<div class="edit-img-item"><img src="' + url + '" onclick="previewImage(\'' + url + '\',\'' + imgId + '\')" style="cursor:zoom-in" alt=""><button class="del-img" onclick="event.stopPropagation();removeEditImage(\'' + type + '\',\'' + imgId + '\')">×</button></div>';
+      const item = document.createElement('div');
+      item.className = 'edit-img-item';
+      const img = document.createElement('img');
+      img.src = url; img.style.cursor = 'zoom-in';
+      img.onclick = () => previewImage(url, imgId);
+      const btn = document.createElement('button');
+      btn.className = 'del-img'; btn.textContent = '×';
+      btn.onclick = (e) => { e.stopPropagation(); removeEditImage(type, imgId); };
+      item.appendChild(img); item.appendChild(btn);
+      container.appendChild(item);
     }
-    container.innerHTML = html || '<div style="font-size:12px;color:var(--text2)">无</div>';
+    // 本次编辑待上传的新图
+    for (const img of pendingImages[type]) {
+      const url = URL.createObjectURL(img.blob);
+      const item = document.createElement('div');
+      item.className = 'edit-img-item';
+      const im = document.createElement('img');
+      im.src = url; im.style.cursor = 'zoom-in';
+      const btn = document.createElement('button');
+      btn.className = 'del-img'; btn.textContent = '×';
+      btn.onclick = (e) => { e.stopPropagation(); removeEditPending(type, img.id); };
+      item.appendChild(im); item.appendChild(btn);
+      container.appendChild(item);
+    }
+    // 补充截图入口
+    const add = document.createElement('div');
+    add.className = 'edit-img-add';
+    add.innerHTML = '＋<br>补充截图';
+    const fi = document.createElement('input');
+    fi.type = 'file'; fi.accept = 'image/*'; fi.multiple = true; fi.style.display = 'none';
+    fi.id = 'editFile_' + type;
+    fi.onchange = () => addEditImages(type, fi);
+    add.onclick = () => fi.click();
+    container.appendChild(add);
+    container.appendChild(fi);
   }
 }
 
@@ -1537,6 +1574,25 @@ function removeEditImage(type, imgId) {
   if (!r[key]) r[key] = [];
   r[key] = r[key].filter(x => x !== imgId);
   renderEditImages(r);
+}
+
+function removeEditPending(type, pid) {
+  pendingImages[type] = pendingImages[type].filter(img => img.id !== pid);
+  const r = records.find(x => x.id == editingId);
+  if (r) renderEditImages(r);
+}
+
+async function addEditImages(type, inputEl) {
+  const files = inputEl.files;
+  if (!files || !files.length) return;
+  for (const file of files) {
+    if (!file.type || file.type.indexOf('image') === -1) continue;
+    const id = 'img_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+    pendingImages[type].push({ id, blob: file, uploaded: false });
+  }
+  inputEl.value = '';
+  const r = records.find(x => x.id == editingId);
+  if (r) await renderEditImages(r);
 }
 
 function toggleEditTag(el) {
@@ -1589,6 +1645,7 @@ async function saveEdit() {
 function closeEditModal() {
   document.getElementById('editModal').classList.remove('active');
   editingId = null; editTags = []; editSeverity = '';
+  clearPendingImages(); // 清空本次编辑的待上传图片，避免串台
 }
 
 /* ==================== Image Preview ==================== */
