@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>售前主管一日打卡台</title>
+<title>个人工作打卡台</title>
 <style>
   :root{
     --bg:#f4f6f9; --card:#ffffff; --line:#e8ebf0;
@@ -15,17 +15,23 @@
   body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
   .wrap{max-width:1080px;margin:0 auto;padding:18px 16px 60px}
   header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px}
-  .title{font-size:19px;font-weight:700;display:flex;align-items:center;gap:8px}
-  .title .dot{width:10px;height:10px;border-radius:50%;background:var(--primary)}
+  .head-left{display:flex;align-items:center;gap:12px}
+  .avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#5b8fd6);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(59,111,182,.28)}
+  .avatar svg{width:26px;height:26px;fill:#fff}
+  .who{display:flex;flex-direction:column;line-height:1.25}
+  .who .nm{font-size:16px;font-weight:700}
+  .who .sub{font-size:12px;color:var(--text2)}
   .datepick{display:flex;align-items:center;gap:8px}
   .datepick input{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:14px;color:var(--text);background:#fff}
   .datepick .wk{color:var(--text2);font-size:13px}
 
   .statbar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
-  .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 16px;min-width:120px;flex:1}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 16px;min-width:118px;flex:1}
   .stat .lbl{color:var(--text2);font-size:12px;margin-bottom:4px}
   .stat .val{font-size:18px;font-weight:700}
   .stat .val.small{font-size:15px;font-weight:600}
+  .stat.warn{border-color:#f3c2cb}
+  .stat.warn .val{color:var(--red)}
 
   .clock-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
   .clock-btn{flex:1;min-width:160px;border:none;border-radius:var(--radius);padding:16px;font-size:15px;font-weight:600;cursor:pointer;transition:.15s;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
@@ -44,7 +50,8 @@
   .group{margin-bottom:18px}
   .group h3{font-size:14px;margin:0 0 10px;display:flex;align-items:center;gap:8px;color:var(--text)}
   .group h3::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--primary)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+
   .node{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px;display:flex;flex-direction:column;gap:8px;transition:.15s}
   .node .head{display:flex;align-items:center;justify-content:space-between;gap:8px}
   .node .name{font-weight:600;font-size:13.5px}
@@ -55,6 +62,17 @@
   .node .time{font-size:12px;color:var(--green);font-weight:600}
   .node .note{border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:12.5px;color:var(--text);width:100%;resize:none;font-family:inherit}
   .node .note:focus{outline:none;border-color:var(--primary)}
+
+  /* 店铺巡检 */
+  .shop-platform{font-size:12.5px;font-weight:700;color:var(--primary);margin:8px 0 8px;padding-left:2px}
+  .shop{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;transition:.15s}
+  .shop.todo{border-color:#f0c0c8;background:#fff6f8}
+  .shop.done{border-color:var(--green);background:var(--green-soft)}
+  .shop .sname{font-weight:600;font-size:13px}
+  .shop .stime{font-size:11px;color:var(--green);font-weight:600;margin-top:2px}
+  .shop .tick{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--text2);cursor:pointer;flex-shrink:0;transition:.15s}
+  .shop.done .tick{background:var(--green);border-color:var(--green);color:#fff}
+  .shop.todo .tick{border-color:var(--red);color:var(--red)}
 
   .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
   .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:11px 18px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s;color:var(--text)}
@@ -76,7 +94,10 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="title"><span class="dot"></span>售前主管一日打卡台</div>
+    <div class="head-left">
+      <div class="avatar"><svg viewBox="0 0 24 24"><path d="M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-4.42 0-8 2.69-8 6v2h16v-2c0-3.31-3.58-6-8-6z"/></svg></div>
+      <div class="who"><div class="nm">杨茹</div><div class="sub">个人工作打卡台 · 自我管理</div></div>
+    </div>
     <div class="datepick">
       <input type="date" id="dateSel" onchange="onDateChange()">
       <span class="wk" id="wkLabel"></span>
@@ -87,7 +108,8 @@
     <div class="stat"><div class="lbl">上班</div><div class="val small" id="stIn">—</div></div>
     <div class="stat"><div class="lbl">下班</div><div class="val small" id="stOut">—</div></div>
     <div class="stat"><div class="lbl">在岗时长</div><div class="val small" id="stDur">—</div></div>
-    <div class="stat"><div class="lbl">今日流程</div><div class="val" id="stProg">0/20</div></div>
+    <div class="stat"><div class="lbl">今日流程</div><div class="val" id="stProg">0/19</div></div>
+    <div class="stat" id="stShopBox"><div class="lbl">店铺巡检</div><div class="val" id="stShop">0/22</div></div>
     <div class="stat"><div class="lbl">月度专项</div><div class="val" id="stMonthly">0/2</div></div>
   </div>
 
@@ -127,6 +149,17 @@
 <div class="toast" id="toast"></div>
 
 <script>
+const SHOP_GROUPS = [
+  {platform:'抖音',   shops:['抖音1店','抖音2店','抖音3店','抖音4店','抖音YH','抖音极氧']},
+  {platform:'快手',   shops:['快手弥生','快手YH']},
+  {platform:'拼多多', shops:['拼多多1店','拼多多2店','拼多多3店','拼多多4店','拼多多5店','拼多多6店','拼多多YH']},
+  {platform:'天猫',   shops:['天猫弥生','天猫极氧']},
+  {platform:'小红书', shops:['小红书弥生','小红书YH']},
+  {platform:'京东',   shops:['京东弥生']},
+  {platform:'其他',   shops:['有赞','YH护眼']},
+];
+function shopIds(){ return SHOP_GROUPS.flatMap(g=>g.shops); }
+
 const NODE_DEFS = [
   // 晨间准备
   {id:'handover', label:'看交接/夜班数据',     group:'晨间准备'},
@@ -138,18 +171,17 @@ const NODE_DEFS = [
   {id:'patrol',    label:'巡场抽检',           group:'上午执行'},
   {id:'qc_1on1',   label:'质检问题客服一对一沟通', group:'上午执行', hint:'结合质检工具讲解模式，点对点辅导'},
   {id:'tough',     label:'疑难客户处理',       group:'上午执行'},
-  {id:'coach',     label:'组员带教',           group:'上午执行'},
 
   // 午间
   {id:'noon',      label:'上午数据复盘',       group:'午间'},
-  {id:'emergency', label:'突发情况处理',       group:'午间', hint:'客诉/系统故障/临时任务应急' },
+  {id:'emergency', label:'突发情况处理',       group:'午间', hint:'客诉/系统故障/临时任务应急'},
 
   // 下午管理
   {id:'qc_fix',    label:'解决质检中的问题',   group:'下午管理', hint:'质检工具→问题跟进闭环'},
   {id:'link_qc',   label:'连带登记质检',       group:'下午管理', hint:'工作台·连带登记'},
   {id:'penalty_add', label:'扣罚登记',         group:'下午管理', hint:'质检工具·扣罚'},
+  {id:'bot_script', label:'优化机器人话术',    group:'下午管理', hint:'更新自动回复/话术库'},
   {id:'complaint', label:'投诉/退换处理',      group:'下午管理'},
-  {id:'keycust',   label:'大客户跟进',         group:'下午管理'},
   {id:'sched_pm',  label:'排班微调/补位协调',  group:'下午管理', hint:'突发缺岗临时调度'},
 
   // 傍晚收尾
@@ -176,11 +208,14 @@ function key(s){ return PREFIX + (s||today); }
 
 function loadState(s){
   try{ const raw = localStorage.getItem(key(s)); if(raw) return JSON.parse(raw); }catch(e){}
-  return {date:s, clockIn:null, clockOut:null, nodes:{}, goals:{}, report:''};
+  return {date:s, clockIn:null, clockOut:null, nodes:{}, shops:{}, goals:{}, report:''};
 }
 function saveState(){ try{ localStorage.setItem(key(), JSON.stringify(state)); }catch(e){} }
 
 function onDateChange(){ today = document.getElementById('dateSel').value || todayStr(); state = loadState(today); renderAll(); }
+
+function escapeAttr(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escapeHtml(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function renderAll(){
   document.getElementById('dateSel').value = today;
@@ -199,14 +234,21 @@ function renderAll(){
   document.getElementById('gConsult').value = state.goals.consult||'';
   document.getElementById('gConvert').value = state.goals.convert||'';
   document.getElementById('gSales').value = state.goals.sales||'';
-  // 节点
+  // 店铺巡检统计
+  const sids = shopIds();
+  const sDone = sids.filter(s=>state.shops[s]&&state.shops[s].done).length;
+  document.getElementById('stShop').textContent = sDone+'/'+sids.length;
+  document.getElementById('stShopBox').classList.toggle('warn', sDone < sids.length);
+  // 流程节点统计
   const dailyNodes = NODE_DEFS.filter(n=>!n.monthly);
   const monNodes   = NODE_DEFS.filter(n=>n.monthly);
   const doneDaily = dailyNodes.filter(n=>state.nodes[n.id]&&state.nodes[n.id].done).length;
   const doneMon   = monNodes.filter(n=>state.nodes[n.id]&&state.nodes[n.id].done).length;
   document.getElementById('stProg').textContent = doneDaily+'/'+dailyNodes.length;
   document.getElementById('stMonthly').textContent = doneMon+'/'+monNodes.length;
+  // 渲染
   const box = document.getElementById('groups'); box.innerHTML='';
+  box.appendChild(renderShopSection());
   GROUP_ORDER.forEach(g=>{
     const nodes = NODE_DEFS.filter(n=>n.group===g);
     const sec = document.createElement('div'); sec.className='group';
@@ -228,8 +270,26 @@ function renderAll(){
   });
 }
 
-function escapeAttr(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function escapeHtml(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function renderShopSection(){
+  const sec = document.createElement('div'); sec.className='group';
+  sec.innerHTML = '<h3>🏬 店铺巡检 <span style="font-size:11px;color:var(--text2);font-weight:400">（每日必巡 · 防漏小店）</span></h3>';
+  SHOP_GROUPS.forEach(pl=>{
+    const pt = document.createElement('div'); pt.className='shop-platform'; pt.textContent=pl.platform;
+    sec.appendChild(pt);
+    const grid = document.createElement('div'); grid.className='grid';
+    pl.shops.forEach(s=>{
+      const sd = state.shops[s]||{};
+      const card = document.createElement('div');
+      card.className = 'shop '+(sd.done?'done':'todo');
+      card.innerHTML =
+        '<div><div class="sname">'+escapeHtml(s)+'</div>'+(sd.done?'<div class="stime">✓ '+fmtTime(sd.time)+'</div>':'')+'</div>'+
+        '<div class="tick" onclick="toggleShop(\''+s+'\')">'+(sd.done?'✓':'!')+'</div>';
+      grid.appendChild(card);
+    });
+    sec.appendChild(grid);
+  });
+  return sec;
+}
 
 function toggleNode(id){
   if(!state.nodes[id]) state.nodes[id]={done:false,time:null,note:''};
@@ -241,6 +301,16 @@ function toggleNode(id){
   saveState(); renderAll(); toast(nd.done?'已打卡 ✓':'已撤销');
 }
 
+function toggleShop(name){
+  if(!state.shops[name]) state.shops[name]={done:false,time:null};
+  const sd = state.shops[name];
+  if(sd.done){
+    if(!confirm('撤销「'+name+'」的巡检？')) return;
+    sd.done=false; sd.time=null;
+  } else { sd.done=true; sd.time=Date.now(); }
+  saveState(); renderAll(); toast(sd.done?('✓ '+name+' 已巡检'):'已撤销');
+}
+
 function setNote(id,v){ if(!state.nodes[id]) state.nodes[id]={done:false,time:null,note:''}; state.nodes[id].note=v; saveState(); }
 
 function doClock(type){
@@ -249,7 +319,15 @@ function doClock(type){
     else state.clockIn = Date.now();
   } else {
     if(state.clockOut){ if(!confirm('撤销下班打卡？')) return; state.clockOut=null; }
-    else { if(!state.clockIn){ toast('请先打上班卡'); return; } state.clockOut = Date.now(); }
+    else {
+      if(!state.clockIn){ toast('请先打上班卡'); return; }
+      const miss = shopIds().filter(s=>!(state.shops[s]&&state.shops[s].done));
+      if(miss.length){
+        const preview = miss.slice(0,4).join('、') + (miss.length>4?' 等':'');
+        if(!confirm('还有 '+miss.length+' 个店铺未巡检（如：'+preview+'），确定下班？')) return;
+      }
+      state.clockOut = Date.now();
+    }
   }
   saveState(); renderAll(); toast(type==='in'?(state.clockIn?'上班打卡 ✓':'已撤销上班'):(state.clockOut?'下班打卡 ✓':'已撤销下班'));
 }
@@ -265,9 +343,13 @@ function saveGoals(){
 
 function genReport(){
   const g = state.goals;
-  let t = '【售前主管日报】'+today+' '+weekday(today)+'\n';
+  const sids = shopIds();
+  const sDone = sids.filter(s=>state.shops[s]&&state.shops[s].done).length;
+  const missShops = sids.filter(s=>!(state.shops[s]&&state.shops[s].done));
+  let t = '【个人工作日报】'+today+' '+weekday(today)+'\n';
   t += '上班：'+(state.clockIn?fmtTime(state.clockIn):'未打卡')+'　下班：'+(state.clockOut?fmtTime(state.clockOut):'未打卡')+'　在岗：'+((state.clockIn&&state.clockOut)?fmtDur(state.clockOut-state.clockIn):'—')+'\n';
   t += '今日目标：咨询量 '+(g.consult||'-')+'　转化率 '+(g.convert||'-')+'%　销售额 ¥'+(g.sales||'-')+'\n';
+  t += '店铺巡检：'+sDone+'/'+sids.length+(missShops.length?('　⚠ 未巡检：'+missShops.join('、')):'')+'\n';
   t += '────────────────\n【今日流程】\n';
   NODE_DEFS.filter(n=>!n.monthly).forEach(n=>{
     const nd = state.nodes[n.id]||{};
@@ -354,6 +436,12 @@ function exportXlsx(){
   rows.push(['咨询量目标',g.consult||'']);
   rows.push(['转化率目标(%)',g.convert||'']);
   rows.push(['销售额目标(元)',g.sales||'']);
+  const sids=shopIds();
+  const sDone=sids.filter(s=>state.shops[s]&&state.shops[s].done).length;
+  rows.push(['店铺巡检',sDone+'/'+sids.length]);
+  rows.push([]);
+  rows.push(['店铺巡检','状态','完成时间']);
+  sids.forEach(s=>{ const sd=state.shops[s]||{}; rows.push([s, sd.done?'已巡检':'未巡检', sd.done?fmtTime(sd.time):'']); });
   rows.push([]);
   rows.push(['今日流程节点','状态','完成时间','备注']);
   NODE_DEFS.filter(n=>!n.monthly).forEach(n=>{ const nd=state.nodes[n.id]||{}; rows.push([n.label, nd.done?'已完成':'未完成', nd.done?fmtTime(nd.time):'', nd.note||'']); });
@@ -365,7 +453,7 @@ function exportXlsx(){
   }
   const blob=buildXlsx(rows);
   const url=URL.createObjectURL(blob); const a=document.createElement('a');
-  a.href=url; a.download='售前主管打卡_'+today+'.xlsx'; a.click(); URL.revokeObjectURL(url);
+  a.href=url; a.download='个人工作打卡_'+today+'.xlsx'; a.click(); URL.revokeObjectURL(url);
   toast('📤 Excel 已导出');
 }
 
