@@ -48,6 +48,7 @@
   .node{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px;display:flex;flex-direction:column;gap:8px;transition:.15s}
   .node .head{display:flex;align-items:center;justify-content:space-between;gap:8px}
   .node .name{font-weight:600;font-size:13.5px}
+  .node .hint{font-size:11px;color:var(--text2);line-height:1.4;margin-top:-2px}
   .node .tick{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text2);cursor:pointer;flex-shrink:0;transition:.15s}
   .node.done{border-color:var(--green);background:var(--green-soft)}
   .node.done .tick{background:var(--green);border-color:var(--green);color:#fff}
@@ -86,7 +87,8 @@
     <div class="stat"><div class="lbl">上班</div><div class="val small" id="stIn">—</div></div>
     <div class="stat"><div class="lbl">下班</div><div class="val small" id="stOut">—</div></div>
     <div class="stat"><div class="lbl">在岗时长</div><div class="val small" id="stDur">—</div></div>
-    <div class="stat"><div class="lbl">流程打卡</div><div class="val" id="stProg">0/14</div></div>
+    <div class="stat"><div class="lbl">今日流程</div><div class="val" id="stProg">0/20</div></div>
+    <div class="stat"><div class="lbl">月度专项</div><div class="val" id="stMonthly">0/2</div></div>
   </div>
 
   <div class="clock-row">
@@ -126,22 +128,41 @@
 
 <script>
 const NODE_DEFS = [
-  {id:'handover', label:'看交接/夜班数据', group:'晨间准备'},
-  {id:'morning',   label:'晨会宣导',        group:'晨间准备'},
-  {id:'goals',     label:'确认今日目标',    group:'晨间准备'},
-  {id:'patrol',    label:'巡场抽检',        group:'上午执行'},
-  {id:'tough',     label:'疑难客户处理',    group:'上午执行'},
-  {id:'coach',     label:'组员带教',        group:'上午执行'},
-  {id:'noon',      label:'上午数据复盘',    group:'午间'},
-  {id:'qc',        label:'质检复盘',        group:'下午管理'},
-  {id:'complaint', label:'投诉/退换处理',   group:'下午管理'},
-  {id:'keycust',   label:'大客户跟进',      group:'下午管理'},
-  {id:'schedule',  label:'排班协调',        group:'下午管理'},
-  {id:'summary',   label:'当日数据汇总',    group:'傍晚收尾'},
-  {id:'report',    label:'写日报',          group:'傍晚收尾'},
-  {id:'plan',      label:'明日计划',        group:'傍晚收尾'},
+  // 晨间准备
+  {id:'handover', label:'看交接/夜班数据',     group:'晨间准备'},
+  {id:'morning',   label:'晨会宣导',           group:'晨间准备'},
+  {id:'goals',     label:'确认今日目标',       group:'晨间准备'},
+  {id:'sched_am',  label:'排班核对与调整',     group:'晨间准备', hint:'对照排班表，提前调整请假/缺岗'},
+
+  // 上午执行
+  {id:'patrol',    label:'巡场抽检',           group:'上午执行'},
+  {id:'qc_1on1',   label:'质检问题客服一对一沟通', group:'上午执行', hint:'结合质检工具讲解模式，点对点辅导'},
+  {id:'tough',     label:'疑难客户处理',       group:'上午执行'},
+  {id:'coach',     label:'组员带教',           group:'上午执行'},
+
+  // 午间
+  {id:'noon',      label:'上午数据复盘',       group:'午间'},
+  {id:'emergency', label:'突发情况处理',       group:'午间', hint:'客诉/系统故障/临时任务应急' },
+
+  // 下午管理
+  {id:'qc_fix',    label:'解决质检中的问题',   group:'下午管理', hint:'质检工具→问题跟进闭环'},
+  {id:'link_qc',   label:'连带登记质检',       group:'下午管理', hint:'工作台·连带登记'},
+  {id:'penalty_add', label:'扣罚登记',         group:'下午管理', hint:'质检工具·扣罚'},
+  {id:'complaint', label:'投诉/退换处理',      group:'下午管理'},
+  {id:'keycust',   label:'大客户跟进',         group:'下午管理'},
+  {id:'sched_pm',  label:'排班微调/补位协调',  group:'下午管理', hint:'突发缺岗临时调度'},
+
+  // 傍晚收尾
+  {id:'penalty_sum', label:'扣罚汇总',         group:'傍晚收尾', hint:'质检工具·扣罚汇总导出'},
+  {id:'summary',   label:'当日数据汇总',       group:'傍晚收尾'},
+  {id:'report',    label:'写日报',             group:'傍晚收尾'},
+  {id:'plan',      label:'明日计划',           group:'傍晚收尾'},
+
+  // 月度专项（月底才做，不计入每日进度）
+  {id:'attend_month', label:'月底考勤汇总',    group:'月度专项', monthly:true, hint:'本打卡台导出/考勤表'},
+  {id:'perf_month',   label:'月底绩效与扣罚归档', group:'月度专项', monthly:true, hint:'汇总当月扣罚/连带/质检'},
 ];
-const GROUP_ORDER = ['晨间准备','上午执行','午间','下午管理','傍晚收尾'];
+const GROUP_ORDER = ['晨间准备','上午执行','午间','下午管理','傍晚收尾','月度专项'];
 
 const PREFIX = 'leader_checkin_';
 let today = todayStr();
@@ -179,13 +200,17 @@ function renderAll(){
   document.getElementById('gConvert').value = state.goals.convert||'';
   document.getElementById('gSales').value = state.goals.sales||'';
   // 节点
-  const done = NODE_DEFS.filter(n=>state.nodes[n.id]&&state.nodes[n.id].done).length;
-  document.getElementById('stProg').textContent = done+'/'+NODE_DEFS.length;
+  const dailyNodes = NODE_DEFS.filter(n=>!n.monthly);
+  const monNodes   = NODE_DEFS.filter(n=>n.monthly);
+  const doneDaily = dailyNodes.filter(n=>state.nodes[n.id]&&state.nodes[n.id].done).length;
+  const doneMon   = monNodes.filter(n=>state.nodes[n.id]&&state.nodes[n.id].done).length;
+  document.getElementById('stProg').textContent = doneDaily+'/'+dailyNodes.length;
+  document.getElementById('stMonthly').textContent = doneMon+'/'+monNodes.length;
   const box = document.getElementById('groups'); box.innerHTML='';
   GROUP_ORDER.forEach(g=>{
     const nodes = NODE_DEFS.filter(n=>n.group===g);
     const sec = document.createElement('div'); sec.className='group';
-    sec.innerHTML = '<h3>'+g+'</h3>';
+    sec.innerHTML = '<h3>'+g+(g==='月度专项'?' <span style="font-size:11px;color:var(--text2);font-weight:400">（月底做，不计入每日进度）</span>':'')+'</h3>';
     const grid = document.createElement('div'); grid.className='grid';
     nodes.forEach(n=>{
       const nd = state.nodes[n.id]||{};
@@ -194,6 +219,7 @@ function renderAll(){
       card.innerHTML =
         '<div class="head"><div class="name">'+n.label+'</div>'+
         '<div class="tick" onclick="toggleNode(\''+n.id+'\')">'+(nd.done?'✓':'')+'</div></div>'+
+        (n.hint?'<div class="hint">'+escapeHtml(n.hint)+'</div>':'')+
         (nd.done?'<div class="time">✓ '+fmtTime(nd.time)+'</div>':'')+
         '<input class="note" placeholder="备注（可选）" value="'+escapeAttr(nd.note||'')+'" onchange="setNote(\''+n.id+'\',this.value)">';
       grid.appendChild(card);
@@ -242,15 +268,25 @@ function genReport(){
   let t = '【售前主管日报】'+today+' '+weekday(today)+'\n';
   t += '上班：'+(state.clockIn?fmtTime(state.clockIn):'未打卡')+'　下班：'+(state.clockOut?fmtTime(state.clockOut):'未打卡')+'　在岗：'+((state.clockIn&&state.clockOut)?fmtDur(state.clockOut-state.clockIn):'—')+'\n';
   t += '今日目标：咨询量 '+(g.consult||'-')+'　转化率 '+(g.convert||'-')+'%　销售额 ¥'+(g.sales||'-')+'\n';
-  t += '────────────────\n';
-  NODE_DEFS.forEach(n=>{
+  t += '────────────────\n【今日流程】\n';
+  NODE_DEFS.filter(n=>!n.monthly).forEach(n=>{
     const nd = state.nodes[n.id]||{};
     t += (nd.done?'✓ ':'✗ ')+n.label+(nd.done?(' '+fmtTime(nd.time)):'（未完成）');
     if(nd.note) t += '　'+nd.note;
     t += '\n';
   });
-  const done = NODE_DEFS.filter(n=>state.nodes[n.id]&&state.nodes[n.id].done).length;
-  t += '────────────────\n完成节点 '+done+'/'+NODE_DEFS.length;
+  const done = NODE_DEFS.filter(n=>!n.monthly&&state.nodes[n.id]&&state.nodes[n.id].done).length;
+  t += '────────────────\n今日完成节点 '+done+'/'+NODE_DEFS.filter(n=>!n.monthly).length;
+  const mons = NODE_DEFS.filter(n=>n.monthly);
+  if(mons.some(n=>state.nodes[n.id]&&state.nodes[n.id].done)){
+    t += '\n\n【月度专项】\n';
+    mons.forEach(n=>{
+      const nd = state.nodes[n.id]||{};
+      t += (nd.done?'✓ ':'✗ ')+n.label+(nd.done?(' '+fmtTime(nd.time)):'（未完成）');
+      if(nd.note) t += '　'+nd.note;
+      t += '\n';
+    });
+  }
   state.report = t; saveState();
   document.getElementById('reportText').value = t;
   document.getElementById('reportModal').classList.add('active');
@@ -319,8 +355,14 @@ function exportXlsx(){
   rows.push(['转化率目标(%)',g.convert||'']);
   rows.push(['销售额目标(元)',g.sales||'']);
   rows.push([]);
-  rows.push(['流程节点','状态','完成时间','备注']);
-  NODE_DEFS.forEach(n=>{ const nd=state.nodes[n.id]||{}; rows.push([n.label, nd.done?'已完成':'未完成', nd.done?fmtTime(nd.time):'', nd.note||'']); });
+  rows.push(['今日流程节点','状态','完成时间','备注']);
+  NODE_DEFS.filter(n=>!n.monthly).forEach(n=>{ const nd=state.nodes[n.id]||{}; rows.push([n.label, nd.done?'已完成':'未完成', nd.done?fmtTime(nd.time):'', nd.note||'']); });
+  const mons = NODE_DEFS.filter(n=>n.monthly);
+  if(mons.some(n=>state.nodes[n.id]&&state.nodes[n.id].done)){
+    rows.push([]);
+    rows.push(['月度专项','状态','完成时间','备注']);
+    mons.forEach(n=>{ const nd=state.nodes[n.id]||{}; rows.push([n.label, nd.done?'已完成':'未完成', nd.done?fmtTime(nd.time):'', nd.note||'']); });
+  }
   const blob=buildXlsx(rows);
   const url=URL.createObjectURL(blob); const a=document.createElement('a');
   a.href=url; a.download='售前主管打卡_'+today+'.xlsx'; a.click(); URL.revokeObjectURL(url);
