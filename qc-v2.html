@@ -379,13 +379,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <div class="paste-hint">💡 在此输入文字描述，或 <kbd>Ctrl+V</kbd> 粘贴截图 / <kbd>拖拽</kbd> 图片到此处</div>
 <textarea class="paste-textarea" id="inpReply" placeholder="描述客服的回复内容..."></textarea>
 <div class="paste-images" id="imgReply"></div></div></div>
-<div class="form-grid">
-<div class="form-item"><label>问题描述 <span style="color:var(--red)">*</span></label><textarea class="paste-textarea" id="inpProblem" placeholder="详细描述问题所在..." style="min-height:80px"></textarea></div>
-<div class="form-item" id="rowCorrect"><label>正确做法 / 建议话术 <span style="font-weight:400;color:var(--text2)">(可添加多条，自动编号)</span></label>
+<div class="form-grid" style="grid-template-columns:1fr;margin-bottom:0">
+<div class="form-item" style="margin-bottom:0"><label>问题描述 <span style="color:var(--red)">*</span></label><textarea class="paste-textarea" id="inpProblem" placeholder="详细描述问题所在..." style="min-height:80px"></textarea></div>
+</div>
+<div class="form-item" id="rowCorrect" style="margin-top:14px"><label>✅ 正确做法 / 建议话术 <span style="font-weight:400;color:var(--text2)">(可添加多条，自动编号)</span></label>
 <div id="correctList"><div class="correct-row"><textarea class="paste-textarea correct-item" placeholder="第1条建议话术..." style="min-height:60px"></textarea></div></div>
 <button class="btn btn-s" onclick="addCorrectRow()" style="margin-top:6px;font-size:11px;padding:5px 12px">➕ 添加话术</button>
 <div class="snippet-bar"><select id="snipCorrectSel" onchange="insertSnippetFromSelect(this,'correct')"><option value="">💡 插入常用正确做法…</option></select><button class="snip-manage-btn" id="snipMgrBtnCorrect" onclick="openSnippetManager('correct')" style="display:none">✏️ 管理</button></div></div>
-</div>
 <div class="form-item" id="rowKnowledge"><label>📚 产品知识点 / 销售技巧</label>
 <div id="knowledgeList"><div class="knowledge-row"><textarea class="paste-textarea knowledge-item" placeholder="第1条知识点..." style="min-height:60px"></textarea></div></div>
 <button class="btn btn-s" onclick="addKnowledgeRow()" style="margin-top:6px;font-size:11px;padding:5px 12px">➕ 添加知识点</button>
@@ -849,7 +849,6 @@ function applyQcEntryMode() {
   set('rowCustomerId', !quick);
   set('rowDate', !quick);
   set('rowReply', !quick);
-  set('rowCorrect', !quick);
   set('rowKnowledge', !quick);
   set('rowNote', !quick);
   const sceneLabel = document.getElementById('sceneLabel');
