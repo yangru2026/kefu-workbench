@@ -198,10 +198,24 @@ function renderRecord(r){
   +'</div></div>'
     + (tagHtml?'<div class="record-tags">'+tagHtml+'</div>':'')
     +'<div class="record-body">';
-  if(r.scene) h+='<div class="record-section"><div class="record-section-title">🗣️ 客户问题</div><div class="record-section-text">'+escapeHtml(r.scene)+'</div></div>';
-  if((r.scene_images||[]).length) h+='<div class="record-section"><div class="record-section-title">📸 客户问题截图</div><div class="record-img-grid" id="sceneImg_'+r.id+'"></div></div>';
-  if(r.reply) h+='<div class="record-section"><div class="record-section-title">💬 客服回复</div><div class="record-section-text">'+escapeHtml(r.reply)+'</div></div>';
-  if((r.reply_images||[]).length) h+='<div class="record-section"><div class="record-section-title">📸 客服回复截图</div><div class="record-img-grid" id="replyImg_'+r.id+'"></div></div>';
+  const hasSceneText = !!(r.scene && r.scene.trim());
+  const hasSceneImg = (r.scene_images||[]).length > 0;
+  if(hasSceneText || hasSceneImg) {
+    h += '<div class="record-section"><div class="record-section-title">🗣️ 客户问题</div>';
+    if(hasSceneText) h += '<div class="record-section-text">'+escapeHtml(r.scene)+'</div>';
+    if(hasSceneImg) h += '<div class="record-img-grid" id="sceneImg_'+r.id+'"></div>';
+    else if(!hasSceneText) h += '<div class="record-section-text" style="color:var(--text2);font-size:12px">（未上传客户问题截图）</div>';
+    h += '</div>';
+  }
+  const hasReplyText = !!(r.reply && r.reply.trim());
+  const hasReplyImg = (r.reply_images||[]).length > 0;
+  if(hasReplyText || hasReplyImg) {
+    h += '<div class="record-section"><div class="record-section-title">💬 客服回复</div>';
+    if(hasReplyText) h += '<div class="record-section-text">'+escapeHtml(r.reply)+'</div>';
+    if(hasReplyImg) h += '<div class="record-img-grid" id="replyImg_'+r.id+'"></div>';
+    else if(!hasReplyText) h += '<div class="record-section-text" style="color:var(--text2);font-size:12px">（未上传客服回复截图）</div>';
+    h += '</div>';
+  }
   h+='<div class="record-section"><div class="record-section-title">❌ 问题描述</div><div class="record-section-text" style="background:#fff5f5;border:1px solid #fecaca;color:#991b1b">'+escapeHtml(r.problem)+'</div></div>';
   if(r.correct) h+='<div class="record-section"><div class="record-section-title">✅ 正确做法 / 建议</div><div class="record-section-text" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534">'+formatNumberedHtml(r.correct)+'</div></div>';
   if(r.knowledge) h+='<div class="record-section"><div class="record-section-title">📚 知识点 / 销售技巧</div><div class="record-section-text" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af">'+formatNumberedHtml(r.knowledge)+'</div></div>';
@@ -392,6 +406,12 @@ document.getElementById('imgPreviewWrapper').addEventListener('wheel', imgWheelZ
       records=res.data||[];
     }catch(e){ console.error('load records err', e); }
   }
+  // 统一字段名：兼容 snake_case / camelCase
+  records.forEach(r => {
+    if (r.sceneImages && !r.scene_images) r.scene_images = r.sceneImages;
+    if (r.replyImages && !r.reply_images) r.reply_images = r.replyImages;
+    if (r.knowledgeImages && !r.knowledge_images) r.knowledge_images = r.knowledgeImages;
+  });
   currentRecords=records;
   const staff=escapeHtml(share.staff);
   const headerHtml='<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:18px;box-shadow:0 1px 3px rgba(0,0,0,.04)">'
