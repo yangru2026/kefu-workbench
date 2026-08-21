@@ -905,6 +905,8 @@ async function editRecord(id) {
   editingId = id;
   editSeverity = r.severity;
   clearPendingImages();
+  currentEditImgType = 'scene';
+  bindEditPaste();
   editTags = [...(r.tags||[])];
 
   const shops = ['抖音1店','抖音2店','抖音3店','快手MS','拼多多1店','拼多多2店','拼多多3店','拼多多4店','拼多多5店','天猫MS','天猫极氧'];
@@ -945,12 +947,48 @@ async function editRecord(id) {
   document.getElementById('editModal').classList.add('active');
 }
 
+let currentEditImgType = 'scene';
+let editPasteHandler = null;
+
+function bindEditPaste() {
+  if (editPasteHandler) return;
+  editPasteHandler = async function(e) {
+    if (!editingId) return;
+    const items = e.clipboardData.items;
+    let hasImage = false;
+    for (const it of items) { if (it.type.indexOf('image') !== -1) hasImage = true; }
+    if (!hasImage) return; // 纯文字不拦截，正常粘贴文字
+    e.preventDefault();
+    let added = false;
+    for (const it of items) {
+      if (it.type.indexOf('image') !== -1) {
+        const blob = it.getAsFile();
+        if (blob) {
+          const id = 'img_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+          pendingImages[currentEditImgType].push({ id, blob, uploaded: false });
+          added = true;
+        }
+      }
+    }
+    if (added) {
+      const r = records.find(x => x.id == editingId);
+      if (r) await renderEditImages(r);
+    }
+  };
+  document.addEventListener('paste', editPasteHandler);
+}
+
+function unbindEditPaste() {
+  if (editPasteHandler) { document.removeEventListener('paste', editPasteHandler); editPasteHandler = null; }
+}
+
 async function renderEditImages(r) {
   const defs = [['scene','editImgScene'],['reply','editImgReply'],['knowledge','editImgKnowledge']];
   for (const [type, id] of defs) {
     const container = document.getElementById(id);
     if (!container) continue;
     container.innerHTML = '';
+    container.onclick = () => { currentEditImgType = type; };
     const imgs = (r[type + '_images'] || []);
     for (const imgId of imgs) {
       const url = await getImageUrl(imgId);
@@ -970,10 +1008,11 @@ async function renderEditImages(r) {
       del.onclick = (e) => { e.stopPropagation(); removeEditPending(type, img.id); };
       item.appendChild(imgEl); item.appendChild(del); container.appendChild(item);
     }
-    const add = document.createElement('div'); add.className = 'edit-img-add'; add.innerHTML = '＋<br>补充截图';
+    const add = document.createElement('div'); add.className = 'edit-img-add'; add.innerHTML = '＋<br>补充截图<br><span style="font-size:10px;color:var(--text2)">或 Ctrl+V 粘贴</span>';
+    add.title = '点击选文件，或把光标停在此区域直接 Ctrl+V 粘贴';
     const file = document.createElement('input'); file.type = 'file'; file.accept = 'image/*'; file.multiple = true;
     file.onchange = () => addEditImages(type, file);
-    add.onclick = () => file.click();
+    add.onclick = () => { currentEditImgType = type; file.click(); };
     add.appendChild(file); container.appendChild(add);
     if (!imgs.length && !pendingImages[type].length) {
       const empty = document.createElement('div'); empty.style.cssText = 'font-size:12px;color:var(--text2)'; empty.textContent = '无';
@@ -1061,6 +1100,7 @@ function closeEditModal() {
   document.getElementById('editModal').classList.remove('active');
   editingId = null; editTags = []; editSeverity = '';
   clearPendingImages();
+  unbindEditPaste();
 }
 
 /* ==================== Image Preview ==================== */
