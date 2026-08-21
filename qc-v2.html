@@ -620,7 +620,16 @@ async function loadRecords(showMsg) {
   try {
     const { data, error } = await supabase.from('qc_records').select('*').order('created_at', { ascending: false });
     if (error) { console.warn('Load records error:', error); records = []; setSyncBadge(false, '加载失败'); }
-    else { records = data || []; setSyncBadge(true, '已同步云端'); }
+    else {
+      // 统一图片字段名：兼容历史数据可能的驼峰写法(sceneImages)与蛇形写法(scene_images)
+      records = (data || []).map(r => ({
+        ...r,
+        scene_images: r.scene_images || r.sceneImages || [],
+        reply_images: r.reply_images || r.replyImages || [],
+        knowledge_images: r.knowledge_images || r.knowledgeImages || []
+      }));
+      setSyncBadge(true, '已同步云端');
+    }
   } catch(e) { console.error(e); records = []; setSyncBadge(false, '加载失败'); }
 
   document.getElementById('inpDate').value = todayStr();
@@ -1764,23 +1773,29 @@ async function renderCoachItem(r, index) {
   if (r.scene) html += '<div class="d" style="margin-bottom:4px"><b>场景：</b>' + escapeHtml(r.scene) + '</div>';
 
   // Load scene images
-  if ((r.scene_images||[]).length) {
+  const sceneImgs = r.scene_images || r.sceneImages || [];
+  if (sceneImgs.length) {
     html += '<div style="margin-bottom:4px"><b>📸 客户问题截图：</b></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">';
-    for (const imgId of r.scene_images) {
+    for (const imgId of sceneImgs) {
       const url = await getImageUrl(imgId);
       if (url) html += '<img src="' + url + '" onclick="coachPreviewImg(\'' + url + '\',\'' + imgId + '\')" style="max-width:280px;max-height:180px;border-radius:6px;border:1px solid var(--border);object-fit:contain;cursor:zoom-in" title="点击放大">';
     }
     html += '</div>';
+  } else if (r.scene) {
+    html += '<div style="margin-bottom:4px;color:var(--text2);font-size:12px">📸 客户问题截图：<i>（未上传截图）</i></div>';
   }
 
   if (r.reply) html += '<div class="d" style="margin-bottom:4px"><b>客服回复：</b>' + escapeHtml(r.reply) + '</div>';
-  if ((r.reply_images||[]).length) {
+  const replyImgs = r.reply_images || r.replyImages || [];
+  if (replyImgs.length) {
     html += '<div style="margin-bottom:4px"><b>📸 客服回复截图：</b></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">';
-    for (const imgId of r.reply_images) {
+    for (const imgId of replyImgs) {
       const url = await getImageUrl(imgId);
       if (url) html += '<img src="' + url + '" onclick="coachPreviewImg(\'' + url + '\',\'' + imgId + '\')" style="max-width:280px;max-height:180px;border-radius:6px;border:1px solid var(--border);object-fit:contain;cursor:zoom-in" title="点击放大">';
     }
     html += '</div>';
+  } else if (r.reply) {
+    html += '<div style="margin-bottom:4px;color:var(--text2);font-size:12px">📸 客服回复截图：<i>（未上传截图）</i></div>';
   }
 
   html += '<div class="q">❌ 问题：' + escapeHtml(r.problem) + '</div>';
