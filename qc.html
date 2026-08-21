@@ -77,6 +77,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .edit-img-list{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 6px}
 .edit-img-item{position:relative;width:88px;height:88px;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:#f8fafc}
 .edit-img-item img{width:100%;height:100%;object-fit:cover}
+.edit-img-add{width:88px;height:88px;border:1.5px dashed var(--primary-light);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--primary);font-size:12px;cursor:pointer;background:rgba(123,155,106,.04);transition:all .2s;user-select:none}
+.edit-img-add:hover{background:rgba(123,155,106,.1);border-color:var(--primary)}
+.edit-img-add:active{transform:scale(.96)}
+.edit-img-add input{display:none}
 
 /* ===== Tags ===== */
 .tag-group{display:flex;flex-wrap:wrap;gap:8px}
@@ -900,6 +904,7 @@ async function editRecord(id) {
   if (!r) return;
   editingId = id;
   editSeverity = r.severity;
+  clearPendingImages();
   editTags = [...(r.tags||[])];
 
   const shops = ['抖音1店','抖音2店','抖音3店','快手MS','拼多多1店','拼多多2店','拼多多3店','拼多多4店','拼多多5店','天猫MS','天猫极氧'];
@@ -945,14 +950,35 @@ async function renderEditImages(r) {
   for (const [type, id] of defs) {
     const container = document.getElementById(id);
     if (!container) continue;
+    container.innerHTML = '';
     const imgs = (r[type + '_images'] || []);
-    let html = '';
     for (const imgId of imgs) {
       const url = await getImageUrl(imgId);
       if (!url) continue;
-      html += '<div class="edit-img-item"><img src="' + url + '" onclick="previewImage(\'' + url + '\',\'' + imgId + '\')" style="cursor:zoom-in" alt=""><button class="del-img" onclick="event.stopPropagation();removeEditImage(\'' + type + '\',\'' + imgId + '\')">×</button></div>';
+      const item = document.createElement('div'); item.className = 'edit-img-item';
+      const img = document.createElement('img'); img.src = url; img.style.cursor = 'zoom-in'; img.alt = '';
+      img.onclick = () => previewImage(url, imgId);
+      const del = document.createElement('button'); del.className = 'del-img'; del.textContent = '×';
+      del.onclick = (e) => { e.stopPropagation(); removeEditImage(type, imgId); };
+      item.appendChild(img); item.appendChild(del); container.appendChild(item);
     }
-    container.innerHTML = html || '<div style="font-size:12px;color:var(--text2)">无</div>';
+    for (const img of pendingImages[type]) {
+      const url = URL.createObjectURL(img.blob);
+      const item = document.createElement('div'); item.className = 'edit-img-item';
+      const imgEl = document.createElement('img'); imgEl.src = url; imgEl.alt = '';
+      const del = document.createElement('button'); del.className = 'del-img'; del.textContent = '×';
+      del.onclick = (e) => { e.stopPropagation(); removeEditPending(type, img.id); };
+      item.appendChild(imgEl); item.appendChild(del); container.appendChild(item);
+    }
+    const add = document.createElement('div'); add.className = 'edit-img-add'; add.innerHTML = '＋<br>补充截图';
+    const file = document.createElement('input'); file.type = 'file'; file.accept = 'image/*'; file.multiple = true;
+    file.onchange = () => addEditImages(type, file);
+    add.onclick = () => file.click();
+    add.appendChild(file); container.appendChild(add);
+    if (!imgs.length && !pendingImages[type].length) {
+      const empty = document.createElement('div'); empty.style.cssText = 'font-size:12px;color:var(--text2)'; empty.textContent = '无';
+      container.appendChild(empty);
+    }
   }
 }
 
@@ -963,6 +989,25 @@ function removeEditImage(type, imgId) {
   if (!r[key]) r[key] = [];
   r[key] = r[key].filter(x => x !== imgId);
   renderEditImages(r);
+}
+
+function removeEditPending(type, pid) {
+  pendingImages[type] = pendingImages[type].filter(img => img.id !== pid);
+  const r = records.find(x => x.id == editingId);
+  if (r) renderEditImages(r);
+}
+
+async function addEditImages(type, inputEl) {
+  const files = inputEl.files;
+  if (!files || !files.length) return;
+  for (const file of files) {
+    if (!file.type || file.type.indexOf('image') === -1) continue;
+    const id = 'img_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+    pendingImages[type].push({ id, blob: file, uploaded: false });
+  }
+  inputEl.value = '';
+  const r = records.find(x => x.id == editingId);
+  if (r) await renderEditImages(r);
 }
 
 function toggleEditTag(el) {
@@ -1015,6 +1060,7 @@ async function saveEdit() {
 function closeEditModal() {
   document.getElementById('editModal').classList.remove('active');
   editingId = null; editTags = []; editSeverity = '';
+  clearPendingImages();
 }
 
 /* ==================== Image Preview ==================== */
