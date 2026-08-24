@@ -221,6 +221,68 @@ body {
 .page-header h1 { font-size: 26px; font-weight: 700; color: var(--text); }
 .page-header p { color: var(--text-secondary); margin-top: 6px; font-size: 14px; }
 
+/* 首页全员通知横幅 */
+.global-notice-banner {
+  position: relative;
+  margin-bottom: 22px;
+  padding: 16px 20px;
+  border-radius: 14px;
+  background: linear-gradient(100deg, #7B5CB8 0%, #9B7FD4 100%);
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(123,92,184,0.22);
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+  overflow: hidden;
+}
+.global-notice-banner:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 26px rgba(123,92,184,0.28);
+}
+.global-notice-banner .gnb-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.global-notice-banner .gnb-sub {
+  font-size: 13px;
+  opacity: 0.92;
+  line-height: 1.5;
+}
+.global-notice-banner .gnb-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 6px 14px;
+  background: rgba(255,255,255,0.18);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.global-notice-banner .gnb-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+.global-notice-banner .gnb-close:hover { background: rgba(255,255,255,0.28); }
+.global-notice-banner.hidden { display: none; }
+
 /* Cards */
 .card {
   background: var(--card-bg);
@@ -871,6 +933,10 @@ body {
 .modal-field textarea { min-height:60px; resize:vertical; }
 .modal-field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 
+/* 扣罚标准大图弹窗 */
+.penalty-modal-box { max-width: 900px; }
+.penalty-modal-body { padding: 16px; max-height: 74vh; }
+
 /* ===== 选项管理 · 新风格 ===== */
 .cs-opt-teams { display:flex; gap:8px; margin-bottom:12px; }
 .cs-opt-team { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:18px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; background:#fff; border:1.5px solid var(--border); color:var(--text-secondary); transition:all .15s; }
@@ -1193,6 +1259,15 @@ body {
   <!-- ===== 首页 - 公告栏 ===== -->
   <div class="page active" id="page-home">
     <div class="page-header"><h1>📢 重要通知</h1><p>实时公告 · 全员同步 · 置顶优先</p></div>
+
+    <!-- 全员必读：扣罚标准 -->
+    <div class="global-notice-banner" id="penalty-notice-banner" onclick="openPenaltyStandardModal(event)">
+      <button class="gnb-close" onclick="closePenaltyNotice(event)" title="不再提醒">×</button>
+      <div class="gnb-title"><span>🚨</span> 全员必读：客服服务差错扣罚标准已发布</div>
+      <div class="gnb-sub">《客服服务差错扣罚标准（2026年执行版）》已正式生效，涵盖上号时间、服务意识、响应时效、操作差错、销售意识、信息处理、红线高压等七大类。点击此处查看完整大图。</div>
+      <div class="gnb-action">查看完整大图 →</div>
+    </div>
+
     <div class="announcement-actions admin-only" style="margin-bottom:16px;">
       <button class="btn-sm primary" onclick="openAnnounceForm()">✎ 发布公告</button>
     </div>
@@ -8074,6 +8149,26 @@ function closeModal(id) {
   document.body.style.overflow = '';
 }
 
+// 首页扣罚标准通知横幅
+(function initPenaltyNotice() {
+  const banner = document.getElementById('penalty-notice-banner');
+  if (!banner) return;
+  const dismissed = localStorage.getItem('penalty_notice_dismissed');
+  if (dismissed === '1') banner.classList.add('hidden');
+})();
+
+function openPenaltyStandardModal(e) {
+  if (e && e.target && e.target.closest('.gnb-close')) return;
+  showModalById('mod-penalty-standard');
+}
+
+function closePenaltyNotice(e) {
+  e && e.stopPropagation && e.stopPropagation();
+  const banner = document.getElementById('penalty-notice-banner');
+  if (banner) banner.classList.add('hidden');
+  try { localStorage.setItem('penalty_notice_dismissed', '1'); } catch (err) {}
+}
+
 // ==================== LIGHTBOX ====================
 let lightboxImages = [];  // [{thumb, hd, type:'eye'|'lens', hint}]
 let lightboxIdx = 0;
@@ -9646,6 +9741,24 @@ init();
     <div class="modal-footer">
       <button class="btn-sm outline" onclick="closeModal('mod-training')">取消</button>
       <button class="btn-sm primary" onclick="saveTraining()">💾 保存并同步</button>
+    </div>
+  </div>
+</div>
+
+<!-- 扣罚标准大图弹窗 -->
+<div class="modal-overlay" id="mod-penalty-standard" onclick="closeModal('mod-penalty-standard')">
+  <div class="modal-box penalty-modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>📋 客服服务差错扣罚标准（2026年执行版）</h3>
+      <button class="modal-close" onclick="closeModal('mod-penalty-standard')">✕</button>
+    </div>
+    <div class="modal-body penalty-modal-body">
+      <img src="images/penalty-standard-2026.png?v=1" alt="客服服务差错扣罚标准" style="width:100%;height:auto;display:block;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);" />
+      <p style="margin-top:14px;font-size:12px;color:var(--text-secondary);text-align:center;">图片加载慢可右键「在新标签页打开图片」查看原图</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm outline" onclick="closeModal('mod-penalty-standard')">关闭</button>
+      <a class="btn-sm primary" href="images/penalty-standard-2026.png?v=1" target="_blank" style="text-decoration:none;">在新标签页打开</a>
     </div>
   </div>
 </div>
