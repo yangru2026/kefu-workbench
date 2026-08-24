@@ -934,10 +934,10 @@ body {
 .modal-field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 
 /* 扣罚标准大图弹窗 */
-.penalty-modal-box { max-width: 95vw; width: auto; }
-.penalty-modal-body { padding: 16px; max-height: 80vh; overflow: auto; text-align: center; }
-.penalty-modal-body img { max-width: 100%; height: auto; cursor: zoom-in; border-radius: 8px; }
-.penalty-modal-body img.zoomed { max-width: none; width: auto; cursor: zoom-out; }
+.penalty-modal-box { max-width: 98vw; width: auto; max-height: 92vh; display: flex; flex-direction: column; }
+.penalty-modal-body { padding: 16px; overflow: auto; text-align: center; flex: 1; }
+.penalty-modal-body img { max-width: none; width: auto; max-height: none; cursor: zoom-out; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.penalty-modal-body img.zoomed { max-width: 100%; width: 100%; cursor: zoom-in; }
 
 /* ===== 选项管理 · 新风格 ===== */
 .cs-opt-teams { display:flex; gap:8px; margin-bottom:12px; }
@@ -9761,8 +9761,7 @@ init();
       <button class="modal-close" onclick="closeModal('mod-penalty-standard')">✕</button>
     </div>
     <div class="modal-body penalty-modal-body">
-      <img id="penalty-standard-img" src="images/penalty-standard-2026.png?v=1" alt="客服服务差错扣罚标准" onclick="togglePenaltyZoom()" style="display:block;box-shadow:0 2px 8px rgba(0,0,0,0.08);" />
-      <p style="margin-top:14px;font-size:12px;color:var(--text-secondary);text-align:center;">点击图片可放大到原始尺寸；也可点右下角「在新标签页打开」查看原图。</p>
+      <img id="penalty-standard-img" src="images/penalty-standard-2026.png?v=1" alt="客服服务差错扣罚标准" onclick="togglePenaltyZoom()" />
     </div>
     <div class="modal-footer">
       <button class="btn-sm outline" onclick="closeModal('mod-penalty-standard')">关闭</button>
