@@ -363,6 +363,24 @@ body {
 .filter-tag:hover { border-color: var(--primary); color: var(--primary); }
 .filter-tag.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
+/* Training group tabs (大类) */
+.training-group-tabs { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+.training-group-tab { padding:8px 22px; border:1px solid var(--border); border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; background:#fff; color:var(--text-secondary); font-family:inherit; transition:all .2s; white-space:nowrap; }
+.training-group-tab:hover { border-color:var(--primary); color:var(--primary); }
+.training-group-tab.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.training-group-tab .g-edit-btn, .training-group-tab .g-del-btn { display:none; margin-left:5px; font-size:11px; background:none; border:none; cursor:pointer; color:inherit; opacity:0.7; padding:0 2px; }
+.training-group-tab:hover .g-edit-btn, .training-group-tab:hover .g-del-btn { display:inline; }
+.training-group-tab .g-edit-btn:hover, .training-group-tab .g-del-btn:hover { opacity:1; }
+.g-add-btn { padding:8px 18px; border:1.5px dashed var(--primary-light); border-radius:10px; font-size:13px; cursor:pointer; background:transparent; color:var(--primary); font-family:inherit; white-space:nowrap; transition:all .2s; }
+.g-add-btn:hover { background:rgba(123,155,106,0.08); border-color:var(--primary); }
+.g-inline-edit { display:inline-flex; align-items:center; gap:4px; }
+.g-inline-edit input { padding:4px 10px; border:1px solid var(--primary); border-radius:8px; font-size:13px; width:120px; font-family:inherit; outline:none; }
+.g-inline-edit button { padding:3px 9px; border:none; border-radius:7px; font-size:11px; cursor:pointer; font-family:inherit; }
+/* 大类卡片内按小类分小节 */
+.train-sub-section { border-top:1px dashed var(--border); margin-top:8px; padding-top:8px; }
+.train-sub-section:first-child { border-top:none; margin-top:0; padding-top:0; }
+.train-sub-title { font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:6px; padding-left:2px; }
+
 /* Training category sub-tabs */
 .training-cat-tabs { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
 .training-cat-tab { padding:6px 16px; border:1px solid var(--border); border-radius:20px; font-size:13px; cursor:pointer; background:transparent; color:var(--text-secondary); font-family:inherit; transition:all .2s; white-space:nowrap; }
@@ -2300,20 +2318,16 @@ body {
   <!-- ===== 培训资料 ===== -->
   <div class="page" id="page-training">
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-      <div><h1>📚 培训资料中心</h1><p>按品牌和分类查看培训资料，点击链接打开飞书云文档 | 修改实时同步所有客服</p></div>
+      <div><h1>📚 培训资料中心</h1><p>按大类和小类查看培训资料，点击链接打开飞书云文档 | 修改实时同步所有客服</p></div>
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="collab-btn" id="collab-training-btn" onclick="openCollabPanel('training')" style="display:none;">👥 协作者</button>
         <button class="admin-only-nav" id="train-add-btn" onclick="openTrainingEditor(null)" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">＋ 新增资料</button>
       </div>
     </div>
-    <!-- 品牌切换 Tab -->
-    <div class="brand-tabs" id="training-brand-tabs">
-      <button class="brand-tab active" data-brand="全部" onclick="setTrainingBrand('全部')">🌐 全部</button>
-      <button class="brand-tab" data-brand="弥生" onclick="setTrainingBrand('弥生')">🌸 弥生</button>
-      <button class="brand-tab" data-brand="极氧" onclick="setTrainingBrand('极氧')">🫧 极氧</button>
-    </div>
-    <!-- 子分类 -->
-    <div class="training-cat-tabs" id="training-cat-tabs"></div>
+    <!-- 大类 Tab -->
+    <div class="training-group-tabs" id="training-group-tabs"></div>
+    <!-- 小类 Tab（选中大类后显示） -->
+    <div class="training-cat-tabs" id="training-subcat-tabs"></div>
     <!-- 搜索 -->
     <div class="search-bar"><input type="text" id="training-search" placeholder="🔍 搜索资料标题..." oninput="renderTraining()"></div>
     <!-- 内容区 -->
@@ -2880,19 +2894,18 @@ async function loadTrainingCategories() {
       .order('sort_order', { ascending: true });
     if (error) {
       console.error('分类加载失败:', error);
-      // Fallback: use default categories if table doesn't exist yet
+      // Fallback: use default two-level categories if table doesn't exist yet
       trainingCategories = [
-        { id: '1', name: '产品知识', sort_order: 1 },
-        { id: '2', name: '接待流程', sort_order: 2 },
-        { id: '3', name: '平台工作台', sort_order: 3 },
-        { id: '4', name: '话术库', sort_order: 4 },
-        { id: '5', name: '售后处理', sort_order: 5 }
+        { id: 'g1', name: '品牌背景和定位', sort_order: 100, parent_id: '' },
+        { id: 'g2', name: '基础知识', sort_order: 200, parent_id: '' },
+        { id: 'g3', name: 'ERP操作', sort_order: 300, parent_id: '' },
+        { id: 'g4', name: '店铺产品', sort_order: 400, parent_id: '' }
       ];
-      if (currentPage === 'training') { renderTrainingCatTabs(); renderTraining(); }
+      if (currentPage === 'training') renderTraining();
       return;
     }
     trainingCategories = data || [];
-    if (currentPage === 'training') { renderTrainingCatTabs(); renderTraining(); }
+    if (currentPage === 'training') renderTraining();
   } catch(e) { console.error('分类加载异常:', e); }
 }
 
@@ -8705,154 +8718,269 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ==================== TRAINING ====================
-let trainingBrand = '全部';
-let trainingCatFilter = '全部';
+let trainingGroup = '全部';
+let trainingSubcatFilter = '全部';
 let trainingCategories = [];
 
-function setTrainingBrand(brand) {
-  trainingBrand = brand;
-  trainingCatFilter = '全部';
-  document.querySelectorAll('#training-brand-tabs .brand-tab').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.brand === brand);
-  });
-  renderTrainingCatTabs();
+function trainingGroups() { return trainingCategories.filter(c => !c.parent_id); }
+function trainingSubcats() { return trainingCategories.filter(c => c.parent_id); }
+
+function setTrainingGroup(group) {
+  trainingGroup = group;
+  trainingSubcatFilter = '全部';
+  renderTrainingGroupTabs();
+  renderTrainingSubcatTabs();
   renderTraining();
 }
 
-function setTrainingCat(cat) {
-  trainingCatFilter = cat;
-  renderTrainingCatTabs();
+function setTrainingSubcat(cat) {
+  trainingSubcatFilter = cat;
+  renderTrainingSubcatTabs();
   renderTraining();
 }
 
-function renderTrainingCatTabs() {
+// ---------- 大类 Tab ----------
+function renderTrainingGroupTabs() {
   const canManage = canEdit('training');
-  const cats = ['全部', ...trainingCategories.map(c => c.name)];
-  let html = cats.map(c => {
-    const isActive = trainingCatFilter === c;
+  const groups = ['全部', ...trainingGroups().map(c => c.name)];
+  let html = groups.map(c => {
+    const isActive = trainingGroup === c;
     // Inline editing mode
-    if (_editingCatName && _editingCatName === c) {
-      return `<span class="training-cat-tab active cat-inline-edit">`
-        + `<input id="cat-edit-input" value="${escapeHtml(c)}" onkeydown="if(event.key==='Enter')confirmEditCat();if(event.key==='Escape')cancelEditCat();">`
-        + `<button class="btn-sm primary" style="padding:2px 8px;font-size:11px;" onclick="confirmEditCat()">✓</button>`
-        + `<button class="btn-sm outline" style="padding:2px 8px;font-size:11px;" onclick="cancelEditCat()">✕</button>`
+    if (_editingGroupName && _editingGroupName === c) {
+      return `<span class="training-group-tab active g-inline-edit">`
+        + `<input id="group-edit-input" value="${escapeHtml(c)}" onkeydown="if(event.key==='Enter')confirmEditGroup();if(event.key==='Escape')cancelEditGroup();">`
+        + `<button class="btn-sm primary" style="padding:2px 8px;font-size:11px;" onclick="confirmEditGroup()">✓</button>`
+        + `<button class="btn-sm outline" style="padding:2px 8px;font-size:11px;" onclick="cancelEditGroup()">✕</button>`
         + `</span>`;
     }
     const mgmtBtns = (canManage && c !== '全部')
-      ? `<button class="cat-edit-btn" onclick="event.stopPropagation();startEditCat('${c}')" title="编辑">✏️</button><button class="cat-del-btn" onclick="event.stopPropagation();deleteCat('${c}')" title="删除">✕</button>`
+      ? `<button class="g-edit-btn" onclick="event.stopPropagation();startEditGroup('${c}')" title="编辑">✏️</button><button class="g-del-btn" onclick="event.stopPropagation();deleteGroup('${c}')" title="删除">✕</button>`
       : '';
-    return `<button class="training-cat-tab${isActive ? ' active' : ''}" onclick="setTrainingCat('${c}')">${c}${mgmtBtns}</button>`;
+    return `<button class="training-group-tab${isActive ? ' active' : ''}" onclick="setTrainingGroup('${c}')">${c}${mgmtBtns}</button>`;
   }).join('');
   if (canManage) {
-    html += `<button class="cat-add-btn" onclick="addNewCat()">＋ 新增分类</button>`;
+    html += `<button class="g-add-btn" onclick="addNewGroup()">＋ 新增大类</button>`;
   }
-  document.getElementById('training-cat-tabs').innerHTML = html;
+  document.getElementById('training-group-tabs').innerHTML = html;
 }
 
-let _editingCatName = null;
-function startEditCat(name) {
-  _editingCatName = name;
-  renderTrainingCatTabs();
-  const input = document.getElementById('cat-edit-input');
+// ---------- 小类 Tab ----------
+function renderTrainingSubcatTabs() {
+  const el = document.getElementById('training-subcat-tabs');
+  if (!el) return;
+  if (trainingGroup === '全部') { el.innerHTML = ''; el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  const canManage = canEdit('training');
+  const subs = trainingSubcats().filter(c => c.parent_id === trainingGroup);
+  const cats = ['全部', ...subs.map(c => c.name)];
+  let html = cats.map(c => {
+    const isActive = trainingSubcatFilter === c;
+    // Inline editing mode
+    if (_editingSubcatName && _editingSubcatName === c) {
+      return `<span class="training-cat-tab active cat-inline-edit">`
+        + `<input id="cat-edit-input" value="${escapeHtml(c)}" onkeydown="if(event.key==='Enter')confirmEditSubcat();if(event.key==='Escape')cancelEditSubcat();">`
+        + `<button class="btn-sm primary" style="padding:2px 8px;font-size:11px;" onclick="confirmEditSubcat()">✓</button>`
+        + `<button class="btn-sm outline" style="padding:2px 8px;font-size:11px;" onclick="cancelEditSubcat()">✕</button>`
+        + `</span>`;
+    }
+    const mgmtBtns = (canManage && c !== '全部')
+      ? `<button class="cat-edit-btn" onclick="event.stopPropagation();startEditSubcat('${c}')" title="编辑">✏️</button><button class="cat-del-btn" onclick="event.stopPropagation();deleteSubcat('${c}')" title="删除">✕</button>`
+      : '';
+    return `<button class="training-cat-tab${isActive ? ' active' : ''}" onclick="setTrainingSubcat('${c}')">${c}${mgmtBtns}</button>`;
+  }).join('');
+  if (canManage) {
+    html += `<button class="cat-add-btn" onclick="addNewSubcat()">＋ 新增小类</button>`;
+  }
+  el.innerHTML = html;
+}
+
+// ---------- 大类管理 ----------
+let _editingGroupName = null;
+function startEditGroup(name) {
+  _editingGroupName = name;
+  renderTrainingGroupTabs();
+  const input = document.getElementById('group-edit-input');
   if (input) { input.focus(); input.select(); }
 }
-function cancelEditCat() {
-  _editingCatName = null;
-  renderTrainingCatTabs();
+function cancelEditGroup() {
+  _editingGroupName = null;
+  renderTrainingGroupTabs();
 }
-async function confirmEditCat() {
-  const newName = document.getElementById('cat-edit-input').value.trim();
-  if (!newName) { cancelEditCat(); return; }
-  if (newName === _editingCatName) { cancelEditCat(); return; }
-  const cat = trainingCategories.find(c => c.name === _editingCatName);
-  if (!cat) { cancelEditCat(); return; }
-  // Update category name
-  const { error } = await supabase.from('training_categories').update({ name: newName }).eq('id', cat.id);
+async function confirmEditGroup() {
+  const newName = document.getElementById('group-edit-input').value.trim();
+  if (!newName) { cancelEditGroup(); return; }
+  if (newName === _editingGroupName) { cancelEditGroup(); return; }
+  const group = trainingGroups().find(c => c.name === _editingGroupName);
+  if (!group) { cancelEditGroup(); return; }
+  const oldName = _editingGroupName;
+  const { error } = await supabase.from('training_categories').update({ name: newName }).eq('id', group.id);
   if (error) { showToast('修改失败：' + error.message); return; }
-  // Update all training materials with old category name
-  await supabase.from('training_materials').update({ category: newName }).eq('category', _editingCatName);
-  _editingCatName = null;
-  showToast('✅ 分类已修改，资料已同步更新');
+  // 同步子分类的 parent_id 和资料的 group_name
+  await supabase.from('training_categories').update({ parent_id: newName }).eq('parent_id', oldName);
+  await supabase.from('training_materials').update({ group_name: newName }).eq('group_name', oldName);
+  _editingGroupName = null;
+  showToast('✅ 大类已修改，子分类与资料已同步更新');
   loadTrainingCategories();
   loadTrainingFromDB();
 }
-async function deleteCat(name) {
-  const cat = trainingCategories.find(c => c.name === name);
+async function deleteGroup(name) {
+  const group = trainingGroups().find(c => c.name === name);
+  if (!group) return;
+  const subCount = trainingSubcats().filter(c => c.parent_id === name).length;
+  const matCount = trainingData.filter(d => d.group_name === name).length;
+  const msg = (subCount || matCount)
+    ? `「${name}」下有 ${subCount} 个小类、${matCount} 篇资料。删除后小类一并删除，资料将变为「未分类」。确定删除吗？`
+    : `确定要删除大类「${name}」吗？`;
+  if (!confirm(msg)) return;
+  if (matCount) await supabase.from('training_materials').update({ group_name: null }).eq('group_name', name);
+  await supabase.from('training_categories').delete().eq('parent_id', name);
+  const { error } = await supabase.from('training_categories').delete().eq('id', group.id);
+  if (error) { showToast('删除失败：' + error.message); return; }
+  showToast('🗑️ 大类已删除');
+  if (trainingGroup === name) trainingGroup = '全部';
+  trainingSubcatFilter = '全部';
+  loadTrainingCategories();
+  loadTrainingFromDB();
+}
+async function addNewGroup() {
+  const name = prompt('请输入大类名称：');
+  if (!name || !name.trim()) return;
+  const trimmed = name.trim();
+  if (trainingGroups().some(c => c.name === trimmed)) { showToast('该大类已存在'); return; }
+  const { error } = await supabase.from('training_categories').insert({ name: trimmed, sort_order: (trainingGroups().length + 1) * 100, parent_id: '' });
+  if (error) { showToast('添加失败：' + error.message); return; }
+  showToast('✅ 大类已添加');
+  loadTrainingCategories();
+}
+
+// ---------- 小类管理 ----------
+let _editingSubcatName = null;
+function startEditSubcat(name) {
+  _editingSubcatName = name;
+  renderTrainingSubcatTabs();
+  const input = document.getElementById('cat-edit-input');
+  if (input) { input.focus(); input.select(); }
+}
+function cancelEditSubcat() {
+  _editingSubcatName = null;
+  renderTrainingSubcatTabs();
+}
+async function confirmEditSubcat() {
+  const newName = document.getElementById('cat-edit-input').value.trim();
+  if (!newName) { cancelEditSubcat(); return; }
+  if (newName === _editingSubcatName) { cancelEditSubcat(); return; }
+  const cat = trainingSubcats().find(c => c.name === _editingSubcatName);
+  if (!cat) { cancelEditSubcat(); return; }
+  const { error } = await supabase.from('training_categories').update({ name: newName }).eq('id', cat.id);
+  if (error) { showToast('修改失败：' + error.message); return; }
+  // 同步资料的小类名
+  await supabase.from('training_materials').update({ category: newName }).eq('category', _editingSubcatName);
+  _editingSubcatName = null;
+  showToast('✅ 小类已修改，资料已同步更新');
+  loadTrainingCategories();
+  loadTrainingFromDB();
+}
+async function deleteSubcat(name) {
+  const cat = trainingSubcats().find(c => c.name === name);
   if (!cat) return;
-  // Check if any materials use this category
   const count = trainingData.filter(d => d.category === name).length;
   if (count > 0) {
     if (!confirm(`「${name}」下还有 ${count} 篇资料，删除后这些资料将变为「未分类」。确定删除吗？`)) return;
     await supabase.from('training_materials').update({ category: '未分类' }).eq('category', name);
   } else {
-    if (!confirm(`确定要删除分类「${name}」吗？`)) return;
+    if (!confirm(`确定要删除小类「${name}」吗？`)) return;
   }
   const { error } = await supabase.from('training_categories').delete().eq('id', cat.id);
   if (error) { showToast('删除失败：' + error.message); return; }
-  showToast('🗑️ 分类已删除');
-  if (trainingCatFilter === name) trainingCatFilter = '全部';
+  showToast('🗑️ 小类已删除');
+  if (trainingSubcatFilter === name) trainingSubcatFilter = '全部';
   loadTrainingCategories();
   loadTrainingFromDB();
 }
-async function addNewCat() {
-  const name = prompt('请输入新分类名称：');
+async function addNewSubcat() {
+  const name = prompt('请输入小类名称：');
   if (!name || !name.trim()) return;
   const trimmed = name.trim();
-  if (trainingCategories.some(c => c.name === trimmed)) { showToast('该分类已存在'); return; }
-  const { error } = await supabase.from('training_categories').insert({ name: trimmed, sort_order: trainingCategories.length + 1 });
+  const subs = trainingSubcats().filter(c => c.parent_id === trainingGroup);
+  if (subs.some(c => c.name === trimmed)) { showToast('该小类已存在'); return; }
+  const gi = trainingGroups().findIndex(g => g.name === trainingGroup);
+  const { error } = await supabase.from('training_categories').insert({ name: trimmed, sort_order: (gi + 1) * 100 + (subs.length + 1) * 10, parent_id: trainingGroup });
   if (error) { showToast('添加失败：' + error.message); return; }
-  showToast('✅ 分类已添加');
+  showToast('✅ 小类已添加');
   loadTrainingCategories();
 }
 
 function renderTraining() {
-  renderTrainingCatTabs();
+  renderTrainingGroupTabs();
+  renderTrainingSubcatTabs();
   const search = (document.getElementById('training-search')?.value || '').toLowerCase();
   let filtered = trainingData;
-
-  if (trainingBrand !== '全部') filtered = filtered.filter(d => d.brand === trainingBrand);
-  if (search) filtered = filtered.filter(d => d.title.toLowerCase().includes(search));
+  if (search) filtered = filtered.filter(d => (d.title || '').toLowerCase().includes(search));
 
   const container = document.getElementById('training-content');
-
   if (!filtered.length) {
     container.innerHTML = '<div class="train-empty">📭 没有匹配的培训资料<br><span style="font-size:13px;color:var(--text-secondary);margin-top:8px;display:block;">请联系管理员添加</span></div>';
     return;
   }
 
-  // Group by category
-  const allCats = trainingCategories.map(c => c.name);
-  const cats = trainingCatFilter === '全部' ? allCats : [trainingCatFilter];
+  const canManage = canEdit('training');
+  function itemHtml(d) {
+    const mgmtBtns = canManage ? '<span class="train-mgmt-btns">'
+      + '<button class="btn-edit" title="编辑" onclick="event.stopPropagation();event.preventDefault();openTrainingEditor(window._trainRefs[\'' + d.id + '\'])">✏️</button>'
+      + '<button class="btn-del" title="删除" onclick="event.stopPropagation();event.preventDefault();deleteTraining(\'' + d.id + '\',\'' + escapeAttr(d.title) + '\')">🗑️</button>'
+      + '</span>' : '';
+    window._trainRefs = window._trainRefs || {};
+    window._trainRefs[d.id] = d;
+    const badge = d.brand ? '<span style="font-size:11px;color:var(--text-secondary);margin-right:4px;">[' + d.brand + ']</span>' : '';
+    return '<li class="train-link-item">'
+      + '<span style="font-size:18px;">📄</span>'
+      + badge
+      + '<a href="' + d.url + '" target="_blank">' + d.title + '</a>'
+      + '<span class="train-link-tags">' + (d.tags || []).map(t => '<span class="tag">' + t + '</span>').join('') + '</span>'
+      + mgmtBtns
+      + '</li>';
+  }
+
+  function catCard(title, items, withSubSections) {
+    let body = '';
+    if (withSubSections) {
+      // 大类卡片：内部按小类分小节
+      const subNames = [...new Set(items.map(d => (d.category && d.category !== '未分类') ? d.category : '未分类'))];
+      subNames.forEach(sn => {
+        const sItems = items.filter(d => ((d.category && d.category !== '未分类') ? d.category : '未分类') === sn);
+        body += '<div class="train-sub-section"><div class="train-sub-title">📂 ' + sn + '</div>'
+          + '<ul class="train-link-list">' + sItems.map(itemHtml).join('') + '</ul></div>';
+      });
+    } else {
+      body = '<ul class="train-link-list">' + items.map(itemHtml).join('') + '</ul>';
+    }
+    return '<div class="train-card"><div class="train-card-header"><h3>📁 ' + title + '</h3><span class="train-card-count">' + items.length + ' 篇</span></div>' + body + '</div>';
+  }
+
   let html = '';
-
-  cats.forEach(cat => {
-    const items = filtered.filter(d => d.category === cat);
-    if (!items.length) return;
-    html += '<div class="train-card">';
-    html += '<div class="train-card-header"><h3>📁 ' + cat + '</h3><span class="train-card-count">' + items.length + ' 篇</span></div>';
-    html += '<ul class="train-link-list">';
-    const canManage = canEdit('training');
-    items.forEach(d => {
-      const brandBadge = trainingBrand === '全部' ? '<span style="font-size:11px;color:var(--text-secondary);margin-right:4px;">[' + (d.brand || '') + ']</span>' : '';
-      const mgmtBtns = canManage ? '<span class="train-mgmt-btns">'
-        + '<button class="btn-edit" title="编辑" onclick="event.stopPropagation();event.preventDefault();openTrainingEditor(window._trainRefs[\'' + d.id + '\'])">✏️</button>'
-        + '<button class="btn-del" title="删除" onclick="event.stopPropagation();event.preventDefault();deleteTraining(\'' + d.id + '\',\'' + escapeAttr(d.title) + '\')">🗑️</button>'
-        + '</span>' : '';
-      // Store for editing
-      window._trainRefs = window._trainRefs || {};
-      window._trainRefs[d.id] = d;
-      html += '<li class="train-link-item">'
-        + '<span style="font-size:18px;">📄</span>'
-        + brandBadge
-        + '<a href="' + d.url + '" target="_blank">' + d.title + '</a>'
-        + '<span class="train-link-tags">' + (d.tags || []).map(t => '<span class="tag">' + t + '</span>').join('') + '</span>'
-        + mgmtBtns
-        + '</li>';
+  if (trainingGroup === '全部') {
+    // 全部模式：按大类分组，卡内按小类分小节
+    trainingGroups().forEach(g => {
+      const gItems = filtered.filter(d => d.group_name === g.name);
+      if (gItems.length) html += catCard(g.name, gItems, true);
     });
-    html += '</ul></div>';
-  });
+    const orphan = filtered.filter(d => !d.group_name);
+    if (orphan.length) html += catCard('未分类', orphan, false);
+  } else {
+    // 选中大类：按小类分组展示
+    const subs = trainingSubcats().filter(c => c.parent_id === trainingGroup);
+    const catList = trainingSubcatFilter === '全部' ? subs.map(s => s.name) : [trainingSubcatFilter];
+    catList.forEach(cat => {
+      const items = filtered.filter(d => d.category === cat);
+      if (items.length) html += catCard(cat, items, false);
+    });
+    if (trainingSubcatFilter === '全部') {
+      const uncat = filtered.filter(d => !d.category || d.category === '未分类');
+      if (uncat.length) html += catCard('未分类', uncat, false);
+    }
+  }
 
-  container.innerHTML = html;
+  container.innerHTML = html || '<div class="train-empty">📭 没有匹配的培训资料<br><span style="font-size:13px;color:var(--text-secondary);margin-top:8px;display:block;">请联系管理员添加</span></div>';
 }
 
 // ==================== TRAINING MANAGEMENT (Supabase) ====================
@@ -8861,16 +8989,17 @@ function openTrainingEditor(item) {
   document.getElementById('mod-training-title').textContent = isNew ? '＋ 新增培训资料' : '✏️ 编辑培训资料';
   window._editTrain = item ? { id: item.id, isNew: false } : { id: null, isNew: true };
   const t = item || {};
-  const brands = ['弥生','极氧'];
-  const cats = trainingCategories.map(c => c.name);
-  let html = '';
-  if (isNew) {
-    html += '<div class="modal-field-row"><div class="modal-field"><label>品牌</label><select id="tf-brand">'
-      + brands.map(b => '<option value="' + b + '">' + b + '</option>').join('') + '</select></div>'
-      + '<div class="modal-field"><label>分类</label><select id="tf-cat">'
-      + cats.map(c => '<option value="' + c + '">' + c + '</option>').join('')
-      + '<option value="未分类">未分类</option></select></div></div>';
-  }
+  const groups = trainingGroups();
+  const groupNames = groups.map(g => g.name);
+  const curGroup = t.group_name || (trainingGroup !== '全部' ? trainingGroup : (groupNames[0] || ''));
+  const curCat = t.category || '未分类';
+  const subsOf = g => trainingSubcats().filter(c => c.parent_id === g);
+  let html = '<div class="modal-field-row"><div class="modal-field"><label>大类</label><select id="tf-group" onchange="syncTrainingSubcats()">'
+    + groupNames.map(g => '<option value="' + g + '"' + (g === curGroup ? ' selected' : '') + '>' + g + '</option>').join('')
+    + '</select></div>'
+    + '<div class="modal-field"><label>小类</label><select id="tf-cat">'
+    + subsOf(curGroup).map(c => '<option value="' + c.name + '"' + (c.name === curCat ? ' selected' : '') + '>' + c.name + '</option>').join('')
+    + '<option value="未分类"' + (curCat === '未分类' ? ' selected' : '') + '>未分类</option></select></div></div>';
   html += '<div class="modal-field"><label>标题</label><input id="tf-title" value="' + escapeHtml(t.title || '') + '"></div>'
     + '<div class="modal-field"><label>链接URL</label><input id="tf-url" value="' + escapeHtml(t.url || '') + '" placeholder="https://..."></div>'
     + '<div class="modal-field"><label>标签（逗号分隔）</label><input id="tf-tags" value="' + escapeHtml((t.tags || []).join(',')) + '" placeholder="材质,入门"></div>';
@@ -8879,17 +9008,26 @@ function openTrainingEditor(item) {
   document.body.style.overflow = 'hidden';
 }
 
+function syncTrainingSubcats() {
+  const g = document.getElementById('tf-group').value;
+  const sel = document.getElementById('tf-cat');
+  const cur = sel.value;
+  const subs = trainingSubcats().filter(c => c.parent_id === g);
+  sel.innerHTML = subs.map(c => '<option value="' + c.name + '"' + (c.name === cur ? ' selected' : '') + '>' + c.name + '</option>').join('')
+    + '<option value="未分类">未分类</option>';
+}
+
 async function saveTraining() {
   const isNew = window._editTrain && window._editTrain.isNew;
   const data = {
     title: document.getElementById('tf-title').value.trim(),
     url: document.getElementById('tf-url').value.trim(),
-    tags: (document.getElementById('tf-tags').value || '').split(',').map(t => t.trim()).filter(Boolean)
+    tags: (document.getElementById('tf-tags').value || '').split(',').map(t => t.trim()).filter(Boolean),
+    group_name: document.getElementById('tf-group').value,
+    category: document.getElementById('tf-cat').value
   };
   if (!data.title || !data.url) { alert('标题和链接不能为空'); return; }
   if (isNew) {
-    data.brand = document.getElementById('tf-brand').value;
-    data.category = document.getElementById('tf-cat').value;
     const { error } = await supabase.from('training_materials').insert(data);
     if (error) { showToast('保存失败：' + error.message); return; }
     showToast('✅ 资料已添加');
