@@ -120,6 +120,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .snippet-bar select{padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:#fff;font-family:inherit;max-width:320px}
 .snip-manage-btn{font-size:11px;padding:4px 10px;border:1px solid var(--border);background:#fff;border-radius:6px;cursor:pointer;margin-left:2px}
 .snip-manage-btn:hover{border-color:var(--primary);color:var(--primary)}
+.tpl-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:8px 10px;background:rgba(123,155,106,.06);border:1px dashed rgba(123,155,106,.35);border-radius:8px}
+.tpl-bar select{padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:#fff;font-family:inherit;flex:1;min-width:200px;max-width:340px}
+.date-quick-btn{font-size:11px;padding:4px 10px;border:1px solid var(--border);background:#fff;border-radius:6px;cursor:pointer;color:var(--text2)}
+.date-quick-btn:hover{border-color:var(--primary);color:var(--primary);background:rgba(123,155,106,.06)}
+.record-list-footer{display:flex;justify-content:center;padding:10px 0 4px}
 .snip-mgr-list{display:flex;flex-direction:column;gap:10px;max-height:58vh;overflow:auto;margin-top:10px}
 .snip-mgr-item{border:1px solid var(--border);border-radius:8px;padding:10px}
 .snip-mgr-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -351,12 +356,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <span id="adminBadge"></span>
 </span></div>
 <div class="panel-body">
+<div class="tpl-bar">
+<select id="tplSelect" onchange="applyQcTemplate(this.value)" title="套用常用问题模板，自动填充分类/严重度/问题/话术/知识点"><option value="">⚡ 常用问题模板…</option></select>
+<button class="btn btn-s" id="tplSaveBtn" onclick="saveCurrentAsTemplate()" style="display:none;font-size:11px;padding:4px 10px">💾 另存为模板</button>
+<button class="btn btn-s" id="tplMgrBtn" onclick="openTemplateManager()" style="display:none;font-size:11px;padding:4px 10px">✏️ 管理模板</button>
+</div>
 <div class="form-grid">
 <div class="form-item"><label>客服姓名 <span style="color:var(--red)">*</span><button type="button" class="mini-manage" onclick="openSsMgr('staff')" title="管理客服姓名">⚙️</button></label><select id="inpStaff" style="width:100%"><option value="">请选择</option></select></div>
 <div class="form-item" id="rowCustomerId"><label>客户ID <span style="font-weight:400;color:var(--text2)">(网名/订单号)</span></label><input type="text" id="inpCustomerId" placeholder="客户网名或订单号"></div>
 <div class="form-item"><label>所属店铺 <span style="color:var(--red)">*</span><button type="button" class="mini-manage" onclick="openSsMgr('shop')" title="管理店铺">⚙️</button></label><select id="inpShop" style="width:100%"><option value="">请选择</option></select></div>
 </div>
-<div class="form-item" id="rowDate"><label>质检日期</label><input type="date" id="inpDate" style="max-width:200px"></div>
+<div class="form-item" id="rowDate"><label>质检日期</label>
+<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="date" id="inpDate" style="max-width:200px">
+<span class="date-quick-group"><button type="button" class="date-quick-btn" onclick="setQuickDate(0)">今天</button><button type="button" class="date-quick-btn" onclick="setQuickDate(-1)">昨天</button><button type="button" class="date-quick-btn" onclick="setQuickDate(-2)">前天</button></span>
+</div></div>
 <div class="form-item"><label>问题分类 <span style="color:var(--red)">*</span></label>
 <div class="tag-group" id="tagGroup">
 <span class="tag-item" data-val="话术问题" onclick="toggleTag(this)">话术问题</span>
@@ -416,6 +429,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 </div></div>
 <div class="panel-body">
 <div class="filter-bar">
+<div style="flex:1 1 100%"><label>🔍 搜索：</label><input type="text" id="filterSearch" placeholder="输入 客户ID / 订单号 / 客服 / 店铺 / 问题关键词…" oninput="renderRecords()" style="min-width:260px;width:100%;box-sizing:border-box"></div>
 <div><label>客服：</label><select id="filterStaff" onchange="renderRecords()"><option value="">全部</option></select></div>
 <div><label>店铺：</label><select id="filterShop" onchange="renderRecords()"><option value="">全部</option></select></div>
 <div><label>分类：</label><select id="filterTag" onchange="renderRecords()"><option value="">全部</option><option>话术问题</option><option>响应问题</option><option>流程问题</option><option>态度问题</option><option>产品知识</option><option>其他</option></select></div>
@@ -593,6 +607,8 @@ function updateAdminUI() {
   }
   const mbc = document.getElementById('snipMgrBtnCorrect'); if (mbc) mbc.style.display = isAdmin ? '' : 'none';
   const mbk = document.getElementById('snipMgrBtnKnowledge'); if (mbk) mbk.style.display = isAdmin ? '' : 'none';
+  const tsb = document.getElementById('tplSaveBtn'); if (tsb) tsb.style.display = isAdmin ? '' : 'none';
+  const tmb = document.getElementById('tplMgrBtn'); if (tmb) tmb.style.display = isAdmin ? '' : 'none';
   renderRecords();
 }
 
@@ -617,6 +633,14 @@ const pendingUrlMap = new Map();
 function todayStr() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+// 质检日期快捷按钮：offsetDays 为相对今天偏移（0=今天 -1=昨天 -2=前天）
+function setQuickDate(offsetDays) {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  const el = document.getElementById('inpDate');
+  if (el) el.value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
 function thisWeekStart() {
@@ -937,6 +961,148 @@ function fillSnipSelect(selId, arr, placeholder) {
     (arr || []).map(s => '<option value="' + escapeHtml(s.id) + '">' + escapeHtml(s.title) + '</option>').join('');
 }
 
+/* ==================== 常用问题快捷模板（团队共用，存 Supabase qc_templates 表） ==================== */
+let qcTemplates = [];
+// 表未建/无网络时的兜底，保证功能不退化
+const QC_TEMPLATES_FALLBACK = [
+  { id: 'fb_tpl_1', name: '未确认参数直接推荐', severity: '严重', tags: ['话术问题','流程问题'], problem: '客户咨询美瞳但未确认近视度数、基弧、直径等关键参数，直接推荐了产品', correct: '推荐前必须先确认：近视度数、基弧、直径、日抛/月抛需求；客户不确定时引导查看包装盒或验光单', knowledge: '基弧常见 8.6 / 8.7；直径主流 14.2mm；散光客户需定制散光片，不可随意替代', penalty_amount: 0 },
+  { id: 'fb_tpl_2', name: '首次响应超时', severity: '一般', tags: ['响应问题'], problem: '客户消息进线后未及时回复，首次响应超过 3 分钟', correct: '高峰期开启自动回复并设置排队提示；进线后先快速回应（"您好，在的，帮您看下~"）再查资料', knowledge: '首响目标：3 分钟内；忙时先安抚再让客户稍等，不可长时间静默', penalty_amount: 0 },
+  { id: 'fb_tpl_3', name: '参数推荐错误', severity: '严重', tags: ['产品知识'], problem: '客户度数/眼部情况与推荐产品不匹配（如基弧、直径、材质推荐错误）', correct: '下单前逐项核对参数：度数 ±0.00~-10.00 对应库存范围；基弧以客户验光单为准，不确定一律先确认再推', knowledge: '敏感眼优先推荐硅水凝胶材质；日抛透氧量高于月抛，需按佩戴习惯推荐', penalty_amount: 0 },
+  { id: 'fb_tpl_4', name: '未主动催付流失订单', severity: '一般', tags: ['流程问题'], problem: '客户表达购买意向后未跟进催付，导致订单流失', correct: '客户犹豫时给出活动时效与库存提示（"今天下单可享满减，库存不多哦"），1 小时后可跟进一次', knowledge: '催付话术需自然不催促，强调活动时效与库存；已拍未付可提醒支付方式支持', penalty_amount: 0 },
+  { id: 'fb_tpl_5', name: '退换货未走标准流程', severity: '严重', tags: ['流程问题'], problem: '客户申请退换货时未登记订单号、未按标准 SOP 处理', correct: '退换货必须登记订单号、购买店铺、原因，按 SOP 走审批流程，勿直接承诺无条件退货', knowledge: '售后 SOP：登记订单号 → 核实收货状态 → 按规则判定 → 登记处理结果；快递问题优先安抚', penalty_amount: 0 },
+  { id: 'fb_tpl_6', name: '态度生硬敷衍', severity: '严重需整改', tags: ['态度问题'], problem: '客户多问几句后回复生硬、敷衍，或直接让客户自己看详情页', correct: '耐心解答客户疑问，先共情再给方案（"理解您的顾虑，帮您确认一下~"），禁止反问或甩链接', knowledge: '情绪管理：先接住客户情绪再解决问题；回复语气保持亲和，多用"帮您""您看这样行吗"', penalty_amount: 0 }
+];
+
+async function loadQcTemplates() {
+  try {
+    if (!window.supabase) throw new Error('supabase 未初始化');
+    const { data, error } = await supabase.from('qc_templates').select('*').order('sort_order', { ascending: true });
+    if (error) throw error;
+    qcTemplates = (data || []).filter(t => t.is_active !== false);
+    if (!qcTemplates.length) qcTemplates = QC_TEMPLATES_FALLBACK.slice();
+  } catch(e) {
+    console.warn('loadQcTemplates 失败，使用内置兜底:', e.message);
+    qcTemplates = QC_TEMPLATES_FALLBACK.slice();
+  }
+  refreshTemplateSelect();
+}
+
+function refreshTemplateSelect() {
+  const sel = document.getElementById('tplSelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">⚡ 常用问题模板…</option>' +
+    qcTemplates.map(t => '<option value="' + escapeHtml(t.id) + '">' + escapeHtml(t.name) + '</option>').join('');
+  const saveBtn = document.getElementById('tplSaveBtn');
+  const mgrBtn = document.getElementById('tplMgrBtn');
+  if (saveBtn) saveBtn.style.display = isAdmin ? '' : 'none';
+  if (mgrBtn) mgrBtn.style.display = isAdmin ? '' : 'none';
+}
+
+// 选中模板 → 自动填充表单（分类/严重度/扣罚/问题/正确做法/知识点）
+function applyQcTemplate(id) {
+  const sel = document.getElementById('tplSelect');
+  const t = qcTemplates.find(x => String(x.id) === String(id));
+  if (!t) { if (sel) sel.value = ''; return; }
+
+  // 严重度
+  if (t.severity) {
+    currentSeverity = t.severity;
+    document.querySelectorAll('#sevGroup .sev-btn').forEach(b => b.classList.toggle('active', b.dataset.val === t.severity));
+  }
+  // 问题分类
+  currentTags = (t.tags || []).slice();
+  document.querySelectorAll('#tagGroup .tag-item').forEach(el => el.classList.toggle('active', currentTags.includes(el.dataset.val)));
+  // 扣罚金额（"一般"或无金额时禁用）
+  const inpPenalty = document.getElementById('inpPenalty');
+  if (inpPenalty) {
+    const amt = t.penalty_amount ? t.penalty_amount : 0;
+    inpPenalty.value = amt ? amt : '';
+    inpPenalty.disabled = t.severity === '一般' || !amt;
+  }
+  // 问题描述
+  document.getElementById('inpProblem').value = t.problem || '';
+  // 正确做法列表
+  const correctList = (t.correct || '').split('\n').map(x => x.trim()).filter(x => x);
+  document.getElementById('correctList').innerHTML = correctList.length
+    ? correctList.map(c => '<div class="correct-row"><textarea class="paste-textarea correct-item" style="min-height:60px">' + escapeHtml(c) + '</textarea></div>').join('')
+    : '<div class="correct-row"><textarea class="paste-textarea correct-item" placeholder="第1条建议话术..." style="min-height:60px"></textarea></div>';
+  // 知识点列表
+  const knowledgeList = (t.knowledge || '').split('\n').map(x => x.trim()).filter(x => x);
+  document.getElementById('knowledgeList').innerHTML = knowledgeList.length
+    ? knowledgeList.map(k => '<div class="knowledge-row"><textarea class="paste-textarea knowledge-item" style="min-height:60px">' + escapeHtml(k) + '</textarea></div>').join('')
+    : '<div class="knowledge-row"><textarea class="paste-textarea knowledge-item" placeholder="第1条知识点..." style="min-height:60px"></textarea></div>';
+
+  if (sel) sel.value = '';
+  showToast('✅ 已套用模板：' + t.name);
+}
+
+// 把当前表单另存为模板（管理员）
+async function saveCurrentAsTemplate() {
+  if (!isAdmin) { showToast('⚠️ 仅管理员可保存模板', true); return; }
+  const name = prompt('模板名称（如：未确认参数直接推荐）：');
+  if (!name) return;
+  const problem = document.getElementById('inpProblem').value.trim();
+  if (!problem) { showToast('请先填写问题描述，再另存为模板', true); return; }
+  const tpl = {
+    id: Date.now() * 1000 + Math.floor(Math.random() * 1000),
+    name: name.trim(),
+    severity: currentSeverity,
+    tags: [...currentTags],
+    problem: problem,
+    correct: [...document.querySelectorAll('.correct-item')].map(t => t.value.trim()).filter(v => v).join('\n'),
+    knowledge: [...document.querySelectorAll('.knowledge-item')].map(t => t.value.trim()).filter(v => v).join('\n'),
+    penalty_amount: parseFloat(document.getElementById('inpPenalty').value) || 0,
+    sort_order: qcTemplates.length,
+    is_active: true,
+    created_by: currentAuthUser ? currentAuthUser.id : null,
+    created_at: new Date().toISOString()
+  };
+  try {
+    if (!window.supabase) throw new Error('supabase 未初始化');
+    const { error } = await supabase.from('qc_templates').insert(tpl);
+    if (error) throw error;
+    qcTemplates.push(tpl);
+    refreshTemplateSelect();
+    showToast('✅ 模板已保存，全员可见');
+  } catch(e) {
+    showToast('保存模板失败：' + e.message, true);
+  }
+}
+
+// 模板管理弹窗（管理员增删）
+function openTemplateManager() {
+  if (!isAdmin) { showToast('⚠️ 仅管理员可管理模板', true); return; }
+  let html = '<div style="font-size:12px;color:var(--text2);margin-bottom:10px">共 ' + qcTemplates.length + ' 个常用问题模板，删除后全员同步生效</div>';
+  html += qcTemplates.map((t, i) =>
+    '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;background:#fff">' +
+    '<span style="flex:1;font-size:13px">' + (i+1) + '. ' + escapeHtml(t.name) +
+    '<span style="font-size:11px;color:var(--text2)"> ｜ ' + escapeHtml((t.tags||[]).join('、') || '未设分类') + ' ｜ ' + escapeHtml(t.severity||'一般') + (t.penalty_amount ? ' ｜ 💰' + t.penalty_amount : '') + '</span></span>' +
+    '<button class="btn btn-r" onclick="deleteQcTemplate(\'' + t.id + '\')" style="font-size:11px;padding:4px 10px">🗑️ 删除</button></div>'
+  ).join('');
+  html += '<div style="margin-top:10px;font-size:11px;color:var(--text2)">💡 想新增模板：回到录入区填写内容后点「💾 另存为模板」即可</div>';
+  document.getElementById('tplMgrBody').innerHTML = html;
+  document.getElementById('tplMgrModal').classList.add('active');
+}
+
+async function deleteQcTemplate(id) {
+  if (!isAdmin) return;
+  if (!confirm('确定删除该模板？')) return;
+  try {
+    if (window.supabase) await supabase.from('qc_templates').delete().eq('id', id);
+    qcTemplates = qcTemplates.filter(t => String(t.id) !== String(id));
+    refreshTemplateSelect();
+    openTemplateManager();
+    showToast('✅ 模板已删除');
+  } catch(e) {
+    showToast('删除失败：' + e.message, true);
+  }
+}
+
+function closeTemplateManager() {
+  const m = document.getElementById('tplMgrModal');
+  if (m) m.classList.remove('active');
+}
+
 // 列表卡片折叠
 function toggleRecordCard(id) {
   const card = document.querySelector('.record-card[data-id="' + id + '"]');
@@ -1095,6 +1261,11 @@ function getFilteredRecords() {
   const elStatus = document.getElementById('filterStatus');
   const elFrom = document.getElementById('filterDateFrom');
   const elTo = document.getElementById('filterDateTo');
+  const elSearch = document.getElementById('filterSearch');
+  if (elSearch && elSearch.value.trim()) {
+    const kw = elSearch.value.trim().toLowerCase();
+    r = r.filter(x => [x.customer_id, x.staff, x.shop, x.problem, x.scene, x.reply, x.note, (x.tags||[]).join(' ')].some(v => (v || '').toLowerCase().includes(kw)));
+  }
   if (elStaff && elStaff.value) r = r.filter(x => x.staff === elStaff.value);
   if (elShop && elShop.value) r = r.filter(x => x.shop === elShop.value);
   if (elTag && elTag.value) r = r.filter(x => (x.tags||[]).includes(elTag.value));
@@ -1273,7 +1444,7 @@ function toggleSelectRecord(id) {
 }
 
 function toggleSelectAll(box) {
-  const list = getFilteredRecords();
+  const list = getFilteredRecords().slice(0, qcRenderedCount);
   if (box.checked) list.forEach(r => selectedRecordIds.add(r.id));
   else list.forEach(r => selectedRecordIds.delete(r.id));
   document.querySelectorAll('.sel-checkbox').forEach(cb => { cb.checked = box.checked; });
@@ -1354,6 +1525,16 @@ function closeShareModal() {
   if (m) m.classList.remove('active');
 }
 
+/* ==================== 列表分页：每页 50 条 + 加载更多 ==================== */
+const qcPageSize = 50;
+let qcRenderedCount = qcPageSize;
+let qcLastFilterKey = '';
+function currentFilterKey() {
+  const g = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  return ['filterSearch','filterStaff','filterShop','filterTag','filterStatus','filterDateFrom','filterDateTo'].map(g).join('|');
+}
+function loadMoreRecords() { qcRenderedCount += qcPageSize; renderRecords(); }
+
 async function renderRecords() {
   const list = getFilteredRecords();
   const el = document.getElementById('recordList');
@@ -1362,8 +1543,13 @@ async function renderRecords() {
     return;
   }
 
+  // 筛选条件变化时重置分页，否则保留「加载更多」已展开的条数
+  const fk = currentFilterKey();
+  if (fk !== qcLastFilterKey) { qcLastFilterKey = fk; qcRenderedCount = qcPageSize; }
+  const shown = list.slice(0, qcRenderedCount);
+
   let html = '';
-  for (const r of list) {
+  for (const r of shown) {
     const tagHtml = (r.tags||[]).map(t => {
       const cls = t==='话术问题'?'tag-huashu':t==='响应问题'?'tag-xiangying':t==='流程问题'?'tag-liucheng':t==='态度问题'?'tag-taidu':t==='产品知识'?'tag-zhishi':'tag-huashu';
       return '<span class="record-tag ' + cls + '">' + t + '</span>';
@@ -1414,10 +1600,14 @@ async function renderRecords() {
     html += '</div></div>';
   }
 
+  if (list.length > shown.length) {
+    html += '<div class="record-list-footer"><button class="btn btn-s" onclick="loadMoreRecords()" style="font-size:12px;padding:7px 24px">⬇️ 加载更多（还有 ' + (list.length - shown.length) + ' 条）</button></div>';
+  }
+
   el.innerHTML = html;
 
   // Load images asynchronously
-  for (const r of list) {
+  for (const r of shown) {
     if ((r.scene_images||[]).length) loadRecordImages('sceneImg_' + r.id, r.scene_images);
     if ((r.reply_images||[]).length) loadRecordImages('replyImg_' + r.id, r.reply_images);
     if ((r.knowledge_images||[]).length) loadRecordImages('knowledgeImg_' + r.id, r.knowledge_images);
@@ -1440,7 +1630,7 @@ async function loadRecordImages(containerId, imageIds) {
 }
 
 function clearFilters() {
-  ['filterStaff','filterShop','filterTag','filterStatus','filterDateFrom','filterDateTo'].forEach(id => document.getElementById(id).value = '');
+  ['filterStaff','filterShop','filterTag','filterStatus','filterDateFrom','filterDateTo','filterSearch'].forEach(id => document.getElementById(id).value = '');
   renderRecords();
 }
 
@@ -1857,6 +2047,7 @@ async function renderCoachSheet() {
       });
       html += '</div>';
     }
+    if (isAdmin) html += '<div style="margin:14px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn btn-g" onclick="batchMarkCoachDone()" style="font-size:12px;padding:6px 16px">✅ 标记所选已讲解</button><span id="coachSelCount" style="font-size:12px;color:var(--text2)">已选 ' + coachSelectedIds.size + ' 条</span><span style="font-size:11px;color:var(--text2)">勾选讲解单中的「讲完勾选」，批量标记无需逐条操作</span></div>';
     el.innerHTML = html;
     return;
   }
@@ -1878,11 +2069,14 @@ async function renderCoachSheet() {
     });
     html += '</div>';
   }
+  if (isAdmin) html += '<div style="margin:14px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn btn-g" onclick="batchMarkCoachDone()" style="font-size:12px;padding:6px 16px">✅ 标记所选已讲解</button><span id="coachSelCount" style="font-size:12px;color:var(--text2)">已选 ' + coachSelectedIds.size + ' 条</span><span style="font-size:11px;color:var(--text2)">勾选讲解单中的「讲完勾选」，批量标记无需逐条操作</span></div>';
   el.innerHTML = html;
 }
 
 async function renderCoachItem(r, index) {
-  let html = '<div class="coach-item" id="coach-item-' + r.id + '"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;color:var(--text2)">#' + index + ' | ' + r.date + ' | ' + r.shop + (r.customer_id ? ' | 👤 ' + r.customer_id : '') + '</span><span style="font-size:10px;padding:2px 7px;border-radius:4px;background:' + (r.severity==='一般'?'#fef3c7;color:#d97706':r.severity==='严重'?'#fee2e2;color:#dc2626':'#ede9fe;color:#7c3aed') + ';font-weight:600">' + r.severity + '</span></div><div style="margin-bottom:4px"><span style="font-size:10px;color:var(--text2)">分类：</span>' + (r.tags||[]).map(t => '<span style="font-size:10px;padding:1px 5px;border-radius:3px;background:#f1f5f9;margin-right:3px">' + t + '</span>').join('') + '</div>';
+  let html = '<div class="coach-item" id="coach-item-' + r.id + '">';
+  if (isAdmin) html += '<label style="display:inline-flex;align-items:center;gap:4px;margin:0 0 6px;font-size:11px;color:var(--text2);cursor:pointer;user-select:none"><input type="checkbox" class="coach-sel" data-id="' + r.id + '"' + (coachSelectedIds.has(Number(r.id)) ? ' checked' : '') + ' onchange="toggleCoachSelect(this,\'' + r.id + '\')" style="width:15px;height:15px;accent-color:var(--primary);margin:0"> 讲完勾选</label>';
+  html += '<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;color:var(--text2)">#' + index + ' | ' + r.date + ' | ' + r.shop + (r.customer_id ? ' | 👤 ' + r.customer_id : '') + '</span><span style="font-size:10px;padding:2px 7px;border-radius:4px;background:' + (r.severity==='一般'?'#fef3c7;color:#d97706':r.severity==='严重'?'#fee2e2;color:#dc2626':'#ede9fe;color:#7c3aed') + ';font-weight:600">' + r.severity + '</span></div><div style="margin-bottom:4px"><span style="font-size:10px;color:var(--text2)">分类：</span>' + (r.tags||[]).map(t => '<span style="font-size:10px;padding:1px 5px;border-radius:3px;background:#f1f5f9;margin-right:3px">' + t + '</span>').join('') + '</div>';
   if (r.scene) html += '<div class="d" style="margin-bottom:4px"><b>场景：</b>' + escapeHtml(r.scene) + '</div>';
 
   // Load scene images
@@ -1932,6 +2126,34 @@ async function coachMarkDone(id) {
   const note = prompt('讲解备注（可选）：') || '';
   r.status = 'done'; r.coach_date = todayStr(); r.coach_note = note;
   await syncRecord(r);
+  renderCoachSheet(); updateStats(); renderRecords();
+}
+
+/* ==================== 讲解单勾选批量标记 ==================== */
+let coachSelectedIds = new Set();
+
+function toggleCoachSelect(cb, id) {
+  const n = Number(id);
+  if (cb.checked) coachSelectedIds.add(n); else coachSelectedIds.delete(n);
+  const el = document.getElementById('coachSelCount');
+  if (el) el.textContent = '已选 ' + coachSelectedIds.size + ' 条';
+}
+
+async function batchMarkCoachDone() {
+  if (!isAdmin) { showToast('⚠️ 只读模式', true); return; }
+  if (!coachSelectedIds.size) { showToast('请先勾选要标记的条目', true); return; }
+  if (!confirm('确定将所选 ' + coachSelectedIds.size + ' 条标记为已讲解？')) return;
+  const ids = [...coachSelectedIds];
+  const today = todayStr();
+  let ok = 0, fail = 0;
+  for (const id of ids) {
+    const r = records.find(x => Number(x.id) === id);
+    if (!r) continue;
+    r.status = 'done'; r.coach_date = today; r.coach_note = '';
+    if (await syncRecord(r)) ok++; else fail++;
+  }
+  coachSelectedIds.clear();
+  showToast('✅ 已标记 ' + ok + ' 条' + (fail ? '，失败 ' + fail + ' 条' : ''));
   renderCoachSheet(); updateStats(); renderRecords();
 }
 
@@ -2509,6 +2731,7 @@ function init() {
     setSyncBadge(true, '📋 演示模式');
     updateAdminUI();
     loadSnippets();
+    loadQcTemplates();
     showToast('📋 演示模式：数据为脱敏示例，不可保存', true);
     return;
   }
@@ -2528,6 +2751,7 @@ function init() {
         prefillLast();
         updateAdminUI();
         loadSnippets();
+        loadQcTemplates();
         loadStaffs();
         loadShops();
         loadShares().then(() => { renderRecords(); updateCsBadge(); });
@@ -2548,6 +2772,12 @@ if (document.readyState === 'loading') {
 <div class="modal-overlay" id="snipMgrModal"><div class="modal" style="max-width:560px">
 <div class="modal-header"><h3>✏️ 话术库管理</h3><button class="close-btn" onclick="closeSnippetManager()">×</button></div>
 <div class="modal-body" id="snipMgrBody" style="padding:14px"></div>
+</div></div>
+
+<!-- 常用问题模板管理 Modal -->
+<div class="modal-overlay" id="tplMgrModal"><div class="modal" style="max-width:560px">
+<div class="modal-header"><h3>📋 常用问题模板管理</h3><button class="close-btn" onclick="closeTemplateManager()">×</button></div>
+<div class="modal-body" id="tplMgrBody" style="padding:14px"></div>
 </div></div>
 
 <!-- 客服姓名 / 店铺 管理 Modal -->
