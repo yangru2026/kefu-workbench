@@ -368,9 +368,6 @@ body {
 .training-group-tab { padding:8px 22px; border:1px solid var(--border); border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; background:#fff; color:var(--text-secondary); font-family:inherit; transition:all .2s; white-space:nowrap; }
 .training-group-tab:hover { border-color:var(--primary); color:var(--primary); }
 .training-group-tab.active { background:var(--primary); color:#fff; border-color:var(--primary); }
-.training-group-tab .g-edit-btn, .training-group-tab .g-del-btn { display:none; margin-left:5px; font-size:11px; background:none; border:none; cursor:pointer; color:inherit; opacity:0.7; padding:0 2px; }
-.training-group-tab:hover .g-edit-btn, .training-group-tab:hover .g-del-btn { display:inline; }
-.training-group-tab .g-edit-btn:hover, .training-group-tab .g-del-btn:hover { opacity:1; }
 .g-add-btn { padding:8px 18px; border:1.5px dashed var(--primary-light); border-radius:10px; font-size:13px; cursor:pointer; background:transparent; color:var(--primary); font-family:inherit; white-space:nowrap; transition:all .2s; }
 .g-add-btn:hover { background:rgba(123,155,106,0.08); border-color:var(--primary); }
 .g-inline-edit { display:inline-flex; align-items:center; gap:4px; }
@@ -386,9 +383,6 @@ body {
 .training-cat-tab { padding:6px 16px; border:1px solid var(--border); border-radius:20px; font-size:13px; cursor:pointer; background:transparent; color:var(--text-secondary); font-family:inherit; transition:all .2s; white-space:nowrap; }
 .training-cat-tab:hover { border-color:var(--primary); color:var(--primary); }
 .training-cat-tab.active { background:var(--primary); color:#fff; border-color:var(--primary); }
-.training-cat-tab .cat-edit-btn, .training-cat-tab .cat-del-btn { display:none; margin-left:4px; font-size:11px; background:none; border:none; cursor:pointer; color:inherit; opacity:0.7; padding:0 2px; }
-.training-cat-tab:hover .cat-edit-btn, .training-cat-tab:hover .cat-del-btn { display:inline; }
-.training-cat-tab .cat-edit-btn:hover, .training-cat-tab .cat-del-btn:hover { opacity:1; }
 .cat-add-btn { padding:6px 14px; border:1.5px dashed var(--primary-light); border-radius:20px; font-size:12px; cursor:pointer; background:transparent; color:var(--primary); font-family:inherit; white-space:nowrap; transition:all .2s; }
 .cat-add-btn:hover { background:rgba(123,155,106,0.08); border-color:var(--primary); }
 .cat-inline-edit { display:inline-flex; align-items:center; gap:4px; }
@@ -8753,10 +8747,7 @@ function renderTrainingGroupTabs() {
         + `<button class="btn-sm outline" style="padding:2px 8px;font-size:11px;" onclick="cancelEditGroup()">✕</button>`
         + `</span>`;
     }
-    const mgmtBtns = (canManage && c !== '全部')
-      ? `<button class="g-edit-btn" onclick="event.stopPropagation();startEditGroup('${c}')" title="编辑">✏️</button><button class="g-del-btn" onclick="event.stopPropagation();deleteGroup('${c}')" title="删除">✕</button>`
-      : '';
-    return `<button class="training-group-tab${isActive ? ' active' : ''}" onclick="setTrainingGroup('${c}')">${c}${mgmtBtns}</button>`;
+    return `<button class="training-group-tab${isActive ? ' active' : ''}" onclick="setTrainingGroup('${c}')">${c}</button>`;
   }).join('');
   if (canManage) {
     html += `<button class="g-add-btn" onclick="addNewGroup()">＋ 新增大类</button>`;
@@ -8783,10 +8774,7 @@ function renderTrainingSubcatTabs() {
         + `<button class="btn-sm outline" style="padding:2px 8px;font-size:11px;" onclick="cancelEditSubcat()">✕</button>`
         + `</span>`;
     }
-    const mgmtBtns = (canManage && c !== '全部')
-      ? `<button class="cat-edit-btn" onclick="event.stopPropagation();startEditSubcat('${c}')" title="编辑">✏️</button><button class="cat-del-btn" onclick="event.stopPropagation();deleteSubcat('${c}')" title="删除">✕</button>`
-      : '';
-    return `<button class="training-cat-tab${isActive ? ' active' : ''}" onclick="setTrainingSubcat('${c}')">${c}${mgmtBtns}</button>`;
+    return `<button class="training-cat-tab${isActive ? ' active' : ''}" onclick="setTrainingSubcat('${c}')">${c}</button>`;
   }).join('');
   if (canManage) {
     html += `<button class="cat-add-btn" onclick="addNewSubcat()">＋ 新增小类</button>`;
