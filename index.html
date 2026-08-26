@@ -2407,6 +2407,10 @@ body {
     <div class="qc-report-cards" id="qc-report-cards"></div>
     <div class="qc-report-tables">
       <div class="qc-report-block">
+        <h3>按质检人</h3>
+        <div style="overflow:auto;max-height:420px;"><table id="qc-report-by-inspector"></table></div>
+      </div>
+      <div class="qc-report-block">
         <h3>按客服</h3>
         <div style="overflow:auto;max-height:420px;"><table id="qc-report-by-staff"></table></div>
       </div>
@@ -6512,6 +6516,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
 let qcReportData = [];
 let qcReportRange = 'week'; // week | month | custom
 let qcReportProfileMap = {};
+let qcReportPhoneMap = {};  // phone -> profile（质检人手机号反查姓名）
 
 function qcFmtDate(d) {
   const y = d.getFullYear();
@@ -6550,10 +6555,13 @@ function setQcReportRange(range) {
 async function loadQcReport() {
   if (!supabase) { showToast('⚠️ 数据未就绪，请稍候'); return; }
   const { start, end } = getQcReportRange();
-  // 先取 profiles 映射（客服 → 组别），仅用于展示
+  // 先取 profiles 映射（客服 → 组别、手机号 → 姓名），仅用于展示
   try {
-    const { data: pd } = await supabase.from('profiles').select('name, group_name');
-    (pd || []).forEach(p => { qcReportProfileMap[p.name] = p; });
+    const { data: pd } = await supabase.from('profiles').select('name, real_name, group_name, phone');
+    (pd || []).forEach(p => {
+      qcReportProfileMap[p.name] = p;
+      if (p.phone) qcReportPhoneMap[p.phone] = p;
+    });
   } catch (e) {}
   const { data, error } = await supabase
     .from('qc_records')
@@ -6584,7 +6592,27 @@ function groupQcAgg(data, key) {
   }).sort((a, b) => b.count - a.count);
 }
 
-function renderQcTable(id, headers, rows) {
+// 按质检人（created_by 手机号）聚合：记录数 / 被质检人数 / 扣罚 / 讲解进度
+function groupQcByInspector(data) {
+  const map = {};
+  data.forEach(r => {
+    const phone = r.created_by || '';
+    if (!map[phone]) map[phone] = { key: phone, count: 0, penalty: 0, done: 0, staffSet: new Set() };
+    map[phone].count++;
+    map[phone].penalty += Number(r.penalty_amount) || 0;
+    if (r.status === 'done') map[phone].done++;
+    if (r.staff) map[phone].staffSet.add(r.staff);
+  });
+  return Object.values(map).map(m => {
+    const pending = m.count - m.done;
+    const rate = m.count ? Math.round(m.done / m.count * 100) + '%' : '0%';
+    const prof = m.key ? qcReportPhoneMap[m.key] : null;
+    const name = prof ? (prof.name || prof.real_name || m.key) : (m.key || '未填写');
+    return { key: name, count: m.count, staffCount: m.staffSet.size, penalty: m.penalty, pending: pending, done: m.done, rate: rate };
+  }).sort((a, b) => b.count - a.count);
+}
+
+function renderQcTable(id, headers, rows, isInspector) {
   const el = document.getElementById(id);
   if (!el) return;
   let html = '<thead><tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr></thead><tbody>';
@@ -6592,9 +6620,14 @@ function renderQcTable(id, headers, rows) {
     html += '<tr><td colspan="' + headers.length + '" style="text-align:center;color:#999;padding:14px;">该范围暂无数据</td></tr>';
   } else {
     rows.forEach(r => {
-      const vals = headers.length === 7
-        ? [r.key, r.group, r.count, '¥' + r.penalty, r.pending, r.done, r.rate]
-        : [r.key, r.count, '¥' + r.penalty, r.pending, r.done, r.rate];
+      let vals;
+      if (isInspector) {
+        vals = [r.key, r.count, r.staffCount, '¥' + r.penalty, r.pending, r.done, r.rate];
+      } else if (headers.length === 7) {
+        vals = [r.key, r.group, r.count, '¥' + r.penalty, r.pending, r.done, r.rate];
+      } else {
+        vals = [r.key, r.count, '¥' + r.penalty, r.pending, r.done, r.rate];
+      }
       html += '<tr>' + vals.map(v => '<td>' + v + '</td>').join('') + '</tr>';
     });
   }
@@ -6620,9 +6653,11 @@ function renderQcReport() {
   const cardsEl = document.getElementById('qc-report-cards');
   if (cardsEl) cardsEl.innerHTML = cards.map(c => '<div class="qc-card"><div class="qc-card-val">' + c.val + '</div><div class="qc-card-label">' + c.label + '</div></div>').join('');
 
+  const byInsp = groupQcByInspector(data);
   const byStaff = groupQcAgg(data, 'staff');
   const byShop = groupQcAgg(data, 'shop');
   const bySev = groupQcAgg(data, 'severity');
+  renderQcTable('qc-report-by-inspector', ['质检人', '记录数', '被质检人', '扣罚金额', '待讲解', '已讲解', '完成率'], byInsp, true);
   renderQcTable('qc-report-by-staff', ['客服', '组别', '记录数', '扣罚金额', '待讲解', '已讲解', '完成率'], byStaff);
   renderQcTable('qc-report-by-shop', ['店铺', '记录数', '扣罚金额', '待讲解', '已讲解', '完成率'], byShop);
   renderQcTable('qc-report-by-severity', ['严重程度', '记录数', '扣罚金额', '待讲解', '已讲解', '完成率'], bySev);
@@ -6647,12 +6682,14 @@ function exportQcReportExcel() {
     ['讲解完成率', rate],
     []
   ];
+  const byInsp = groupQcByInspector(data).map(r => ({ '质检人': r.key, '记录数': r.count, '被质检人': r.staffCount, '扣罚金额': r.penalty, '待讲解': r.pending, '已讲解': r.done, '完成率': r.rate }));
   const byStaff = groupQcAgg(data, 'staff').map(r => ({ '客服': r.key, '组别': r.group, '记录数': r.count, '扣罚金额': r.penalty, '待讲解': r.pending, '已讲解': r.done, '完成率': r.rate }));
   const byShop = groupQcAgg(data, 'shop').map(r => ({ '店铺': r.key, '记录数': r.count, '扣罚金额': r.penalty, '待讲解': r.pending, '已讲解': r.done, '完成率': r.rate }));
   const bySev = groupQcAgg(data, 'severity').map(r => ({ '严重程度': r.key, '记录数': r.count, '扣罚金额': r.penalty, '待讲解': r.pending, '已讲解': r.done, '完成率': r.rate }));
   try {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(overview), '概览');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(byInsp), '按质检人');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(byStaff), '按客服');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(byShop), '按店铺');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(bySev), '按严重程度');
