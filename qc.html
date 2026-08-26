@@ -379,6 +379,8 @@ window.__qcSupabase = supabase;
 /* ==================== Auth State ==================== */
 let isAdmin = false;
 let currentAuthUser = null;
+let currentRole = null;
+let currentGroup = null;
 
 // Called by parent page
 window.setQcMode = function(admin) {
@@ -390,10 +392,20 @@ window.setQcMode = function(admin) {
 async function checkAuth() {
   const { data: { session } } = await supabase.auth.getSession();
   currentAuthUser = session?.user || null;
-  // Check if admin (phone-based)
-  if (currentAuthUser && currentAuthUser.phone) {
+  if (currentAuthUser) {
+    let role = currentAuthUser.app_metadata?.role;
+    // 优先以 profiles.role 为准：管理员或组长(leader)都拥有读写权限
+    try {
+      const { data: p } = await supabase
+        .from('profiles')
+        .select('role, group_name')
+        .eq('id', currentAuthUser.id)
+        .single();
+      if (p) { role = p.role; currentGroup = p.group_name || null; }
+    } catch (e) {}
+    currentRole = role;
     const adminPhones = ['13800138000']; // default admin, will be overridden by parent
-    isAdmin = currentAuthUser.app_metadata?.role === 'admin' || adminPhones.includes(currentAuthUser.phone);
+    isAdmin = role === 'admin' || role === 'leader' || adminPhones.includes(currentAuthUser.phone);
   }
   updateAdminUI();
 }
@@ -402,7 +414,8 @@ function updateAdminUI() {
   const badge = document.getElementById('adminBadge');
   const addBtn = document.getElementById('btnAddRecord');
   if (isAdmin) {
-    badge.innerHTML = '<span style="font-size:11px;background:rgba(123,155,106,.1);color:var(--primary);padding:3px 10px;border-radius:12px">👑 管理员模式</span>';
+    const modeLabel = currentRole === 'leader' ? '🛡️ 组长模式' : '👑 管理员模式';
+    badge.innerHTML = '<span style="font-size:11px;background:rgba(123,155,106,.1);color:var(--primary);padding:3px 10px;border-radius:12px">' + modeLabel + '</span>';
     addBtn.disabled = false;
     addBtn.textContent = '➕ 保存质检记录';
   } else {

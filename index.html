@@ -1238,6 +1238,7 @@ body {
     <div class="nav-item" data-page="ranking"><span class="icon">🏆</span><span>客服排名</span></div>
     <div class="nav-item" data-page="presale"><span class="icon">📈</span><span>售前数据</span></div>
     <div class="nav-item" data-page="qc"><span class="icon">🔍</span><span>质检工具</span></div>
+    <div class="nav-item admin-only-nav" data-page="qc-report" style="display:none;"><span class="icon">📊</span><span>质检报告</span></div>
     <div class="nav-section">账号</div>
     <div class="nav-item admin-only-nav" data-page="members" style="display:none;"><span class="icon">👥</span><span>成员管理</span></div>
     <div class="nav-item admin-only-nav" data-page="staff-info" style="display:none;"><span class="icon">👥</span><span>客服信息</span></div>
@@ -2372,6 +2373,52 @@ body {
       <span class="qc-topbar-user" id="qc-user-badge">管理员模式下可增删改</span>
     </div>
     <iframe id="qc-iframe" src="about:blank" data-src="qc-v2.html" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write"></iframe>
+  </div>
+
+  <style>
+    #page-qc-report { padding: 20px; }
+    #page-qc-report .qc-report-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
+    #page-qc-report .qc-report-header h2 { margin:0; font-size:20px; }
+    #page-qc-report .qc-report-controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    #page-qc-report .qc-range-btn { padding:6px 14px; border:1px solid var(--primary,#7b9b6a); background:#fff; color:var(--primary,#7b9b6a); border-radius:18px; cursor:pointer; font-size:13px; font-family:inherit; }
+    #page-qc-report .qc-range-btn.active { background:var(--primary,#7b9b6a); color:#fff; }
+    #page-qc-report .qc-report-cards { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:20px; }
+    #page-qc-report .qc-card { flex:1; min-width:140px; background:#fff; border:1px solid #eee; border-radius:12px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,.04); }
+    #page-qc-report .qc-card-val { font-size:26px; font-weight:700; color:var(--primary,#7b9b6a); }
+    #page-qc-report .qc-card-label { font-size:12px; color:#888; margin-top:4px; }
+    #page-qc-report .qc-report-tables { display:flex; gap:18px; flex-wrap:wrap; }
+    #page-qc-report .qc-report-block { flex:1; min-width:280px; background:#fff; border:1px solid #eee; border-radius:12px; padding:14px; }
+    #page-qc-report .qc-report-block h3 { margin:0 0 10px; font-size:15px; }
+    #page-qc-report .qc-report-block table { width:100%; border-collapse:collapse; font-size:13px; }
+    #page-qc-report .qc-report-block th, #page-qc-report .qc-report-block td { border:1px solid #eee; padding:6px 8px; text-align:left; }
+    #page-qc-report .qc-report-block th { background:#f7f9f5; }
+    #page-qc-report .qc-report-block tbody tr:nth-child(even) td { background:#fafbf9; }
+  </style>
+  <div class="page" id="page-qc-report">
+    <div class="qc-report-header">
+      <h2>📊 质检报告</h2>
+      <div class="qc-report-controls">
+        <button class="qc-range-btn active" data-range="week" onclick="setQcReportRange('week')">本周</button>
+        <button class="qc-range-btn" data-range="month" onclick="setQcReportRange('month')">本月</button>
+        <span style="margin-left:6px;">自定义 <input type="date" id="qc-report-start"> 至 <input type="date" id="qc-report-end"> <button class="qc-range-btn" onclick="setQcReportRange('custom')">应用</button></span>
+        <button class="feishu-sync-btn" style="margin-left:auto;" onclick="exportQcReportExcel()">⬇️ 导出 Excel</button>
+      </div>
+    </div>
+    <div class="qc-report-cards" id="qc-report-cards"></div>
+    <div class="qc-report-tables">
+      <div class="qc-report-block">
+        <h3>按客服</h3>
+        <div style="overflow:auto;max-height:420px;"><table id="qc-report-by-staff"></table></div>
+      </div>
+      <div class="qc-report-block">
+        <h3>按店铺</h3>
+        <div style="overflow:auto;max-height:420px;"><table id="qc-report-by-shop"></table></div>
+      </div>
+      <div class="qc-report-block">
+        <h3>按严重程度</h3>
+        <div style="overflow:auto;max-height:420px;"><table id="qc-report-by-severity"></table></div>
+      </div>
+    </div>
   </div>
 
   <div class="page" id="page-ranking">
@@ -6461,6 +6508,159 @@ document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', () => switchPage(item.dataset.page));
 });
 
+/* ==================== 质检报告（周/月/自定义 + 导出 Excel） ==================== */
+let qcReportData = [];
+let qcReportRange = 'week'; // week | month | custom
+let qcReportProfileMap = {};
+
+function qcFmtDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
+function getQcReportRange() {
+  let start, end;
+  const now = new Date();
+  if (qcReportRange === 'week') {
+    const day = now.getDay() || 7; // 周一为一周开始
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - day + 1);
+    start = qcFmtDate(monday);
+    end = qcFmtDate(now);
+  } else if (qcReportRange === 'month') {
+    start = now.toISOString().slice(0, 7) + '-01';
+    end = now.toISOString().slice(0, 7) + '-31';
+  } else {
+    start = document.getElementById('qc-report-start').value || '2000-01-01';
+    end = document.getElementById('qc-report-end').value || '2099-12-31';
+  }
+  return { start, end };
+}
+
+function setQcReportRange(range) {
+  qcReportRange = range;
+  document.querySelectorAll('.qc-range-btn[data-range]').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-range') === range);
+  });
+  loadQcReport();
+}
+
+async function loadQcReport() {
+  if (!supabase) { showToast('⚠️ 数据未就绪，请稍候'); return; }
+  const { start, end } = getQcReportRange();
+  // 先取 profiles 映射（客服 → 组别），仅用于展示
+  try {
+    const { data: pd } = await supabase.from('profiles').select('name, group_name');
+    (pd || []).forEach(p => { qcReportProfileMap[p.name] = p; });
+  } catch (e) {}
+  const { data, error } = await supabase
+    .from('qc_records')
+    .select('*')
+    .gte('date', start)
+    .lte('date', end)
+    .order('date', { ascending: false });
+  if (error) { showToast('⚠️ 加载失败：' + error.message); return; }
+  qcReportData = data || [];
+  renderQcReport();
+}
+
+function groupQcAgg(data, key) {
+  const map = {};
+  data.forEach(r => {
+    const k = r[key] || '未填写';
+    if (!map[k]) map[k] = { key: k, count: 0, penalty: 0, done: 0 };
+    map[k].count++;
+    map[k].penalty += Number(r.penalty_amount) || 0;
+    if (r.status === 'done') map[k].done++;
+  });
+  return Object.values(map).map(m => {
+    const pending = m.count - m.done;
+    const rate = m.count ? Math.round(m.done / m.count * 100) + '%' : '0%';
+    let group = '';
+    if (key === 'staff' && qcReportProfileMap[m.key]) group = qcReportProfileMap[m.key].group_name || '';
+    return { key: m.key, group: group, count: m.count, penalty: m.penalty, pending: pending, done: m.done, rate: rate };
+  }).sort((a, b) => b.count - a.count);
+}
+
+function renderQcTable(id, headers, rows) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let html = '<thead><tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr></thead><tbody>';
+  if (rows.length === 0) {
+    html += '<tr><td colspan="' + headers.length + '" style="text-align:center;color:#999;padding:14px;">该范围暂无数据</td></tr>';
+  } else {
+    rows.forEach(r => {
+      const vals = headers.length === 7
+        ? [r.key, r.group, r.count, '¥' + r.penalty, r.pending, r.done, r.rate]
+        : [r.key, r.count, '¥' + r.penalty, r.pending, r.done, r.rate];
+      html += '<tr>' + vals.map(v => '<td>' + v + '</td>').join('') + '</tr>';
+    });
+  }
+  html += '</tbody>';
+  el.innerHTML = html;
+}
+
+function renderQcReport() {
+  const data = qcReportData;
+  const total = data.length;
+  const totalPenalty = data.reduce((s, r) => s + (Number(r.penalty_amount) || 0), 0);
+  const done = data.filter(r => r.status === 'done').length;
+  const pending = total - done;
+  const rate = total ? Math.round(done / total * 100) + '%' : '0%';
+
+  const cards = [
+    { val: total, label: '质检记录数' },
+    { val: '¥' + totalPenalty, label: '扣罚总额' },
+    { val: pending, label: '待讲解' },
+    { val: done, label: '已讲解' },
+    { val: rate, label: '讲解完成率' }
+  ];
+  const cardsEl = document.getElementById('qc-report-cards');
+  if (cardsEl) cardsEl.innerHTML = cards.map(c => '<div class="qc-card"><div class="qc-card-val">' + c.val + '</div><div class="qc-card-label">' + c.label + '</div></div>').join('');
+
+  const byStaff = groupQcAgg(data, 'staff');
+  const byShop = groupQcAgg(data, 'shop');
+  const bySev = groupQcAgg(data, 'severity');
+  renderQcTable('qc-report-by-staff', ['客服', '组别', '记录数', '扣罚金额', '待讲解', '已讲解', '完成率'], byStaff);
+  renderQcTable('qc-report-by-shop', ['店铺', '记录数', '扣罚金额', '待讲解', '已讲解', '完成率'], byShop);
+  renderQcTable('qc-report-by-severity', ['严重程度', '记录数', '扣罚金额', '待讲解', '已讲解', '完成率'], bySev);
+}
+
+function exportQcReportExcel() {
+  if (!qcReportData || qcReportData.length === 0) { showToast('⚠️ 暂无数据可导出'); return; }
+  if (!window.XLSX) { showToast('⚠️ 导出组件加载中，请稍候重试'); return; }
+  const { start, end } = getQcReportRange();
+  const data = qcReportData;
+  const total = data.length;
+  const totalPenalty = data.reduce((s, r) => s + (Number(r.penalty_amount) || 0), 0);
+  const done = data.filter(r => r.status === 'done').length;
+  const pending = total - done;
+  const rate = total ? Math.round(done / total * 100) + '%' : '0%';
+  const overview = [
+    ['质检报告', start + ' ~ ' + end],
+    ['记录数', total],
+    ['扣罚总额', totalPenalty],
+    ['待讲解', pending],
+    ['已讲解', done],
+    ['讲解完成率', rate],
+    []
+  ];
+  const byStaff = groupQcAgg(data, 'staff').map(r => ({ '客服': r.key, '组别': r.group, '记录数': r.count, '扣罚金额': r.penalty, '待讲解': r.pending, '已讲解': r.done, '完成率': r.rate }));
+  const byShop = groupQcAgg(data, 'shop').map(r => ({ '店铺': r.key, '记录数': r.count, '扣罚金额': r.penalty, '待讲解': r.pending, '已讲解': r.done, '完成率': r.rate }));
+  const bySev = groupQcAgg(data, 'severity').map(r => ({ '严重程度': r.key, '记录数': r.count, '扣罚金额': r.penalty, '待讲解': r.pending, '已讲解': r.done, '完成率': r.rate }));
+  try {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(overview), '概览');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(byStaff), '按客服');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(byShop), '按店铺');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(bySev), '按严重程度');
+    XLSX.writeFile(wb, '质检报告_' + start + '_' + end + '.xlsx');
+    showToast('✅ 已导出 Excel');
+  } catch (e) { showToast('⚠️ 导出失败'); console.error(e); }
+}
+
 function switchPage(page) {
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
@@ -6518,6 +6718,7 @@ function switchPage(page) {
     document.getElementById('qc-user-badge').textContent = isAdmin ? '👑 管理员模式 · ' + (currentUser.email || currentUser.phone) : '📖 只读模式';
     notifyQcIframe(isAdmin);
   }
+  if (page === 'qc-report') loadQcReport();
 }
 
 function notifyQcIframe(admin) {

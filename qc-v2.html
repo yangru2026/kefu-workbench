@@ -543,6 +543,8 @@ var supabase = null;
 let isAdmin = DEMO;
 let adminSetByParent = false;
 let currentAuthUser = null;
+let currentRole = null;   // 'admin' | 'leader' | 'staff' | null
+let currentGroup = null;  // 组长所属分组（A/B/C），供后续扩展
 
 // Called by parent page
 window.setQcMode = function(admin) {
@@ -555,10 +557,23 @@ window.setQcMode = function(admin) {
 async function checkAuth() {
   const { data: { session } } = await supabase.auth.getSession();
   currentAuthUser = session?.user || null;
-  // Check if admin (phone-based) — 但父窗口已明确设置的管理员模式优先，避免被覆盖成只读
-  if (!adminSetByParent && currentAuthUser && currentAuthUser.phone) {
-    const adminPhones = ['13800138000']; // default admin, will be overridden by parent
-    isAdmin = currentAuthUser.app_metadata?.role === 'admin' || adminPhones.includes(currentAuthUser.phone);
+  if (currentAuthUser) {
+    let role = currentAuthUser.app_metadata?.role;
+    // 优先以 profiles.role 为准：管理员或组长(leader)都拥有读写权限
+    try {
+      const { data: p } = await supabase
+        .from('profiles')
+        .select('role, group_name')
+        .eq('id', currentAuthUser.id)
+        .single();
+      if (p) { role = p.role; currentGroup = p.group_name || null; }
+    } catch (e) {}
+    currentRole = role;
+    // 父窗口已明确设置的管理员/组长模式优先，避免被覆盖成只读
+    if (!adminSetByParent) {
+      const adminPhones = ['13800138000']; // default admin, will be overridden by parent
+      isAdmin = role === 'admin' || role === 'leader' || adminPhones.includes(currentAuthUser.phone);
+    }
   }
   updateAdminUI();
 }
@@ -567,7 +582,8 @@ function updateAdminUI() {
   const badge = document.getElementById('adminBadge');
   const addBtn = document.getElementById('btnAddRecord');
   if (isAdmin) {
-    badge.innerHTML = '<span style="font-size:11px;background:rgba(123,155,106,.1);color:var(--primary);padding:3px 10px;border-radius:12px">👑 管理员模式</span>';
+    const modeLabel = currentRole === 'leader' ? '🛡️ 组长模式' : '👑 管理员模式';
+    badge.innerHTML = '<span style="font-size:11px;background:rgba(123,155,106,.1);color:var(--primary);padding:3px 10px;border-radius:12px">' + modeLabel + '</span>';
     addBtn.disabled = false;
     addBtn.textContent = '➕ 保存质检记录';
   } else {
