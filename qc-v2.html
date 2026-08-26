@@ -333,6 +333,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .cs-status.overdue{color:#dc2626}
 .cs-actions{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
 .cs-empty{text-align:center;color:var(--text2);padding:30px 0;font-size:13px}
+.main-tabs{display:flex;gap:8px;margin:14px 0 0}
+.main-tab{padding:7px 18px;font-size:13px;border:1px solid var(--border);background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:var(--text2);font-weight:600;transition:all .15s}
+.main-tab:hover{border-color:var(--primary);color:var(--primary)}
+.main-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.case-badge{background:rgba(255,255,255,.25);border-radius:10px;padding:1px 7px;font-size:11px;margin-left:2px}
+.case-card{border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff;transition:box-shadow .15s}
+.case-card:hover{box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.case-title{font-size:14px;font-weight:600;color:var(--text);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.case-tag{font-size:10px;padding:2px 7px;border-radius:4px;background:#fef3c7;color:#d97706;font-weight:600;margin-right:3px;white-space:nowrap}
+.case-reply{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 12px;font-size:12px;color:#14532d;white-space:pre-wrap;word-break:break-word}
+.case-highlight{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;font-size:12px;color:#78350f;white-space:pre-wrap;word-break:break-word}
+.case-meta{font-size:11px;color:var(--text2);margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -340,11 +352,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <div class="header"><h1>📋 客服聊天记录质检工具</h1><p>记录问题 → 整理归纳 → 一对一讲解 | 支持截图 Ctrl+V 直接粘贴</p></div>
 
 <!-- Stats -->
-<div class="stats-row">
+<div class="stats-row" id="statsRow">
 <div class="stat-card" onclick="filterByStatus('pending')"><div class="stat-icon" style="background:#fee2e2;color:#dc2626">📌</div><div><h3 id="statPending">0</h3><p>待讲解</p></div></div>
 <div class="stat-card" onclick="filterByStatus('done')"><div class="stat-icon" style="background:#dcfce7;color:#16a34a">✅</div><div><h3 id="statDone">0</h3><p>已讲解</p></div></div>
 <div class="stat-card"><div class="stat-icon" style="background:#e0f2fe;color:#0284c7">📊</div><div><h3 id="statWeek">0</h3><p>本周质检</p></div></div>
 <div class="stat-card"><div class="stat-icon" style="background:#fef3c7;color:#d97706">📈</div><div><h3 id="statTotal">0</h3><p>质检总数</p></div></div>
+</div>
+
+<!-- Main Tabs -->
+<div class="main-tabs">
+<button class="main-tab active" id="mainTabQc" onclick="switchMainTab('qc')">📋 质检记录</button>
+<button class="main-tab" id="mainTabCases" onclick="switchMainTab('cases')">🌟 优秀案例 <span class="case-badge" id="caseBadge">0</span></button>
 </div>
 
 <!-- Add Record Form -->
@@ -418,7 +436,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 </div></div>
 
 <!-- Filter & List -->
-<div class="panel-card">
+<div class="panel-card" id="qcListPanel">
 <div class="panel-header"><span>📋 质检记录列表</span>
 <div style="display:flex;gap:8px;align-items:center">
 <button class="btn btn-i" onclick="openCoachMode()" style="font-size:11px;padding:5px 12px">🎯 讲解模式</button>
@@ -447,6 +465,55 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <div id="recordList" class="record-list"></div>
 </div></div>
 </div>
+
+<!-- Good Cases Panel -->
+<div class="panel-card" id="casePanel" style="display:none">
+<div class="panel-header"><span>🌟 优秀案例库</span>
+<div style="display:flex;gap:8px;align-items:center">
+<span class="qc-sync-badge off" id="caseSyncBadge">☁️ 未同步</span>
+<button class="btn btn-s" onclick="loadGoodCases(true)" style="font-size:11px;padding:5px 12px">🔄 刷新</button>
+</div></div>
+<div class="panel-body">
+<div id="caseEntry" style="display:none;border:1px dashed var(--border);border-radius:10px;padding:14px;margin-bottom:16px">
+<div style="font-size:13px;font-weight:600;margin-bottom:10px">✨ 记录优秀案例 <span style="font-weight:400;color:var(--text2);font-size:11px">（遇客服表现优秀的对话，存为教材给全员学习）</span></div>
+<div class="form-grid">
+<div class="form-item"><label>案例标题 <span style="color:var(--red)">*</span></label><input type="text" id="caseTitle" placeholder="如：催付时主动推荐第二副" style="width:100%;box-sizing:border-box"></div>
+<div class="form-item"><label>客服姓名 <span style="color:var(--red)">*</span></label><select id="caseStaff" style="width:100%"><option value="">请选择</option></select></div>
+</div>
+<div class="form-grid">
+<div class="form-item"><label>所属店铺 <span style="color:var(--red)">*</span></label><select id="caseShop" style="width:100%"><option value="">请选择</option></select></div>
+<div class="form-item"><label>案例日期</label>
+<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="date" id="caseDate" style="max-width:200px">
+<span class="date-quick-group"><button type="button" class="date-quick-btn" onclick="setQuickDate(0,'caseDate')">今天</button><button type="button" class="date-quick-btn" onclick="setQuickDate(-1,'caseDate')">昨天</button><button type="button" class="date-quick-btn" onclick="setQuickDate(-2,'caseDate')">前天</button></span>
+</div></div>
+</div>
+<div class="form-item"><label>案例分类</label>
+<div class="tag-group" id="caseTagGroup">
+<span class="tag-item" data-val="话术亮点" onclick="toggleCaseTag(this)">话术亮点</span>
+<span class="tag-item" data-val="服务态度" onclick="toggleCaseTag(this)">服务态度</span>
+<span class="tag-item" data-val="产品知识" onclick="toggleCaseTag(this)">产品知识</span>
+<span class="tag-item" data-val="催付成交" onclick="toggleCaseTag(this)">催付成交</span>
+<span class="tag-item" data-val="售后处理" onclick="toggleCaseTag(this)">售后处理</span>
+<span class="tag-item" data-val="其他" onclick="toggleCaseTag(this)">其他</span>
+</div></div>
+<div class="form-grid" style="grid-template-columns:1fr;margin-bottom:0">
+<div class="form-item"><label>💬 客户问题 / 场景描述</label><textarea class="paste-textarea" id="caseScenario" placeholder="客户当时问的什么、什么场景..." style="min-height:70px"></textarea></div>
+</div>
+<div class="form-item"><label>✅ 优秀回复原文 <span style="font-weight:400;color:var(--text2)">（客服当时怎么回的，原话最佳）</span></label>
+<textarea class="paste-textarea" id="caseReply" placeholder="粘贴客服的优秀回复原话..." style="min-height:80px"></textarea></div>
+<div class="form-item"><label>✨ 亮点分析 / 可复制要点 <span style="font-weight:400;color:var(--text2)">（为什么好？大家能学什么？）</span></label>
+<textarea class="paste-textarea" id="caseHighlights" placeholder="拆解这个案例好在哪、可复制的点..." style="min-height:70px"></textarea></div>
+<div class="form-item"><label>📷 案例截图 <span style="font-weight:400;color:var(--text2)">（聊天截图，可粘贴/拖拽）</span></label>
+<div class="paste-zone" id="zoneCase" tabindex="0">
+<div class="paste-hint">💡 在此粘贴聊天截图（<kbd>Ctrl+V</kbd> / 拖拽图片到此处）</div>
+<div class="paste-images" id="imgCase"></div></div></div>
+<div class="btn-group">
+<button class="btn btn-p" onclick="addGoodCase()">🌟 保存案例</button>
+<button class="btn btn-s" onclick="clearCaseForm()">清空表单</button>
+</div>
+</div>
+<div id="caseList" class="record-list"></div>
+</div></div>
 
 <!-- Edit Modal -->
 <div class="modal-overlay" id="editModal"><div class="modal">
@@ -609,6 +676,7 @@ function updateAdminUI() {
   const mbk = document.getElementById('snipMgrBtnKnowledge'); if (mbk) mbk.style.display = isAdmin ? '' : 'none';
   const tsb = document.getElementById('tplSaveBtn'); if (tsb) tsb.style.display = isAdmin ? '' : 'none';
   const tmb = document.getElementById('tplMgrBtn'); if (tmb) tmb.style.display = isAdmin ? '' : 'none';
+  const ce = document.getElementById('caseEntry'); if (ce) ce.style.display = isAdmin ? '' : 'none';
   renderRecords();
 }
 
@@ -627,7 +695,7 @@ let records = [];
 let editingId = null;
 let currentSeverity = '一般';
 let currentTags = [];
-let pendingImages = { scene: [], reply: [], knowledge: [] };
+let pendingImages = { scene: [], reply: [], knowledge: [], case: [] };
 const pendingUrlMap = new Map();
 
 function todayStr() {
@@ -635,11 +703,11 @@ function todayStr() {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
-// 质检日期快捷按钮：offsetDays 为相对今天偏移（0=今天 -1=昨天 -2=前天）
-function setQuickDate(offsetDays) {
+// 质检日期快捷按钮：offsetDays 为相对今天偏移（0=今天 -1=昨天 -2=前天），targetId 默认质检日期框
+function setQuickDate(offsetDays, targetId) {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
-  const el = document.getElementById('inpDate');
+  const el = document.getElementById(targetId || 'inpDate');
   if (el) el.value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
@@ -774,6 +842,7 @@ function setupPasteHandlers() {
   setupZone('zoneScene', 'imgScene', 'scene');
   setupZone('zoneReply', 'imgReply', 'reply');
   setupZone('zoneKnowledge', 'imgKnowledge', 'knowledge');
+  setupZone('zoneCase', 'imgCase', 'case');
 }
 
 function setupZone(zoneId, imgContainerId, type) {
@@ -831,10 +900,11 @@ function removePendingImage(id, type) {
 function clearPendingImages() {
   pendingUrlMap.forEach((url) => URL.revokeObjectURL(url));
   pendingUrlMap.clear();
-  pendingImages = { scene: [], reply: [], knowledge: [] };
+  pendingImages = { scene: [], reply: [], knowledge: [], case: [] };
   document.getElementById('imgScene').innerHTML = '';
   document.getElementById('imgReply').innerHTML = '';
   document.getElementById('imgKnowledge').innerHTML = '';
+  document.getElementById('imgCase').innerHTML = '';
 }
 
 /* ==================== Stats ==================== */
@@ -1103,6 +1173,145 @@ function closeTemplateManager() {
   if (m) m.classList.remove('active');
 }
 
+/* ==================== 优秀案例库 ==================== */
+let goodCases = [];
+let currentCaseTags = [];
+
+// 顶部主 Tab 切换：质检记录 / 优秀案例
+function switchMainTab(tab) {
+  const isQc = tab === 'qc';
+  document.getElementById('statsRow').style.display = isQc ? '' : 'none';
+  document.getElementById('addPanel').style.display = isQc ? '' : 'none';
+  document.getElementById('qcListPanel').style.display = isQc ? '' : 'none';
+  document.getElementById('casePanel').style.display = isQc ? 'none' : '';
+  document.getElementById('mainTabQc').classList.toggle('active', isQc);
+  document.getElementById('mainTabCases').classList.toggle('active', !isQc);
+  if (!isQc && !goodCases.length) loadGoodCases();
+}
+
+function updateCaseBadge() {
+  const b = document.getElementById('caseBadge');
+  if (b) b.textContent = goodCases.length;
+}
+
+function setCaseSyncBadge(ok, text) {
+  const el = document.getElementById('caseSyncBadge');
+  if (!el) return;
+  el.className = 'qc-sync-badge' + (ok ? '' : ' off');
+  el.textContent = (ok ? '☁️ ' : '⚠️ ') + (text || (ok ? '已同步云端' : '未同步'));
+}
+
+const DEMO_CASES = [
+  { id: 9001, title: '催付时主动推荐第二副', staff: '小李', shop: '抖音1店', date: '2026-08-20', tags: ['催付成交','话术亮点'], scenario: '客户拍下一副日抛后犹豫是否付款', reply: '亲，今天下单可享满 199 减 30 哦，这副日抛日常通勤刚好；如果您是全天戴，可以再配一副月抛换着戴，两副一起更划算呢~', highlights: '客户犹豫时给出利益点 + 主动关联第二副提升连带，话术自然不催促', images: [], created_by: 'demo' },
+  { id: 9002, title: '敏感眼客户的材质安抚', staff: '小美', shop: '拼多多2店', date: '2026-08-19', tags: ['产品知识','服务态度'], scenario: '客户说以前戴美瞳会干涩刺痛，不敢再买', reply: '理解您的顾虑~ 干涩刺痛多半和材质、透氧量有关，推荐您试试硅水凝胶材质的，透氧量高戴着更舒服；第一次建议从日抛开始，先试戴感受一下哦', highlights: '先共情再给方案，用专业知识打消顾虑，给出低风险试错路径（日抛起步）', images: [], created_by: 'demo' }
+];
+
+async function loadGoodCases(showMsg) {
+  setCaseSyncBadge(true, '加载中…');
+  if (DEMO) {
+    goodCases = JSON.parse(JSON.stringify(DEMO_CASES));
+    renderGoodCases();
+    updateCaseBadge();
+    setCaseSyncBadge(true, '📋 演示模式');
+    if (showMsg) showToast('📋 演示模式：数据为脱敏示例');
+    return;
+  }
+  try {
+    const { data, error } = await supabase.from('qc_good_cases').select('*').order('created_at', { ascending: false });
+    if (error) { console.warn('Load good cases error:', error); goodCases = []; setCaseSyncBadge(false, '加载失败'); }
+    else { goodCases = (data || []).map(c => ({ ...c, images: c.images || c.images || [] })); setCaseSyncBadge(true, '已同步云端'); }
+  } catch(e) { console.error(e); goodCases = []; setCaseSyncBadge(false, '加载失败'); }
+  renderGoodCases();
+  updateCaseBadge();
+  if (showMsg) showToast('🔄 已刷新案例');
+}
+
+function toggleCaseTag(el) {
+  const val = el.dataset.val;
+  if (el.classList.contains('active')) { el.classList.remove('active'); currentCaseTags = currentCaseTags.filter(t => t !== val); }
+  else { el.classList.add('active'); currentCaseTags.push(val); }
+}
+
+function clearCaseForm() {
+  document.getElementById('caseTitle').value = '';
+  document.getElementById('caseStaff').value = '';
+  document.getElementById('caseShop').value = '';
+  document.getElementById('caseDate').value = todayStr();
+  document.getElementById('caseScenario').value = '';
+  document.getElementById('caseReply').value = '';
+  document.getElementById('caseHighlights').value = '';
+  currentCaseTags = [];
+  document.querySelectorAll('#caseTagGroup .tag-item').forEach(t => t.classList.remove('active'));
+  pendingImages.case = [];
+  const ic = document.getElementById('imgCase'); if (ic) ic.innerHTML = '';
+}
+
+async function addGoodCase() {
+  if (DEMO) { showToast('📋 演示模式：数据仅供展示，不可保存', true); return; }
+  if (!isAdmin) { showToast('⚠️ 只读模式，无法保存', true); return; }
+  const title = document.getElementById('caseTitle').value.trim();
+  const staff = document.getElementById('caseStaff').value;
+  const shop = document.getElementById('caseShop').value;
+  const date = document.getElementById('caseDate').value || todayStr();
+  const scenario = document.getElementById('caseScenario').value.trim();
+  const reply = document.getElementById('caseReply').value.trim();
+  const highlights = document.getElementById('caseHighlights').value.trim();
+  if (!title || !staff || !shop) { showToast('⚠️ 请填写案例标题、客服姓名、所属店铺', true); return; }
+  try {
+    const imgIds = await uploadPendingImages('case');
+    const id = Date.now() * 1000 + Math.floor(Math.random() * 1000);
+    const row = { id, title, staff, shop, date, tags: currentCaseTags, scenario, reply, highlights, images: imgIds, created_by: currentAuthUser?.phone || '' };
+    const { error } = await supabase.from('qc_good_cases').insert(row);
+    if (error) { showToast('保存失败：' + error.message, true); return; }
+    goodCases.unshift(row);
+    clearCaseForm();
+    renderGoodCases();
+    updateCaseBadge();
+    showToast('🌟 案例已保存');
+  } catch(e) { console.error(e); showToast('操作失败，请重试', true); }
+}
+
+async function deleteGoodCase(id) {
+  if (!isAdmin) { showToast('⚠️ 只读模式', true); return; }
+  if (!confirm('确定删除这条优秀案例？')) return;
+  const c = goodCases.find(x => x.id == id);
+  if (c && (c.images || []).length) {
+    for (const imgId of c.images) {
+      try { await supabase.storage.from('qc-images').remove(['qc/' + imgId + '.jpg']); } catch(e) {}
+    }
+  }
+  try { await supabase.from('qc_good_cases').delete().eq('id', id); } catch(e) {}
+  goodCases = goodCases.filter(x => x.id != id);
+  renderGoodCases(); updateCaseBadge();
+  showToast('🗑️ 已删除');
+}
+
+function renderGoodCases() {
+  const el = document.getElementById('caseList');
+  if (!el) return;
+  if (!goodCases.length) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">🌟</div><div>暂无优秀案例</div><div style="font-size:12px;margin-top:4px">' + (isAdmin ? '在上方表单记录第一条优秀案例吧~' : '等待组长/管理员收录优秀案例~') + '</div></div>';
+    return;
+  }
+  let html = '';
+  for (const c of goodCases) {
+    const tagHtml = (c.tags || []).map(t => '<span class="case-tag">' + escapeHtml(t) + '</span>').join('');
+    html += '<div class="case-card">'
+      + '<div class="case-title"><span>🌟 ' + escapeHtml(c.title) + '</span>'
+      + (isAdmin ? '<button class="btn btn-r" style="font-size:11px;padding:3px 10px" onclick="deleteGoodCase(' + c.id + ')">🗑️</button>' : '') + '</div>'
+      + '<div class="case-meta" style="margin-top:6px">' + tagHtml + '<span style="margin-left:6px">👤 ' + escapeHtml(c.staff) + ' · 🏪 ' + escapeHtml(c.shop) + ' · 📅 ' + escapeHtml(c.date) + '</span></div>'
+      + (c.scenario ? '<div style="font-size:12px;color:var(--text2);margin:8px 0;white-space:pre-wrap;word-break:break-word"><b>💬 场景：</b>' + escapeHtml(c.scenario) + '</div>' : '')
+      + (c.reply ? '<div class="case-reply" style="margin-bottom:8px"><b>✅ 优秀回复：</b>\n' + escapeHtml(c.reply) + '</div>' : '')
+      + (c.highlights ? '<div class="case-highlight"><b>✨ 亮点：</b>\n' + escapeHtml(c.highlights) + '</div>' : '')
+      + '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px" id="caseImg_' + c.id + '"></div>'
+      + '</div>';
+  }
+  el.innerHTML = html;
+  for (const c of goodCases) {
+    if ((c.images || []).length) loadRecordImages('caseImg_' + c.id, c.images);
+  }
+}
+
 // 列表卡片折叠
 function toggleRecordCard(id) {
   const card = document.querySelector('.record-card[data-id="' + id + '"]');
@@ -1251,6 +1460,17 @@ function updateFilterOptions() {
   const curStaff = fStaff.value, curShop = fShop.value;
   fStaff.innerHTML = '<option value="">全部</option>' + staffs.map(s => '<option value="' + escapeHtml(s) + '"' + (s===curStaff?' selected':'') + '>' + escapeHtml(s) + '</option>').join('');
   fShop.innerHTML = '<option value="">全部</option>' + shops.map(s => '<option value="' + escapeHtml(s) + '"' + (s===curShop?' selected':'') + '>' + escapeHtml(s) + '</option>').join('');
+  // 优秀案例表单的客服/店铺下拉同步
+  const cStaff = document.getElementById('caseStaff');
+  const cShop = document.getElementById('caseShop');
+  if (cStaff) {
+    const cs = cStaff.value;
+    cStaff.innerHTML = '<option value="">请选择</option>' + staffs.map(s => '<option value="' + escapeHtml(s) + '"' + (s===cs?' selected':'') + '>' + escapeHtml(s) + '</option>').join('');
+  }
+  if (cShop) {
+    const cs2 = cShop.value;
+    cShop.innerHTML = '<option value="">请选择</option>' + shops.map(s => '<option value="' + escapeHtml(s) + '"' + (s===cs2?' selected':'') + '>' + escapeHtml(s) + '</option>').join('');
+  }
 }
 
 function getFilteredRecords() {
@@ -2732,6 +2952,7 @@ function init() {
     updateAdminUI();
     loadSnippets();
     loadQcTemplates();
+    loadGoodCases();
     showToast('📋 演示模式：数据为脱敏示例，不可保存', true);
     return;
   }
@@ -2752,6 +2973,7 @@ function init() {
         updateAdminUI();
         loadSnippets();
         loadQcTemplates();
+        loadGoodCases();
         loadStaffs();
         loadShops();
         loadShares().then(() => { renderRecords(); updateCsBadge(); });
