@@ -2401,7 +2401,11 @@ body {
         <button class="qc-range-btn active" data-range="week" onclick="setQcReportRange('week')">本周</button>
         <button class="qc-range-btn" data-range="month" onclick="setQcReportRange('month')">本月</button>
         <span style="margin-left:6px;">自定义 <input type="date" id="qc-report-start"> 至 <input type="date" id="qc-report-end"> <button class="qc-range-btn" onclick="setQcReportRange('custom')">应用</button></span>
-        <button class="feishu-sync-btn" style="margin-left:auto;" onclick="exportQcReportExcel()">⬇️ 导出 Excel</button>
+        <span style="margin-left:auto;display:flex;align-items:center;gap:10px;">
+          <span id="qc-report-updated" style="font-size:12px;color:#999;"></span>
+          <button class="qc-range-btn" onclick="refreshQcReport()">🔄 刷新</button>
+          <button class="feishu-sync-btn" onclick="exportQcReportExcel()">⬇️ 导出 Excel</button>
+        </span>
       </div>
     </div>
     <div class="qc-report-cards" id="qc-report-cards"></div>
@@ -6517,6 +6521,8 @@ let qcReportData = [];
 let qcReportRange = 'week'; // week | month | custom
 let qcReportProfileMap = {};
 let qcReportPhoneMap = {};  // phone -> profile（质检人手机号反查姓名）
+let qcReportTimer = null;      // 30s 自动刷新定时器
+let qcReportLastUpdated = '';  // 上次更新时间
 
 function qcFmtDate(d) {
   const y = d.getFullYear();
@@ -6552,7 +6558,7 @@ function setQcReportRange(range) {
   loadQcReport();
 }
 
-async function loadQcReport() {
+async function loadQcReport(silent) {
   if (!supabase) { showToast('⚠️ 数据未就绪，请稍候'); return; }
   const { start, end } = getQcReportRange();
   // 先取 profiles 映射（客服 → 组别、手机号 → 姓名），仅用于展示
@@ -6569,9 +6575,29 @@ async function loadQcReport() {
     .gte('date', start)
     .lte('date', end)
     .order('date', { ascending: false });
-  if (error) { showToast('⚠️ 加载失败：' + error.message); return; }
+  if (error) { if (!silent) showToast('⚠️ 加载失败：' + error.message); return; }
   qcReportData = data || [];
   renderQcReport();
+  // 更新「上次更新」时间
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  qcReportLastUpdated = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+  const updEl = document.getElementById('qc-report-updated');
+  if (updEl) updEl.textContent = '上次更新 ' + qcReportLastUpdated;
+}
+
+/* 手动刷新 + 30s 自动刷新（仅在报告页可见时运行） */
+function refreshQcReport() {
+  loadQcReport(false);
+}
+
+function startQcAutoRefresh() {
+  stopQcAutoRefresh();
+  qcReportTimer = setInterval(() => loadQcReport(true), 30000);
+}
+
+function stopQcAutoRefresh() {
+  if (qcReportTimer) { clearInterval(qcReportTimer); qcReportTimer = null; }
 }
 
 function groupQcAgg(data, key) {
@@ -6755,7 +6781,12 @@ function switchPage(page) {
     document.getElementById('qc-user-badge').textContent = isAdmin ? '👑 管理员模式 · ' + (currentUser.email || currentUser.phone) : '📖 只读模式';
     notifyQcIframe(isAdmin);
   }
-  if (page === 'qc-report') loadQcReport();
+  if (page === 'qc-report') {
+    loadQcReport();
+    startQcAutoRefresh();
+  } else {
+    stopQcAutoRefresh();
+  }
 }
 
 function notifyQcIframe(admin) {
