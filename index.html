@@ -9692,43 +9692,34 @@ function openLicensePreview(src, label, shopShort) {
 }
 
 async function copyLicImageToClipboard() {
-  const src = document.getElementById('lic-preview-img').src;
-  if (!src) return;
+  const img = document.getElementById('lic-preview-img');
+  if (!img || !img.src) return;
+  showToast('⏳ 正在复制图片…');
   try {
-    let blob;
-    try {
-      const res = await fetch(src);
-      if (!res.ok) throw new Error('fetch failed');
-      blob = await res.blob();
-    } catch (netErr) {
-      // fetch 跨域失败时，尝试用当前 <img> 元素绘制 canvas 再转 blob
-      const img = document.getElementById('lic-preview-img');
-      if (!img || !img.naturalWidth) throw new Error('图片尚未加载');
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
-      canvas.getContext('2d').drawImage(img, 0, 0);
-      blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!img.naturalWidth) {
+      await new Promise((res, rej) => {
+        let done = false;
+        const onReady = () => { if (!done) { done = true; clearTimeout(t); res(); } };
+        img.addEventListener('load', onReady, { once: true });
+        const t = setTimeout(() => { if (!done) { done = true; rej(new Error('图片加载超时')); } }, 6000);
+        if (img.complete && img.naturalWidth) onReady();
+      });
     }
-    // 统一转 PNG 保证 ClipboardItem 兼容性
-    const finalBlob = await (async () => {
-      if (!blob || blob.type === 'image/png') return blob;
-      const url = URL.createObjectURL(blob);
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = url; });
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
-      canvas.getContext('2d').drawImage(img, 0, 0);
-      const png = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-      URL.revokeObjectURL(url);
-      return png;
-    })();
-    if (!finalBlob) { showToast('复制失败：无法生成图片'); return; }
-    await navigator.clipboard.write([new ClipboardItem({ 'image/png': finalBlob })]);
+    if (!img.naturalWidth) throw new Error('图片未加载');
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    canvas.getContext('2d').drawImage(img, 0, 0);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('生成图片失败');
+    if (!navigator.clipboard || typeof ClipboardItem === 'undefined') {
+      throw new Error('当前浏览器不支持复制图片，请右键图片复制');
+    }
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
     showToast('✅ 图片已复制');
   } catch (e) {
     console.error('复制图片失败:', e);
-    showToast('复制失败：' + (e.message || '请手动截图保存'));
+    showToast('复制失败：请右键图片选「复制图片」');
   }
 }
 
@@ -11121,7 +11112,7 @@ init();
       <button class="modal-close" onclick="closeModal('mod-lic-preview')">✕</button>
     </div>
     <div class="modal-body lic-preview-body">
-      <div class="lic-preview-imgwrap"><img id="lic-preview-img" src="" alt=""></div>
+      <div class="lic-preview-imgwrap"><img id="lic-preview-img" src="" alt="" crossorigin="anonymous"></div>
     </div>
     <div class="modal-footer">
       <button class="btn-sm primary" onclick="copyLicImageToClipboard()">📋 复制图片</button>
