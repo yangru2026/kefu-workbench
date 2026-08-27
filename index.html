@@ -454,6 +454,31 @@ body {
 .train-mgmt-btns .btn-edit, .train-mgmt-btns .btn-del { width:26px; height:26px; border:1px solid var(--border); border-radius:6px; background:#fff; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; }
 .train-empty { text-align:center; padding:60px 20px; color:var(--text-secondary); }
 
+/* ===== 培训知识卡（页面内固定内容，training_knowledge） ===== */
+.train-knowledge { background:linear-gradient(180deg, rgba(123,155,106,0.06), var(--card-bg)); border:1px solid var(--primary-light); border-radius:14px; padding:18px 22px; margin-bottom:20px; }
+.train-knowledge-head { font-size:12px; font-weight:600; color:var(--primary); margin-bottom:14px; letter-spacing:.5px; }
+.k-section { margin-bottom:18px; }
+.k-section:last-child { margin-bottom:0; }
+.k-section-title { font-size:15px; font-weight:700; color:var(--text); margin-bottom:12px; }
+/* overview：横向彩色卡片 */
+.k-ov-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px; }
+.k-ov-card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:16px 14px; text-align:center; transition:all .2s; }
+.k-ov-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); border-color:var(--primary-light); }
+.k-ov-icon { font-size:30px; margin-bottom:8px; }
+.k-ov-name { font-size:15px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.k-ov-desc { font-size:12px; color:var(--text-secondary); line-height:1.5; }
+/* cards：要点卡片 */
+.k-card-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px; }
+.k-card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+.k-card-title { font-size:14px; font-weight:700; color:var(--primary); margin-bottom:6px; }
+.k-card-body { font-size:13px; color:var(--text-secondary); line-height:1.7; }
+/* steps：步骤 */
+.k-steps { display:flex; flex-direction:column; gap:12px; }
+.k-step { display:flex; gap:12px; align-items:flex-start; }
+.k-step-num { width:28px; height:28px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+.k-step-title { font-size:14px; font-weight:600; color:var(--text); margin-bottom:2px; }
+.k-step-desc { font-size:13px; color:var(--text-secondary); line-height:1.7; }
+
 /* Pattern gallery - Brand tabs */
 .brand-tabs { display:flex; gap:0; margin-bottom:0; border-radius:12px 12px 0 0; overflow:hidden; background:#fff; box-shadow:var(--shadow); }
 .brand-tab { flex:1; padding:12px 0; text-align:center; font-size:14px; font-weight:600; cursor:pointer; border:none; background:transparent; color:var(--text-secondary); font-family:inherit; transition:all 0.25s; position:relative; }
@@ -2916,6 +2941,20 @@ function subscribeTrainingCategories() {
       debouncedReload('training-cat', loadTrainingCategories);
     })
     .subscribe();
+}
+
+// 加载页面内固定知识卡（training_knowledge 表）
+async function loadTrainingKnowledge() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase
+      .from('training_knowledge')
+      .select('*')
+      .order('sort_order', { ascending: true });
+    if (error) { console.error('知识卡加载失败:', error); return; }
+    trainingKnowledge = data || [];
+    if (currentPage === 'training') renderTraining();
+  } catch(e) { console.error('知识卡加载异常:', e); }
 }
 
 async function loadPatternsFromDB() {
@@ -6751,6 +6790,7 @@ function switchPage(page) {
       window._trainingLoaded = true;
       if (window.loadTrainingCategories) loadTrainingCategories();
       if (window.loadTrainingFromDB) loadTrainingFromDB();
+      if (window.loadTrainingKnowledge) loadTrainingKnowledge();
     } else {
       renderTraining();
     }
@@ -8721,6 +8761,7 @@ document.addEventListener('keydown', function(e) {
 let trainingGroup = '全部';
 let trainingSubcatFilter = '全部';
 let trainingCategories = [];
+let trainingKnowledge = [];
 
 function trainingGroups() { return trainingCategories.filter(c => !c.parent_id); }
 function trainingSubcats() { return trainingCategories.filter(c => c.parent_id); }
@@ -8904,6 +8945,39 @@ async function addNewSubcat() {
   loadTrainingCategories();
 }
 
+// 渲染某小类下的页面内固定知识卡（training_knowledge 表）
+function renderKnowledgeBlocks(subcat) {
+  const blocks = trainingKnowledge.filter(k => k.subcat === subcat);
+  if (!blocks.length) return '';
+  const sectionHtml = (k) => {
+    const icon = k.icon ? escapeHtml(k.icon) + ' ' : '';
+    const title = '<div class="k-section-title">' + icon + escapeHtml(k.title || '') + '</div>';
+    let body = '';
+    const items = (k.content && k.content.items) || [];
+    if (k.section_type === 'overview') {
+      body = '<div class="k-ov-grid">' + items.map(it =>
+        '<div class="k-ov-card"><div class="k-ov-icon">' + escapeHtml(it.icon || '📄') + '</div>'
+        + '<div class="k-ov-name">' + escapeHtml(it.name || '') + '</div>'
+        + '<div class="k-ov-desc">' + escapeHtml(it.desc || '') + '</div></div>'
+      ).join('') + '</div>';
+    } else if (k.section_type === 'cards') {
+      body = '<div class="k-card-grid">' + items.map(it =>
+        '<div class="k-card"><div class="k-card-title">' + escapeHtml(it.title || '') + '</div>'
+        + '<div class="k-card-body">' + escapeHtml(it.body || '') + '</div></div>'
+      ).join('') + '</div>';
+    } else if (k.section_type === 'steps') {
+      body = '<div class="k-steps">' + items.map((it, i) =>
+        '<div class="k-step"><div class="k-step-num">' + (i + 1) + '</div>'
+        + '<div class="k-step-body"><div class="k-step-title">' + escapeHtml(it.title || '') + '</div>'
+        + '<div class="k-step-desc">' + escapeHtml(it.body || '') + '</div></div></div>'
+      ).join('') + '</div>';
+    }
+    return '<div class="k-section">' + title + body + '</div>';
+  };
+  return '<div class="train-knowledge"><div class="train-knowledge-head">📌 知识卡（工作台内置）</div>'
+    + blocks.map(sectionHtml).join('') + '</div>';
+}
+
 function renderTraining() {
   renderTrainingGroupTabs();
   renderTrainingSubcatTabs();
@@ -8987,6 +9061,11 @@ function renderTraining() {
     const subs = trainingSubcats().filter(c => c.parent_id === trainingGroup);
     const catList = trainingSubcatFilter === '全部' ? subs.map(s => s.name) : [trainingSubcatFilter];
     catList.forEach(cat => {
+      // 选中具体小类时，先渲染页面内固定知识卡
+      if (trainingSubcatFilter !== '全部') {
+        const kb = renderKnowledgeBlocks(cat);
+        if (kb) html += kb;
+      }
       const items = filtered.filter(d => d.category === cat);
       if (items.length) html += catCard(cat, items, false);
     });
