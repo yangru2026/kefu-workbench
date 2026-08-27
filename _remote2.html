@@ -221,68 +221,6 @@ body {
 .page-header h1 { font-size: 26px; font-weight: 700; color: var(--text); }
 .page-header p { color: var(--text-secondary); margin-top: 6px; font-size: 14px; }
 
-/* 首页全员通知横幅 */
-.global-notice-banner {
-  position: relative;
-  margin-bottom: 22px;
-  padding: 16px 20px;
-  border-radius: 14px;
-  background: linear-gradient(100deg, #7B5CB8 0%, #9B7FD4 100%);
-  color: #fff;
-  box-shadow: 0 6px 20px rgba(123,92,184,0.22);
-  cursor: pointer;
-  transition: transform .15s, box-shadow .15s;
-  overflow: hidden;
-}
-.global-notice-banner:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 26px rgba(123,92,184,0.28);
-}
-.global-notice-banner .gnb-title {
-  font-size: 15px;
-  font-weight: 700;
-  margin-bottom: 6px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.global-notice-banner .gnb-sub {
-  font-size: 13px;
-  opacity: 0.92;
-  line-height: 1.5;
-}
-.global-notice-banner .gnb-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 10px;
-  padding: 6px 14px;
-  background: rgba(255,255,255,0.18);
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-}
-.global-notice-banner .gnb-close {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: rgba(255,255,255,0.15);
-  color: #fff;
-  border-radius: 50%;
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-}
-.global-notice-banner .gnb-close:hover { background: rgba(255,255,255,0.28); }
-.global-notice-banner.hidden { display: none; }
-
 /* Cards */
 .card {
   background: var(--card-bg);
@@ -363,31 +301,19 @@ body {
 .filter-tag:hover { border-color: var(--primary); color: var(--primary); }
 .filter-tag.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
-/* Training group tabs (大类) */
-.training-group-tabs { display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
-.training-group-tab { padding:11px 28px; border:1px solid var(--border); border-radius:12px; font-size:16px; font-weight:600; cursor:pointer; background:#fff; color:var(--text-secondary); font-family:inherit; transition:all .2s; white-space:nowrap; }
-.training-group-tab:hover { border-color:var(--primary); color:var(--primary); }
-.training-group-tab.active { background:var(--primary); color:#fff; border-color:var(--primary); }
-.g-add-btn { padding:11px 24px; border:1.5px dashed var(--primary-light); border-radius:12px; font-size:15px; cursor:pointer; background:transparent; color:var(--primary); font-family:inherit; white-space:nowrap; transition:all .2s; }
-.g-add-btn:hover { background:rgba(123,155,106,0.08); border-color:var(--primary); }
-.g-inline-edit { display:inline-flex; align-items:center; gap:4px; }
-.g-inline-edit input { padding:6px 12px; border:1px solid var(--primary); border-radius:10px; font-size:14px; width:130px; font-family:inherit; outline:none; }
-.g-inline-edit button { padding:4px 10px; border:none; border-radius:8px; font-size:12px; cursor:pointer; font-family:inherit; }
-/* 大类卡片内按小类分小节 */
-.train-sub-section { border-top:1px dashed var(--border); margin-top:8px; padding-top:8px; }
-.train-sub-section:first-child { border-top:none; margin-top:0; padding-top:0; }
-.train-sub-title { font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:6px; padding-left:2px; }
-
 /* Training category sub-tabs */
-.training-cat-tabs { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
-.training-cat-tab { padding:9px 22px; border:1px solid var(--border); border-radius:24px; font-size:15px; cursor:pointer; background:transparent; color:var(--text-secondary); font-family:inherit; transition:all .2s; white-space:nowrap; }
+.training-cat-tabs { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+.training-cat-tab { padding:6px 16px; border:1px solid var(--border); border-radius:20px; font-size:13px; cursor:pointer; background:transparent; color:var(--text-secondary); font-family:inherit; transition:all .2s; white-space:nowrap; }
 .training-cat-tab:hover { border-color:var(--primary); color:var(--primary); }
 .training-cat-tab.active { background:var(--primary); color:#fff; border-color:var(--primary); }
-.cat-add-btn { padding:9px 20px; border:1.5px dashed var(--primary-light); border-radius:24px; font-size:14px; cursor:pointer; background:transparent; color:var(--primary); font-family:inherit; white-space:nowrap; transition:all .2s; }
+.training-cat-tab .cat-edit-btn, .training-cat-tab .cat-del-btn { display:none; margin-left:4px; font-size:11px; background:none; border:none; cursor:pointer; color:inherit; opacity:0.7; padding:0 2px; }
+.training-cat-tab:hover .cat-edit-btn, .training-cat-tab:hover .cat-del-btn { display:inline; }
+.training-cat-tab .cat-edit-btn:hover, .training-cat-tab .cat-del-btn:hover { opacity:1; }
+.cat-add-btn { padding:6px 14px; border:1.5px dashed var(--primary-light); border-radius:20px; font-size:12px; cursor:pointer; background:transparent; color:var(--primary); font-family:inherit; white-space:nowrap; transition:all .2s; }
 .cat-add-btn:hover { background:rgba(123,155,106,0.08); border-color:var(--primary); }
 .cat-inline-edit { display:inline-flex; align-items:center; gap:4px; }
-.cat-inline-edit input { padding:5px 10px; border:1px solid var(--primary); border-radius:12px; font-size:13px; width:110px; font-family:inherit; outline:none; }
-.cat-inline-edit button { padding:3px 9px; border:none; border-radius:8px; font-size:12px; cursor:pointer; font-family:inherit; }
+.cat-inline-edit input { padding:3px 8px; border:1px solid var(--primary); border-radius:10px; font-size:12px; width:100px; font-family:inherit; outline:none; }
+.cat-inline-edit button { padding:2px 8px; border:none; border-radius:8px; font-size:11px; cursor:pointer; font-family:inherit; }
 
 /* Pattern category management buttons - only show on active tab */
 .brand-tab .pcat-edit-btn, .brand-tab .pcat-del-btn { display:none; margin-left:4px; font-size:10px; background:none; border:none; cursor:pointer; color:inherit; opacity:0.7; padding:0 2px; vertical-align:middle; }
@@ -437,73 +363,16 @@ body {
 .train-card-header { display:flex; align-items:center; gap:10px; padding:14px 20px; background:var(--hover-bg); border-bottom:1px solid var(--border); }
 .train-card-header h3 { margin:0; font-size:15px; }
 .train-card-count { font-size:12px; color:var(--text-secondary); margin-left:auto; }
-.train-link-list { list-style:none; padding:18px 22px; margin:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:18px; }
-.train-link-item { position:relative; display:flex; flex-direction:column; gap:12px; padding:18px; border:1px solid var(--border); border-radius:14px; background:var(--card-bg); transition:all .2s; cursor:pointer; }
-.train-link-item:last-child { border-bottom:1px solid var(--border); }
-.train-link-item:hover { background:var(--hover-bg); border-color:var(--primary-light); transform:translateY(-3px); box-shadow:var(--shadow-md); }
-.train-link-item a { color:var(--primary); text-decoration:none; font-size:16px; font-weight:600; line-height:1.4; }
+.train-link-list { list-style:none; padding:0; margin:0; }
+.train-link-item { display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid var(--border); }
+.train-link-item:last-child { border-bottom:none; }
+.train-link-item:hover { background:var(--hover-bg); }
+.train-link-item a { flex:1; color:var(--primary); text-decoration:none; font-size:14px; font-weight:500; }
+.train-mgmt-btns { display:flex; gap:4px; flex-shrink:0; }
+.train-mgmt-btns .btn-edit, .train-mgmt-btns .btn-del { width:26px; height:26px; border:1px solid var(--border); border-radius:5px; background:var(--card-bg); cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; }
 .train-link-item a:hover { text-decoration:underline; }
-.train-card-icon { width:52px; height:52px; border-radius:12px; background:var(--gradient-card); display:flex; align-items:center; justify-content:center; font-size:26px; flex-shrink:0; }
-.train-card-top { display:flex; align-items:flex-start; gap:12px; }
-.train-card-title-wrap { flex:1; min-width:0; }
-.train-card-brand { font-size:11px; color:var(--text-secondary); margin-top:2px; }
-.train-link-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:auto; }
-.train-link-tags .tag { font-size:11px; padding:3px 9px; border-radius:12px; background:var(--tag-bg); color:var(--tag-text); }
-.train-mgmt-btns { position:absolute; top:10px; right:10px; display:flex; gap:4px; flex-shrink:0; opacity:0; transition:opacity .2s; }
-.train-link-item:hover .train-mgmt-btns { opacity:1; }
-.train-mgmt-btns .btn-edit, .train-mgmt-btns .btn-del { width:26px; height:26px; border:1px solid var(--border); border-radius:6px; background:#fff; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; }
+.train-link-tags { display:flex; gap:4px; flex-shrink:0; }
 .train-empty { text-align:center; padding:60px 20px; color:var(--text-secondary); }
-/* 培训资料详情弹窗 */
-.td-brand { display:inline-block; margin-left:8px; font-size:12px; font-weight:500; color:var(--primary); background:var(--hover-bg); padding:2px 10px; border-radius:20px; }
-.td-tags { display:flex; gap:6px; flex-wrap:wrap; padding:0 20px 8px; }
-.td-tags .tag { font-size:12px; padding:2px 10px; }
-.td-desc-block { padding:8px 20px 4px; }
-.td-desc-label { font-size:13px; font-weight:700; color:var(--primary); margin-bottom:6px; }
-.td-desc-body { font-size:14px; line-height:1.8; color:var(--text); white-space:normal; }
-
-/* ===== 培训知识卡（页面内固定内容，training_knowledge） ===== */
-.train-knowledge { background:linear-gradient(180deg, rgba(123,155,106,0.06), var(--card-bg)); border:1px solid var(--primary-light); border-radius:14px; padding:18px 22px; margin-bottom:20px; }
-.train-knowledge-head { font-size:12px; font-weight:600; color:var(--primary); margin-bottom:14px; letter-spacing:.5px; }
-.k-section { margin-bottom:18px; }
-.k-section:last-child { margin-bottom:0; }
-.k-section-title { font-size:15px; font-weight:700; color:var(--text); margin-bottom:12px; }
-/* overview：横向彩色卡片 */
-.k-ov-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px; }
-.k-ov-card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:16px 14px; text-align:center; transition:all .2s; }
-.k-ov-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); border-color:var(--primary-light); }
-.k-ov-icon { font-size:30px; margin-bottom:8px; }
-.k-ov-name { font-size:15px; font-weight:700; color:var(--text); margin-bottom:4px; }
-.k-ov-desc { font-size:12px; color:var(--text-secondary); line-height:1.5; }
-/* cards：要点卡片 */
-.k-card-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px; }
-.k-card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
-.k-card-title { font-size:14px; font-weight:700; color:var(--primary); margin-bottom:6px; }
-.k-card-body { font-size:13px; color:var(--text-secondary); line-height:1.7; }
-/* steps：步骤 */
-.k-steps { display:flex; flex-direction:column; gap:12px; }
-.k-step { display:flex; gap:12px; align-items:flex-start; }
-.k-step-num { width:28px; height:28px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
-.k-step-title { font-size:14px; font-weight:600; color:var(--text); margin-bottom:2px; }
-.k-step-desc { font-size:13px; color:var(--text-secondary); line-height:1.7; }
-
-/* ===== 售前话术（training_scripts） ===== */
-.sc-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:auto; }
-.sc-chip { font-size:11px; padding:3px 9px; border-radius:12px; background:var(--tag-bg); color:var(--text-muted); border:1px solid var(--border); }
-.sc-chip.on { background:rgba(123,155,106,0.14); color:var(--primary); border-color:var(--primary-light); font-weight:600; }
-.train-add-row { margin-top:16px; padding:16px; border:1.5px dashed var(--primary-light); border-radius:14px; text-align:center; color:var(--primary); font-weight:600; cursor:pointer; background:rgba(123,155,106,0.04); transition:all .2s; }
-.train-add-row:hover { background:rgba(123,155,106,0.1); border-color:var(--primary); }
-/* 话术详情：5 种风格 */
-.sc-style { border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:12px; background:var(--card-bg); position:relative; }
-.sc-style.empty { background:var(--hover-bg); border-style:dashed; }
-.sc-style-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-.sc-style-name { font-size:14px; font-weight:700; color:var(--primary); }
-.sc-style.empty .sc-style-name { color:var(--text-muted); }
-.sc-copy { font-size:12px; padding:3px 12px; border:1px solid var(--primary-light); border-radius:10px; background:#fff; color:var(--primary); cursor:pointer; font-family:inherit; transition:all .2s; }
-.sc-copy:hover { background:var(--primary); color:#fff; }
-.sc-empty-tag { font-size:11px; color:var(--text-muted); background:var(--tag-bg); padding:2px 10px; border-radius:10px; }
-.sc-style-body { font-size:14px; line-height:1.8; color:var(--text); white-space:normal; }
-.sc-empty-hint { color:var(--text-muted); font-size:13px; }
-.sc-copy-ta { position:absolute; left:-9999px; top:0; width:1px; height:1px; opacity:0; }
 
 /* Pattern gallery - Brand tabs */
 .brand-tabs { display:flex; gap:0; margin-bottom:0; border-radius:12px 12px 0 0; overflow:hidden; background:#fff; box-shadow:var(--shadow); }
@@ -1002,12 +871,6 @@ body {
 .modal-field textarea { min-height:60px; resize:vertical; }
 .modal-field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 
-/* 扣罚标准大图弹窗 */
-.penalty-modal-box { max-width: 98vw; width: auto; max-height: 92vh; display: flex; flex-direction: column; }
-.penalty-modal-body { padding: 16px; overflow: auto; text-align: center; flex: 1; }
-.penalty-modal-body img { max-width: none; width: auto; max-height: none; cursor: zoom-out; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-.penalty-modal-body img.zoomed { max-width: 100%; width: 100%; cursor: zoom-in; }
-
 /* ===== 选项管理 · 新风格 ===== */
 .cs-opt-teams { display:flex; gap:8px; margin-bottom:12px; }
 .cs-opt-team { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:18px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; background:#fff; border:1.5px solid var(--border); color:var(--text-secondary); transition:all .15s; }
@@ -1295,7 +1158,6 @@ body {
     <div class="nav-item" data-page="tools"><span class="icon">🛠</span><span>快捷工具</span></div>
     <div class="nav-item" data-page="cross-sales"><span class="icon">🛒</span><span>连带成交</span></div>
     <div class="nav-item" data-page="voc"><span class="icon">📣</span><span>客户之声</span><span class="badge" id="voc-todo-badge" style="display:none;"></span></div>
-    <div class="nav-item" data-page="daily"><span class="icon">🌙</span><span>汇报</span></div>
     <div class="nav-section">培训</div>
     <div class="nav-item" data-page="training"><span class="icon">📚</span><span>培训资料</span></div>
     <div class="nav-item" data-page="sop"><span class="icon">📄</span><span>新人SOP</span></div>
@@ -1305,9 +1167,9 @@ body {
     <div class="nav-item" data-page="schedule"><span class="icon">📅</span><span>排班表</span></div>
     <div class="nav-item" data-page="requests"><span class="icon">📝</span><span>申请审批</span><span class="badge" id="req-pending-badge" style="display:none;"></span></div>
     <div class="nav-item" data-page="ranking"><span class="icon">🏆</span><span>客服排名</span></div>
+    <div class="nav-item" data-page="daily"><span class="icon">🌙</span><span>汇报</span></div>
     <div class="nav-item" data-page="presale"><span class="icon">📈</span><span>售前数据</span></div>
     <div class="nav-item" data-page="qc"><span class="icon">🔍</span><span>质检工具</span></div>
-    <div class="nav-item admin-only-nav" data-page="qc-report" style="display:none;"><span class="icon">📊</span><span>质检报告</span></div>
     <div class="nav-section">账号</div>
     <div class="nav-item admin-only-nav" data-page="members" style="display:none;"><span class="icon">👥</span><span>成员管理</span></div>
     <div class="nav-item admin-only-nav" data-page="staff-info" style="display:none;"><span class="icon">👥</span><span>客服信息</span></div>
@@ -1331,15 +1193,6 @@ body {
   <!-- ===== 首页 - 公告栏 ===== -->
   <div class="page active" id="page-home">
     <div class="page-header"><h1>📢 重要通知</h1><p>实时公告 · 全员同步 · 置顶优先</p></div>
-
-    <!-- 全员必读：扣罚标准 -->
-    <div class="global-notice-banner" id="penalty-notice-banner" onclick="openPenaltyStandardModal(event)">
-      <button class="gnb-close" onclick="closePenaltyNotice(event)" title="不再提醒">×</button>
-      <div class="gnb-title"><span>🚨</span> 全员必读：客服服务差错扣罚标准已发布</div>
-      <div class="gnb-sub">《客服服务差错扣罚标准（2026年执行版）》已正式生效，涵盖上号时间、服务意识、响应时效、操作差错、销售意识、信息处理、红线高压等七大类。点击此处查看完整大图。</div>
-      <div class="gnb-action">查看完整大图 →</div>
-    </div>
-
     <div class="announcement-actions admin-only" style="margin-bottom:16px;">
       <button class="btn-sm primary" onclick="openAnnounceForm()">✎ 发布公告</button>
     </div>
@@ -1970,9 +1823,11 @@ body {
     <!-- 录入原声 -->
     <div class="card" style="margin-bottom:20px;">
       <h3 style="margin-bottom:14px;">🎙 录入客户原话 <span style="font-size:12px;color:var(--text-secondary);font-weight:normal;">（原封不动，一字不改不加工）</span></h3>
-      <textarea id="voc-raw" rows="5" placeholder="把客户原话原封不动地粘贴 / 录入到这里，例如：&#10;“你们这个美瞳我戴着有点磨眼睛，但是颜色真的好看，就是想问问有没有更舒服的材质”" oninput="saveVOCDraft();" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;resize:vertical;line-height:1.6;"></textarea>
+      <textarea id="voc-raw" rows="5" placeholder="把客户原话原封不动地粘贴 / 录入到这里，例如：&#10;“你们这个美瞳我戴着有点磨眼睛，但是颜色真的好看，就是想问问有没有更舒服的材质”" oninput="onVOCRawInput();saveVOCDraft();" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;resize:vertical;line-height:1.6;"></textarea>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;">
-        <span style="font-size:12px;color:var(--text-secondary);">请手动选择「来源场景 / 品牌 / 主题」</span>
+        <button class="btn-sm primary" onclick="parseVOCAndFill()" style="padding:8px 16px;">⚡ 一键解析</button>
+        <button class="btn-sm outline" onclick="openVOCBatch()" style="padding:8px 16px;">📋 批量粘贴</button>
+        <span style="font-size:12px;color:var(--text-secondary);">自动识别「来源场景 / 品牌 / 主题」，识别不准可手动改</span>
       </div>
       <div id="voc-parse-hits" style="margin-top:8px;display:none;"></div>
       <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-top:12px;">
@@ -2369,16 +2224,20 @@ body {
   <!-- ===== 培训资料 ===== -->
   <div class="page" id="page-training">
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-      <div><h1>📚 培训资料中心</h1><p id="training-subtitle">按大类和小类查看培训资料，点击链接打开飞书云文档 | 修改实时同步所有客服</p></div>
+      <div><h1>📚 培训资料中心</h1><p>按品牌和分类查看培训资料，点击链接打开飞书云文档 | 修改实时同步所有客服</p></div>
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="collab-btn" id="collab-training-btn" onclick="openCollabPanel('training')" style="display:none;">👥 协作者</button>
         <button class="admin-only-nav" id="train-add-btn" onclick="openTrainingEditor(null)" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">＋ 新增资料</button>
       </div>
     </div>
-    <!-- 大类 Tab -->
-    <div class="training-group-tabs" id="training-group-tabs"></div>
-    <!-- 小类 Tab（选中大类后显示） -->
-    <div class="training-cat-tabs" id="training-subcat-tabs"></div>
+    <!-- 品牌切换 Tab -->
+    <div class="brand-tabs" id="training-brand-tabs">
+      <button class="brand-tab active" data-brand="全部" onclick="setTrainingBrand('全部')">🌐 全部</button>
+      <button class="brand-tab" data-brand="弥生" onclick="setTrainingBrand('弥生')">🌸 弥生</button>
+      <button class="brand-tab" data-brand="极氧" onclick="setTrainingBrand('极氧')">🫧 极氧</button>
+    </div>
+    <!-- 子分类 -->
+    <div class="training-cat-tabs" id="training-cat-tabs"></div>
     <!-- 搜索 -->
     <div class="search-bar"><input type="text" id="training-search" placeholder="🔍 搜索资料标题..." oninput="renderTraining()"></div>
     <!-- 内容区 -->
@@ -2438,60 +2297,6 @@ body {
       <span class="qc-topbar-user" id="qc-user-badge">管理员模式下可增删改</span>
     </div>
     <iframe id="qc-iframe" src="about:blank" data-src="qc-v2.html" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write"></iframe>
-  </div>
-
-  <style>
-    #page-qc-report { padding: 20px; }
-    #page-qc-report .qc-report-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
-    #page-qc-report .qc-report-header h2 { margin:0; font-size:20px; }
-    #page-qc-report .qc-report-controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    #page-qc-report .qc-range-btn { padding:6px 14px; border:1px solid var(--primary,#7b9b6a); background:#fff; color:var(--primary,#7b9b6a); border-radius:18px; cursor:pointer; font-size:13px; font-family:inherit; }
-    #page-qc-report .qc-range-btn.active { background:var(--primary,#7b9b6a); color:#fff; }
-    #page-qc-report .qc-report-cards { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:20px; }
-    #page-qc-report .qc-card { flex:1; min-width:140px; background:#fff; border:1px solid #eee; border-radius:12px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,.04); }
-    #page-qc-report .qc-card-val { font-size:26px; font-weight:700; color:var(--primary,#7b9b6a); }
-    #page-qc-report .qc-card-label { font-size:12px; color:#888; margin-top:4px; }
-    #page-qc-report .qc-report-tables { display:flex; gap:18px; flex-wrap:wrap; }
-    #page-qc-report .qc-report-block { flex:1; min-width:280px; background:#fff; border:1px solid #eee; border-radius:12px; padding:14px; }
-    #page-qc-report .qc-report-block h3 { margin:0 0 10px; font-size:15px; }
-    #page-qc-report .qc-report-block table { width:100%; border-collapse:collapse; font-size:13px; }
-    #page-qc-report .qc-report-block th, #page-qc-report .qc-report-block td { border:1px solid #eee; padding:6px 8px; text-align:left; }
-    #page-qc-report .qc-report-block th { background:#f7f9f5; }
-    #page-qc-report .qc-report-block tbody tr:nth-child(even) td { background:#fafbf9; }
-  </style>
-  <div class="page" id="page-qc-report">
-    <div class="qc-report-header">
-      <h2>📊 质检报告</h2>
-      <div class="qc-report-controls">
-        <button class="qc-range-btn active" data-range="week" onclick="setQcReportRange('week')">本周</button>
-        <button class="qc-range-btn" data-range="month" onclick="setQcReportRange('month')">本月</button>
-        <span style="margin-left:6px;">自定义 <input type="date" id="qc-report-start"> 至 <input type="date" id="qc-report-end"> <button class="qc-range-btn" onclick="setQcReportRange('custom')">应用</button></span>
-        <span style="margin-left:auto;display:flex;align-items:center;gap:10px;">
-          <span id="qc-report-updated" style="font-size:12px;color:#999;"></span>
-          <button class="qc-range-btn" onclick="refreshQcReport()">🔄 刷新</button>
-          <button class="feishu-sync-btn" onclick="exportQcReportExcel()">⬇️ 导出 Excel</button>
-        </span>
-      </div>
-    </div>
-    <div class="qc-report-cards" id="qc-report-cards"></div>
-    <div class="qc-report-tables">
-      <div class="qc-report-block">
-        <h3>按质检人</h3>
-        <div style="overflow:auto;max-height:420px;"><table id="qc-report-by-inspector"></table></div>
-      </div>
-      <div class="qc-report-block">
-        <h3>按客服</h3>
-        <div style="overflow:auto;max-height:420px;"><table id="qc-report-by-staff"></table></div>
-      </div>
-      <div class="qc-report-block">
-        <h3>按店铺</h3>
-        <div style="overflow:auto;max-height:420px;"><table id="qc-report-by-shop"></table></div>
-      </div>
-      <div class="qc-report-block">
-        <h3>按严重程度</h3>
-        <div style="overflow:auto;max-height:420px;"><table id="qc-report-by-severity"></table></div>
-      </div>
-    </div>
   </div>
 
   <div class="page" id="page-ranking">
@@ -2835,9 +2640,6 @@ async function signOut() {
 
 let configVersion = '';
 let trainingData = [];
-let trainingScripts = [];
-const SCRIPT_GROUP = '售前话术';
-let scriptSub = null;
 let patternData = [];
 let sopData = [];
 let bulletinData = [];
@@ -2948,18 +2750,19 @@ async function loadTrainingCategories() {
       .order('sort_order', { ascending: true });
     if (error) {
       console.error('分类加载失败:', error);
-      // Fallback: use default two-level categories if table doesn't exist yet
+      // Fallback: use default categories if table doesn't exist yet
       trainingCategories = [
-        { id: 'g1', name: '品牌背景和定位', sort_order: 100, parent_id: '' },
-        { id: 'g2', name: '基础知识', sort_order: 200, parent_id: '' },
-        { id: 'g3', name: 'ERP操作', sort_order: 300, parent_id: '' },
-        { id: 'g4', name: '店铺产品', sort_order: 400, parent_id: '' }
+        { id: '1', name: '产品知识', sort_order: 1 },
+        { id: '2', name: '接待流程', sort_order: 2 },
+        { id: '3', name: '平台工作台', sort_order: 3 },
+        { id: '4', name: '话术库', sort_order: 4 },
+        { id: '5', name: '售后处理', sort_order: 5 }
       ];
-      if (currentPage === 'training') renderTraining();
+      if (currentPage === 'training') { renderTrainingCatTabs(); renderTraining(); }
       return;
     }
     trainingCategories = data || [];
-    if (currentPage === 'training') renderTraining();
+    if (currentPage === 'training') { renderTrainingCatTabs(); renderTraining(); }
   } catch(e) { console.error('分类加载异常:', e); }
 }
 
@@ -2968,55 +2771,6 @@ function subscribeTrainingCategories() {
   supabase.channel('training-cat-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'training_categories' }, () => {
       debouncedReload('training-cat', loadTrainingCategories);
-    })
-    .subscribe();
-}
-
-// 加载页面内固定知识卡（training_knowledge 表）
-async function loadTrainingKnowledge() {
-  if (!supabase) return;
-  try {
-    const { data, error } = await supabase
-      .from('training_knowledge')
-      .select('*')
-      .order('sort_order', { ascending: true });
-    if (error) { console.error('知识卡加载失败:', error); return; }
-    trainingKnowledge = data || [];
-    if (currentPage === 'training') renderTraining();
-  } catch(e) { console.error('知识卡加载异常:', e); }
-}
-
-// 加载售前话术（training_scripts 表）
-async function loadTrainingScripts() {
-  if (!supabase) return;
-  try {
-    const { data, error } = await supabase
-      .from('training_scripts')
-      .select('*')
-      .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: true });
-    if (error) { console.error('话术加载失败:', error); return; }
-    const order = ['标准', '亲切', '简短', '专业', '安抚'];
-    trainingScripts = (data || []).map(d => ({
-      ...d,
-      tags: d.tags || [],
-      styles: (() => {
-        const st = d.styles || {};
-        const out = {};
-        order.forEach(k => { out[k] = (st[k] != null ? String(st[k]) : ''); });
-        return out;
-      })()
-    }));
-    subscribeTrainingScripts();
-    if (currentPage === 'training') renderTraining();
-  } catch(e) { console.error('话术加载异常:', e); }
-}
-
-function subscribeTrainingScripts() {
-  if (!supabase || scriptSub) return;
-  scriptSub = supabase.channel('scripts-changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'training_scripts' }, () => {
-      debouncedReload('scripts', loadTrainingScripts);
     })
     .subscribe();
 }
@@ -6632,214 +6386,6 @@ document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', () => switchPage(item.dataset.page));
 });
 
-/* ==================== 质检报告（周/月/自定义 + 导出 Excel） ==================== */
-let qcReportData = [];
-let qcReportRange = 'week'; // week | month | custom
-let qcReportProfileMap = {};
-let qcReportPhoneMap = {};  // phone -> profile（质检人手机号反查姓名）
-let qcReportTimer = null;      // 30s 自动刷新定时器
-let qcReportLastUpdated = '';  // 上次更新时间
-
-function qcFmtDate(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return y + '-' + m + '-' + day;
-}
-
-function getQcReportRange() {
-  let start, end;
-  const now = new Date();
-  if (qcReportRange === 'week') {
-    const day = now.getDay() || 7; // 周一为一周开始
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - day + 1);
-    start = qcFmtDate(monday);
-    end = qcFmtDate(now);
-  } else if (qcReportRange === 'month') {
-    start = now.toISOString().slice(0, 7) + '-01';
-    end = now.toISOString().slice(0, 7) + '-31';
-  } else {
-    start = document.getElementById('qc-report-start').value || '2000-01-01';
-    end = document.getElementById('qc-report-end').value || '2099-12-31';
-  }
-  return { start, end };
-}
-
-function setQcReportRange(range) {
-  qcReportRange = range;
-  document.querySelectorAll('.qc-range-btn[data-range]').forEach(b => {
-    b.classList.toggle('active', b.getAttribute('data-range') === range);
-  });
-  loadQcReport();
-}
-
-async function loadQcReport(silent) {
-  if (!supabase) { showToast('⚠️ 数据未就绪，请稍候'); return; }
-  const { start, end } = getQcReportRange();
-  // 先取 profiles 映射（客服 → 组别、手机号 → 姓名），仅用于展示
-  try {
-    const { data: pd } = await supabase.from('profiles').select('name, real_name, group_name, phone');
-    (pd || []).forEach(p => {
-      qcReportProfileMap[p.name] = p;
-      if (p.phone) qcReportPhoneMap[p.phone] = p;
-    });
-  } catch (e) {}
-  const { data, error } = await supabase
-    .from('qc_records')
-    .select('*')
-    .gte('date', start)
-    .lte('date', end)
-    .order('date', { ascending: false });
-  if (error) { if (!silent) showToast('⚠️ 加载失败：' + error.message); return; }
-  qcReportData = data || [];
-  renderQcReport();
-  // 更新「上次更新」时间
-  const now = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  qcReportLastUpdated = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
-  const updEl = document.getElementById('qc-report-updated');
-  if (updEl) updEl.textContent = '上次更新 ' + qcReportLastUpdated;
-}
-
-/* 手动刷新 + 30s 自动刷新（仅在报告页可见时运行） */
-function refreshQcReport() {
-  loadQcReport(false);
-}
-
-function startQcAutoRefresh() {
-  stopQcAutoRefresh();
-  qcReportTimer = setInterval(() => loadQcReport(true), 30000);
-}
-
-function stopQcAutoRefresh() {
-  if (qcReportTimer) { clearInterval(qcReportTimer); qcReportTimer = null; }
-}
-
-function groupQcAgg(data, key) {
-  const map = {};
-  data.forEach(r => {
-    const k = r[key] || '未填写';
-    if (!map[k]) map[k] = { key: k, count: 0, penalty: 0, done: 0 };
-    map[k].count++;
-    map[k].penalty += Number(r.penalty_amount) || 0;
-    if (r.status === 'done') map[k].done++;
-  });
-  return Object.values(map).map(m => {
-    const pending = m.count - m.done;
-    const rate = m.count ? Math.round(m.done / m.count * 100) + '%' : '0%';
-    let group = '';
-    if (key === 'staff' && qcReportProfileMap[m.key]) group = qcReportProfileMap[m.key].group_name || '';
-    return { key: m.key, group: group, count: m.count, penalty: m.penalty, pending: pending, done: m.done, rate: rate };
-  }).sort((a, b) => b.count - a.count);
-}
-
-// 按质检人（created_by 手机号）聚合：记录数 / 被质检人数 / 扣罚 / 讲解进度
-function groupQcByInspector(data) {
-  const map = {};
-  data.forEach(r => {
-    const phone = r.created_by || '';
-    if (!map[phone]) map[phone] = { key: phone, count: 0, penalty: 0, done: 0, staffSet: new Set() };
-    map[phone].count++;
-    map[phone].penalty += Number(r.penalty_amount) || 0;
-    if (r.status === 'done') map[phone].done++;
-    if (r.staff) map[phone].staffSet.add(r.staff);
-  });
-  return Object.values(map).map(m => {
-    const pending = m.count - m.done;
-    const rate = m.count ? Math.round(m.done / m.count * 100) + '%' : '0%';
-    const prof = m.key ? qcReportPhoneMap[m.key] : null;
-    const name = prof ? (prof.name || prof.real_name || m.key) : (m.key || '未填写');
-    return { key: name, count: m.count, staffCount: m.staffSet.size, penalty: m.penalty, pending: pending, done: m.done, rate: rate };
-  }).sort((a, b) => b.count - a.count);
-}
-
-function renderQcTable(id, headers, rows, isInspector) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  let html = '<thead><tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr></thead><tbody>';
-  if (rows.length === 0) {
-    html += '<tr><td colspan="' + headers.length + '" style="text-align:center;color:#999;padding:14px;">该范围暂无数据</td></tr>';
-  } else {
-    rows.forEach(r => {
-      let vals;
-      if (isInspector) {
-        vals = [r.key, r.count, r.staffCount, '¥' + r.penalty, r.pending, r.done, r.rate];
-      } else if (headers.length === 7) {
-        vals = [r.key, r.group, r.count, '¥' + r.penalty, r.pending, r.done, r.rate];
-      } else {
-        vals = [r.key, r.count, '¥' + r.penalty, r.pending, r.done, r.rate];
-      }
-      html += '<tr>' + vals.map(v => '<td>' + v + '</td>').join('') + '</tr>';
-    });
-  }
-  html += '</tbody>';
-  el.innerHTML = html;
-}
-
-function renderQcReport() {
-  const data = qcReportData;
-  const total = data.length;
-  const totalPenalty = data.reduce((s, r) => s + (Number(r.penalty_amount) || 0), 0);
-  const done = data.filter(r => r.status === 'done').length;
-  const pending = total - done;
-  const rate = total ? Math.round(done / total * 100) + '%' : '0%';
-
-  const cards = [
-    { val: total, label: '质检记录数' },
-    { val: '¥' + totalPenalty, label: '扣罚总额' },
-    { val: pending, label: '待讲解' },
-    { val: done, label: '已讲解' },
-    { val: rate, label: '讲解完成率' }
-  ];
-  const cardsEl = document.getElementById('qc-report-cards');
-  if (cardsEl) cardsEl.innerHTML = cards.map(c => '<div class="qc-card"><div class="qc-card-val">' + c.val + '</div><div class="qc-card-label">' + c.label + '</div></div>').join('');
-
-  const byInsp = groupQcByInspector(data);
-  const byStaff = groupQcAgg(data, 'staff');
-  const byShop = groupQcAgg(data, 'shop');
-  const bySev = groupQcAgg(data, 'severity');
-  renderQcTable('qc-report-by-inspector', ['质检人', '记录数', '被质检人', '扣罚金额', '待讲解', '已讲解', '完成率'], byInsp, true);
-  renderQcTable('qc-report-by-staff', ['客服', '组别', '记录数', '扣罚金额', '待讲解', '已讲解', '完成率'], byStaff);
-  renderQcTable('qc-report-by-shop', ['店铺', '记录数', '扣罚金额', '待讲解', '已讲解', '完成率'], byShop);
-  renderQcTable('qc-report-by-severity', ['严重程度', '记录数', '扣罚金额', '待讲解', '已讲解', '完成率'], bySev);
-}
-
-function exportQcReportExcel() {
-  if (!qcReportData || qcReportData.length === 0) { showToast('⚠️ 暂无数据可导出'); return; }
-  if (!window.XLSX) { showToast('⚠️ 导出组件加载中，请稍候重试'); return; }
-  const { start, end } = getQcReportRange();
-  const data = qcReportData;
-  const total = data.length;
-  const totalPenalty = data.reduce((s, r) => s + (Number(r.penalty_amount) || 0), 0);
-  const done = data.filter(r => r.status === 'done').length;
-  const pending = total - done;
-  const rate = total ? Math.round(done / total * 100) + '%' : '0%';
-  const overview = [
-    ['质检报告', start + ' ~ ' + end],
-    ['记录数', total],
-    ['扣罚总额', totalPenalty],
-    ['待讲解', pending],
-    ['已讲解', done],
-    ['讲解完成率', rate],
-    []
-  ];
-  const byInsp = groupQcByInspector(data).map(r => ({ '质检人': r.key, '记录数': r.count, '被质检人': r.staffCount, '扣罚金额': r.penalty, '待讲解': r.pending, '已讲解': r.done, '完成率': r.rate }));
-  const byStaff = groupQcAgg(data, 'staff').map(r => ({ '客服': r.key, '组别': r.group, '记录数': r.count, '扣罚金额': r.penalty, '待讲解': r.pending, '已讲解': r.done, '完成率': r.rate }));
-  const byShop = groupQcAgg(data, 'shop').map(r => ({ '店铺': r.key, '记录数': r.count, '扣罚金额': r.penalty, '待讲解': r.pending, '已讲解': r.done, '完成率': r.rate }));
-  const bySev = groupQcAgg(data, 'severity').map(r => ({ '严重程度': r.key, '记录数': r.count, '扣罚金额': r.penalty, '待讲解': r.pending, '已讲解': r.done, '完成率': r.rate }));
-  try {
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(overview), '概览');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(byInsp), '按质检人');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(byStaff), '按客服');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(byShop), '按店铺');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(bySev), '按严重程度');
-    XLSX.writeFile(wb, '质检报告_' + start + '_' + end + '.xlsx');
-    showToast('✅ 已导出 Excel');
-  } catch (e) { showToast('⚠️ 导出失败'); console.error(e); }
-}
-
 function switchPage(page) {
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
@@ -6854,8 +6400,6 @@ function switchPage(page) {
       window._trainingLoaded = true;
       if (window.loadTrainingCategories) loadTrainingCategories();
       if (window.loadTrainingFromDB) loadTrainingFromDB();
-      if (window.loadTrainingKnowledge) loadTrainingKnowledge();
-      if (window.loadTrainingScripts) loadTrainingScripts();
     } else {
       renderTraining();
     }
@@ -6898,12 +6442,6 @@ function switchPage(page) {
     const isAdmin = currentUser && isAdminUser();
     document.getElementById('qc-user-badge').textContent = isAdmin ? '👑 管理员模式 · ' + (currentUser.email || currentUser.phone) : '📖 只读模式';
     notifyQcIframe(isAdmin);
-  }
-  if (page === 'qc-report') {
-    loadQcReport();
-    startQcAutoRefresh();
-  } else {
-    stopQcAutoRefresh();
   }
 }
 
@@ -8538,32 +8076,6 @@ function closeModal(id) {
   document.body.style.overflow = '';
 }
 
-// 首页扣罚标准通知横幅
-(function initPenaltyNotice() {
-  const banner = document.getElementById('penalty-notice-banner');
-  if (!banner) return;
-  const dismissed = localStorage.getItem('penalty_notice_dismissed');
-  if (dismissed === '1') banner.classList.add('hidden');
-})();
-
-function openPenaltyStandardModal(e) {
-  if (e && e.target && e.target.closest('.gnb-close')) return;
-  showModalById('mod-penalty-standard');
-}
-
-function closePenaltyNotice(e) {
-  e && e.stopPropagation && e.stopPropagation();
-  const banner = document.getElementById('penalty-notice-banner');
-  if (banner) banner.classList.add('hidden');
-  try { localStorage.setItem('penalty_notice_dismissed', '1'); } catch (err) {}
-}
-
-function togglePenaltyZoom() {
-  const img = document.getElementById('penalty-standard-img');
-  if (!img) return;
-  img.classList.toggle('zoomed');
-}
-
 // ==================== LIGHTBOX ====================
 let lightboxImages = [];  // [{thumb, hd, type:'eye'|'lens', hint}]
 let lightboxIdx = 0;
@@ -8622,19 +8134,11 @@ function showLightboxImage() {
   cancelLightboxPreload();
 
   hdEl.classList.remove('loaded');
+  hdEl.classList.add('thumb-placeholder');
   hdEl.removeAttribute('data-hd');
+  // 先显示已缓存的缩略图（即时可见，减少黑屏等待感），后台再加载高清中图
+  hdEl.src = img.thumb || '';
   loader.classList.add('show');
-
-  // 判断当前图片来源：Supabase Storage 图片没有本地 hd 中图，thumb / hd 是同一 URL
-  // 这种情况下无需模糊占位，直接显示原图等它自然加载即可；避免 1.3MB 大图被 CSS 模糊
-  const isSameSrc = img.thumb && (img.thumb === img.hd || img.thumb === img.large || !img.large);
-  if (isSameSrc) {
-    hdEl.src = img.hd || img.thumb || '';
-  } else {
-    hdEl.classList.add('thumb-placeholder');
-    // 先显示已缓存的缩略图（即时可见，减少黑屏等待感），后台再加载高清中图
-    hdEl.src = img.thumb || '';
-  }
 
   document.getElementById('lightbox-counter').textContent =
     lightboxImages.length > 1 ? (lightboxIdx + 1) + ' / ' + lightboxImages.length : '';
@@ -8667,32 +8171,23 @@ function loadLightboxHd(largeUrl, fallbackUrl) {
   const loader = document.getElementById('lightbox-loader');
 
   // 构建候选 URL 队列：CDN 中图 -> 直接源中图 -> CDN 原图 -> 直接源原图
-  // 注意：Supabase Storage URL 经过 toDirectUrl 后不变，需要去重
   const candidates = [];
   function addCandidate(url) {
     if (!url) return;
-    const direct = toDirectUrl(url);
     if (!candidates.includes(url)) candidates.push(url);
-    if (direct && direct !== url && !candidates.includes(direct)) candidates.push(direct);
   }
   addCandidate(largeUrl);
+  addCandidate(toDirectUrl(largeUrl));
   addCandidate(fallbackUrl);
-
-  // 判断是否为 Supabase Storage 图片（中国大陆访问较慢，需要更长的超时）
-  const hasSupabaseUrl = candidates.some(u => u.includes('supabase.co'));
-  const LOAD_TIMEOUT = hasSupabaseUrl ? 20000 : 5000;
+  addCandidate(toDirectUrl(fallbackUrl));
 
   let candidateIdx = 0;
   let timeoutTimer = null;
-  let hasFailed = false;
 
   function applyLoaded(url) {
     if (timeoutTimer) { clearTimeout(timeoutTimer); timeoutTimer = null; }
     resetLightboxStatus();
-    // 若 hdEl 当前 src 已是同一张图（Supabase 无中图情况），避免再次赋值造成闪烁
-    if (hdEl.src !== url) {
-      hdEl.src = url;
-    }
+    hdEl.src = url;
     hdEl.crossOrigin = 'anonymous';
     hdEl.setAttribute('data-hd', url);
     void hdEl.offsetWidth;
@@ -8701,24 +8196,13 @@ function loadLightboxHd(largeUrl, fallbackUrl) {
     loader.classList.remove('show');
   }
 
-  function showLoadingSlow() {
-    if (!hdEl.classList.contains('loaded') && !hasFailed) {
-      setLightboxStatus('图片较大，加载中…');
-    }
-  }
-
-  function showError() {
-    hasFailed = true;
-    resetLightboxStatus();
-    setLightboxStatus('图片加载失败，可点击重试', true);
-    loader.classList.add('show');
-  }
-
   function tryNext() {
     cancelLightboxPreload();
     if (candidateIdx >= candidates.length) {
       if (timeoutTimer) { clearTimeout(timeoutTimer); timeoutTimer = null; }
-      showError();
+      resetLightboxStatus();
+      setLightboxStatus('图片加载失败，可点击重试', true);
+      loader.classList.add('show');
       return;
     }
     const url = candidates[candidateIdx++];
@@ -8729,12 +8213,12 @@ function loadLightboxHd(largeUrl, fallbackUrl) {
     lightboxCurrentPreload.src = url;
   }
 
-  // 超时处理：先提示"加载中"，继续等待；只有真正 onerror 才切换候选或失败
+  // 5秒超时：若当前图片仍未加载完，自动切换到下一个候选源
   timeoutTimer = setTimeout(() => {
     if (!hdEl.classList.contains('loaded')) {
-      showLoadingSlow();
+      tryNext();
     }
-  }, LOAD_TIMEOUT);
+  }, 5000);
 
   cancelLightboxPreload();
   tryNext();
@@ -8823,343 +8307,154 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ==================== TRAINING ====================
-let trainingGroup = '全部';
-let trainingSubcatFilter = '全部';
+let trainingBrand = '全部';
+let trainingCatFilter = '全部';
 let trainingCategories = [];
-let trainingKnowledge = [];
 
-function trainingGroups() { return trainingCategories.filter(c => !c.parent_id); }
-function trainingSubcats() { return trainingCategories.filter(c => c.parent_id); }
-
-function setTrainingGroup(group) {
-  trainingGroup = group;
-  trainingSubcatFilter = '全部';
-  renderTrainingGroupTabs();
-  renderTrainingSubcatTabs();
+function setTrainingBrand(brand) {
+  trainingBrand = brand;
+  trainingCatFilter = '全部';
+  document.querySelectorAll('#training-brand-tabs .brand-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.brand === brand);
+  });
+  renderTrainingCatTabs();
   renderTraining();
 }
 
-function setTrainingSubcat(cat) {
-  trainingSubcatFilter = cat;
-  renderTrainingSubcatTabs();
+function setTrainingCat(cat) {
+  trainingCatFilter = cat;
+  renderTrainingCatTabs();
   renderTraining();
 }
 
-// ---------- 大类 Tab ----------
-function renderTrainingGroupTabs() {
+function renderTrainingCatTabs() {
   const canManage = canEdit('training');
-  const groups = ['全部', ...trainingGroups().map(c => c.name)];
-  let html = groups.map(c => {
-    const isActive = trainingGroup === c;
-    // Inline editing mode
-    if (_editingGroupName && _editingGroupName === c) {
-      return `<span class="training-group-tab active g-inline-edit">`
-        + `<input id="group-edit-input" value="${escapeHtml(c)}" onkeydown="if(event.key==='Enter')confirmEditGroup();if(event.key==='Escape')cancelEditGroup();">`
-        + `<button class="btn-sm primary" style="padding:2px 8px;font-size:11px;" onclick="confirmEditGroup()">✓</button>`
-        + `<button class="btn-sm outline" style="padding:2px 8px;font-size:11px;" onclick="cancelEditGroup()">✕</button>`
-        + `</span>`;
-    }
-    return `<button class="training-group-tab${isActive ? ' active' : ''}" onclick="setTrainingGroup('${c}')">${c}</button>`;
-  }).join('');
-  if (canManage) {
-    html += `<button class="g-add-btn" onclick="addNewGroup()">＋ 新增大类</button>`;
-  }
-  document.getElementById('training-group-tabs').innerHTML = html;
-}
-
-// ---------- 小类 Tab ----------
-function renderTrainingSubcatTabs() {
-  const el = document.getElementById('training-subcat-tabs');
-  if (!el) return;
-  if (trainingGroup === '全部') { el.innerHTML = ''; el.style.display = 'none'; return; }
-  el.style.display = 'flex';
-  const canManage = canEdit('training');
-  const subs = trainingSubcats().filter(c => c.parent_id === trainingGroup);
-  let subNames = subs.map(c => c.name);
-  if (trainingGroup === SCRIPT_GROUP) {
-    trainingScripts.forEach(s => { const n = s.subcategory || '未分类'; if (!subNames.includes(n)) subNames.push(n); });
-  }
-  const cats = ['全部', ...subNames];
+  const cats = ['全部', ...trainingCategories.map(c => c.name)];
   let html = cats.map(c => {
-    const isActive = trainingSubcatFilter === c;
+    const isActive = trainingCatFilter === c;
     // Inline editing mode
-    if (_editingSubcatName && _editingSubcatName === c) {
+    if (_editingCatName && _editingCatName === c) {
       return `<span class="training-cat-tab active cat-inline-edit">`
-        + `<input id="cat-edit-input" value="${escapeHtml(c)}" onkeydown="if(event.key==='Enter')confirmEditSubcat();if(event.key==='Escape')cancelEditSubcat();">`
-        + `<button class="btn-sm primary" style="padding:2px 8px;font-size:11px;" onclick="confirmEditSubcat()">✓</button>`
-        + `<button class="btn-sm outline" style="padding:2px 8px;font-size:11px;" onclick="cancelEditSubcat()">✕</button>`
+        + `<input id="cat-edit-input" value="${escapeHtml(c)}" onkeydown="if(event.key==='Enter')confirmEditCat();if(event.key==='Escape')cancelEditCat();">`
+        + `<button class="btn-sm primary" style="padding:2px 8px;font-size:11px;" onclick="confirmEditCat()">✓</button>`
+        + `<button class="btn-sm outline" style="padding:2px 8px;font-size:11px;" onclick="cancelEditCat()">✕</button>`
         + `</span>`;
     }
-    return `<button class="training-cat-tab${isActive ? ' active' : ''}" onclick="setTrainingSubcat('${c}')">${c}</button>`;
+    const mgmtBtns = (canManage && c !== '全部')
+      ? `<button class="cat-edit-btn" onclick="event.stopPropagation();startEditCat('${c}')" title="编辑">✏️</button><button class="cat-del-btn" onclick="event.stopPropagation();deleteCat('${c}')" title="删除">✕</button>`
+      : '';
+    return `<button class="training-cat-tab${isActive ? ' active' : ''}" onclick="setTrainingCat('${c}')">${c}${mgmtBtns}</button>`;
   }).join('');
   if (canManage) {
-    html += `<button class="cat-add-btn" onclick="addNewSubcat()">＋ 新增小类</button>`;
+    html += `<button class="cat-add-btn" onclick="addNewCat()">＋ 新增分类</button>`;
   }
-  el.innerHTML = html;
+  document.getElementById('training-cat-tabs').innerHTML = html;
 }
 
-// ---------- 大类管理 ----------
-let _editingGroupName = null;
-function startEditGroup(name) {
-  _editingGroupName = name;
-  renderTrainingGroupTabs();
-  const input = document.getElementById('group-edit-input');
-  if (input) { input.focus(); input.select(); }
-}
-function cancelEditGroup() {
-  _editingGroupName = null;
-  renderTrainingGroupTabs();
-}
-async function confirmEditGroup() {
-  const newName = document.getElementById('group-edit-input').value.trim();
-  if (!newName) { cancelEditGroup(); return; }
-  if (newName === _editingGroupName) { cancelEditGroup(); return; }
-  const group = trainingGroups().find(c => c.name === _editingGroupName);
-  if (!group) { cancelEditGroup(); return; }
-  const oldName = _editingGroupName;
-  const { error } = await supabase.from('training_categories').update({ name: newName }).eq('id', group.id);
-  if (error) { showToast('修改失败：' + error.message); return; }
-  // 同步子分类的 parent_id 和资料的 group_name
-  await supabase.from('training_categories').update({ parent_id: newName }).eq('parent_id', oldName);
-  await supabase.from('training_materials').update({ group_name: newName }).eq('group_name', oldName);
-  _editingGroupName = null;
-  showToast('✅ 大类已修改，子分类与资料已同步更新');
-  loadTrainingCategories();
-  loadTrainingFromDB();
-}
-async function deleteGroup(name) {
-  const group = trainingGroups().find(c => c.name === name);
-  if (!group) return;
-  const subCount = trainingSubcats().filter(c => c.parent_id === name).length;
-  const matCount = trainingData.filter(d => d.group_name === name).length;
-  const msg = (subCount || matCount)
-    ? `「${name}」下有 ${subCount} 个小类、${matCount} 篇资料。删除后小类一并删除，资料将变为「未分类」。确定删除吗？`
-    : `确定要删除大类「${name}」吗？`;
-  if (!confirm(msg)) return;
-  if (matCount) await supabase.from('training_materials').update({ group_name: null }).eq('group_name', name);
-  await supabase.from('training_categories').delete().eq('parent_id', name);
-  const { error } = await supabase.from('training_categories').delete().eq('id', group.id);
-  if (error) { showToast('删除失败：' + error.message); return; }
-  showToast('🗑️ 大类已删除');
-  if (trainingGroup === name) trainingGroup = '全部';
-  trainingSubcatFilter = '全部';
-  loadTrainingCategories();
-  loadTrainingFromDB();
-}
-async function addNewGroup() {
-  const name = prompt('请输入大类名称：');
-  if (!name || !name.trim()) return;
-  const trimmed = name.trim();
-  if (trainingGroups().some(c => c.name === trimmed)) { showToast('该大类已存在'); return; }
-  const { error } = await supabase.from('training_categories').insert({ name: trimmed, sort_order: (trainingGroups().length + 1) * 100, parent_id: '' });
-  if (error) { showToast('添加失败：' + error.message); return; }
-  showToast('✅ 大类已添加');
-  loadTrainingCategories();
-}
-
-// ---------- 小类管理 ----------
-let _editingSubcatName = null;
-function startEditSubcat(name) {
-  _editingSubcatName = name;
-  renderTrainingSubcatTabs();
+let _editingCatName = null;
+function startEditCat(name) {
+  _editingCatName = name;
+  renderTrainingCatTabs();
   const input = document.getElementById('cat-edit-input');
   if (input) { input.focus(); input.select(); }
 }
-function cancelEditSubcat() {
-  _editingSubcatName = null;
-  renderTrainingSubcatTabs();
+function cancelEditCat() {
+  _editingCatName = null;
+  renderTrainingCatTabs();
 }
-async function confirmEditSubcat() {
+async function confirmEditCat() {
   const newName = document.getElementById('cat-edit-input').value.trim();
-  if (!newName) { cancelEditSubcat(); return; }
-  if (newName === _editingSubcatName) { cancelEditSubcat(); return; }
-  const cat = trainingSubcats().find(c => c.name === _editingSubcatName);
-  if (!cat) { cancelEditSubcat(); return; }
+  if (!newName) { cancelEditCat(); return; }
+  if (newName === _editingCatName) { cancelEditCat(); return; }
+  const cat = trainingCategories.find(c => c.name === _editingCatName);
+  if (!cat) { cancelEditCat(); return; }
+  // Update category name
   const { error } = await supabase.from('training_categories').update({ name: newName }).eq('id', cat.id);
   if (error) { showToast('修改失败：' + error.message); return; }
-  // 同步资料的小类名
-  await supabase.from('training_materials').update({ category: newName }).eq('category', _editingSubcatName);
-  _editingSubcatName = null;
-  showToast('✅ 小类已修改，资料已同步更新');
+  // Update all training materials with old category name
+  await supabase.from('training_materials').update({ category: newName }).eq('category', _editingCatName);
+  _editingCatName = null;
+  showToast('✅ 分类已修改，资料已同步更新');
   loadTrainingCategories();
   loadTrainingFromDB();
 }
-async function deleteSubcat(name) {
-  const cat = trainingSubcats().find(c => c.name === name);
+async function deleteCat(name) {
+  const cat = trainingCategories.find(c => c.name === name);
   if (!cat) return;
+  // Check if any materials use this category
   const count = trainingData.filter(d => d.category === name).length;
   if (count > 0) {
     if (!confirm(`「${name}」下还有 ${count} 篇资料，删除后这些资料将变为「未分类」。确定删除吗？`)) return;
     await supabase.from('training_materials').update({ category: '未分类' }).eq('category', name);
   } else {
-    if (!confirm(`确定要删除小类「${name}」吗？`)) return;
+    if (!confirm(`确定要删除分类「${name}」吗？`)) return;
   }
   const { error } = await supabase.from('training_categories').delete().eq('id', cat.id);
   if (error) { showToast('删除失败：' + error.message); return; }
-  showToast('🗑️ 小类已删除');
-  if (trainingSubcatFilter === name) trainingSubcatFilter = '全部';
+  showToast('🗑️ 分类已删除');
+  if (trainingCatFilter === name) trainingCatFilter = '全部';
   loadTrainingCategories();
   loadTrainingFromDB();
 }
-async function addNewSubcat() {
-  const name = prompt('请输入小类名称：');
+async function addNewCat() {
+  const name = prompt('请输入新分类名称：');
   if (!name || !name.trim()) return;
   const trimmed = name.trim();
-  const subs = trainingSubcats().filter(c => c.parent_id === trainingGroup);
-  if (subs.some(c => c.name === trimmed)) { showToast('该小类已存在'); return; }
-  const gi = trainingGroups().findIndex(g => g.name === trainingGroup);
-  const { error } = await supabase.from('training_categories').insert({ name: trimmed, sort_order: (gi + 1) * 100 + (subs.length + 1) * 10, parent_id: trainingGroup });
+  if (trainingCategories.some(c => c.name === trimmed)) { showToast('该分类已存在'); return; }
+  const { error } = await supabase.from('training_categories').insert({ name: trimmed, sort_order: trainingCategories.length + 1 });
   if (error) { showToast('添加失败：' + error.message); return; }
-  showToast('✅ 小类已添加');
+  showToast('✅ 分类已添加');
   loadTrainingCategories();
 }
 
-// 渲染某小类下的页面内固定知识卡（training_knowledge 表）
-function renderKnowledgeBlocks(subcat) {
-  const blocks = trainingKnowledge.filter(k => k.subcat === subcat);
-  if (!blocks.length) return '';
-  const sectionHtml = (k) => {
-    const icon = k.icon ? escapeHtml(k.icon) + ' ' : '';
-    const title = '<div class="k-section-title">' + icon + escapeHtml(k.title || '') + '</div>';
-    let body = '';
-    const items = (k.content && k.content.items) || [];
-    if (k.section_type === 'overview') {
-      body = '<div class="k-ov-grid">' + items.map(it =>
-        '<div class="k-ov-card"><div class="k-ov-icon">' + escapeHtml(it.icon || '📄') + '</div>'
-        + '<div class="k-ov-name">' + escapeHtml(it.name || '') + '</div>'
-        + '<div class="k-ov-desc">' + escapeHtml(it.desc || '') + '</div></div>'
-      ).join('') + '</div>';
-    } else if (k.section_type === 'cards') {
-      body = '<div class="k-card-grid">' + items.map(it =>
-        '<div class="k-card"><div class="k-card-title">' + escapeHtml(it.title || '') + '</div>'
-        + '<div class="k-card-body">' + escapeHtml(it.body || '') + '</div></div>'
-      ).join('') + '</div>';
-    } else if (k.section_type === 'steps') {
-      body = '<div class="k-steps">' + items.map((it, i) =>
-        '<div class="k-step"><div class="k-step-num">' + (i + 1) + '</div>'
-        + '<div class="k-step-body"><div class="k-step-title">' + escapeHtml(it.title || '') + '</div>'
-        + '<div class="k-step-desc">' + escapeHtml(it.body || '') + '</div></div></div>'
-      ).join('') + '</div>';
-    }
-    return '<div class="k-section">' + title + body + '</div>';
-  };
-  return '<div class="train-knowledge"><div class="train-knowledge-head">📌 知识卡（工作台内置）</div>'
-    + blocks.map(sectionHtml).join('') + '</div>';
-}
-
 function renderTraining() {
-  renderTrainingGroupTabs();
-  renderTrainingSubcatTabs();
-  // 顶部「＋新增」按钮与副标题按当前大类联动
-  const addBtn = document.getElementById('train-add-btn');
-  const subEl = document.getElementById('training-subtitle');
-  if (addBtn) {
-    const canM = canEdit('training');
-    addBtn.style.display = canM ? '' : 'none';
-    addBtn.textContent = (trainingGroup === SCRIPT_GROUP) ? '＋ 新增话术' : '＋ 新增资料';
-    addBtn.onclick = (trainingGroup === SCRIPT_GROUP) ? (() => openScriptEditor(null)) : (() => openTrainingEditor(null));
-  }
-  if (subEl) {
-    subEl.textContent = (trainingGroup === SCRIPT_GROUP)
-      ? '按分类浏览话术场景，点击卡片查看完整话术（标准/亲切/简短/专业/安抚 多种风格）'
-      : '按大类和小类查看培训资料，点击链接打开飞书云文档 | 修改实时同步所有客服';
-  }
-  if (trainingGroup === SCRIPT_GROUP) { renderScripts(); return; }
+  renderTrainingCatTabs();
   const search = (document.getElementById('training-search')?.value || '').toLowerCase();
   let filtered = trainingData;
-  if (search) filtered = filtered.filter(d => (d.title || '').toLowerCase().includes(search));
+
+  if (trainingBrand !== '全部') filtered = filtered.filter(d => d.brand === trainingBrand);
+  if (search) filtered = filtered.filter(d => d.title.toLowerCase().includes(search));
 
   const container = document.getElementById('training-content');
+
   if (!filtered.length) {
     container.innerHTML = '<div class="train-empty">📭 没有匹配的培训资料<br><span style="font-size:13px;color:var(--text-secondary);margin-top:8px;display:block;">请联系管理员添加</span></div>';
     return;
   }
 
-  const canManage = canEdit('training');
-  function itemHtml(d) {
-    const mgmtBtns = canManage ? '<span class="train-mgmt-btns">'
-      + '<button class="btn-edit" title="编辑" onclick="event.stopPropagation();event.preventDefault();openTrainingEditor(window._trainRefs[\'' + d.id + '\'])">✏️</button>'
-      + '<button class="btn-del" title="删除" onclick="event.stopPropagation();event.preventDefault();deleteTraining(\'' + d.id + '\',\'' + escapeAttr(d.title) + '\')">🗑️</button>'
-      + '</span>' : '';
-    window._trainRefs = window._trainRefs || {};
-    window._trainRefs[d.id] = d;
-    const icon = (() => {
-      const c = (d.category || '').toLowerCase();
-      const t = (d.title || '').toLowerCase();
-      const g = (d.group_name || '').toLowerCase();
-      if (c.includes('弥生') || t.includes('弥生')) return '📘';
-      if (c.includes('极氧') || t.includes('极氧')) return '📗';
-      if (c.includes('抛型') || t.includes('抛型') || c.includes('日抛') || c.includes('月抛')) return '👁️';
-      if (c.includes('材质') || t.includes('材质') || t.includes('硅水凝胶')) return '🧪';
-      if (c.includes('直径') || c.includes('基弧') || c.includes('透氧') || t.includes('直径') || t.includes('基弧')) return '📏';
-      if (c.includes('含水') || c.includes('度数') || t.includes('含水') || t.includes('度数')) return '💧';
-      if (c.includes('订单') || t.includes('订单')) return '📋';
-      if (c.includes('库存') || t.includes('库存')) return '📦';
-      if (c.includes('驳回') || t.includes('审核')) return '⛔';
-      if (g.includes('erp') || c.includes('erp') || t.includes('erp')) return '💻';
-      if (g.includes('店铺') || c.includes('店铺') || t.includes('店铺')) return '🏪';
-      if (g.includes('品牌') || c.includes('品牌') || t.includes('品牌')) return '🏷️';
-      return '📄';
-    })();
-    const brand = d.brand ? '<div class="train-card-brand">' + escapeHtml(d.brand) + '</div>' : '';
-    return '<li class="train-link-item" onclick="openTrainingDetail(window._trainRefs[\'' + d.id + '\'])">'
-      + '<div class="train-card-top">'
-      + '<div class="train-card-icon">' + icon + '</div>'
-      + '<div class="train-card-title-wrap">'
-      + '<a href="javascript:void(0)" onclick="event.stopPropagation(); openTrainingDetail(window._trainRefs[\'' + d.id + '\'])">' + escapeHtml(d.title) + '</a>'
-      + brand
-      + '</div>'
-      + '</div>'
-      + '<div class="train-link-tags">' + (d.tags || []).map(t => '<span class="tag">' + escapeHtml(t) + '</span>').join('') + '</div>'
-      + mgmtBtns
-      + '</li>';
-  }
-
-  function catCard(title, items, withSubSections) {
-    let body = '';
-    if (withSubSections) {
-      // 大类卡片：内部按小类分小节
-      const subNames = [...new Set(items.map(d => (d.category && d.category !== '未分类') ? d.category : '未分类'))];
-      subNames.forEach(sn => {
-        const sItems = items.filter(d => ((d.category && d.category !== '未分类') ? d.category : '未分类') === sn);
-        body += '<div class="train-sub-section"><div class="train-sub-title">📂 ' + sn + '</div>'
-          + '<ul class="train-link-list">' + sItems.map(itemHtml).join('') + '</ul></div>';
-      });
-    } else {
-      body = '<ul class="train-link-list">' + items.map(itemHtml).join('') + '</ul>';
-    }
-    return '<div class="train-card"><div class="train-card-header"><h3>📁 ' + title + '</h3><span class="train-card-count">' + items.length + ' 篇</span></div>' + body + '</div>';
-  }
-
+  // Group by category
+  const allCats = trainingCategories.map(c => c.name);
+  const cats = trainingCatFilter === '全部' ? allCats : [trainingCatFilter];
   let html = '';
-  if (trainingGroup === '全部') {
-    // 全部模式：按大类分组，卡内按小类分小节
-    trainingGroups().forEach(g => {
-      const gItems = filtered.filter(d => d.group_name === g.name);
-      if (gItems.length) html += catCard(g.name, gItems, true);
-    });
-    const orphan = filtered.filter(d => !d.group_name);
-    if (orphan.length) html += catCard('未分类', orphan, false);
-  } else {
-    // 选中大类：按小类分组展示
-    const subs = trainingSubcats().filter(c => c.parent_id === trainingGroup);
-    const catList = trainingSubcatFilter === '全部' ? subs.map(s => s.name) : [trainingSubcatFilter];
-    catList.forEach(cat => {
-      // 选中具体小类时，先渲染页面内固定知识卡
-      if (trainingSubcatFilter !== '全部') {
-        const kb = renderKnowledgeBlocks(cat);
-        if (kb) html += kb;
-      }
-      const items = filtered.filter(d => d.category === cat);
-      if (items.length) html += catCard(cat, items, false);
-    });
-    if (trainingSubcatFilter === '全部') {
-      const uncat = filtered.filter(d => !d.category || d.category === '未分类');
-      if (uncat.length) html += catCard('未分类', uncat, false);
-    }
-  }
 
-  container.innerHTML = html || '<div class="train-empty">📭 没有匹配的培训资料<br><span style="font-size:13px;color:var(--text-secondary);margin-top:8px;display:block;">请联系管理员添加</span></div>';
+  cats.forEach(cat => {
+    const items = filtered.filter(d => d.category === cat);
+    if (!items.length) return;
+    html += '<div class="train-card">';
+    html += '<div class="train-card-header"><h3>📁 ' + cat + '</h3><span class="train-card-count">' + items.length + ' 篇</span></div>';
+    html += '<ul class="train-link-list">';
+    const canManage = canEdit('training');
+    items.forEach(d => {
+      const brandBadge = trainingBrand === '全部' ? '<span style="font-size:11px;color:var(--text-secondary);margin-right:4px;">[' + (d.brand || '') + ']</span>' : '';
+      const mgmtBtns = canManage ? '<span class="train-mgmt-btns">'
+        + '<button class="btn-edit" title="编辑" onclick="event.stopPropagation();event.preventDefault();openTrainingEditor(window._trainRefs[\'' + d.id + '\'])">✏️</button>'
+        + '<button class="btn-del" title="删除" onclick="event.stopPropagation();event.preventDefault();deleteTraining(\'' + d.id + '\',\'' + escapeAttr(d.title) + '\')">🗑️</button>'
+        + '</span>' : '';
+      // Store for editing
+      window._trainRefs = window._trainRefs || {};
+      window._trainRefs[d.id] = d;
+      html += '<li class="train-link-item">'
+        + '<span style="font-size:18px;">📄</span>'
+        + brandBadge
+        + '<a href="' + d.url + '" target="_blank">' + d.title + '</a>'
+        + '<span class="train-link-tags">' + (d.tags || []).map(t => '<span class="tag">' + t + '</span>').join('') + '</span>'
+        + mgmtBtns
+        + '</li>';
+    });
+    html += '</ul></div>';
+  });
+
+  container.innerHTML = html;
 }
 
 // ==================== TRAINING MANAGEMENT (Supabase) ====================
@@ -9168,33 +8463,22 @@ function openTrainingEditor(item) {
   document.getElementById('mod-training-title').textContent = isNew ? '＋ 新增培训资料' : '✏️ 编辑培训资料';
   window._editTrain = item ? { id: item.id, isNew: false } : { id: null, isNew: true };
   const t = item || {};
-  const groups = trainingGroups();
-  const groupNames = groups.map(g => g.name);
-  const curGroup = t.group_name || (trainingGroup !== '全部' ? trainingGroup : (groupNames[0] || ''));
-  const curCat = t.category || '未分类';
-  const subsOf = g => trainingSubcats().filter(c => c.parent_id === g);
-  let html = '<div class="modal-field-row"><div class="modal-field"><label>大类</label><select id="tf-group" onchange="syncTrainingSubcats()">'
-    + groupNames.map(g => '<option value="' + g + '"' + (g === curGroup ? ' selected' : '') + '>' + g + '</option>').join('')
-    + '</select></div>'
-    + '<div class="modal-field"><label>小类</label><select id="tf-cat">'
-    + subsOf(curGroup).map(c => '<option value="' + c.name + '"' + (c.name === curCat ? ' selected' : '') + '>' + c.name + '</option>').join('')
-    + '<option value="未分类"' + (curCat === '未分类' ? ' selected' : '') + '>未分类</option></select></div></div>';
+  const brands = ['弥生','极氧'];
+  const cats = trainingCategories.map(c => c.name);
+  let html = '';
+  if (isNew) {
+    html += '<div class="modal-field-row"><div class="modal-field"><label>品牌</label><select id="tf-brand">'
+      + brands.map(b => '<option value="' + b + '">' + b + '</option>').join('') + '</select></div>'
+      + '<div class="modal-field"><label>分类</label><select id="tf-cat">'
+      + cats.map(c => '<option value="' + c + '">' + c + '</option>').join('')
+      + '<option value="未分类">未分类</option></select></div></div>';
+  }
   html += '<div class="modal-field"><label>标题</label><input id="tf-title" value="' + escapeHtml(t.title || '') + '"></div>'
     + '<div class="modal-field"><label>链接URL</label><input id="tf-url" value="' + escapeHtml(t.url || '') + '" placeholder="https://..."></div>'
-    + '<div class="modal-field"><label>标签（逗号分隔）</label><input id="tf-tags" value="' + escapeHtml((t.tags || []).join(',')) + '" placeholder="材质,入门"></div>'
-    + '<div class="modal-field" style="grid-column:1 / -1;"><label>注解 / 详细描述（点击卡片弹窗显示，可留空）</label><textarea id="tf-desc" rows="4" placeholder="填写这张资料的重点说明、注意事项、适用场景等，方便客服点开卡片快速了解">' + escapeHtml(t.description || '') + '</textarea></div>';
+    + '<div class="modal-field"><label>标签（逗号分隔）</label><input id="tf-tags" value="' + escapeHtml((t.tags || []).join(',')) + '" placeholder="材质,入门"></div>';
   document.getElementById('mod-training-body').innerHTML = html;
   document.getElementById('mod-training').classList.add('show');
   document.body.style.overflow = 'hidden';
-}
-
-function syncTrainingSubcats() {
-  const g = document.getElementById('tf-group').value;
-  const sel = document.getElementById('tf-cat');
-  const cur = sel.value;
-  const subs = trainingSubcats().filter(c => c.parent_id === g);
-  sel.innerHTML = subs.map(c => '<option value="' + c.name + '"' + (c.name === cur ? ' selected' : '') + '>' + c.name + '</option>').join('')
-    + '<option value="未分类">未分类</option>';
 }
 
 async function saveTraining() {
@@ -9202,12 +8486,12 @@ async function saveTraining() {
   const data = {
     title: document.getElementById('tf-title').value.trim(),
     url: document.getElementById('tf-url').value.trim(),
-    tags: (document.getElementById('tf-tags').value || '').split(',').map(t => t.trim()).filter(Boolean),
-    group_name: document.getElementById('tf-group').value,
-    category: document.getElementById('tf-cat').value
+    tags: (document.getElementById('tf-tags').value || '').split(',').map(t => t.trim()).filter(Boolean)
   };
   if (!data.title || !data.url) { alert('标题和链接不能为空'); return; }
   if (isNew) {
+    data.brand = document.getElementById('tf-brand').value;
+    data.category = document.getElementById('tf-cat').value;
     const { error } = await supabase.from('training_materials').insert(data);
     if (error) { showToast('保存失败：' + error.message); return; }
     showToast('✅ 资料已添加');
@@ -9226,201 +8510,6 @@ async function deleteTraining(id, title) {
   if (error) { showToast('删除失败：' + error.message); return; }
   showToast('🗑️ 已删除「' + title + '」');
   loadTrainingFromDB();
-}
-
-// ==================== 培训资料详情弹窗 ====================
-function openTrainingDetail(d) {
-  if (!d) return;
-  const badge = d.brand ? '<span class="td-brand">' + escapeHtml(d.brand) + '</span>' : '';
-  const tags = (d.tags && d.tags.length)
-    ? '<div class="td-tags">' + d.tags.map(t => '<span class="tag">' + escapeHtml(t) + '</span>').join('') + '</div>'
-    : '';
-  const desc = (d.description && d.description.trim())
-    ? '<div class="td-desc-block"><div class="td-desc-label">📝 详细注解</div><div class="td-desc-body">' + escapeHtml(d.description).replace(/\n/g, '<br>') + '</div></div>'
-    : '';
-  document.getElementById('mod-train-detail-icon').textContent = (() => {
-    const c = (d.category || '').toLowerCase(), t = (d.title || '').toLowerCase();
-    if (c.includes('弥生') || t.includes('弥生')) return '📘';
-    if (c.includes('极氧') || t.includes('极氧')) return '📗';
-    if (c.includes('抛型') || t.includes('抛型')) return '👁️';
-    if (c.includes('材质') || t.includes('材质')) return '🧪';
-    if (c.includes('直径') || c.includes('基弧') || c.includes('透氧')) return '📏';
-    if (c.includes('含水') || c.includes('度数')) return '💧';
-    if (c.includes('订单')) return '📋';
-    if (c.includes('库存')) return '📦';
-    if (c.includes('驳回') || t.includes('审核')) return '⛔';
-    if ((d.group_name || '').toLowerCase().includes('erp') || c.includes('erp')) return '💻';
-    if ((d.group_name || '').toLowerCase().includes('店铺') || c.includes('店铺')) return '🏪';
-    if ((d.group_name || '').toLowerCase().includes('品牌') || c.includes('品牌')) return '🏷️';
-    return '📄';
-  })();
-  document.getElementById('mod-train-detail-title').innerHTML = escapeHtml(d.title) + badge;
-  document.getElementById('mod-train-detail-meta').innerHTML = tags;
-  document.getElementById('mod-train-detail-body').innerHTML = desc;
-  const openBtn = document.getElementById('mod-train-detail-open');
-  if (d.url) {
-    openBtn.style.display = '';
-    openBtn.onclick = () => window.open(d.url, '_blank');
-  } else {
-    openBtn.style.display = 'none';
-  }
-  document.getElementById('mod-train-detail').classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
-
-// ==================== 售前话术（training_scripts） ====================
-const SCRIPT_STYLES = ['标准', '亲切', '简短', '专业', '安抚'];
-
-function renderScripts() {
-  const search = (document.getElementById('training-search')?.value || '').toLowerCase();
-  let list = trainingScripts.filter(s => (s.category || '') === SCRIPT_GROUP);
-  if (search) list = list.filter(s =>
-    (s.title || '').toLowerCase().includes(search) ||
-    (s.subcategory || '').toLowerCase().includes(search) ||
-    (s.tags || []).some(t => t.toLowerCase().includes(search))
-  );
-  const container = document.getElementById('training-content');
-  const canManage = canEdit('training');
-
-  if (!list.length) {
-    container.innerHTML = '<div class="train-empty">💬 暂无话术<br><span style="font-size:13px;color:var(--text-secondary);margin-top:8px;display:block;">点下方「＋ 新增话术场景」开始搭建；小类可用顶部「＋新增小类」自定义</span></div>' + (canManage ? '<div class="train-add-row" onclick="openScriptEditor(null)">＋ 新增话术场景</div>' : '');
-    return;
-  }
-
-  function scriptCard(s) {
-    window._scriptRefs = window._scriptRefs || {};
-    window._scriptRefs[s.id] = s;
-    const mgmt = canManage ? '<span class="train-mgmt-btns">'
-      + '<button class="btn-edit" title="编辑" onclick="event.stopPropagation();event.preventDefault();openScriptEditor(window._scriptRefs[\'' + s.id + '\'])">✏️</button>'
-      + '<button class="btn-del" title="删除" onclick="event.stopPropagation();event.preventDefault();deleteScript(\'' + s.id + '\',\'' + escapeAttr(s.title) + '\')">🗑️</button>'
-      + '</span>' : '';
-    const chips = SCRIPT_STYLES.map(k => {
-      const has = s.styles && s.styles[k] && s.styles[k].trim();
-      return '<span class="sc-chip' + (has ? ' on' : '') + '" title="' + k + '">' + (has ? '●' : '○') + k + '</span>';
-    }).join('');
-    const tags = (s.tags && s.tags.length)
-      ? '<div class="train-link-tags">' + s.tags.map(t => '<span class="tag">' + escapeHtml(t) + '</span>').join('') + '</div>' : '';
-    return '<li class="train-link-item" onclick="openScriptDetail(window._scriptRefs[\'' + s.id + '\'])">'
-      + '<div class="train-card-top"><div class="train-card-icon">💬</div>'
-      + '<div class="train-card-title-wrap"><a href="javascript:void(0)" onclick="event.stopPropagation();openScriptDetail(window._scriptRefs[\'' + s.id + '\'])">' + escapeHtml(s.title) + '</a></div></div>'
-      + '<div class="sc-chips">' + chips + '</div>'
-      + tags
-      + mgmt
-      + '</li>';
-  }
-
-  let html = '';
-  if (trainingSubcatFilter === '全部') {
-    const subNames = [...new Set(list.map(s => s.subcategory || '未分类'))];
-    subNames.forEach(sn => {
-      const items = list.filter(s => (s.subcategory || '未分类') === sn);
-      html += '<div class="train-card"><div class="train-card-header"><h3>📂 ' + escapeHtml(sn) + '</h3>'
-        + '<span class="train-card-count">' + items.length + ' 个场景</span></div>'
-        + '<ul class="train-link-list">' + items.map(scriptCard).join('') + '</ul></div>';
-    });
-  } else {
-    const items = list.filter(s => (s.subcategory || '未分类') === trainingSubcatFilter);
-    if (!items.length) {
-      html = '<div class="train-empty">💬 「' + escapeHtml(trainingSubcatFilter) + '」暂无话术</div>';
-    } else {
-      html = '<ul class="train-link-list">' + items.map(scriptCard).join('') + '</ul>';
-    }
-  }
-  if (canManage) html += '<div class="train-add-row" onclick="openScriptEditor(null)">＋ 新增话术场景</div>';
-  container.innerHTML = html;
-}
-
-function openScriptDetail(s) {
-  if (!s) return;
-  const styles = s.styles || {};
-  const badge = '<span class="td-brand">' + escapeHtml(s.subcategory || '') + '</span>';
-  document.getElementById('mod-script-detail-title').innerHTML = '💬 ' + escapeHtml(s.title) + badge;
-  const tags = (s.tags && s.tags.length)
-    ? '<div class="td-tags">' + s.tags.map(t => '<span class="tag">' + escapeHtml(t) + '</span>').join('') + '</div>' : '';
-  document.getElementById('mod-script-detail-meta').innerHTML = tags;
-  const body = SCRIPT_STYLES.map(k => {
-    const v = (styles[k] || '').trim();
-    const has = !!v;
-    return '<div class="sc-style' + (has ? '' : ' empty') + '">'
-      + '<div class="sc-style-head"><span class="sc-style-name">' + k + '</span>'
-      + (has ? '<button class="sc-copy" onclick="copyScriptStyle(this)">📋 复制</button>' : '<span class="sc-empty-tag">未填写</span>')
-      + '</div>'
-      + '<div class="sc-style-body">' + (has ? escapeHtml(v).replace(/\n/g, '<br>') : '<span class="sc-empty-hint">暂无话术内容</span>') + '</div>'
-      + (has ? '<textarea class="sc-copy-ta">' + escapeHtml(v) + '</textarea>' : '')
-      + '</div>';
-  }).join('');
-  document.getElementById('mod-script-detail-body').innerHTML = body;
-  document.getElementById('mod-script-detail').classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
-
-function copyScriptStyle(btn) {
-  const block = btn.closest('.sc-style');
-  const ta = block && block.querySelector('.sc-copy-ta');
-  if (!ta) return;
-  ta.select(); ta.setSelectionRange(0, ta.value.length);
-  try {
-    document.execCommand('copy');
-    showToast('✅ 已复制该话术');
-  } catch (e) {
-    if (navigator.clipboard) { navigator.clipboard.writeText(ta.value).then(() => showToast('✅ 已复制该话术')); }
-  }
-}
-
-function openScriptEditor(s) {
-  const isNew = !s;
-  document.getElementById('mod-script-title').textContent = isNew ? '＋ 新增话术场景' : '✏️ 编辑话术场景';
-  window._editScript = s ? { id: s.id, isNew: false } : { id: null, isNew: true };
-  const sc = s || {};
-  const curSub = sc.subcategory || '';
-  const subs = trainingSubcats().filter(c => c.parent_id === SCRIPT_GROUP).map(c => c.name);
-  const options = [...new Set([curSub, ...subs])].filter(Boolean).map(n => '<option value="' + escapeHtml(n) + '">').join('');
-  const styles = sc.styles || {};
-  let html = '';
-  html += '<div class="modal-field"><label>小类（归属「售前话术」下，可输入新分类，或用顶部「＋新增小类」统一管理）</label>'
-    + '<input id="sf-sub" list="sf-sub-list" value="' + escapeHtml(curSub) + '" placeholder="如：佩戴问题 / 产品咨询 / 订单物流">'
-    + '<datalist id="sf-sub-list">' + options + '</datalist></div>';
-  html += '<div class="modal-field"><label>场景标题</label><input id="sf-title" value="' + escapeHtml(sc.title || '') + '"></div>';
-  html += '<div class="modal-field"><label>标签（逗号分隔）</label><input id="sf-tags" value="' + escapeHtml((sc.tags || []).join(',')) + '" placeholder="新手,磨眼"></div>';
-  SCRIPT_STYLES.forEach(k => {
-    html += '<div class="modal-field" style="grid-column:1 / -1;"><label>' + k + ' 话术</label><textarea id="sf-style-' + k + '" rows="3" placeholder="编写「' + k + '」风格的话术…">' + escapeHtml(styles[k] || '') + '</textarea></div>';
-  });
-  document.getElementById('mod-script-body').innerHTML = html;
-  document.getElementById('mod-script').classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
-
-async function saveScript() {
-  const isNew = window._editScript && window._editScript.isNew;
-  const styles = {};
-  SCRIPT_STYLES.forEach(k => { styles[k] = (document.getElementById('sf-style-' + k).value || ''); });
-  const data = {
-    category: SCRIPT_GROUP,
-    subcategory: (document.getElementById('sf-sub').value.trim() || '未分类'),
-    title: document.getElementById('sf-title').value.trim(),
-    tags: (document.getElementById('sf-tags').value || '').split(',').map(t => t.trim()).filter(Boolean),
-    styles: styles
-  };
-  if (!data.title) { alert('场景标题不能为空'); return; }
-  if (isNew) {
-    const { error } = await supabase.from('training_scripts').insert(data);
-    if (error) { showToast('保存失败：' + error.message); return; }
-    showToast('✅ 话术场景已添加');
-  } else {
-    const { error } = await supabase.from('training_scripts').update(data).eq('id', window._editScript.id);
-    if (error) { showToast('保存失败：' + error.message); return; }
-    showToast('✅ 话术场景已更新');
-  }
-  closeModal('mod-script');
-  loadTrainingScripts();
-}
-
-async function deleteScript(id, title) {
-  if (!confirm('确定要删除话术场景「' + title + '」吗？')) return;
-  const { error } = await supabase.from('training_scripts').delete().eq('id', id);
-  if (error) { showToast('删除失败：' + error.message); return; }
-  showToast('🗑️ 已删除「' + title + '」');
-  loadTrainingScripts();
 }
 
 // ==================== SOP ====================
@@ -10120,1262 +9209,4 @@ function renderSchedule() {
 
 // Current editing state
 let schedEditState = { cell: null, staff: '', day: 0, shift: '' };
-let schedHighlightCol = null; // currently highlighted column number
-
-function isSchedAdmin() {
-  return canEdit('schedule');
-}
-window.isAdminUser = function() {
-  return isSchedAdmin();
-};
-
-function editScheduleCell(cell) {
-  // Clear column highlight
-  clearSchedColHighlight();
-
-  // Close any existing popover
-  closePopover();
-
-  // If clicking the same selected cell, toggle off
-  if (schedEditState.cell === cell) {
-    cell.classList.remove('selected');
-    schedEditState = { cell: null, staff: '', day: 0, shift: '' };
-    return;
-  }
-
-  // Deselect previous
-  if (schedEditState.cell) {
-    schedEditState.cell.classList.remove('selected');
-  }
-
-  // Select new cell
-  cell.classList.add('selected');
-  const staff = cell.dataset.staff;
-  const day = parseInt(cell.dataset.day);
-  const shift = cell.dataset.shift;
-
-  schedEditState = { cell, staff, day, shift };
-
-  // Non-admin: just show a read-only info tooltip, no edit buttons
-  if (!isSchedAdmin()) {
-    const rect = cell.getBoundingClientRect();
-    const popover = document.getElementById('sched-popover');
-    popover.innerHTML = '<span style="font-size:12px;color:#555;">' + staff + ' · ' + day + '日 · <strong>' + (shift || '无') + '</strong></span>';
-    let left = rect.left + rect.width / 2 - 60;
-    if (left < 10) left = 10;
-    popover.style.left = left + 'px';
-    popover.style.top = (rect.top - 48) + 'px';
-    popover.style.display = 'flex';
-    popover.style.gap = '0';
-    return;
-  }
-
-  // Admin: show edit popover
-  const rect = cell.getBoundingClientRect();
-  const popover = document.getElementById('sched-popover');
-  const buttons = [
-    { cls: 'opt-morning', label: '早', val: '早班' },
-    { cls: 'opt-mid', label: '中', val: '中班' },
-    { cls: 'opt-night', label: '晚', val: '晚班' },
-    { cls: 'opt-rest', label: '休', val: '休息' },
-    { cls: 'opt-adjust', label: '调', val: '调休' },
-    { cls: 'opt-clear', label: '✕', val: '' },
-  ];
-
-  popover.innerHTML = '<span style="font-size:11px;color:#888;margin-right:4px;">' + staff + ' ' + day + '日</span>' +
-    buttons.map(b => '<button class="sched-pop-btn ' + b.cls + '" onclick="applyShift(\'' + b.val + '\')" title="' + b.val + '">' + b.label + '</button>').join('');
-
-  const popWidth = 220;
-  let left = rect.left + rect.width / 2 - popWidth / 2;
-  if (left < 10) left = 10;
-  if (left + popWidth > window.innerWidth - 10) left = window.innerWidth - popWidth - 10;
-  popover.style.left = left + 'px';
-  popover.style.top = (rect.top - 58) + 'px';
-  popover.style.display = 'flex';
-  popover.style.gap = '6px';
-}
-
-function highlightSchedCol(th, day) {
-  // Close any cell popover
-  closePopover();
-  if (schedEditState.cell) {
-    schedEditState.cell.classList.remove('selected');
-    schedEditState = { cell: null, staff: '', day: 0, shift: '' };
-  }
-
-  // Toggle: if same column clicked, clear highlight
-  if (schedHighlightCol === day) {
-    clearSchedColHighlight();
-    return;
-  }
-
-  // Clear previous column highlight
-  clearSchedColHighlight();
-
-  // Highlight this column
-  schedHighlightCol = day;
-  th.classList.add('selected-col');
-
-  // Highlight all cells in this column
-  const cells = document.querySelectorAll('.sched-cell[data-day="' + day + '"]');
-  cells.forEach(c => c.classList.add('col-highlight'));
-
-  // Highlight name cells in the column indirectly via row
-  cells.forEach(c => {
-    const row = c.closest('tr');
-    if (row) {
-      const nameCell = row.querySelector('.name-cell');
-      if (nameCell) nameCell.style.background = '#f0ecff';
-    }
-  });
-}
-
-function clearSchedColHighlight() {
-  if (schedHighlightCol === null) return;
-  document.querySelectorAll('th.col-header.selected-col').forEach(th => th.classList.remove('selected-col'));
-  document.querySelectorAll('td.col-highlight').forEach(td => td.classList.remove('col-highlight'));
-  document.querySelectorAll('.name-cell').forEach(td => td.style.background = '');
-  schedHighlightCol = null;
-}
-
-function applyShift(val) {
-  if (!schedEditState.cell) return;
-
-  const { cell, staff, day } = schedEditState;
-  const monthKey = scheduleMonth;
-
-  // Update scheduleData in memory
-  const monthData = scheduleData[monthKey];
-  const staffEntry = monthData?.staff?.find(s => s.name === staff);
-  if (staffEntry) {
-    if (val) {
-      staffEntry.schedule[String(day)] = val;
-    } else {
-      delete staffEntry.schedule[String(day)];
-    }
-    // 写入 Supabase
-    saveScheduleCellToDB(staff, monthKey, staffEntry.schedule);
-  }
-
-  // Update the cell visually
-  let shiftClass = '', label = val || '-';
-  if (val === '早' || val.includes('早班')) { shiftClass = 'shift-morning'; label = '早'; }
-  else if (val === '中' || val.includes('中班')) { shiftClass = 'shift-mid'; label = '中'; }
-  else if (val === '晚' || val.includes('晚班')) { shiftClass = 'shift-night'; label = '晚'; }
-  else if (val === '休' || val === '休息') { shiftClass = 'shift-rest'; label = '休'; }
-  else if (val === '调' || val === '调休') { shiftClass = 'shift-adjust'; label = '调'; }
-  else if (val === '班' || val === '加班') { shiftClass = 'shift-adjust'; label = '班'; }
-
-  cell.dataset.shift = val || '-';
-  cell.innerHTML = val ? ('<span class="' + shiftClass + '"><span class="shift-tag">' + label + '</span></span>') : '<span style="color:#ccc;font-size:11px;">-</span>';
-
-  closePopover();
-}
-
-function closePopover() {
-  document.getElementById('sched-popover').style.display = 'none';
-  if (schedEditState.cell) {
-    schedEditState.cell.classList.remove('selected');
-  }
-  schedEditState = { cell: null, staff: '', day: 0, shift: '' };
-}
-
-// Close popover when clicking outside
-document.addEventListener('click', function(e) {
-  if (schedEditState.cell && !e.target.closest('.sched-cell') && !e.target.closest('#sched-popover')) {
-    closePopover();
-  }
-  // 关闭花色分类右键菜单
-  const ctxMenu = document.getElementById('pat-cat-ctx-menu');
-  if (ctxMenu && ctxMenu.style.display === 'block' && !ctxMenu.contains(e.target)) {
-    hidePatCatCtxMenu();
-  }
-});
-
-function prevMonth() {
-  const [y, m] = scheduleMonth.split('-').map(Number);
-  const d = new Date(y, m - 2, 1); // previous month
-  scheduleMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-  renderSchedule();
-}
-
-function nextMonth() {
-  const [y, m] = scheduleMonth.split('-').map(Number);
-  const d = new Date(y, m, 1); // next month
-  scheduleMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-  renderSchedule();
-}
-
-// ==================== QUIZ ====================
-let quizState = { answers: {}, submitted: false, score: 0 };
-
-function renderQuiz() {
-  quizState = { answers: {}, submitted: false, score: 0 };
-  const container = document.getElementById('quiz-content');
-  container.innerHTML = `
-    ${quizData.map((q, qi) => `
-      <div class="quiz-question" id="q-${qi}">
-        <h4>${qi + 1}. ${q.question}</h4>
-        ${q.options.map((o, oi) => `
-          <button class="quiz-option" id="q${qi}o${oi}" onclick="selectAnswer(${qi}, ${oi})">${String.fromCharCode(65 + oi)}. ${o}</button>
-        `).join('')}
-      </div>
-    `).join('')}
-    <button class="btn" onclick="submitQuiz()" style="width:100%;margin-top:16px;padding:14px;font-size:16px;" id="quiz-submit-btn">提交测验</button>
-    <div id="quiz-result" style="display:none;text-align:center;padding:30px;"></div>
-  `;
-}
-
-function selectAnswer(qi, oi) {
-  if (quizState.submitted) return;
-  quizState.answers[qi] = oi;
-  for (let i = 0; i < 4; i++) {
-    const btn = document.getElementById(`q${qi}o${i}`);
-    if (btn) btn.classList.toggle('selected', i === oi);
-  }
-}
-
-function submitQuiz() {
-  if (Object.keys(quizState.answers).length < quizData.length) {
-    showToast('请回答所有题目后再提交');
-    return;
-  }
-  quizState.submitted = true;
-  quizState.score = 0;
-  quizData.forEach((q, qi) => {
-    const correct = q.answer;
-    const userAns = quizState.answers[qi];
-    if (userAns === correct) quizState.score++;
-    for (let i = 0; i < 4; i++) {
-      const btn = document.getElementById(`q${qi}o${i}`);
-      if (btn) {
-        btn.disabled = true;
-        if (i === correct) btn.classList.add('correct');
-        if (i === userAns && userAns !== correct) btn.classList.add('wrong');
-      }
-    }
-  });
-  document.getElementById('quiz-submit-btn').style.display = 'none';
-
-  const pct = Math.round(quizState.score / quizData.length * 100);
-  const comment = pct >= 90 ? '🏆 太棒了！你是美瞳专家！' : pct >= 70 ? '👍 不错，继续加油！' : pct >= 50 ? '📖 还需要复习哦' : '📚 要认真学习培训资料啦！';
-
-  const resultDiv = document.getElementById('quiz-result');
-  resultDiv.style.display = 'block';
-  resultDiv.innerHTML = `
-    <div class="quiz-score">${quizState.score}/${quizData.length}</div>
-    <div class="quiz-result">正确率 ${pct}%</div>
-    <p style="color:var(--text-secondary);">${comment}</p>
-    <button class="btn" onclick="renderQuiz()" style="margin-top:16px;">再来一次</button>
-  `;
-}
-
-// ==================== UTILS ====================
-function showToast(msg) {
-  const toast = document.getElementById('toast');
-  toast.textContent = msg;
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2000);
-}
-
-// ==================== VISITOR NAME ====================
-function initVisitorName() {
-  const name = localStorage.getItem('kefu_visitor_name') || '';
-  if (name) document.getElementById('visitor-name').textContent = name;
-}
-function setVisitorName() {
-  const current = localStorage.getItem('kefu_visitor_name') || '';
-  const name = prompt('设置你的显示名称（仅本地显示）：', current);
-  if (name === null) return;
-  const trimmed = name.trim();
-  if (trimmed) {
-    localStorage.setItem('kefu_visitor_name', trimmed);
-    document.getElementById('visitor-name').textContent = trimmed;
-  } else {
-    localStorage.removeItem('kefu_visitor_name');
-    document.getElementById('visitor-name').textContent = '访客';
-  }
-}
-
-// ==================== 通知中心 ====================
-let notifications = [];
-let notifyTimer = null;
-
-function openNotificationPanel() {
-  renderNotificationList();
-  showModalById('mod-notify');
-}
-
-async function loadNotifications() {
-  if (!supabase || !currentUser) return;
-  try {
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', currentUser.id)
-      .order('created_at', { ascending: false })
-      .limit(50);
-    if (error) { console.warn('加载通知失败:', error.message); return; }
-    notifications = data || [];
-    updateNotificationBadge();
-  } catch (e) { console.warn('loadNotifications 异常:', e); }
-}
-
-function updateNotificationBadge() {
-  const count = notifications.filter(n => !n.is_read).length;
-  const badge = document.getElementById('notify-count');
-  if (badge) {
-    badge.textContent = count > 99 ? '99+' : String(count);
-    badge.classList.toggle('show', count > 0);
-  }
-}
-
-function renderNotificationList() {
-  const wrap = document.getElementById('notify-list');
-  const summary = document.getElementById('notify-footer-summary');
-  if (!wrap) return;
-  if (notifications.length === 0) {
-    wrap.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text-secondary);font-size:14px;">暂无通知</div>';
-    if (summary) summary.textContent = '暂无通知';
-    return;
-  }
-  const unread = notifications.filter(n => !n.is_read).length;
-  wrap.innerHTML = notifications.map(n => {
-    const time = new Date(n.created_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    const unreadStyle = !n.is_read ? 'background:#f8fafc;border-left:3px solid var(--primary);' : 'background:#fff;border-left:3px solid transparent;';
-    const contentHtml = escapeHtml(n.content).replace(/\n/g, '<br>');
-    return `<div style="${unreadStyle}border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;cursor:pointer;transition:background .15s;" onclick="markNotificationRead(${n.id})">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;">
-        <strong style="font-size:13px;color:var(--text);">${escapeHtml(n.title)}</strong>
-        <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;">${time}</span>
-      </div>
-      <div style="font-size:12px;color:var(--text-secondary);line-height:1.6;">${contentHtml}</div>
-      ${!n.is_read ? '<div style="margin-top:6px;font-size:11px;color:var(--primary);">点击标记为已读</div>' : ''}
-    </div>`;
-  }).join('');
-  if (summary) summary.textContent = `共 ${notifications.length} 条 · 未读 ${unread} 条`;
-}
-
-async function markNotificationRead(id) {
-  if (!supabase) return;
-  try {
-    const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', id);
-    if (error) { console.warn('标记已读失败:', error.message); return; }
-    const n = notifications.find(x => x.id === id);
-    if (n) n.is_read = true;
-    updateNotificationBadge();
-    renderNotificationList();
-  } catch (e) { console.warn('markNotificationRead 异常:', e); }
-}
-
-async function markAllNotificationsRead() {
-  if (!supabase || notifications.length === 0) return;
-  try {
-    const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
-    if (unreadIds.length === 0) { showToast('没有未读通知'); return; }
-    const { error } = await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
-    if (error) { showToast('标记失败：' + error.message); return; }
-    notifications.forEach(n => n.is_read = true);
-    updateNotificationBadge();
-    renderNotificationList();
-    showToast('✅ 已全部标记为已读');
-  } catch (e) { console.warn('markAllNotificationsRead 异常:', e); }
-}
-
-function startNotificationPolling() {
-  if (notifyTimer) clearInterval(notifyTimer);
-  loadNotifications();
-  notifyTimer = setInterval(loadNotifications, 60000); // 每分钟轮询一次
-}
-
-// ==================== INIT ====================
-async function init() {
-  // 关键优化：Supabase 初始化与配置加载并行，避免 config.json 拉取（尤其 GitHub Pages 慢时）阻塞首屏 3-5 秒
-  initSupabase();
-  loadConfig().catch(e => console.error('loadConfig 异常', e));
-  try { renderTrainingFilters(); } catch(e) {}
-  try { renderPatternFilters(); } catch(e) {}
-  try { renderSOPFilters(); } catch(e) {}
-  try { calculate(); } catch(e) {}
-  try { initVisitorName(); } catch(e) {}
-  try { switchPage('home'); } catch(e) { console.error('switchPage failed', e); }
-}
-
-init();
-</script>
-<script src="app.js?v=20260813"></script>
-
-<!-- Pattern Editor Modal -->
-<div class="modal-overlay" id="mod-pattern" onclick="closeModal('mod-pattern')">
-  <div class="modal-box" onclick="event.stopPropagation()">
-    <div class="modal-header">
-      <h3 id="mod-pattern-title">✎ 编辑花色</h3>
-      <button class="modal-close" onclick="closeModal('mod-pattern')">✕</button>
-    </div>
-    <div class="modal-body" id="mod-pattern-body"></div>
-    <div class="modal-footer">
-      <button class="btn-sm outline" onclick="closeModal('mod-pattern')">取消</button>
-      <button class="btn-sm primary" id="mod-pattern-save" onclick="savePattern()">💾 保存并同步</button>
-    </div>
-  </div>
-</div>
-
-<!-- 培训资料编辑弹窗 -->
-<div class="modal-overlay" id="mod-training" onclick="closeModal('mod-training')">
-  <div class="modal-box" onclick="event.stopPropagation()">
-    <div class="modal-header">
-      <h3 id="mod-training-title">＋ 新增培训资料</h3>
-      <button class="modal-close" onclick="closeModal('mod-training')">✕</button>
-    </div>
-    <div class="modal-body" id="mod-training-body"></div>
-    <div class="modal-footer">
-      <button class="btn-sm outline" onclick="closeModal('mod-training')">取消</button>
-      <button class="btn-sm primary" onclick="saveTraining()">💾 保存并同步</button>
-    </div>
-  </div>
-</div>
-
-<!-- 培训资料详情弹窗 -->
-<div class="modal-overlay" id="mod-train-detail" onclick="closeModal('mod-train-detail')">
-  <div class="modal-box" onclick="event.stopPropagation()" style="max-width:520px;">
-    <div class="modal-header">
-      <h3 style="display:flex;align-items:center;gap:10px;">
-        <span id="mod-train-detail-icon" style="font-size:22px;">📄</span>
-        <span id="mod-train-detail-title"></span>
-      </h3>
-      <button class="modal-close" onclick="closeModal('mod-train-detail')">✕</button>
-    </div>
-    <div class="modal-body" id="mod-train-detail-meta"></div>
-    <div class="modal-body" id="mod-train-detail-body" style="padding-top:0;"></div>
-    <div class="modal-footer">
-      <button class="btn-sm outline" onclick="closeModal('mod-train-detail')">关闭</button>
-      <button class="btn-sm primary" id="mod-train-detail-open">🔗 打开原文</button>
-    </div>
-  </div>
-</div>
-
-<!-- 话术详情弹窗 -->
-<div class="modal-overlay" id="mod-script-detail" onclick="closeModal('mod-script-detail')">
-  <div class="modal-box" onclick="event.stopPropagation()" style="max-width:560px;">
-    <div class="modal-header">
-      <h3 id="mod-script-detail-title"></h3>
-      <button class="modal-close" onclick="closeModal('mod-script-detail')">✕</button>
-    </div>
-    <div class="modal-body" id="mod-script-detail-meta"></div>
-    <div class="modal-body" id="mod-script-detail-body" style="padding-top:0;"></div>
-    <div class="modal-footer">
-      <button class="btn-sm outline" onclick="closeModal('mod-script-detail')">关闭</button>
-    </div>
-  </div>
-</div>
-
-<!-- 话术编辑弹窗 -->
-<div class="modal-overlay" id="mod-script" onclick="closeModal('mod-script')">
-  <div class="modal-box" onclick="event.stopPropagation()" style="max-width:600px;">
-    <div class="modal-header">
-      <h3 id="mod-script-title">＋ 新增话术场景</h3>
-      <button class="modal-close" onclick="closeModal('mod-script')">✕</button>
-    </div>
-    <div class="modal-body" id="mod-script-body"></div>
-    <div class="modal-footer">
-      <button class="btn-sm outline" onclick="closeModal('mod-script')">取消</button>
-      <button class="btn-sm primary" onclick="saveScript()">💾 保存并同步</button>
-    </div>
-  </div>
-</div>
-
-<!-- 扣罚标准大图弹窗 -->
-<div class="modal-overlay" id="mod-penalty-standard" onclick="closeModal('mod-penalty-standard')">
-  <div class="modal-box penalty-modal-box" onclick="event.stopPropagation()">
-    <div class="modal-header">
-      <h3>📋 客服服务差错扣罚标准（2026年执行版）</h3>
-      <button class="modal-close" onclick="closeModal('mod-penalty-standard')">✕</button>
-    </div>
-    <div class="modal-body penalty-modal-body">
-      <img id="penalty-standard-img" src="images/penalty-standard-2026.png?v=1" alt="客服服务差错扣罚标准" onclick="togglePenaltyZoom()" />
-    </div>
-    <div class="modal-footer">
-      <button class="btn-sm outline" onclick="closeModal('mod-penalty-standard')">关闭</button>
-      <a class="btn-sm primary" href="images/penalty-standard-2026.png?v=1" target="_blank" style="text-decoration:none;">在新标签页打开</a>
-    </div>
-  </div>
-</div>
-
-<!-- Lightbox -->
-<div class="lightbox" id="lightbox" onclick="closeLightbox()">
-  <div class="lightbox-counter" id="lightbox-counter"></div>
-  <div class="lightbox-type-tag" id="lightbox-type-tag"></div>
-  <div class="lightbox-img-wrap" onclick="event.stopPropagation()">
-    <button class="lightbox-nav lightbox-prev" id="lightbox-prev" onclick="event.stopPropagation();navLightbox(-1)">‹</button>
-    <div class="lightbox-img-stack">
-      <img id="lightbox-img" class="lightbox-hd" src="" alt="" />
-      <div class="lightbox-loader" id="lightbox-loader">
-        <span></span>
-        <div class="lightbox-status" id="lightbox-status"></div>
-        <button class="lightbox-retry" id="lightbox-retry" style="display:none;" onclick="event.stopPropagation();retryLightboxHd()">重试</button>
-      </div>
-    </div>
-    <button class="lightbox-nav lightbox-next" id="lightbox-next" onclick="event.stopPropagation();navLightbox(1)">›</button>
-  </div>
-  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
-  <div class="lightbox-actions">
-    <button class="lightbox-btn" onclick="event.stopPropagation();copyLightboxImg()">📋 复制图片</button>
-    <button class="lightbox-btn" onclick="event.stopPropagation();downloadLightboxImg()">💾 保存图片</button>
-  </div>
-</div>
-
-<!-- Logistics Query Modal -->
-<div class="logistics-modal" id="logistics-modal" onclick="closeLogistics(event)">
-  <div class="logistics-box" onclick="event.stopPropagation()">
-    <button class="logistics-close" onclick="document.getElementById('logistics-modal').classList.remove('show')">✕</button>
-    <h3>🚛 物流时效查询</h3>
-    <div class="log-form-row">
-      <label>发货地（仓库所在地）</label>
-      <select id="log-from">
-        <option value="">请选择发货省份</option>
-      </select>
-    </div>
-    <div class="log-form-row">
-      <label>目的地（客户地址）</label>
-      <select id="log-to">
-        <option value="">请选择目的省份</option>
-      </select>
-    </div>
-    <div class="log-form-row">
-      <label>快递方式</label>
-      <div class="log-express-btns" id="log-express-btns">
-        <button class="log-express-btn active" data-express="中通" onclick="selExpress(this)">中通</button>
-        <button class="log-express-btn" data-express="圆通" onclick="selExpress(this)">圆通</button>
-        <button class="log-express-btn" data-express="顺丰陆运" onclick="selExpress(this)">顺丰陆运</button>
-        <button class="log-express-btn" data-express="顺丰空运" onclick="selExpress(this)">顺丰空运</button>
-      </div>
-    </div>
-    <button class="log-query-btn" onclick="queryLogistics()">🔍 查询时效</button>
-    <div class="log-result" id="log-result">
-      <div class="log-result-title" id="log-result-title"></div>
-      <div class="log-result-row"><span class="label">快递方式</span><span class="value" id="log-res-express"></span></div>
-      <div class="log-result-row"><span class="label">运输距离</span><span class="value" id="log-res-distance"></span></div>
-      <div class="log-result-row"><span class="label">预计时效</span><span class="value days" id="log-res-days"></span><span class="log-ref-note">仅供参考，不作承诺</span></div>
-      <div class="log-result-row"><span class="label">预计送达</span><span class="value date" id="log-res-date"></span><span class="log-ref-note">仅供参考，不作承诺</span></div>
-      <div class="log-result-row"><span class="label">补运费</span><span class="value fee" id="log-res-fee"></span></div>
-      <div class="log-result-note" id="log-res-note"></div>
-    </div>
-  </div>
-</div>
-
-<!-- 花色分类右键菜单 -->
-<div id="pat-cat-ctx-menu" class="ctx-menu" style="display:none;">
-  <div class="ctx-item" onclick="ctxEditPatCat()">✎ 编辑</div>
-  <div class="ctx-item ctx-danger" onclick="ctxDeletePatCat()">✕ 删除</div>
-</div>
-
-<!-- 分类合并对话框（通用：色系/直径/抛型/系列） -->
-<div id="cat-merge-modal" class="modal-overlay" style="display:none;z-index:10001;">
-  <div class="modal-box" style="max-width:420px;">
-    <div class="modal-header">
-      <h3 id="cat-merge-title">🗑️ 删除分类</h3>
-      <button class="modal-close" onclick="closeCatMergeModal()">×</button>
-    </div>
-    <div class="modal-body" style="padding:20px;">
-      <p id="cat-merge-info" style="margin-bottom:16px;font-size:14px;color:var(--text-secondary);"></p>
-      <div style="margin-bottom:16px;">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:12px;font-size:14px;">
-          <input type="radio" name="cat-merge-mode" value="merge" checked onchange="onCatMergeModeChange()">
-          <span id="cat-merge-mode-merge-label">合并到其他分类（推荐）</span>
-        </label>
-        <select id="cat-merge-target" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg);color:var(--text);margin-left:24px;margin-bottom:8px;"></select>
-      </div>
-      <div>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
-          <input type="radio" name="cat-merge-mode" value="clear" onchange="onCatMergeModeChange()">
-          <span id="cat-merge-mode-clear-label">清空字段（花色将变为未分类）</span>
-        </label>
-      </div>
-    </div>
-    <div class="modal-footer" style="padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;">
-      <button class="btn btn-secondary" onclick="closeCatMergeModal()" style="padding:8px 20px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;font-size:14px;">取消</button>
-      <button class="btn btn-danger" onclick="executeCatMerge()" style="padding:8px 20px;border-radius:8px;border:none;background:#ef4444;color:#fff;cursor:pointer;font-weight:600;font-size:14px;">确认删除</button>
-    </div>
-  </div>
-</div>
-
-<!-- 隐藏的文件上传 input，用于 Excel/CSV 导入 -->
-<input type="file" id="excel-import-input" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleExcelImport(this)">
-
-<!-- 客户之声：未完成提醒弹窗 -->
-<div id="voc-reminder-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:9999;align-items:center;justify-content:center;">
-  <div style="background:#fff;border-radius:14px;max-width:420px;width:90%;padding:26px 24px;box-shadow:0 20px 60px rgba(0,0,0,.25);">
-    <div style="font-size:18px;font-weight:800;margin-bottom:12px;color:var(--text);">📣 客户之声待办提醒</div>
-    <div id="voc-reminder-body" style="font-size:14px;line-height:1.7;color:var(--text-secondary);"></div>
-    <div style="margin-top:20px;text-align:right;">
-      <button class="btn-sm primary" onclick="closeVOCReminder()">知道了，去录入</button>
-    </div>
-  </div>
-</div>
-
-<!-- 客户之声 · 批量粘贴解析 -->
-<div id="voc-batch-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:9999;align-items:center;justify-content:center;">
-  <div style="background:#fff;border-radius:14px;max-width:840px;width:94%;max-height:90vh;display:flex;flex-direction:column;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,.25);">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-      <div style="font-size:18px;font-weight:800;color:var(--text);">📋 批量粘贴客户原话</div>
-      <span style="flex:1;"></span>
-      <button class="btn-sm outline" onclick="closeVOCBatch()">✕ 关闭</button>
-    </div>
-    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;">每行一条 / 空行分隔；支持「1. 」「①」编号或「[日期]」开头自动拆分。粘贴后点「解析拆分」，逐条自动打标，可手动调整，最后「全部保存」。</div>
-    <textarea id="voc-batch-raw" rows="6" placeholder="把多条客户原话粘贴到这里，例如：&#10;抖音的弥生戴久了有点干，颜色好看&#10;小红书买的极氧太贵了&#10;1. 淘宝的弥生磨眼睛&#10;2. 拼多多极氧发货好慢" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;resize:vertical;line-height:1.6;"></textarea>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 6px;align-items:center;">
-      <button class="btn-sm primary" onclick="runVOCBatchParse()">⚡ 解析拆分</button>
-      <button class="btn-sm outline" onclick="saveVOCBatch()">💾 全部保存</button>
-      <span id="voc-batch-count" style="font-size:12px;color:var(--text-secondary);"></span>
-    </div>
-    <div id="voc-batch-preview" style="flex:1;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:10px;background:#fafbfa;display:none;"></div>
-  </div>
-</div>
-
-<!-- ==================== 客户之声 (VOC) ==================== -->
-<script>
-let vocData = [];
-let vocLastLoadAt = 0;
-let vocSummaryCache = null;
-
-function vocMonthNow() {
-  const d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-}
-
-function getVOCMonthPrefix() {
-  const el = document.getElementById('voc-month');
-  if (el && el.value) return el.value; // 'YYYY-MM'
-  return vocMonthNow();
-}
-
-function vocEsc(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-
-// ===== 客户之声硬性规则：每日5条 + 品牌/场景/主题必填 + 班次 =====
-const VOC_DAILY_LIMIT = 5;
-const VOC_INHOUSE_NAMES = ['小雷', '小南']; // 自有客服（班次窗口不同）
-function vocCurrentName() {
-  return (currentProfile && (currentProfile.name || currentProfile.real_name)) || (currentUser && currentUser.email) || '';
-}
-function vocTodayStr() {
-  const d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-function getVOCTodayCount(name) {
-  if (!name) return 0;
-  const today = vocTodayStr();
-  return (vocData || []).filter(r => (r.staff_name || '') === name && (r.created_at || '').slice(0, 10) === today).length;
-}
-// 根据人员类别 + 当前时间判断班次（班次窗口有重叠，重叠时如实标注）
-function getCurrentShift() {
-  const name = vocCurrentName();
-  const inhouse = VOC_INHOUSE_NAMES.includes(name);
-  const windows = inhouse
-    ? [['早班', 8.5, 17.5], ['中班', 12, 21], ['晚班', 16, 24]]
-    : [['早班', 8, 16], ['中班', 13, 21], ['晚班', 16, 24]];
-  const now = new Date();
-  const h = now.getHours() + now.getMinutes() / 60;
-  const active = windows.filter(([, s, e]) => h >= s && h < e).map(([label]) => label);
-  return { inhouse, windows, active, onShift: active.length > 0 };
-}
-function fmtShiftTime(t) {
-  const hh = Math.floor(t);
-  const mm = Math.round((t - hh) * 60);
-  return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
-}
-function shiftScheduleText(sh) {
-  const parts = sh.windows.map(([label, s, e]) => label + ' ' + fmtShiftTime(s) + '-' + fmtShiftTime(e));
-  return (sh.inhouse ? '自有班次：' : '外包班次：') + parts.join(' / ');
-}
-function updateVOCStatus() {
-  const name = vocCurrentName();
-  const badge = document.getElementById('voc-todo-badge');
-  const prog = document.getElementById('voc-progress');
-  const isAdmin = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
-  if (!name) { if (badge) badge.style.display = 'none'; if (prog) prog.style.display = 'none'; return; }
-  const count = getVOCTodayCount(name);
-  const remain = Math.max(0, VOC_DAILY_LIMIT - count);
-  const sh = getCurrentShift();
-  const sched = shiftScheduleText(sh);
-  const shiftText = sh.onShift
-    ? (sh.active.length === 1 ? '当前班次：' + sh.active[0] + '（' + sched + '）' : '当前处于班次工作时间（' + sched + '）')
-    : '当前非班次时间（' + sched + '）';
-  // 管理员/组长只负责收集查看，不显示待办与提醒
-  if (isAdmin) {
-    if (badge) badge.style.display = 'none';
-    if (prog) prog.style.display = 'none';
-    return;
-  }
-  if (prog) {
-    prog.style.display = '';
-    const note = remain > 0 ? ('· 还差 ' + remain + ' 条') : '· ✅ 已达成基础目标，可继续录入';
-    prog.innerHTML = `📅 今日进度 <b style="color:${count >= VOC_DAILY_LIMIT ? '#27ae60' : '#e67e22'};">${count}/${VOC_DAILY_LIMIT}</b> ${note} · ${shiftText}`;
-  }
-  if (badge) {
-    if (remain > 0) { badge.style.display = ''; badge.textContent = '待办 ' + remain; }
-    else { badge.style.display = 'none'; }
-  }
-  // 未完成提醒弹窗（仅班次内、单会话一次）
-  if (remain > 0 && !window.__vocReminderShown && sh.onShift) {
-    window.__vocReminderShown = true;
-    showVOCReminder(count, remain, sh);
-  }
-}
-function showVOCReminder(count, remain, sh) {
-  const m = document.getElementById('voc-reminder-modal');
-  if (!m) return;
-  document.getElementById('voc-reminder-body').innerHTML =
-    `你今天还有 <b style="color:#e67e22;">${remain}</b> 条「客户之声」待录入（已完成 ${count}/${VOC_DAILY_LIMIT}）。<br>请在本班次工作时间内完成（${shiftScheduleText(sh)}），客户原话请一字不改直接粘贴。`;
-  m.style.display = 'flex';
-}
-function closeVOCReminder() {
-  const m = document.getElementById('voc-reminder-modal');
-  if (m) m.style.display = 'none';
-}
-
-// ===== 客户之声 一键自动解析引擎（本地关键词规则，零成本/离线/可手动改）=====
-const VOC_PARSE = {
-  brand: {
-    '弥生': ['弥生', 'mison', '米生', '猕生'],
-    '极氧': ['极氧', 'jiyang', '极阳', '极洋', '基氧']
-  },
-  scene: {
-    '抖音客服': ['抖音', 'douyin', '抖店'],
-    '天猫客服': ['天猫', 'tmall'],
-    '淘宝客服': ['淘宝', 'taobao'],
-    '拼多多客服': ['拼多多', '拼夕夕', 'pdd', '多多'],
-    '京东客服': ['京东', 'jingdong', 'jd'],
-    '小红书客服': ['小红书', '薯', 'redbook', 'xhs'],
-    '快手客服': ['快手', 'kuaishou', 'ks'],
-    '微信客服': ['微信', '微店', '朋友圈', 'wechat', '社群', '群里', '群聊']
-  },
-  // 未命中平台关键词时，按 A/B/C 组别兜底推断
-  sceneFallbackByTeam: { 'A': '抖音客服', 'B': '拼多多客服', 'C': '天猫客服' },
-  // 主题：按命中关键词加权打分，取最高分；每个关键词权重 w
-  topic: {
-    '使用问题': { w: 3, k: ['磨眼睛', '磨眼', '干涩', '异物感', '红血丝', '发炎', '过敏', '刺痛', '不舒服', '戴不上', '取不下来', '怎么戴', '佩戴', '滑片', '模糊', '看不清', '晕', '晕眩', '度数', '基弧', '直径', '透氧', '护理', '清洗', '蛋白', '镜片', '掉色', '不贴合', '眼干', '眼红'] },
-    '价格反馈': { w: 2, k: ['价格', '贵', '便宜', '划算', '优惠', '降价', '性价比', '不值', '促销', '活动价', '价位', '折扣', '满减', '太贵', '买不起'] },
-    '物流吐槽': { w: 2, k: ['物流', '快递', '发货', '到货', '收货', '配送', '顺丰', '邮政', 'ems', '运单', '包裹', '还没收到', '迟迟', '发货慢', '到货慢'] },
-    '竞品对比': { w: 2, k: ['对比', '比起', '竞品', '别家', '其他牌子', '别的品牌', '海昌', '博士伦', '强生', '可啦啦', 'moody', '可糖', '视客', '相比'] },
-    '好评夸夸': { w: 2, k: ['好看', '满意', '喜欢', '漂亮', '舒服', '回购', '推荐', '自然', '绝了', '爱了', '夸', '赞', '好评', '惊艳', '显白', '水润', '太喜欢', '真的好', '超爱'] },
-    '投诉吐槽': { w: 2, k: ['投诉', '差评', '垃圾', '退货', '退款', '后悔', '失望', '骗', '虚假', '假货', '气死', '无语', '吐槽', '坑', '态度', '敷衍', '烂', '恶心', '气愤'] },
-    '产品建议': { w: 2, k: ['建议', '希望', '要是能', '能不能出', '出新款', '花色', '颜色', '款式', '设计', '想要', '增加', '上架', '出个', '多来', '期待', '出一款', '多些', '改进'] }
-  }
-};
-
-// 解析单条客户原话，返回 {brand, scene, topic, hits}
-function parseVOC(text, team) {
-  const t = String(text || '').toLowerCase();
-  const hits = { brand: [], scene: [], topic: [] };
-  let brand = '', scene = '', topic = '';
-
-  // 品牌
-  let bestBrand = '', bestBrandScore = 0;
-  for (const [label, kws] of Object.entries(VOC_PARSE.brand)) {
-    let score = 0; const found = [];
-    for (const kw of kws) { if (t.includes(kw.toLowerCase())) { score += 1; found.push(kw); } }
-    if (score > bestBrandScore) { bestBrandScore = score; bestBrand = label; hits.brand = found; }
-  }
-  brand = bestBrand; // '' 表示未分类
-
-  // 场景
-  let bestScene = '', bestSceneScore = 0;
-  for (const [label, kws] of Object.entries(VOC_PARSE.scene)) {
-    let score = 0; const found = [];
-    for (const kw of kws) { if (t.includes(kw.toLowerCase())) { score += 1; found.push(kw); } }
-    if (score > bestSceneScore) { bestSceneScore = score; bestScene = label; hits.scene = found; }
-  }
-  if (bestScene) scene = bestScene;
-  else if (team) {
-    for (const [k, v] of Object.entries(VOC_PARSE.sceneFallbackByTeam)) {
-      if (team.includes(k)) { scene = v; hits.scene = ['(按组别 ' + team + ' 推断)']; break; }
-    }
-  }
-  // '' 表示未分类（匹配 select 的 value=""）
-
-  // 主题（加权取最高）
-  let bestTopic = '', bestTopicScore = 0;
-  for (const [label, cfg] of Object.entries(VOC_PARSE.topic)) {
-    let score = 0; const found = [];
-    for (const kw of cfg.k) { if (t.includes(kw.toLowerCase())) { score += cfg.w; found.push(kw); } }
-    if (score > bestTopicScore) { bestTopicScore = score; bestTopic = label; hits.topic = found; }
-  }
-  topic = bestTopic || '其他';
-
-  return { brand, scene, topic, hits };
-}
-
-// ===== 单条一键解析 UI =====
-let vocManualEdit = false;     // 用户手动改过下拉后，停止自动覆盖
-
-// ==================== 客户之声：本地草稿兜底（防刷新/断网丢数据） ====================
-const VOC_DRAFT_KEY = () => 'voc_draft_' + ((currentUser && currentUser.id) || 'guest');
-function saveVOCDraft() {
-  try {
-    const raw = (document.getElementById('voc-raw')?.value || '').trim();
-    const tag = (document.getElementById('voc-tag')?.value || '').trim();
-    const scene = document.getElementById('voc-scene')?.value || '';
-    const brand = document.getElementById('voc-brand')?.value || '';
-    const topic = document.getElementById('voc-topic')?.value || '';
-    if (!raw && !tag && !scene && !brand && !topic) { localStorage.removeItem(VOC_DRAFT_KEY()); return; }
-    localStorage.setItem(VOC_DRAFT_KEY(), JSON.stringify({ raw, tag, scene, brand, topic, ts: Date.now() }));
-  } catch (e) {}
-}
-function restoreVOCDraft() {
-  try {
-    const ta = document.getElementById('voc-raw');
-    if (!ta || ta.value.trim()) return; // 已在录入，不覆盖
-    const raw = localStorage.getItem(VOC_DRAFT_KEY());
-    if (!raw) return;
-    const d = JSON.parse(raw);
-    if (!d || (!d.raw && !d.tag && !d.scene && !d.brand && !d.topic)) return;
-    if (d.raw) ta.value = d.raw;
-    const set = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = v; };
-    set('voc-tag', d.tag); set('voc-scene', d.scene); set('voc-brand', d.brand); set('voc-topic', d.topic);
-    vocManualEdit = true; // 恢复的草稿视为手动编辑，避免自动解析覆盖
-    showToast('📝 已恢复上次未提交的草稿，确认后点「保存这条反馈」');
-  } catch (e) {}
-}
-function clearVOCDraft() { try { localStorage.removeItem(VOC_DRAFT_KEY()); } catch (e) {} }
-
-function onVOCRawInput() {
-  // 已取消自动解析/自动填充：录入区只做手动选择，不再根据原话自动改写下拉
-}
-
-function parseVOCAndFill() {
-  // 已取消自动解析/自动填充：保留函数占位，避免历史引用报错（入口按钮已移除）
-}
-
-function showVOCParseHits(res, isAuto) {
-  const box = document.getElementById('voc-parse-hits');
-  if (!box) return;
-  const chip = (emoji, label, val, bg, color) =>
-    `<span class="voc-tag" style="background:${bg};color:${color};">${emoji} ${label}${val ? '：' + vocEsc(val) : ''}</span>`;
-  let html = `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">`;
-  html += chip('📍', '场景', res.scene || '未分类', '#eaf1fb', '#3a6ea5');
-  html += chip('🏷', '品牌', res.brand || '未分类', '#fdeefb', '#a64ca6');
-  html += chip('🏷', '主题', res.topic, '#f3eefb', '#7a4fb0');
-  html += `</div>`;
-  const parts = [];
-  if (res.hits.scene.length) parts.push('场景←' + res.hits.scene.join('、'));
-  if (res.hits.brand.length) parts.push('品牌←' + res.hits.brand.join('、'));
-  if (res.hits.topic.length) parts.push('主题←' + res.hits.topic.join('、'));
-  if (parts.length) {
-    html += `<div style="margin-top:6px;font-size:12px;color:var(--text-secondary);line-height:1.7;">🤖 识别依据：${parts.map(vocEsc).join(' ｜ ')}</div>`;
-  } else {
-    html += `<div style="margin-top:6px;font-size:12px;color:var(--text-secondary);">🤖 未命中关键词，已按默认/组别推断，可手动调整</div>`;
-  }
-  if (isAuto) html += `<div style="margin-top:4px;font-size:11px;color:#999;">（自动预解析，手动改动下拉后将不再自动覆盖）</div>`;
-  box.innerHTML = html;
-  box.style.display = '';
-}
-
-function hideVOCParseHits() {
-  const box = document.getElementById('voc-parse-hits');
-  if (box) { box.style.display = 'none'; box.innerHTML = ''; }
-}
-
-// ===== 批量粘贴解析与一键保存 =====
-const VOC_SCENE_OPTS = ['未分类', '抖音客服', '天猫客服', '淘宝客服', '拼多多客服', '京东客服', '小红书客服', '快手客服', '微信客服', '其他'];
-const VOC_BRAND_OPTS = ['未分类', '弥生', '极氧'];
-const VOC_TOPIC_OPTS = ['未分类', '产品建议', '价格反馈', '物流吐槽', '竞品对比', '使用问题', '好评夸夸', '投诉吐槽', '其他'];
-
-function vocOptHtml(opts, selected) {
-  let html = opts.map(o => `<option ${o === selected ? 'selected' : ''}>${vocEsc(o)}</option>`).join('');
-  if (selected && !opts.includes(selected)) html += `<option selected>${vocEsc(selected)}</option>`;
-  return html;
-}
-function vocSceneOptions(sel) { return vocOptHtml(VOC_SCENE_OPTS, sel || '未分类'); }
-function vocBrandOptions(sel) { return vocOptHtml(VOC_BRAND_OPTS, sel || '未分类'); }
-function vocTopicOptions(sel) { return vocOptHtml(VOC_TOPIC_OPTS, sel || '未分类'); }
-
-// 按行拆分多条；支持「1. 」「①」编号或「[日期]」开头自动去除前缀
-function vocSplitLines(text) {
-  const t = (text || '').trim();
-  if (!t) return [];
-  const numRe = /^(?:\d+[\.\)、]|[①②③④⑤⑥⑦⑧⑨⑩]\s*|\[\d{4}[-\/年]\d{1,2}[-\/月]\d{1,2}(?:日)?\]|\[\d{1,2}[-\/月]\d{1,2}(?:日)?\])\s*/;
-  const out = [];
-  t.split(/\r?\n/).map(s => s.trim()).filter(Boolean).forEach(line => {
-    line = line.replace(numRe, '').trim();
-    if (line) out.push(line);
-  });
-  return out;
-}
-
-let vocBatchItems = []; // {raw, scene, brand, topic}
-
-function openVOCBatch() {
-  const m = document.getElementById('voc-batch-modal');
-  if (m) m.style.display = 'flex';
-}
-function closeVOCBatch() {
-  const m = document.getElementById('voc-batch-modal');
-  if (m) m.style.display = 'none';
-}
-
-function runVOCBatchParse() {
-  const ta = document.getElementById('voc-batch-raw');
-  const raw = (ta && ta.value || '').trim();
-  if (!raw) { showToast('⚠️ 请先粘贴多条客户原话'); return; }
-  const team = (currentProfile && currentProfile.group_name) || '';
-  const lines = vocSplitLines(raw);
-  if (!lines.length) { showToast('⚠️ 未解析出任何内容'); return; }
-  vocBatchItems = lines.map(line => {
-    const r = parseVOC(line, team);
-    return { raw: line, scene: r.scene || '未分类', brand: r.brand || '未分类', topic: r.topic };
-  });
-  renderVOCBatchPreview();
-}
-
-function renderVOCBatchPreview() {
-  const wrap = document.getElementById('voc-batch-preview');
-  const cnt = document.getElementById('voc-batch-count');
-  if (!wrap) return;
-  if (!vocBatchItems.length) { wrap.style.display = 'none'; if (cnt) cnt.textContent = ''; return; }
-  wrap.style.display = '';
-  if (cnt) cnt.textContent = '共 ' + vocBatchItems.length + ' 条待保存';
-  wrap.innerHTML = vocBatchItems.map((it, i) => `
-    <div style="display:flex;gap:8px;align-items:flex-start;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff;margin-bottom:8px;">
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;line-height:1.6;color:var(--text);word-break:break-word;margin-bottom:6px;">${i + 1}. ${vocEsc(it.raw)}</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <select data-batch="${i}" data-field="scene" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:12px;">${vocSceneOptions(it.scene)}</select>
-          <select data-batch="${i}" data-field="brand" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:12px;">${vocBrandOptions(it.brand)}</select>
-          <select data-batch="${i}" data-field="topic" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:12px;">${vocTopicOptions(it.topic)}</select>
-        </div>
-      </div>
-      <button class="voc-del" onclick="removeVOCBatchItem(${i})" title="删除">🗑</button>
-    </div>`).join('');
-  wrap.querySelectorAll('select[data-batch]').forEach(sel => {
-    sel.addEventListener('change', e => {
-      const idx = +e.target.getAttribute('data-batch');
-      const field = e.target.getAttribute('data-field');
-      if (vocBatchItems[idx]) vocBatchItems[idx][field] = e.target.value;
-    });
-  });
-}
-
-function removeVOCBatchItem(idx) {
-  vocBatchItems.splice(idx, 1);
-  renderVOCBatchPreview();
-}
-
-async function saveVOCBatch() {
-  if (!supabase) { showToast('⚠️ 系统未就绪'); return; }
-  if (!currentProfile && !currentUser) { showToast('⚠️ 请先登录'); return; }
-  if (!vocBatchItems.length) { showToast('⚠️ 请先解析拆分'); return; }
-  const missing = vocBatchItems.filter(it => !it.brand || !it.scene || !it.topic || it.brand === '未分类' || it.scene === '未分类' || it.topic === '未分类');
-  if (missing.length) { showToast('⚠️ 有 ' + missing.length + ' 条未填完整（品牌/场景/主题均必填）'); return; }
-  const name = (currentProfile && (currentProfile.name || currentProfile.real_name)) || (currentUser && currentUser.email) || '未知';
-  const team = (currentProfile && currentProfile.group_name) || '';
-  const recs = vocBatchItems.map(it => ({
-    raw_text: it.raw,
-    scene: it.scene === '未分类' ? '' : it.scene,
-    topic: it.topic === '未分类' ? '' : it.topic,
-    brand: it.brand === '未分类' ? '' : it.brand,
-    staff_name: name, team, customer_tag: '', record_month: vocMonthNow()
-  }));
-  try {
-    const { error } = await supabase.from('customer_voice').insert(recs).select();
-    if (error) { showToast('⚠️ 批量保存失败：' + error.message); return; }
-    showToast('✅ 已批量保存 ' + recs.length + ' 条客户原话');
-    vocBatchItems = [];
-    renderVOCBatchPreview();
-    closeVOCBatch();
-    loadVOCFromDB(true);
-  } catch (e) { showToast('⚠️ 批量保存异常'); console.error(e); }
-}
-
-async function loadVOCFromDB(force) {
-  if (!supabase) return;
-  const now = Date.now();
-  if (!force && vocLastLoadAt && (now - vocLastLoadAt < 15000)) {
-    if (currentPage === 'voc') renderVOC();
-    return;
-  }
-  vocLastLoadAt = now;
-  try {
-    const all = [];
-    const pageSize = 1000;
-    let offset = 0, page = [];
-    do {
-      const { data, error } = await supabase.from('customer_voice')
-        .select('*').order('created_at', { ascending: false })
-        .range(offset, offset + pageSize - 1);
-      if (error) { console.warn('客户之声加载失败:', error.message); break; }
-      page = data || [];
-      all.push(...page);
-      offset += pageSize;
-    } while (page.length === pageSize);
-    vocData = all;
-    if (currentPage === 'voc') renderVOC();
-  } catch (e) { console.error('客户之声加载异常:', e); }
-}
-
-function renderVOC() {
-  // 默认月份 = 当前月
-  const me = document.getElementById('voc-month');
-  if (me && !me.value) me.value = vocMonthNow();
-  const name = (currentProfile && (currentProfile.name || currentProfile.real_name)) || (currentUser && currentUser.email) || '未登录';
-  const team = (currentProfile && currentProfile.group_name) || '-';
-  const nl = document.getElementById('voc-staff-label'); if (nl) nl.textContent = name;
-  const tl = document.getElementById('voc-team-label'); if (tl) tl.textContent = team;
-  renderVOCList();
-  updateVOCStatus();
-}
-
-function renderVOCList() {
-  const wrap = document.getElementById('voc-list');
-  const empty = document.getElementById('voc-list-empty');
-  if (!wrap) return;
-  const kw = (document.getElementById('voc-search')?.value || '').toLowerCase().trim();
-  const brandFilter = (document.getElementById('voc-brand-filter')?.value || '');
-  let rows = vocData.slice();
-  if (brandFilter) rows = rows.filter(r => (r.brand || '') === brandFilter);
-  if (kw) rows = rows.filter(r =>
-    (r.raw_text || '').toLowerCase().includes(kw) ||
-    (r.topic || '').toLowerCase().includes(kw) ||
-    (r.scene || '').toLowerCase().includes(kw) ||
-    (r.brand || '').toLowerCase().includes(kw) ||
-    (r.staff_name || '').toLowerCase().includes(kw) ||
-    (r.customer_tag || '').toLowerCase().includes(kw)
-  );
-  if (rows.length === 0) {
-    wrap.innerHTML = '';
-    if (empty) empty.style.display = (vocData.length === 0) ? 'block' : 'none';
-    return;
-  }
-  if (empty) empty.style.display = 'none';
-  const isAdmin = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
-  wrap.innerHTML = rows.map(r => {
-    const dt = r.created_at ? new Date(r.created_at) : null;
-    const dtStr = dt ? (dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0') + ' ' + String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0')) : '-';
-    const scene = r.scene ? `<span class="voc-tag voc-tag-scene">${vocEsc(r.scene)}</span>` : '';
-    const topic = r.topic ? `<span class="voc-tag voc-tag-topic">${vocEsc(r.topic)}</span>` : '';
-    const brand = r.brand ? `<span class="voc-tag" style="background:#fdeefb;color:#a64ca6;">🏷 ${vocEsc(r.brand)}</span>` : '';
-    const tag = r.customer_tag ? `<span class="voc-tag" style="background:#eef2f7;color:#586b82;">@${vocEsc(r.customer_tag)}</span>` : '';
-    const delBtn = isAdmin ? `<button class="voc-del" onclick="deleteVOC(${r.id})" title="删除">🗑</button>` : '';
-    return `<div class="voc-item">
-      <div class="voc-item-head">
-        <span class="voc-meta">${vocEsc(r.staff_name || '')} · ${vocEsc(r.team || '')} · ${dtStr}</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${brand}${scene}${topic}${tag}${delBtn}</div>
-      </div>
-      <div class="voc-raw">${vocEsc(r.raw_text || '')}</div>
-    </div>`;
-  }).join('');
-}
-
-async function submitVOC() {
-  if (!supabase) { showToast('⚠️ 系统未就绪'); return; }
-  if (!currentProfile && !currentUser) { showToast('⚠️ 请先登录'); return; }
-  const ta = document.getElementById('voc-raw');
-  const raw = (ta?.value || '').trim();
-  if (!raw) { showToast('⚠️ 请先录入客户原话'); if (ta) ta.focus(); return; }
-  const name = (currentProfile && (currentProfile.name || currentProfile.real_name)) || (currentUser && currentUser.email) || '未知';
-  // 每日基础目标 5 条：达到后允许继续录入，仅做提醒
-  const todayCount = getVOCTodayCount(name);
-  const reachedLimit = todayCount >= VOC_DAILY_LIMIT;
-  const scene = document.getElementById('voc-scene')?.value || '';
-  const topic = document.getElementById('voc-topic')?.value || '';
-  const brand = document.getElementById('voc-brand')?.value || '';
-  // 品牌 / 场景 / 主题 必选
-  if (!brand) { showToast('⚠️ 请先选择「品牌」'); return; }
-  if (!scene) { showToast('⚠️ 请先选择「来源场景」'); return; }
-  if (!topic) { showToast('⚠️ 请先选择「主题」'); return; }
-  const tag = (document.getElementById('voc-tag')?.value || '').trim();
-  const team = (currentProfile && currentProfile.group_name) || '';
-  const rec = { raw_text: raw, scene, topic, brand, staff_name: name, team, customer_tag: tag, record_month: vocMonthNow() };
-  try {
-    const { data, error } = await supabase.from('customer_voice').insert([rec]).select();
-    if (error) { showToast('⚠️ 保存失败：' + error.message); return; }
-    showToast(reachedLimit ? ('✅ 已保存 · 今日已达 ' + VOC_DAILY_LIMIT + ' 条基础目标，可继续录入') : '✅ 已保存客户原话');
-    ta.value = '';
-    const tagEl = document.getElementById('voc-tag'); if (tagEl) tagEl.value = '';
-    const brandEl = document.getElementById('voc-brand'); if (brandEl) brandEl.value = '';
-    vocManualEdit = false;
-    clearVOCDraft();
-    hideVOCParseHits();
-    loadVOCFromDB(true);
-  } catch (e) { showToast('⚠️ 保存异常'); console.error(e); }
-}
-
-async function deleteVOC(id) {
-  if (!confirm('确定删除这条客户之声记录吗？此操作不可恢复。')) return;
-  if (!supabase) return;
-  try {
-    const { error } = await supabase.from('customer_voice').delete().eq('id', id);
-    if (error) { showToast('⚠️ 删除失败：' + error.message); return; }
-    showToast('🗑 已删除');
-    loadVOCFromDB(true);
-    if (vocSummaryCache && vocSummaryCache.month === getVOCMonthPrefix()) generateVOCSummary();
-  } catch (e) { showToast('⚠️ 删除异常'); console.error(e); }
-}
-
-let vocAnalysisDim = 'topic';
-let vocAnalysisData = null;
-
-async function generateVOCSummary() {
-  const month = getVOCMonthPrefix();
-  if (!supabase) { showToast('⚠️ 系统未就绪'); return; }
-  await loadVOCFromDB(true);
-  const rows = vocData.filter(r => (r.record_month || (r.created_at || '').slice(0, 7)) === month);
-  const sumEl = document.getElementById('voc-summary');
-  const xb = document.getElementById('voc-export-xlsx');
-  const tb = document.getElementById('voc-export-txt');
-  if (rows.length === 0) {
-    sumEl.innerHTML = `📭 <b>${month}</b> 暂无客户之声记录。`;
-    if (xb) xb.style.display = 'none';
-    if (tb) tb.style.display = 'none';
-    vocSummaryCache = null; vocAnalysisData = null;
-    return;
-  }
-  const sceneCount = {}, topicCount = {}, brandCount = {};
-  rows.forEach(r => {
-    if (r.scene) sceneCount[r.scene] = (sceneCount[r.scene] || 0) + 1;
-    if (r.topic) topicCount[r.topic] = (topicCount[r.topic] || 0) + 1;
-    const b = r.brand || '未分类';
-    brandCount[b] = (brandCount[b] || 0) + 1;
-  });
-  const picks = rows.filter(r => r.topic).sort((a, b) => (b.raw_text || '').length - (a.raw_text || '').length).slice(0, 8);
-  const sample = (picks.length ? picks : rows.slice(0, 8)).map(r => ({ text: r.raw_text, scene: r.scene, topic: r.topic, staff: r.staff_name, brand: r.brand }));
-  vocSummaryCache = { month, rows, stats: { sceneCount, topicCount, brandCount, topScenes: Object.entries(sceneCount).sort((a, b) => b[1] - a[1]), topTopics: Object.entries(topicCount).sort((a, b) => b[1] - a[1]), topBrands: Object.entries(brandCount).sort((a, b) => b[1] - a[1]), sample } };
-  vocAnalysisData = { month, rows };
-  if (xb) xb.style.display = '';
-  if (tb) tb.style.display = '';
-  renderVOCAnalysis();
-}
-
-const VOC_DIM_LABEL = { topic: '主题', brand: '品牌', scene: '场景', staff: '客服' };
-
-function setVOCAnalysisDim(dim) {
-  vocAnalysisDim = dim;
-  document.querySelectorAll('#voc-dim-tabs .voc-dim-tab').forEach(b => b.classList.toggle('active', b.getAttribute('data-dim') === dim));
-  renderVOCAnalysis();
-}
-
-function toggleVOCDetail(id) {
-  const d = document.getElementById(id);
-  if (d) d.classList.toggle('open');
-}
-
-function getVOCGrain() {
-  const el = document.querySelector('input[name="voc-grain"]:checked');
-  return (el && el.value) || 'big';
-}
-
-function computeVOCSmallFreq(rows, dim) {
-  const freq = {};
-  rows.forEach(r => {
-    const res = parseVOC(r.raw_text || '', r.team || '');
-    const hits = dim === 'topic' ? res.hits.topic : dim === 'brand' ? res.hits.brand : dim === 'scene' ? res.hits.scene : res.hits.topic;
-    if (!hits.length) { (freq['（未命中关键词）'] = freq['（未命中关键词）'] || []).push(r); return; }
-    hits.forEach(h => (freq[h] = freq[h] || []).push(r));
-  });
-  return freq;
-}
-
-function renderVOCAnalysis() {
-  const el = document.getElementById('voc-summary');
-  if (!el) return;
-  if (!vocAnalysisData) { el.innerHTML = '选择月份后点击「生成分析」，自动统计本月反馈的高频主题 / 品牌 / 场景，可一键切换「大类 / 小类」并导出 Excel。'; return; }
-  const month = vocAnalysisData.month, rows = vocAnalysisData.rows;
-  const grain = getVOCGrain();
-  const dim = vocAnalysisDim;
-  const dimLabel = VOC_DIM_LABEL[dim];
-  const total = rows.length;
-  if (grain === 'big') {
-    const map = {};
-    rows.forEach(r => { const k = dim === 'staff' ? (r.staff_name || '未知') : (r[dim] || '未分类'); (map[k] = map[k] || []).push(r); });
-    const entries = Object.entries(map).sort((a, b) => b[1].length - a[1].length);
-    let html = `<div style="margin-bottom:10px;font-size:13px;color:var(--text-secondary);">${month} · 共 <b style="color:var(--text);">${total}</b> 条 · 按 <b style="color:var(--text);">${dimLabel}</b> 大类分布（点击任意一行展开明细）</div>`;
-    html += entries.map(([k, list], i) => {
-      const pct = Math.round(list.length / total * 100);
-      return `<div class="voc-analysis-row"><div class="voc-analysis-head" onclick="toggleVOCDetail('big-${i}')"><span style="min-width:96px;font-weight:600;color:var(--text);">${vocEsc(k)}</span><div style="flex:1;height:10px;background:#eef1ee;border-radius:6px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#7B9B6A,#9bb585);border-radius:6px;"></div></div><span style="min-width:104px;text-align:right;color:var(--text-secondary);">${list.length} 条 · ${pct}%</span><span style="color:var(--text-secondary);font-size:12px;">▾</span></div><div class="voc-analysis-detail" id="big-${i}">${list.map(r => `<div class="voc-sample">“${vocEsc(r.raw_text || '')}” ${r.brand ? `<span class="voc-tag" style="background:#fdeefb;color:#a64ca6;">🏷 ${vocEsc(r.brand)}</span>` : ''} ${r.scene ? `<span class="voc-tag voc-tag-scene">${vocEsc(r.scene)}</span>` : ''} ${r.topic ? `<span class="voc-tag voc-tag-topic">${vocEsc(r.topic)}</span>` : ''}</div>`).join('')}</div></div>`;
-    }).join('');
-    el.innerHTML = html;
-  } else {
-    const freq = computeVOCSmallFreq(rows, dim);
-    const entries = Object.entries(freq).sort((a, b) => b[1].length - a[1].length);
-    let html = `<div style="margin-bottom:10px;font-size:13px;color:var(--text-secondary);">${month} · 共 <b style="color:var(--text);">${total}</b> 条 · 按 <b style="color:var(--text);">${dimLabel}</b> 下的细类关键词拆分（高频反馈一目了然，点击展开明细）</div>`;
-    html += entries.map(([k, list], i) => {
-      const pct = Math.round(list.length / total * 100);
-      const capped = list.slice(0, 50);
-      return `<div class="voc-analysis-row"><div class="voc-analysis-head" onclick="toggleVOCDetail('small-${i}')"><span style="min-width:130px;font-weight:600;color:var(--text);">${vocEsc(k)}</span><div style="flex:1;height:10px;background:#eef1ee;border-radius:6px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#9b7bb5,#b89bcf);border-radius:6px;"></div></div><span style="min-width:104px;text-align:right;color:var(--text-secondary);">${list.length} 条 · ${pct}%</span><span style="color:var(--text-secondary);font-size:12px;">▾</span></div><div class="voc-analysis-detail" id="small-${i}">${capped.map(r => `<div class="voc-sample">“${vocEsc(r.raw_text || '')}” ${r.brand ? `<span class="voc-tag" style="background:#fdeefb;color:#a64ca6;">🏷 ${vocEsc(r.brand)}</span>` : ''} ${r.scene ? `<span class="voc-tag voc-tag-scene">${vocEsc(r.scene)}</span>` : ''} ${r.topic ? `<span class="voc-tag voc-tag-topic">${vocEsc(r.topic)}</span>` : ''}</div>`).join('')}${list.length > 50 ? `<div style="font-size:12px;color:var(--text-secondary);padding:4px 0;">… 其余 ${list.length - 50} 条已省略，可导出 Excel 查看全部</div>` : ''}</div></div>`;
-    }).join('');
-    el.innerHTML = html;
-  }
-}
-
-function exportVOCSummaryXLSX() {
-  if (!vocAnalysisData) { showToast('⚠️ 请先生成分析'); return; }
-  if (!window.XLSX) { showToast('⚠️ 导出组件加载中，请稍候重试'); return; }
-  const month = vocAnalysisData.month, rows = vocAnalysisData.rows;
-  const grain = getVOCGrain();
-  const dim = vocAnalysisDim;
-  const dimLabel = VOC_DIM_LABEL[dim];
-  const total = rows.length;
-  let statRows, detail;
-  if (grain === 'big') {
-    const map = {};
-    rows.forEach(r => { const k = dim === 'staff' ? (r.staff_name || '未知') : (r[dim] || '未分类'); (map[k] = map[k] || []).push(r); });
-    const entries = Object.entries(map).sort((a, b) => b[1].length - a[1].length);
-    statRows = [['客户之声分析（大类）', month], ['分析维度', dimLabel], ['反馈总条数', total], []];
-    statRows.push(['分类标签', '条数', '占比']);
-    entries.forEach(([k, list]) => statRows.push([k, list.length, Math.round(list.length / total * 100) + '%']));
-    detail = [];
-    entries.forEach(([k, list]) => list.forEach(r => detail.push({ '分类标签': k, '品牌': r.brand || '', '来源场景': r.scene || '', '主题': r.topic || '', '客服': r.staff_name || '', '客户原话': r.raw_text || '' })));
-  } else {
-    const freq = computeVOCSmallFreq(rows, dim);
-    const entries = Object.entries(freq).sort((a, b) => b[1].length - a[1].length);
-    statRows = [['客户之声分析（小类）', month], ['分析维度', dimLabel], ['反馈总条数', total], []];
-    statRows.push(['细类关键词', '条数', '占比']);
-    entries.forEach(([k, list]) => statRows.push([k, list.length, Math.round(list.length / total * 100) + '%']));
-    detail = [];
-    entries.forEach(([k, list]) => list.forEach(r => detail.push({ '细类关键词': k, '品牌': r.brand || '', '来源场景': r.scene || '', '主题': r.topic || '', '客服': r.staff_name || '', '客户原话': r.raw_text || '' })));
-  }
-  try {
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(statRows), '统计');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detail), '明细');
-    const safe = month.replace(/[^0-9]/g, '');
-    XLSX.writeFile(wb, `客户之声_${dimLabel}_${grain === 'big' ? '大类' : '小类'}_${safe}.xlsx`);
-    showToast('✅ 已导出 Excel');
-  } catch (e) { showToast('⚠️ 导出失败'); console.error(e); }
-}
-
-function exportVOCSummaryTXT() {
-  if (!vocAnalysisData) { showToast('⚠️ 请先生成分析'); return; }
-  const month = vocAnalysisData.month, rows = vocAnalysisData.rows;
-  const grain = getVOCGrain();
-  const dim = vocAnalysisDim;
-  const dimLabel = VOC_DIM_LABEL[dim];
-  const total = rows.length;
-  let groups;
-  if (grain === 'big') {
-    const map = {};
-    rows.forEach(r => { const k = dim === 'staff' ? (r.staff_name || '未知') : (r[dim] || '未分类'); (map[k] = map[k] || []).push(r); });
-    groups = Object.entries(map).sort((a, b) => b[1].length - a[1].length);
-  } else {
-    groups = Object.entries(computeVOCSmallFreq(rows, dim)).sort((a, b) => b[1].length - a[1].length);
-  }
-  let out = `客户之声 · 分析导出（${grain === 'big' ? '大类' : '小类'} · ${dimLabel}）\n月份：${month}\n反馈总条数：${total}\n\n`;
-  out += `【${dimLabel}分布 / TOP】\n`;
-  groups.forEach(([k, list]) => out += `  ${k}：${list.length} 条（${Math.round(list.length / total * 100)}%）\n`);
-  out += `\n【全部明细】\n`;
-  let n = 0;
-  groups.forEach(([k, list]) => list.forEach(r => { n++; out += `${n}. [${k}] ${[r.brand, r.scene, r.topic].filter(Boolean).join('/')} ${r.staff_name || ''}：${r.raw_text}\n`; }));
-  const blob = new Blob([out], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `客户之声_${dimLabel}_${grain === 'big' ? '大类' : '小类'}_${month.replace(/[^0-9]/g, '')}.txt`;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  showToast('✅ 已导出月报');
-}
-
-</script>
-
-</body>
-</html>
+let schedHighlightCol = null; // currently
