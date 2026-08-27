@@ -1055,6 +1055,13 @@ body {
 .lic-company { font-size:12px; color:var(--text-secondary); margin-bottom:10px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 .lic-company .lic-factory { color:#8a6d3b; background:#fff7e0; padding:1px 6px; border-radius:4px; font-size:11px; }
 .lic-imgs { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.lic-imgs.two { grid-template-columns:repeat(2,1fr); }
+.lic-factory-section { margin-top:32px; padding-top:24px; border-top:2px dashed var(--border); }
+.lic-factory-title { font-size:16px; font-weight:700; color:var(--text); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.lic-factory-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
+.lic-factory-card { background:#fff; border:1px solid var(--border); border-radius:14px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center; }
+.lic-factory-name { font-size:14px; font-weight:600; color:var(--text); margin-bottom:10px; }
+.lic-factory-card .lic-img { aspect-ratio:4/3; }
 .lic-img { position:relative; border:1px solid var(--border); border-radius:10px; overflow:hidden; cursor:zoom-in; background:#f7f8fa; aspect-ratio:4/3; }
 .lic-img img { width:100%; height:100%; object-fit:contain; display:block; transition:transform .2s; }
 .lic-img:hover img { transform:scale(1.04); }
@@ -9552,18 +9559,21 @@ async function deleteScript(id, title) {
 
 // ==================== 查验证明（licenses） ====================
 let licensesData = [];
-let _licEditItem = null;       // 编辑中的记录
-let _licEditFiles = {};        // { 经营许可证: File } 待上传
+let productionFactoryData = [];   // 4 个生产方许可证
+let _licEditItem = null;          // 编辑中的记录
+let _licEditFiles = {};           // { 经营许可证: File } 待上传
 
 async function loadLicenses() {
   if (!supabase) return;
   try {
-    const { data, error } = await supabase
-      .from('licenses')
-      .select('*')
-      .order('sort_order', { ascending: true });
-    if (error) { console.error('licenses 加载失败:', error); return; }
-    licensesData = data || [];
+    const [{ data: shops, error: err1 }, { data: factories, error: err2 }] = await Promise.all([
+      supabase.from('licenses').select('*').order('sort_order', { ascending: true }),
+      supabase.from('production_factories').select('*').order('sort_order', { ascending: true })
+    ]);
+    if (err1) { console.error('licenses 加载失败:', err1); }
+    if (err2) { console.error('production_factories 加载失败:', err2); }
+    licensesData = shops || [];
+    productionFactoryData = factories || [];
     renderLicensesPage();
   } catch (e) { console.error('licenses 加载异常:', e); }
 }
@@ -9590,7 +9600,7 @@ function renderLicensesPage() {
     container.innerHTML = '<div class="lic-empty">📭 没有匹配的店铺证件<br><span style="font-size:13px;color:var(--text-secondary);margin-top:8px;display:block;">' + (isAdmin ? '点右上角「＋ 新增店铺」上架' : '请联系管理员添加') + '</span></div>';
     return;
   }
-  container.innerHTML = '<div class="lic-grid">' + list.map(d => {
+  let html = '<div class="lic-grid">' + list.map(d => {
     const mgmt = isAdmin ? '<div class="lic-card-actions">'
       + '<button class="btn-sm outline" onclick="openLicenseEditor(window._licRefs[\'' + d.id + '\'])">✏️ 编辑</button>'
       + '<button class="btn-sm outline" style="color:#e74c3c;border-color:#f5c6cb;" onclick="deleteLicense(\'' + d.id + '\',\'' + escapeAttr(d.shop_short) + '\')">🗑️ 删除</button>'
@@ -9601,17 +9611,32 @@ function renderLicensesPage() {
       + '<div class="lic-card-head"><span class="lic-shop">' + escapeHtml(d.shop_short || d.shop_name || '未命名') + '</span>'
       + (d.platform ? '<span class="lic-platform">' + escapeHtml(d.platform) + '</span>' : '')
       + '</div>'
-      + '<div class="lic-company">🏢 ' + escapeHtml(d.company || '未填公司')
-      + (d.factory ? ' <span class="lic-factory">🏭 ' + escapeHtml(d.factory) + '</span>' : '')
-      + '</div>'
-      + '<div class="lic-imgs">'
+      + '<div class="lic-company">🏢 ' + escapeHtml(d.company || '未填公司') + '</div>'
+      + '<div class="lic-imgs two">'
       + licImgHtml(d.license_file, '经营许可证', d.shop_short, d.platform)
       + licImgHtml(d.business_file, '营业执照', d.shop_short, d.platform)
-      + licImgHtml(d.production_file, '生产许可证', d.shop_short, d.platform)
       + '</div>'
       + mgmt
       + '</div>';
   }).join('') + '</div>';
+
+  // 生产方许可证区块（按工厂，不按店铺）
+  const activeFactories = productionFactoryData.filter(f => f.is_active !== false);
+  if (activeFactories.length) {
+    html += '<div class="lic-factory-section">'
+      + '<div class="lic-factory-title">🏭 合作工厂生产许可证</div>'
+      + '<div class="lic-factory-grid">' + activeFactories.map(f => {
+        return '<div class="lic-factory-card">'
+          + '<div class="lic-factory-name">' + escapeHtml(f.name) + '</div>'
+          + '<div class="lic-img" title="生产许可证" onclick="openLicensePreview(this.querySelector(\'img\').src,\'生产许可证\',\'' + escapeAttr(f.name) + '\')">'
+          + '<img src="' + (f.license_file || '') + '" loading="lazy" alt="生产许可证" onerror="this.parentNode.classList.add(\'empty\');this.remove();">'
+          + '<span class="lic-img-label">生产许可证</span>'
+          + '</div>'
+          + (isAdmin ? '<button class="btn-sm outline" style="margin-top:8px;width:100%;" onclick="openFactoryEditor(' + JSON.stringify(f).replace(/"/g, '&quot;') + ')">✏️ 编辑</button>' : '')
+          + '</div>';
+      }).join('') + '</div></div>';
+  }
+  container.innerHTML = html;
 }
 
 function licImgHtml(url, label, shopShort, platform) {
@@ -9679,8 +9704,8 @@ function openLicenseEditor(item) {
     html += '</div>';
   });
   html += '</div>';
-  // 三张证件图上传槽
-  [['license_file', '经营许可证'], ['business_file', '营业执照'], ['production_file', '生产许可证']].forEach(([key, label]) => {
+  // 两张证件图上传槽（店铺不需要生产许可证）
+  [['license_file', '经营许可证'], ['business_file', '营业执照']].forEach(([key, label]) => {
     html += licUploadSlot(key, label, d[key] || '');
   });
   document.getElementById('lic-edit-body').innerHTML = html;
@@ -9738,7 +9763,7 @@ async function saveLicense() {
   };
   if (!data.shop_short) { showToast('店铺简称不能为空'); return; }
   // 上传待传图片
-  const keyMap = { license_file: '经营许可证', business_file: '营业执照', production_file: '生产许可证' };
+  const keyMap = { license_file: '经营许可证', business_file: '营业执照' };
   const upKeys = Object.keys(_licEditFiles);
   showToast('⏳ 正在保存' + (upKeys.length ? '（上传 ' + upKeys.length + ' 张图片）' : '') + '…');
   try {
@@ -9772,6 +9797,87 @@ async function deleteLicense(id, name) {
   const { error } = await supabase.from('licenses').delete().eq('id', id);
   if (error) { showToast('删除失败：' + error.message); return; }
   showToast('🗑️ 已删除「' + name + '」');
+  loadLicenses();
+}
+
+// ==================== 生产方许可证管理 ====================
+let _factoryEditItem = null;
+let _factoryEditFile = null;
+
+function openFactoryEditor(f) {
+  if (!(currentUser && isAdminUser())) { showToast('仅管理员可编辑'); return; }
+  _factoryEditItem = f ? { id: f.id, name: f.name } : null;
+  _factoryEditFile = null;
+  document.getElementById('factory-edit-title').textContent = f ? '✏️ 编辑 · ' + f.name : '＋ 新增生产方';
+  const cur = f ? f.license_file : '';
+  let html = '';
+  if (!f) {
+    html += '<div class="modal-field"><label>工厂名称</label><input id="fe-name" value="" placeholder="如：吉林瑞尔康"></div>';
+  }
+  html += '<div class="lic-edit-upload">'
+    + '<div class="leu-head"><span>生产许可证</span><span class="leu-tip">建议清晰完整，点击可查看原图</span></div>'
+    + '<div class="leu-img">'
+    + '<div id="fe-preview" style="' + (cur ? '' : 'display:none;') + '">' + (cur ? '<img src="' + cur + '" alt="">' : '') + '</div>'
+    + '<span style="font-size:12px;color:var(--text-secondary);" id="fe-fname"></span>'
+    + '<div class="leu-actions">'
+    + '<label class="btn-sm outline" style="cursor:pointer;margin:0;">📤 上传新图<input type="file" accept="image/*" style="display:none;" onchange="pickFactoryImg(this)"></label>'
+    + '<button class="btn-sm outline" style="color:#e74c3c;" onclick="clearFactoryImg(\'' + (cur || '') + '\')">✕ 移除</button>'
+    + '</div></div></div>';
+  document.getElementById('factory-edit-body').innerHTML = html;
+  document.getElementById('mod-factory-edit').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function pickFactoryImg(input) {
+  const f = input && input.files && input.files[0];
+  if (!f) return;
+  if (f.size > 12 * 1024 * 1024) { showToast('图片过大（限 12MB）'); return; }
+  _factoryEditFile = f;
+  const wrap = document.getElementById('fe-preview');
+  if (wrap) { wrap.style.display = ''; wrap.innerHTML = '<img src="' + URL.createObjectURL(f) + '" alt="">'; }
+  const fn = document.getElementById('fe-fname');
+  if (fn) fn.textContent = f.name + '（待上传）';
+}
+
+function clearFactoryImg(curUrl) {
+  _factoryEditFile = null;
+  const wrap = document.getElementById('fe-preview');
+  if (wrap) {
+    if (curUrl) { wrap.innerHTML = '<img src="' + curUrl + '" alt="">'; wrap.style.display = ''; }
+    else { wrap.innerHTML = ''; wrap.style.display = 'none'; }
+  }
+  const fn = document.getElementById('fe-fname');
+  if (fn) fn.textContent = '';
+}
+
+async function saveFactory() {
+  if (!(currentUser && isAdminUser())) { showToast('仅管理员可保存'); return; }
+  const name = _factoryEditItem ? _factoryEditItem.name : (document.getElementById('fe-name')?.value || '').trim();
+  if (!name) { showToast('工厂名称不能为空'); return; }
+  const updates = { name };
+  showToast('⏳ 正在保存…');
+  try {
+    if (_factoryEditFile) {
+      const safe = name.replace(/[\/\\:*?"<>|]/g, '_');
+      const path = 'lic/factory/' + safe + '/production_' + Date.now() + '.' + (_factoryEditFile.name.split('.').pop() || 'png');
+      const { error } = await supabase.storage.from('licenses').upload(path, _factoryEditFile, { upsert: true });
+      if (error) { showToast('图片上传失败：' + error.message); return; }
+      updates.license_file = supabase.storage.from('licenses').getPublicUrl(path).data.publicUrl;
+    }
+  } catch (e) { showToast('图片上传异常：' + e.message); return; }
+
+  if (_factoryEditItem && _factoryEditItem.id) {
+    const { error } = await supabase.from('production_factories').update(updates).eq('id', _factoryEditItem.id);
+    if (error) { showToast('保存失败：' + error.message); return; }
+    showToast('✅ 生产方已更新');
+  } else {
+    updates.sort_order = productionFactoryData.length + 1;
+    updates.is_active = true;
+    const { error } = await supabase.from('production_factories').insert(updates);
+    if (error) { showToast('保存失败：' + error.message); return; }
+    showToast('✅ 生产方已添加');
+  }
+  closeModal('mod-factory-edit');
   loadLicenses();
 }
 
@@ -10982,6 +11088,21 @@ init();
     <div class="modal-footer">
       <button class="btn-sm outline" onclick="closeModal('mod-lic-edit')">取消</button>
       <button class="btn-sm primary" onclick="saveLicense()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 查验证明：编辑生产方弹窗 -->
+<div class="modal-overlay" id="mod-factory-edit" onclick="closeModal('mod-factory-edit')">
+  <div class="modal-box" onclick="event.stopPropagation()" style="max-width:420px;">
+    <div class="modal-header">
+      <h3 id="factory-edit-title">✏️ 编辑生产方许可证</h3>
+      <button class="modal-close" onclick="closeModal('mod-factory-edit')">✕</button>
+    </div>
+    <div class="modal-body" id="factory-edit-body"></div>
+    <div class="modal-footer">
+      <button class="btn-sm outline" onclick="closeModal('mod-factory-edit')">取消</button>
+      <button class="btn-sm primary" onclick="saveFactory()">💾 保存</button>
     </div>
   </div>
 </div>
