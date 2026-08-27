@@ -9657,25 +9657,45 @@ function openLicensePreview(src, label, shopShort) {
   document.body.style.overflow = 'hidden';
 }
 
-function copyLicImageUrl() {
+async function copyLicImageToClipboard() {
   const src = document.getElementById('lic-preview-img').src;
   if (!src) return;
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(src).then(() => showToast('✅ 图片链接已复制'));
-  } else {
-    const ta = document.createElement('textarea');
-    ta.value = src; document.body.appendChild(ta); ta.select();
-    document.execCommand('copy'); ta.remove();
-    showToast('✅ 图片链接已复制');
+  try {
+    let blob;
+    try {
+      const res = await fetch(src);
+      if (!res.ok) throw new Error('fetch failed');
+      blob = await res.blob();
+    } catch (netErr) {
+      // fetch 跨域失败时，尝试用当前 <img> 元素绘制 canvas 再转 blob
+      const img = document.getElementById('lic-preview-img');
+      if (!img || !img.naturalWidth) throw new Error('图片尚未加载');
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    }
+    // 统一转 PNG 保证 ClipboardItem 兼容性
+    const finalBlob = await (async () => {
+      if (!blob || blob.type === 'image/png') return blob;
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = url; });
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      const png = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      URL.revokeObjectURL(url);
+      return png;
+    })();
+    if (!finalBlob) { showToast('复制失败：无法生成图片'); return; }
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': finalBlob })]);
+    showToast('✅ 图片已复制');
+  } catch (e) {
+    console.error('复制图片失败:', e);
+    showToast('复制失败：' + (e.message || '请手动截图保存'));
   }
-}
-
-function downloadLicImage() {
-  const src = document.getElementById('lic-preview-img').src;
-  if (!src) return;
-  const a = document.createElement('a');
-  a.href = src; a.download = '';
-  document.body.appendChild(a); a.click(); a.remove();
 }
 
 function openLicenseEditor(item) {
@@ -11070,9 +11090,7 @@ init();
       <div class="lic-preview-imgwrap"><img id="lic-preview-img" src="" alt=""></div>
     </div>
     <div class="modal-footer">
-      <button class="btn-sm outline" onclick="copyLicImageUrl()">📋 复制链接</button>
-      <button class="btn-sm outline" onclick="downloadLicImage()">⬇ 下载图片</button>
-      <button class="btn-sm primary" onclick="window.open(document.getElementById('lic-preview-img').src,'_blank')">↗ 新标签打开</button>
+      <button class="btn-sm primary" onclick="copyLicImageToClipboard()">📋 复制图片</button>
     </div>
   </div>
 </div>
