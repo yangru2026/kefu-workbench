@@ -453,6 +453,13 @@ body {
 .train-link-item:hover .train-mgmt-btns { opacity:1; }
 .train-mgmt-btns .btn-edit, .train-mgmt-btns .btn-del { width:26px; height:26px; border:1px solid var(--border); border-radius:6px; background:#fff; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; }
 .train-empty { text-align:center; padding:60px 20px; color:var(--text-secondary); }
+/* 培训资料详情弹窗 */
+.td-brand { display:inline-block; margin-left:8px; font-size:12px; font-weight:500; color:var(--primary); background:var(--hover-bg); padding:2px 10px; border-radius:20px; }
+.td-tags { display:flex; gap:6px; flex-wrap:wrap; padding:0 20px 8px; }
+.td-tags .tag { font-size:12px; padding:2px 10px; }
+.td-desc-block { padding:8px 20px 4px; }
+.td-desc-label { font-size:13px; font-weight:700; color:var(--primary); margin-bottom:6px; }
+.td-desc-body { font-size:14px; line-height:1.8; color:var(--text); white-space:normal; }
 
 /* ===== 培训知识卡（页面内固定内容，training_knowledge） ===== */
 .train-knowledge { background:linear-gradient(180deg, rgba(123,155,106,0.06), var(--card-bg)); border:1px solid var(--primary-light); border-radius:14px; padding:18px 22px; margin-bottom:20px; }
@@ -9018,11 +9025,11 @@ function renderTraining() {
       return '📄';
     })();
     const brand = d.brand ? '<div class="train-card-brand">' + escapeHtml(d.brand) + '</div>' : '';
-    return '<li class="train-link-item" onclick="window.open(\'' + d.url + '\', \'_blank\')">'
+    return '<li class="train-link-item" onclick="openTrainingDetail(window._trainRefs[\'' + d.id + '\'])">'
       + '<div class="train-card-top">'
       + '<div class="train-card-icon">' + icon + '</div>'
       + '<div class="train-card-title-wrap">'
-      + '<a href="javascript:void(0)" onclick="event.stopPropagation(); window.open(\'' + d.url + '\', \'_blank\')">' + escapeHtml(d.title) + '</a>'
+      + '<a href="javascript:void(0)" onclick="event.stopPropagation(); openTrainingDetail(window._trainRefs[\'' + d.id + '\'])">' + escapeHtml(d.title) + '</a>'
       + brand
       + '</div>'
       + '</div>'
@@ -9097,7 +9104,8 @@ function openTrainingEditor(item) {
     + '<option value="未分类"' + (curCat === '未分类' ? ' selected' : '') + '>未分类</option></select></div></div>';
   html += '<div class="modal-field"><label>标题</label><input id="tf-title" value="' + escapeHtml(t.title || '') + '"></div>'
     + '<div class="modal-field"><label>链接URL</label><input id="tf-url" value="' + escapeHtml(t.url || '') + '" placeholder="https://..."></div>'
-    + '<div class="modal-field"><label>标签（逗号分隔）</label><input id="tf-tags" value="' + escapeHtml((t.tags || []).join(',')) + '" placeholder="材质,入门"></div>';
+    + '<div class="modal-field"><label>标签（逗号分隔）</label><input id="tf-tags" value="' + escapeHtml((t.tags || []).join(',')) + '" placeholder="材质,入门"></div>'
+    + '<div class="modal-field" style="grid-column:1 / -1;"><label>注解 / 详细描述（点击卡片弹窗显示，可留空）</label><textarea id="tf-desc" rows="4" placeholder="填写这张资料的重点说明、注意事项、适用场景等，方便客服点开卡片快速了解">' + escapeHtml(t.description || '') + '</textarea></div>';
   document.getElementById('mod-training-body').innerHTML = html;
   document.getElementById('mod-training').classList.add('show');
   document.body.style.overflow = 'hidden';
@@ -9141,6 +9149,46 @@ async function deleteTraining(id, title) {
   if (error) { showToast('删除失败：' + error.message); return; }
   showToast('🗑️ 已删除「' + title + '」');
   loadTrainingFromDB();
+}
+
+// ==================== 培训资料详情弹窗 ====================
+function openTrainingDetail(d) {
+  if (!d) return;
+  const badge = d.brand ? '<span class="td-brand">' + escapeHtml(d.brand) + '</span>' : '';
+  const tags = (d.tags && d.tags.length)
+    ? '<div class="td-tags">' + d.tags.map(t => '<span class="tag">' + escapeHtml(t) + '</span>').join('') + '</div>'
+    : '';
+  const desc = (d.description && d.description.trim())
+    ? '<div class="td-desc-block"><div class="td-desc-label">📝 详细注解</div><div class="td-desc-body">' + escapeHtml(d.description).replace(/\n/g, '<br>') + '</div></div>'
+    : '';
+  document.getElementById('mod-train-detail-icon').textContent = (() => {
+    const c = (d.category || '').toLowerCase(), t = (d.title || '').toLowerCase();
+    if (c.includes('弥生') || t.includes('弥生')) return '📘';
+    if (c.includes('极氧') || t.includes('极氧')) return '📗';
+    if (c.includes('抛型') || t.includes('抛型')) return '👁️';
+    if (c.includes('材质') || t.includes('材质')) return '🧪';
+    if (c.includes('直径') || c.includes('基弧') || c.includes('透氧')) return '📏';
+    if (c.includes('含水') || c.includes('度数')) return '💧';
+    if (c.includes('订单')) return '📋';
+    if (c.includes('库存')) return '📦';
+    if (c.includes('驳回') || t.includes('审核')) return '⛔';
+    if ((d.group_name || '').toLowerCase().includes('erp') || c.includes('erp')) return '💻';
+    if ((d.group_name || '').toLowerCase().includes('店铺') || c.includes('店铺')) return '🏪';
+    if ((d.group_name || '').toLowerCase().includes('品牌') || c.includes('品牌')) return '🏷️';
+    return '📄';
+  })();
+  document.getElementById('mod-train-detail-title').innerHTML = escapeHtml(d.title) + badge;
+  document.getElementById('mod-train-detail-meta').innerHTML = tags;
+  document.getElementById('mod-train-detail-body').innerHTML = desc;
+  const openBtn = document.getElementById('mod-train-detail-open');
+  if (d.url) {
+    openBtn.style.display = '';
+    openBtn.onclick = () => window.open(d.url, '_blank');
+  } else {
+    openBtn.style.display = 'none';
+  }
+  document.getElementById('mod-train-detail').classList.add('show');
+  document.body.style.overflow = 'hidden';
 }
 
 // ==================== SOP ====================
@@ -10251,6 +10299,25 @@ init();
     <div class="modal-footer">
       <button class="btn-sm outline" onclick="closeModal('mod-training')">取消</button>
       <button class="btn-sm primary" onclick="saveTraining()">💾 保存并同步</button>
+    </div>
+  </div>
+</div>
+
+<!-- 培训资料详情弹窗 -->
+<div class="modal-overlay" id="mod-train-detail" onclick="closeModal('mod-train-detail')">
+  <div class="modal-box" onclick="event.stopPropagation()" style="max-width:520px;">
+    <div class="modal-header">
+      <h3 style="display:flex;align-items:center;gap:10px;">
+        <span id="mod-train-detail-icon" style="font-size:22px;">📄</span>
+        <span id="mod-train-detail-title"></span>
+      </h3>
+      <button class="modal-close" onclick="closeModal('mod-train-detail')">✕</button>
+    </div>
+    <div class="modal-body" id="mod-train-detail-meta"></div>
+    <div class="modal-body" id="mod-train-detail-body" style="padding-top:0;"></div>
+    <div class="modal-footer">
+      <button class="btn-sm outline" onclick="closeModal('mod-train-detail')">关闭</button>
+      <button class="btn-sm primary" id="mod-train-detail-open">🔗 打开原文</button>
     </div>
   </div>
 </div>
