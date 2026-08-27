@@ -9571,7 +9571,8 @@ let licensesData = [];
 let productionFactoryData = [];   // 4 个生产方许可证
 let licensesTab = 'sales';        // 'sales' 销售方 | 'factory' 生产方
 let _licEditItem = null;          // 编辑中的记录
-let _licEditFiles = {};           // { 经营许可证: File } 待上传
+let _licEditFiles = {};           // { license_file: File } 待上传
+let _licEditRemoved = new Set();  // 用户点击移除的字段，保存时要清空
 
 // 查验证明仅允许超级管理员（role=admin）编辑/删除，其他人只读+复制
 function isLicenseAdmin() {
@@ -9733,6 +9734,7 @@ function openLicenseEditor(item) {
   const isNew = !item;
   _licEditItem = item ? { id: item.id, isNew: false } : { id: null, isNew: true };
   _licEditFiles = {};
+  _licEditRemoved = new Set();
   document.getElementById('lic-edit-title').textContent = isNew ? '＋ 新增店铺' : '✏️ 编辑 · ' + (item.shop_short || '');
   const d = item || {};
   const fields = [
@@ -9782,6 +9784,7 @@ function pickLicImg(key, input) {
   if (!f) return;
   if (f.size > 12 * 1024 * 1024) { showToast('图片过大（限 12MB）'); return; }
   _licEditFiles[key] = f;
+  _licEditRemoved.delete(key);
   const wrap = document.getElementById('le-preview-' + key);
   if (wrap) {
     wrap.style.display = '';
@@ -9795,11 +9798,16 @@ function clearLicImg(key, curUrl) {
   delete _licEditFiles[key];
   const wrap = document.getElementById('le-preview-' + key);
   if (wrap) {
-    if (curUrl) { wrap.innerHTML = '<img src="' + curUrl + '" alt="">'; wrap.style.display = ''; }
-    else { wrap.innerHTML = ''; wrap.style.display = 'none'; }
+    // 有原图时点移除=清空该字段；没原图时直接隐藏
+    if (curUrl) { _licEditRemoved.add(key); }
+    wrap.innerHTML = '';
+    wrap.style.display = 'none';
+    // 清空 file input，允许再选同一张文件触发 onchange
+    const input = wrap.parentElement && wrap.parentElement.querySelector('input[type="file"]');
+    if (input) input.value = '';
   }
   const fn = document.getElementById('le-fname-' + key);
-  if (fn) fn.textContent = '';
+  if (fn) fn.textContent = curUrl ? '已移除（保存后生效）' : '';
 }
 
 async function saveLicense() {
@@ -9812,8 +9820,11 @@ async function saveLicense() {
     factory: document.getElementById('le-factory').value.trim()
   };
   if (!data.shop_short) { showToast('店铺简称不能为空'); return; }
-  // 上传待传图片
-  const keyMap = { license_file: '经营许可证', business_file: '营业执照' };
+  // 用户点过移除的字段要清空
+  _licEditRemoved.forEach(key => { data[key] = ''; });
+
+  // 上传待传图片（路径用英文，避免 Supabase Storage 中文 key 400）
+  const keyMap = { license_file: 'license', business_file: 'business' };
   const upKeys = Object.keys(_licEditFiles);
   showToast('⏳ 正在保存' + (upKeys.length ? '（上传 ' + upKeys.length + ' 张图片）' : '') + '…');
   try {
@@ -9853,11 +9864,13 @@ async function deleteLicense(id, name) {
 // ==================== 生产方许可证管理 ====================
 let _factoryEditItem = null;
 let _factoryEditFile = null;
+let _factoryEditRemoved = false;  // 用户点过移除，保存时要清空 license_file
 
 function openFactoryEditor(f) {
   if (!isLicenseAdmin()) { showToast('仅管理员可编辑'); return; }
   _factoryEditItem = f ? { id: f.id, name: f.name } : null;
   _factoryEditFile = null;
+  _factoryEditRemoved = false;
   document.getElementById('factory-edit-title').textContent = f ? '✏️ 编辑 · ' + f.name : '＋ 新增生产方';
   const cur = f ? f.license_file : '';
   let html = '';
@@ -9883,6 +9896,7 @@ function pickFactoryImg(input) {
   if (!f) return;
   if (f.size > 12 * 1024 * 1024) { showToast('图片过大（限 12MB）'); return; }
   _factoryEditFile = f;
+  _factoryEditRemoved = false;
   const wrap = document.getElementById('fe-preview');
   if (wrap) { wrap.style.display = ''; wrap.innerHTML = '<img src="' + URL.createObjectURL(f) + '" alt="">'; }
   const fn = document.getElementById('fe-fname');
@@ -9891,13 +9905,16 @@ function pickFactoryImg(input) {
 
 function clearFactoryImg(curUrl) {
   _factoryEditFile = null;
+  if (curUrl) _factoryEditRemoved = true;
   const wrap = document.getElementById('fe-preview');
   if (wrap) {
-    if (curUrl) { wrap.innerHTML = '<img src="' + curUrl + '" alt="">'; wrap.style.display = ''; }
-    else { wrap.innerHTML = ''; wrap.style.display = 'none'; }
+    wrap.innerHTML = '';
+    wrap.style.display = 'none';
+    const input = wrap.parentElement && wrap.parentElement.querySelector('input[type="file"]');
+    if (input) input.value = '';
   }
   const fn = document.getElementById('fe-fname');
-  if (fn) fn.textContent = '';
+  if (fn) fn.textContent = curUrl ? '已移除（保存后生效）' : '';
 }
 
 async function saveFactory() {
@@ -9905,6 +9922,7 @@ async function saveFactory() {
   const name = _factoryEditItem ? _factoryEditItem.name : (document.getElementById('fe-name')?.value || '').trim();
   if (!name) { showToast('工厂名称不能为空'); return; }
   const updates = { name };
+  if (_factoryEditRemoved && !_factoryEditFile) updates.license_file = '';
   showToast('⏳ 正在保存…');
   try {
     if (_factoryEditFile) {
