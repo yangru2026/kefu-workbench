@@ -437,15 +437,21 @@ body {
 .train-card-header { display:flex; align-items:center; gap:10px; padding:14px 20px; background:var(--hover-bg); border-bottom:1px solid var(--border); }
 .train-card-header h3 { margin:0; font-size:15px; }
 .train-card-count { font-size:12px; color:var(--text-secondary); margin-left:auto; }
-.train-link-list { list-style:none; padding:0; margin:0; }
-.train-link-item { display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid var(--border); }
-.train-link-item:last-child { border-bottom:none; }
-.train-link-item:hover { background:var(--hover-bg); }
-.train-link-item a { flex:1; color:var(--primary); text-decoration:none; font-size:14px; font-weight:500; }
-.train-mgmt-btns { display:flex; gap:4px; flex-shrink:0; }
-.train-mgmt-btns .btn-edit, .train-mgmt-btns .btn-del { width:26px; height:26px; border:1px solid var(--border); border-radius:5px; background:var(--card-bg); cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; }
+.train-link-list { list-style:none; padding:18px 22px; margin:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:18px; }
+.train-link-item { position:relative; display:flex; flex-direction:column; gap:12px; padding:18px; border:1px solid var(--border); border-radius:14px; background:var(--card-bg); transition:all .2s; cursor:pointer; }
+.train-link-item:last-child { border-bottom:1px solid var(--border); }
+.train-link-item:hover { background:var(--hover-bg); border-color:var(--primary-light); transform:translateY(-3px); box-shadow:var(--shadow-md); }
+.train-link-item a { color:var(--primary); text-decoration:none; font-size:16px; font-weight:600; line-height:1.4; }
 .train-link-item a:hover { text-decoration:underline; }
-.train-link-tags { display:flex; gap:4px; flex-shrink:0; }
+.train-card-icon { width:52px; height:52px; border-radius:12px; background:var(--gradient-card); display:flex; align-items:center; justify-content:center; font-size:26px; flex-shrink:0; }
+.train-card-top { display:flex; align-items:flex-start; gap:12px; }
+.train-card-title-wrap { flex:1; min-width:0; }
+.train-card-brand { font-size:11px; color:var(--text-secondary); margin-top:2px; }
+.train-link-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:auto; }
+.train-link-tags .tag { font-size:11px; padding:3px 9px; border-radius:12px; background:var(--tag-bg); color:var(--tag-text); }
+.train-mgmt-btns { position:absolute; top:10px; right:10px; display:flex; gap:4px; flex-shrink:0; opacity:0; transition:opacity .2s; }
+.train-link-item:hover .train-mgmt-btns { opacity:1; }
+.train-mgmt-btns .btn-edit, .train-mgmt-btns .btn-del { width:26px; height:26px; border:1px solid var(--border); border-radius:6px; background:#fff; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; }
 .train-empty { text-align:center; padding:60px 20px; color:var(--text-secondary); }
 
 /* Pattern gallery - Brand tabs */
@@ -8919,12 +8925,34 @@ function renderTraining() {
       + '</span>' : '';
     window._trainRefs = window._trainRefs || {};
     window._trainRefs[d.id] = d;
-    const badge = d.brand ? '<span style="font-size:11px;color:var(--text-secondary);margin-right:4px;">[' + d.brand + ']</span>' : '';
-    return '<li class="train-link-item">'
-      + '<span style="font-size:18px;">📄</span>'
-      + badge
-      + '<a href="' + d.url + '" target="_blank">' + d.title + '</a>'
-      + '<span class="train-link-tags">' + (d.tags || []).map(t => '<span class="tag">' + t + '</span>').join('') + '</span>'
+    const icon = (() => {
+      const c = (d.category || '').toLowerCase();
+      const t = (d.title || '').toLowerCase();
+      const g = (d.group_name || '').toLowerCase();
+      if (c.includes('弥生') || t.includes('弥生')) return '🌸';
+      if (c.includes('极氧') || t.includes('极氧')) return '🫧';
+      if (c.includes('抛型') || t.includes('抛型') || c.includes('日抛') || c.includes('月抛')) return '👁️';
+      if (c.includes('材质') || t.includes('材质') || t.includes('硅水凝胶')) return '🧪';
+      if (c.includes('直径') || c.includes('基弧') || c.includes('透氧') || t.includes('直径') || t.includes('基弧')) return '📏';
+      if (c.includes('含水') || c.includes('度数') || t.includes('含水') || t.includes('度数')) return '💧';
+      if (c.includes('订单') || t.includes('订单')) return '📋';
+      if (c.includes('库存') || t.includes('库存')) return '📦';
+      if (c.includes('驳回') || t.includes('审核')) return '⛔';
+      if (g.includes('erp') || c.includes('erp') || t.includes('erp')) return '💻';
+      if (g.includes('店铺') || c.includes('店铺') || t.includes('店铺')) return '🏪';
+      if (g.includes('品牌') || c.includes('品牌') || t.includes('品牌')) return '🏷️';
+      return '📄';
+    })();
+    const brand = d.brand ? '<div class="train-card-brand">' + escapeHtml(d.brand) + '</div>' : '';
+    return '<li class="train-link-item" onclick="window.open(\'' + d.url + '\', \'_blank\')">'
+      + '<div class="train-card-top">'
+      + '<div class="train-card-icon">' + icon + '</div>'
+      + '<div class="train-card-title-wrap">'
+      + '<a href="javascript:void(0)" onclick="event.stopPropagation(); window.open(\'' + d.url + '\', \'_blank\')">' + escapeHtml(d.title) + '</a>'
+      + brand
+      + '</div>'
+      + '</div>'
+      + '<div class="train-link-tags">' + (d.tags || []).map(t => '<span class="tag">' + escapeHtml(t) + '</span>').join('') + '</div>'
       + mgmtBtns
       + '</li>';
   }
