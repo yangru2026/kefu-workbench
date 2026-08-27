@@ -1046,6 +1046,10 @@ body {
 .modal-field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 
 /* ===== 查验证明 ===== */
+.lic-tabs { display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+.lic-tab { padding:10px 24px; border:1px solid var(--border); border-radius:12px; font-size:15px; font-weight:600; cursor:pointer; background:#fff; color:var(--text-secondary); font-family:inherit; transition:all .2s; white-space:nowrap; }
+.lic-tab:hover { border-color:var(--primary); color:var(--primary); }
+.lic-tab.active { background:var(--primary); color:#fff; border-color:var(--primary); }
 .lic-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:16px; }
 .lic-card { background:#fff; border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,0.04); transition:box-shadow .2s; }
 .lic-card:hover { box-shadow:0 4px 16px rgba(0,0,0,0.08); }
@@ -2467,13 +2471,18 @@ body {
   <!-- ===== 查验证明 ===== -->
   <div class="page" id="page-licenses">
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-      <div><h1>📜 查验证明</h1><p>各店铺医疗器械经营许可证 / 营业执照 / 合作工厂生产许可证，点击缩略图看大图，可下载保存</p></div>
+      <div><h1>📜 查验证明</h1><p>销售方：各店铺医疗器械经营许可证 / 营业执照；生产方：合作工厂生产许可证。点击缩略图看大图，可复制图片。</p></div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <button class="admin-only-nav" id="lic-add-btn" onclick="openLicenseEditor(null)" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">＋ 新增店铺</button>
+        <button class="admin-only-nav" id="lic-add-btn" onclick="onLicAddClick()" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">＋ 新增店铺</button>
       </div>
     </div>
+    <!-- 销售方 / 生产方 Tab -->
+    <div class="lic-tabs" id="lic-tabs">
+      <button class="lic-tab active" data-tab="sales" onclick="switchLicensesTab('sales')">🏪 销售方</button>
+      <button class="lic-tab" data-tab="factory" onclick="switchLicensesTab('factory')">🏭 生产方</button>
+    </div>
     <!-- 筛选栏 -->
-    <div class="filter-bar" style="align-items:center;">
+    <div class="filter-bar" id="lic-filters" style="align-items:center;">
       <select id="lic-platform" onchange="renderLicensesPage()">
         <option value="">全部平台</option>
         <option>抖音</option><option>快手</option><option>拼多多</option>
@@ -9560,6 +9569,7 @@ async function deleteScript(id, title) {
 // ==================== 查验证明（licenses） ====================
 let licensesData = [];
 let productionFactoryData = [];   // 4 个生产方许可证
+let licensesTab = 'sales';        // 'sales' 销售方 | 'factory' 生产方
 let _licEditItem = null;          // 编辑中的记录
 let _licEditFiles = {};           // { 经营许可证: File } 待上传
 
@@ -9578,8 +9588,54 @@ async function loadLicenses() {
   } catch (e) { console.error('licenses 加载异常:', e); }
 }
 
+function switchLicensesTab(tab) {
+  licensesTab = tab;
+  document.querySelectorAll('#lic-tabs .lic-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  renderLicensesPage();
+}
+
+function onLicAddClick() {
+  if (licensesTab === 'factory') { openFactoryEditor(null); }
+  else { openLicenseEditor(null); }
+}
+
 function renderLicensesPage() {
   const isAdmin = currentUser && isAdminUser();
+  const addBtn = document.getElementById('lic-add-btn');
+  if (addBtn) {
+    addBtn.style.display = isAdmin ? '' : 'none';
+    addBtn.textContent = licensesTab === 'factory' ? '＋ 新增生产方' : '＋ 新增店铺';
+  }
+  const filtersEl = document.getElementById('lic-filters');
+  if (filtersEl) filtersEl.style.display = licensesTab === 'sales' ? '' : 'none';
+  const countEl = document.getElementById('lic-count');
+
+  const container = document.getElementById('lic-content');
+  container.innerHTML = '';
+
+  if (licensesTab === 'factory') {
+    const activeFactories = productionFactoryData.filter(f => f.is_active !== false);
+    if (countEl) countEl.textContent = activeFactories.length + ' 家生产方';
+    if (!activeFactories.length) {
+      container.innerHTML = '<div class="lic-empty">📭 暂无生产方许可证<br><span style="font-size:13px;color:var(--text-secondary);margin-top:8px;display:block;">' + (isAdmin ? '点右上角「＋ 新增生产方」上架' : '请联系管理员添加') + '</span></div>';
+      return;
+    }
+    container.innerHTML = '<div class="lic-factory-grid">' + activeFactories.map(f => {
+      return '<div class="lic-factory-card">'
+        + '<div class="lic-factory-name">' + escapeHtml(f.name) + '</div>'
+        + '<div class="lic-img" title="生产许可证" onclick="openLicensePreview(this.querySelector(\'img\').src,\'生产许可证\',\'' + escapeAttr(f.name) + '\')">'
+        + '<img src="' + (f.license_file || '') + '" loading="lazy" alt="生产许可证" onerror="this.parentNode.classList.add(\'empty\');this.remove();">'
+        + '<span class="lic-img-label">生产许可证</span>'
+        + '</div>'
+        + (isAdmin ? '<button class="btn-sm outline" style="margin-top:8px;width:100%;" onclick="openFactoryEditor(' + JSON.stringify(f).replace(/"/g, '&quot;') + ')">✏️ 编辑</button>' : '')
+        + '</div>';
+    }).join('') + '</div>';
+    return;
+  }
+
+  // 销售方（店铺）
   const platform = document.getElementById('lic-platform')?.value || '';
   const search = (document.getElementById('lic-search')?.value || '').toLowerCase();
   let list = licensesData.filter(d => d.is_active !== false);
@@ -9590,17 +9646,13 @@ function renderLicensesPage() {
     (d.company || '').toLowerCase().includes(search) ||
     (d.factory || '').toLowerCase().includes(search)
   );
-  const addBtn = document.getElementById('lic-add-btn');
-  if (addBtn) addBtn.style.display = isAdmin ? '' : 'none';
-  const countEl = document.getElementById('lic-count');
   if (countEl) countEl.textContent = list.length + ' 家店铺';
 
-  const container = document.getElementById('lic-content');
   if (!list.length) {
     container.innerHTML = '<div class="lic-empty">📭 没有匹配的店铺证件<br><span style="font-size:13px;color:var(--text-secondary);margin-top:8px;display:block;">' + (isAdmin ? '点右上角「＋ 新增店铺」上架' : '请联系管理员添加') + '</span></div>';
     return;
   }
-  let html = '<div class="lic-grid">' + list.map(d => {
+  container.innerHTML = '<div class="lic-grid">' + list.map(d => {
     const mgmt = isAdmin ? '<div class="lic-card-actions">'
       + '<button class="btn-sm outline" onclick="openLicenseEditor(window._licRefs[\'' + d.id + '\'])">✏️ 编辑</button>'
       + '<button class="btn-sm outline" style="color:#e74c3c;border-color:#f5c6cb;" onclick="deleteLicense(\'' + d.id + '\',\'' + escapeAttr(d.shop_short) + '\')">🗑️ 删除</button>'
@@ -9619,24 +9671,6 @@ function renderLicensesPage() {
       + mgmt
       + '</div>';
   }).join('') + '</div>';
-
-  // 生产方许可证区块（按工厂，不按店铺）
-  const activeFactories = productionFactoryData.filter(f => f.is_active !== false);
-  if (activeFactories.length) {
-    html += '<div class="lic-factory-section">'
-      + '<div class="lic-factory-title">🏭 合作工厂生产许可证</div>'
-      + '<div class="lic-factory-grid">' + activeFactories.map(f => {
-        return '<div class="lic-factory-card">'
-          + '<div class="lic-factory-name">' + escapeHtml(f.name) + '</div>'
-          + '<div class="lic-img" title="生产许可证" onclick="openLicensePreview(this.querySelector(\'img\').src,\'生产许可证\',\'' + escapeAttr(f.name) + '\')">'
-          + '<img src="' + (f.license_file || '') + '" loading="lazy" alt="生产许可证" onerror="this.parentNode.classList.add(\'empty\');this.remove();">'
-          + '<span class="lic-img-label">生产许可证</span>'
-          + '</div>'
-          + (isAdmin ? '<button class="btn-sm outline" style="margin-top:8px;width:100%;" onclick="openFactoryEditor(' + JSON.stringify(f).replace(/"/g, '&quot;') + ')">✏️ 编辑</button>' : '')
-          + '</div>';
-      }).join('') + '</div></div>';
-  }
-  container.innerHTML = html;
 }
 
 function licImgHtml(url, label, shopShort, platform) {
