@@ -26,15 +26,27 @@ create table if not exists public.licenses (
 create index if not exists idx_licenses_shop     on public.licenses (shop_short);
 create index if not exists idx_licenses_platform on public.licenses (platform);
 
--- 3) RLS
+-- 3) RLS：所有人可读，仅 role='admin' 可写
 alter table public.licenses enable row level security;
 drop policy if exists "licenses public read" on public.licenses;
 create policy "licenses public read" on public.licenses
   for select using (true);
 drop policy if exists "licenses authed write" on public.licenses;
-create policy "licenses authed write" on public.licenses
-  for all using (auth.role() = 'authenticated')
-  with check (auth.role() = 'authenticated');
+drop policy if exists "licenses admin write" on public.licenses;
+create policy "licenses admin write" on public.licenses
+  for all
+  using (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  );
 
 -- 4) updated_at trigger（复用公共函数）
 create or replace function public.set_updated_at()
@@ -48,7 +60,7 @@ drop trigger if exists trg_licenses_updated on public.licenses;
 create trigger trg_licenses_updated before update on public.licenses
   for each row execute function public.set_updated_at();
 
--- 5) Storage bucket：licenses（公开读，登录用户可写）
+-- 5) Storage bucket：licenses（公开读，仅 admin 可写）
 insert into storage.buckets (id, name, public)
 values ('licenses', 'licenses', true)
 on conflict (id) do nothing;
@@ -57,9 +69,23 @@ drop policy if exists "licenses storage public read" on storage.objects;
 create policy "licenses storage public read" on storage.objects
   for select using (bucket_id = 'licenses');
 drop policy if exists "licenses storage authed write" on storage.objects;
-create policy "licenses storage authed write" on storage.objects
-  for all using (bucket_id = 'licenses' and auth.role() = 'authenticated')
-  with check (bucket_id = 'licenses' and auth.role() = 'authenticated');
+drop policy if exists "licenses storage admin write" on storage.objects;
+create policy "licenses storage admin write" on storage.objects
+  for all
+  using (
+    bucket_id = 'licenses'
+    and exists (
+      select 1 from public.profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  )
+  with check (
+    bucket_id = 'licenses'
+    and exists (
+      select 1 from public.profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  );
 
 -- 完成提示
 select 'licenses 表 + bucket 已就绪' as result;

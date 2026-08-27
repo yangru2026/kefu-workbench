@@ -9573,6 +9573,11 @@ let licensesTab = 'sales';        // 'sales' 销售方 | 'factory' 生产方
 let _licEditItem = null;          // 编辑中的记录
 let _licEditFiles = {};           // { 经营许可证: File } 待上传
 
+// 查验证明仅允许超级管理员（role=admin）编辑/删除，其他人只读+复制
+function isLicenseAdmin() {
+  return !!(currentProfile && currentProfile.role === 'admin');
+}
+
 async function loadLicenses() {
   if (!supabase) return;
   try {
@@ -9602,7 +9607,7 @@ function onLicAddClick() {
 }
 
 function renderLicensesPage() {
-  const isAdmin = currentUser && isAdminUser();
+  const isAdmin = currentUser && isLicenseAdmin();
   const addBtn = document.getElementById('lic-add-btn');
   if (addBtn) {
     addBtn.style.display = isAdmin ? '' : 'none';
@@ -9724,7 +9729,7 @@ async function copyLicImageToClipboard() {
 }
 
 function openLicenseEditor(item) {
-  if (!(currentUser && isAdminUser())) { showToast('仅管理员可编辑'); return; }
+  if (!isLicenseAdmin()) { showToast('仅管理员可编辑'); return; }
   const isNew = !item;
   _licEditItem = item ? { id: item.id, isNew: false } : { id: null, isNew: true };
   _licEditFiles = {};
@@ -9798,7 +9803,7 @@ function clearLicImg(key, curUrl) {
 }
 
 async function saveLicense() {
-  if (!(currentUser && isAdminUser())) { showToast('仅管理员可保存'); return; }
+  if (!isLicenseAdmin()) { showToast('仅管理员可保存'); return; }
   const data = {
     platform: document.getElementById('le-platform').value,
     shop_name: document.getElementById('le-shop-name').value.trim(),
@@ -9837,7 +9842,7 @@ async function saveLicense() {
 }
 
 async function deleteLicense(id, name) {
-  if (!(currentUser && isAdminUser())) { showToast('仅管理员可删除'); return; }
+  if (!isLicenseAdmin()) { showToast('仅管理员可删除'); return; }
   if (!confirm('确定要删除店铺「' + name + '」及其证件记录吗？（Storage 图片会保留）')) return;
   const { error } = await supabase.from('licenses').delete().eq('id', id);
   if (error) { showToast('删除失败：' + error.message); return; }
@@ -9850,7 +9855,7 @@ let _factoryEditItem = null;
 let _factoryEditFile = null;
 
 function openFactoryEditor(f) {
-  if (!(currentUser && isAdminUser())) { showToast('仅管理员可编辑'); return; }
+  if (!isLicenseAdmin()) { showToast('仅管理员可编辑'); return; }
   _factoryEditItem = f ? { id: f.id, name: f.name } : null;
   _factoryEditFile = null;
   document.getElementById('factory-edit-title').textContent = f ? '✏️ 编辑 · ' + f.name : '＋ 新增生产方';
@@ -9896,7 +9901,7 @@ function clearFactoryImg(curUrl) {
 }
 
 async function saveFactory() {
-  if (!(currentUser && isAdminUser())) { showToast('仅管理员可保存'); return; }
+  if (!isLicenseAdmin()) { showToast('仅管理员可保存'); return; }
   const name = _factoryEditItem ? _factoryEditItem.name : (document.getElementById('fe-name')?.value || '').trim();
   if (!name) { showToast('工厂名称不能为空'); return; }
   const updates = { name };

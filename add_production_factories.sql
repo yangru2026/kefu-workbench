@@ -17,15 +17,27 @@ create table if not exists public.production_factories (
 -- 2) 索引
 create index if not exists idx_production_factories_name on public.production_factories (name);
 
--- 3) RLS
+-- 3) RLS：所有人可读，仅 role='admin' 可写
 alter table public.production_factories enable row level security;
 drop policy if exists "production_factories public read" on public.production_factories;
 create policy "production_factories public read" on public.production_factories
   for select using (true);
 drop policy if exists "production_factories authed write" on public.production_factories;
-create policy "production_factories authed write" on public.production_factories
-  for all using (auth.role() = 'authenticated')
-  with check (auth.role() = 'authenticated');
+drop policy if exists "production_factories admin write" on public.production_factories;
+create policy "production_factories admin write" on public.production_factories
+  for all
+  using (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  );
 
 -- 4) updated_at trigger（复用公共函数）
 drop trigger if exists trg_production_factories_updated on public.production_factories;
