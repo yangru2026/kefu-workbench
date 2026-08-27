@@ -490,6 +490,8 @@ body {
 .sc-chips { display:flex; flex-wrap:wrap; gap:3px; margin-top:auto; }
 .sc-chip { font-size:10px; padding:2px 5px; border-radius:8px; background:var(--tag-bg); color:var(--text-muted); border:1px solid var(--border); }
 .sc-chip.on { background:rgba(123,155,106,0.14); color:var(--primary); border-color:var(--primary-light); font-weight:600; }
+.sc-group-badge { display:inline-block; margin-left:6px; font-size:10px; padding:1px 7px; border-radius:10px; background:rgba(123,155,106,0.14); color:var(--primary); border:1px solid var(--primary-light); font-weight:600; vertical-align:middle; }
+.td-group { background:rgba(123,155,106,0.16); color:var(--primary); border:1px solid var(--primary-light); }
 .train-add-row { margin-top:16px; padding:16px; border:1.5px dashed var(--primary-light); border-radius:14px; text-align:center; color:var(--primary); font-weight:600; cursor:pointer; background:rgba(123,155,106,0.04); transition:all .2s; }
 .train-add-row:hover { background:rgba(123,155,106,0.1); border-color:var(--primary); }
 /* 话术详情：5 种风格 */
@@ -2999,6 +3001,7 @@ async function loadTrainingScripts() {
     const order = ['标准', '亲切', '简短', '专业', '安抚'];
     trainingScripts = (data || []).map(d => ({
       ...d,
+      script_group: d.script_group || '通用',
       tags: d.tags || [],
       styles: (() => {
         const st = d.styles || {};
@@ -8825,6 +8828,7 @@ document.addEventListener('keydown', function(e) {
 // ==================== TRAINING ====================
 let trainingGroup = '全部';
 let trainingSubcatFilter = '全部';
+let trainingScriptGroup = '全部';
 let trainingCategories = [];
 let trainingKnowledge = [];
 
@@ -8834,6 +8838,7 @@ function trainingSubcats() { return trainingCategories.filter(c => c.parent_id);
 function setTrainingGroup(group) {
   trainingGroup = group;
   trainingSubcatFilter = '全部';
+  trainingScriptGroup = '全部';
   renderTrainingGroupTabs();
   renderTrainingSubcatTabs();
   renderTraining();
@@ -8874,11 +8879,9 @@ function renderTrainingSubcatTabs() {
   if (trainingGroup === '全部') { el.innerHTML = ''; el.style.display = 'none'; return; }
   el.style.display = 'flex';
   const canManage = canEdit('training');
+  if (trainingGroup === SCRIPT_GROUP) { renderScriptGroupTabs(el); return; }
   const subs = trainingSubcats().filter(c => c.parent_id === trainingGroup);
   let subNames = subs.map(c => c.name);
-  if (trainingGroup === SCRIPT_GROUP) {
-    trainingScripts.forEach(s => { const n = s.subcategory || '未分类'; if (!subNames.includes(n)) subNames.push(n); });
-  }
   const cats = ['全部', ...subNames];
   let html = cats.map(c => {
     const isActive = trainingSubcatFilter === c;
@@ -8896,6 +8899,20 @@ function renderTrainingSubcatTabs() {
     html += `<button class="cat-add-btn" onclick="addNewSubcat()">＋ 新增小类</button>`;
   }
   el.innerHTML = html;
+}
+
+// ---------- 话术分组 Tab（团队维度） ----------
+function renderScriptGroupTabs(el) {
+  const groups = ['全部', ...SCRIPT_GROUPS];
+  el.innerHTML = groups.map(g =>
+    '<button class="training-cat-tab' + (trainingScriptGroup === g ? ' active' : '') + '" onclick="setTrainingScriptGroup(\'' + g + '\')">' + g + '</button>'
+  ).join('');
+}
+
+function setTrainingScriptGroup(g) {
+  trainingScriptGroup = g;
+  renderTrainingSubcatTabs();
+  renderScripts();
 }
 
 // ---------- 大类管理 ----------
@@ -9061,7 +9078,7 @@ function renderTraining() {
   }
   if (subEl) {
     subEl.textContent = (trainingGroup === SCRIPT_GROUP)
-      ? '按分类浏览话术场景，点击卡片查看完整话术（标准/亲切/简短/专业/安抚 多种风格）'
+      ? '按分组（通用 / 一组 / 二组 / 三组）浏览话术，点击卡片查看完整话术（标准/亲切/简短/专业/安抚 多种风格）'
       : '按大类和小类查看培训资料，点击链接打开飞书云文档 | 修改实时同步所有客服';
   }
   if (trainingGroup === SCRIPT_GROUP) { renderScripts(); return; }
@@ -9270,10 +9287,14 @@ function openTrainingDetail(d) {
 
 // ==================== 售前话术（training_scripts） ====================
 const SCRIPT_STYLES = ['标准', '亲切', '简短', '专业', '安抚'];
+const SCRIPT_GROUPS = ['通用', '一组', '二组', '三组'];
 
 function renderScripts() {
   const search = (document.getElementById('training-search')?.value || '').toLowerCase();
   let list = trainingScripts.filter(s => (s.category || '') === SCRIPT_GROUP);
+  if (trainingScriptGroup !== '全部') {
+    list = list.filter(s => (s.script_group || '通用') === trainingScriptGroup);
+  }
   if (search) list = list.filter(s =>
     (s.title || '').toLowerCase().includes(search) ||
     (s.subcategory || '').toLowerCase().includes(search) ||
@@ -9300,9 +9321,11 @@ function renderScripts() {
     }).join('');
     const tags = (s.tags && s.tags.length)
       ? '<div class="train-link-tags">' + s.tags.map(t => '<span class="tag">' + escapeHtml(t) + '</span>').join('') + '</div>' : '';
+    const grp = s.script_group || '通用';
     return '<li class="train-link-item" onclick="openScriptDetail(window._scriptRefs[\'' + s.id + '\'])">'
       + '<div class="train-card-top"><div class="train-card-icon">💬</div>'
-      + '<div class="train-card-title-wrap"><a href="javascript:void(0)" onclick="event.stopPropagation();openScriptDetail(window._scriptRefs[\'' + s.id + '\'])">' + escapeHtml(s.title) + '</a></div></div>'
+      + '<div class="train-card-title-wrap"><a href="javascript:void(0)" onclick="event.stopPropagation();openScriptDetail(window._scriptRefs[\'' + s.id + '\'])">' + escapeHtml(s.title) + '</a>'
+      + '<span class="sc-group-badge">' + escapeHtml(grp) + '</span></div></div>'
       + '<div class="sc-chips">' + chips + '</div>'
       + tags
       + mgmt
@@ -9310,22 +9333,14 @@ function renderScripts() {
   }
 
   let html = '';
-  if (trainingSubcatFilter === '全部') {
-    const subNames = [...new Set(list.map(s => s.subcategory || '未分类'))];
-    subNames.forEach(sn => {
-      const items = list.filter(s => (s.subcategory || '未分类') === sn);
-      html += '<div class="train-card"><div class="train-card-header"><h3>📂 ' + escapeHtml(sn) + '</h3>'
-        + '<span class="train-card-count">' + items.length + ' 个场景</span></div>'
-        + '<ul class="train-link-list">' + items.map(scriptCard).join('') + '</ul></div>';
-    });
-  } else {
-    const items = list.filter(s => (s.subcategory || '未分类') === trainingSubcatFilter);
-    if (!items.length) {
-      html = '<div class="train-empty">💬 「' + escapeHtml(trainingSubcatFilter) + '」暂无话术</div>';
-    } else {
-      html = '<ul class="train-link-list">' + items.map(scriptCard).join('') + '</ul>';
-    }
-  }
+  // 始终按话题(小类)分组展示，卡片上标注所属分组
+  const subNames = [...new Set(list.map(s => s.subcategory || '未分类'))];
+  subNames.forEach(sn => {
+    const items = list.filter(s => (s.subcategory || '未分类') === sn);
+    html += '<div class="train-card"><div class="train-card-header"><h3>📂 ' + escapeHtml(sn) + '</h3>'
+      + '<span class="train-card-count">' + items.length + ' 个场景</span></div>'
+      + '<ul class="train-link-list">' + items.map(scriptCard).join('') + '</ul></div>';
+  });
   if (canManage) html += '<div class="train-add-row" onclick="openScriptEditor(null)">＋ 新增话术场景</div>';
   container.innerHTML = html;
 }
@@ -9333,7 +9348,9 @@ function renderScripts() {
 function openScriptDetail(s) {
   if (!s) return;
   const styles = s.styles || {};
-  const badge = '<span class="td-brand">' + escapeHtml(s.subcategory || '') + '</span>';
+  const grp = s.script_group || '通用';
+  const badge = '<span class="td-brand">' + escapeHtml(s.subcategory || '') + '</span>'
+    + '<span class="td-brand td-group">' + escapeHtml(grp) + '</span>';
   document.getElementById('mod-script-detail-title').innerHTML = '💬 ' + escapeHtml(s.title) + badge;
   const tags = (s.tags && s.tags.length)
     ? '<div class="td-tags">' + s.tags.map(t => '<span class="tag">' + escapeHtml(t) + '</span>').join('') + '</div>' : '';
@@ -9373,6 +9390,7 @@ function openScriptEditor(s) {
   window._editScript = s ? { id: s.id, isNew: false } : { id: null, isNew: true };
   const sc = s || {};
   const curSub = sc.subcategory || '';
+  const curGroup = sc.script_group || (trainingScriptGroup !== '全部' ? trainingScriptGroup : '通用');
   const subs = trainingSubcats().filter(c => c.parent_id === SCRIPT_GROUP).map(c => c.name);
   const options = [...new Set([curSub, ...subs])].filter(Boolean).map(n => '<option value="' + escapeHtml(n) + '">').join('');
   const styles = sc.styles || {};
@@ -9380,6 +9398,8 @@ function openScriptEditor(s) {
   html += '<div class="modal-field"><label>小类（归属「售前话术」下，可输入新分类，或用顶部「＋新增小类」统一管理）</label>'
     + '<input id="sf-sub" list="sf-sub-list" value="' + escapeHtml(curSub) + '" placeholder="如：佩戴问题 / 产品咨询 / 订单物流">'
     + '<datalist id="sf-sub-list">' + options + '</datalist></div>';
+  html += '<div class="modal-field"><label>分组（通用 / 一组 / 二组 / 三组）</label>'
+    + '<select id="sf-group">' + SCRIPT_GROUPS.map(g => '<option value="' + g + '"' + (curGroup === g ? ' selected' : '') + '>' + g + '</option>').join('') + '</select></div>';
   html += '<div class="modal-field"><label>场景标题</label><input id="sf-title" value="' + escapeHtml(sc.title || '') + '"></div>';
   html += '<div class="modal-field"><label>标签（逗号分隔）</label><input id="sf-tags" value="' + escapeHtml((sc.tags || []).join(',')) + '" placeholder="新手,磨眼"></div>';
   SCRIPT_STYLES.forEach(k => {
@@ -9398,6 +9418,7 @@ async function saveScript() {
     category: SCRIPT_GROUP,
     subcategory: (document.getElementById('sf-sub').value.trim() || '未分类'),
     title: document.getElementById('sf-title').value.trim(),
+    script_group: (document.getElementById('sf-group') ? document.getElementById('sf-group').value : '通用'),
     tags: (document.getElementById('sf-tags').value || '').split(',').map(t => t.trim()).filter(Boolean),
     styles: styles
   };
