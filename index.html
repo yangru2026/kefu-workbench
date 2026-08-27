@@ -1045,6 +1045,35 @@ body {
 .modal-field textarea { min-height:60px; resize:vertical; }
 .modal-field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 
+/* ===== 查验证明 ===== */
+.lic-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:16px; }
+.lic-card { background:#fff; border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,0.04); transition:box-shadow .2s; }
+.lic-card:hover { box-shadow:0 4px 16px rgba(0,0,0,0.08); }
+.lic-card-head { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+.lic-shop { font-size:16px; font-weight:700; color:var(--text); }
+.lic-platform { font-size:11px; padding:2px 8px; border-radius:20px; background:#eef2ff; color:#4361ee; font-weight:600; }
+.lic-company { font-size:12px; color:var(--text-secondary); margin-bottom:10px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.lic-company .lic-factory { color:#8a6d3b; background:#fff7e0; padding:1px 6px; border-radius:4px; font-size:11px; }
+.lic-imgs { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.lic-img { position:relative; border:1px solid var(--border); border-radius:10px; overflow:hidden; cursor:zoom-in; background:#f7f8fa; aspect-ratio:4/3; }
+.lic-img img { width:100%; height:100%; object-fit:contain; display:block; transition:transform .2s; }
+.lic-img:hover img { transform:scale(1.04); }
+.lic-img .lic-img-label { position:absolute; left:0; right:0; bottom:0; background:rgba(0,0,0,0.55); color:#fff; font-size:10px; text-align:center; padding:2px 0; letter-spacing:.5px; }
+.lic-img.empty { cursor:default; display:flex; align-items:center; justify-content:center; color:#c0c4cc; font-size:22px; }
+.lic-img.empty .lic-img-label { background:rgba(0,0,0,0.35); }
+.lic-card-actions { margin-top:10px; display:flex; gap:6px; justify-content:flex-end; }
+.lic-empty { text-align:center; padding:60px 20px; color:var(--text-secondary); font-size:14px; }
+.lic-preview-box { max-width: 92vw; width: auto; max-height: 94vh; display: flex; flex-direction: column; }
+.lic-preview-body { padding:12px; overflow:auto; flex:1; display:flex; align-items:center; justify-content:center; background:#f4f5f7; }
+.lic-preview-imgwrap { max-width:100%; max-height:72vh; }
+.lic-preview-imgwrap img { max-width:100%; max-height:72vh; object-fit:contain; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.12); background:#fff; }
+.lic-edit-upload { border:1.5px dashed var(--border); border-radius:10px; padding:12px; margin-bottom:10px; background:#fafbfc; }
+.lic-edit-upload .leu-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text); }
+.lic-edit-upload .leu-img { display:flex; align-items:center; gap:10px; }
+.lic-edit-upload .leu-img img { width:84px; height:63px; object-fit:contain; border:1px solid var(--border); border-radius:8px; background:#fff; }
+.lic-edit-upload .leu-actions { display:flex; gap:6px; flex-direction:column; }
+.lic-edit-upload .leu-tip { font-size:11px; color:var(--text-secondary); }
+
 /* 扣罚标准大图弹窗 */
 .penalty-modal-box { max-width: 98vw; width: auto; max-height: 92vh; display: flex; flex-direction: column; }
 .penalty-modal-body { padding: 16px; overflow: auto; text-align: center; flex: 1; }
@@ -1339,12 +1368,12 @@ body {
     <div class="nav-item" data-page="cross-sales"><span class="icon">🛒</span><span>连带成交</span></div>
     <div class="nav-item" data-page="voc"><span class="icon">📣</span><span>客户之声</span><span class="badge" id="voc-todo-badge" style="display:none;"></span></div>
     <div class="nav-item" data-page="daily"><span class="icon">🌙</span><span>汇报</span></div>
-    <div class="nav-section">培训</div>
+    <div class="nav-section">常用资料</div>
     <div class="nav-item" data-page="training"><span class="icon">📚</span><span>培训资料</span></div>
+    <div class="nav-item" data-page="licenses"><span class="icon">📜</span><span>查验证明</span></div>
     <div class="nav-item" data-page="sop"><span class="icon">📄</span><span>新人SOP</span></div>
     <div class="nav-item" data-page="quiz"><span class="icon">⭐</span><span>知识测验</span></div>
     <div class="nav-section">运营</div>
-    <div class="nav-item" data-page="bulletin"><span class="icon">📢</span><span>每日速报</span></div>
     <div class="nav-item" data-page="schedule"><span class="icon">📅</span><span>排班表</span></div>
     <div class="nav-item" data-page="requests"><span class="icon">📝</span><span>申请审批</span><span class="badge" id="req-pending-badge" style="display:none;"></span></div>
     <div class="nav-item" data-page="ranking"><span class="icon">🏆</span><span>客服排名</span></div>
@@ -2426,6 +2455,29 @@ body {
     <div class="search-bar"><input type="text" id="training-search" placeholder="🔍 搜索资料标题..." oninput="renderTraining()"></div>
     <!-- 内容区 -->
     <div id="training-content"></div>
+  </div>
+
+  <!-- ===== 查验证明 ===== -->
+  <div class="page" id="page-licenses">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div><h1>📜 查验证明</h1><p>各店铺医疗器械经营许可证 / 营业执照 / 合作工厂生产许可证，点击缩略图看大图，可下载保存</p></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="admin-only-nav" id="lic-add-btn" onclick="openLicenseEditor(null)" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">＋ 新增店铺</button>
+      </div>
+    </div>
+    <!-- 筛选栏 -->
+    <div class="filter-bar" style="align-items:center;">
+      <select id="lic-platform" onchange="renderLicensesPage()">
+        <option value="">全部平台</option>
+        <option>抖音</option><option>快手</option><option>拼多多</option>
+        <option>天猫</option><option>京东</option><option>小红书</option>
+      </select>
+      <input type="text" id="lic-search" placeholder="🔍 搜索店铺/公司/工厂..." oninput="renderLicensesPage()"
+             style="flex:1;min-width:220px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;">
+      <span id="lic-count" style="font-size:13px;color:var(--text-secondary);white-space:nowrap;"></span>
+    </div>
+    <!-- 列表 -->
+    <div id="lic-content"></div>
   </div>
 
   <!-- ===== 新人SOP ===== -->
@@ -6909,6 +6961,10 @@ function switchPage(page) {
     if (window.loadPatternCategories) loadPatternCategories();
     loadPatternsFromDB();
   }
+  if (page === 'licenses') {
+    // 每次进入都重新拉取，保证数据最新
+    if (window.loadLicenses) loadLicenses();
+  }
   if (page === 'sop') renderSOP();
   if (page === 'bulletin') renderBulletin();
   refreshAdminUI();
@@ -8922,6 +8978,8 @@ function renderTrainingSubcatTabs() {
   el.style.display = 'flex';
   const canManage = canEdit('training');
   if (trainingGroup === SCRIPT_GROUP) { renderScriptGroupTabs(el); return; }
+  // 「操作类」为话术大类：不显示二级 Tab（小类在脚本数据里自由维护）
+  if (trainingGroup === '操作类') { el.innerHTML = ''; el.style.display = 'none'; return; }
   const subs = trainingSubcats().filter(c => c.parent_id === trainingGroup);
   let subNames = subs.map(c => c.name);
   const cats = ['全部', ...subNames];
@@ -9110,20 +9168,21 @@ function renderTraining() {
   renderTrainingGroupTabs();
   renderTrainingSubcatTabs();
   // 顶部「＋新增」按钮与副标题按当前大类联动
+  const isScriptCat = isScriptTopCat(trainingGroup);
   const addBtn = document.getElementById('train-add-btn');
   const subEl = document.getElementById('training-subtitle');
   if (addBtn) {
     const canM = canEdit('training');
     addBtn.style.display = canM ? '' : 'none';
-    addBtn.textContent = (trainingGroup === SCRIPT_GROUP) ? '＋ 新增话术' : '＋ 新增资料';
-    addBtn.onclick = (trainingGroup === SCRIPT_GROUP) ? (() => openScriptEditor(null)) : (() => openTrainingEditor(null));
+    addBtn.textContent = isScriptCat ? '＋ 新增话术' : '＋ 新增资料';
+    addBtn.onclick = isScriptCat ? (() => openScriptEditor(null)) : (() => openTrainingEditor(null));
   }
   if (subEl) {
-    subEl.textContent = (trainingGroup === SCRIPT_GROUP)
+    subEl.textContent = isScriptCat
       ? '按分组（通用 / 一组 / 二组 / 三组）浏览话术，点击卡片查看完整话术（标准/亲切/简短/专业/安抚 多种风格）'
       : '按大类和小类查看培训资料，点击链接打开飞书云文档 | 修改实时同步所有客服';
   }
-  if (trainingGroup === SCRIPT_GROUP) { renderScripts(); return; }
+  if (isScriptCat) { renderScripts(); return; }
   const search = (document.getElementById('training-search')?.value || '').toLowerCase();
   let filtered = trainingData;
   if (search) filtered = filtered.filter(d => (d.title || '').toLowerCase().includes(search));
@@ -9330,10 +9389,14 @@ function openTrainingDetail(d) {
 // ==================== 售前话术（training_scripts） ====================
 const SCRIPT_STYLES = ['标准', '亲切', '简短', '专业', '安抚'];
 const SCRIPT_GROUPS = ['通用', '一组', '二组', '三组', '极氧'];
+// 顶级分类中走「话术」渲染的大类（与 training_categories 顶级分类联动）
+const SCRIPT_TOP_CATEGORIES = ['售前话术', '操作类'];
+function isScriptTopCat(cat) { return SCRIPT_TOP_CATEGORIES.indexOf(cat) !== -1; }
 
 function renderScripts() {
   const search = (document.getElementById('training-search')?.value || '').toLowerCase();
-  let list = trainingScripts.filter(s => (s.category || '') === SCRIPT_GROUP);
+  const cat = isScriptTopCat(trainingGroup) ? trainingGroup : SCRIPT_GROUP;
+  let list = trainingScripts.filter(s => (s.category || '') === cat);
   if (trainingScriptGroup !== '全部') {
     list = list.filter(s => (s.script_group || '通用') === trainingScriptGroup);
   }
@@ -9428,16 +9491,17 @@ function copyScriptStyle(btn) {
 
 function openScriptEditor(s) {
   const isNew = !s;
+  const cat = isScriptTopCat(trainingGroup) ? trainingGroup : SCRIPT_GROUP;
   document.getElementById('mod-script-title').textContent = isNew ? '＋ 新增话术场景' : '✏️ 编辑话术场景';
-  window._editScript = s ? { id: s.id, isNew: false } : { id: null, isNew: true };
+  window._editScript = s ? { id: s.id, isNew: false, category: s.category || cat } : { id: null, isNew: true, category: cat };
   const sc = s || {};
   const curSub = sc.subcategory || '';
   const curGroup = sc.script_group || (trainingScriptGroup !== '全部' ? trainingScriptGroup : '通用');
-  const subs = trainingSubcats().filter(c => c.parent_id === SCRIPT_GROUP).map(c => c.name);
+  const subs = trainingSubcats().filter(c => c.parent_id === cat).map(c => c.name);
   const options = [...new Set([curSub, ...subs])].filter(Boolean).map(n => '<option value="' + escapeHtml(n) + '">').join('');
   const styles = sc.styles || {};
   let html = '';
-  html += '<div class="modal-field"><label>小类（归属「售前话术」下，可输入新分类，或用顶部「＋新增小类」统一管理）</label>'
+  html += '<div class="modal-field"><label>小类（归属「' + cat + '」下，可输入新分类，或用顶部「＋新增小类」统一管理）</label>'
     + '<input id="sf-sub" list="sf-sub-list" value="' + escapeHtml(curSub) + '" placeholder="如：佩戴问题 / 产品咨询 / 订单物流">'
     + '<datalist id="sf-sub-list">' + options + '</datalist></div>';
   html += '<div class="modal-field"><label>分组（通用 / 一组 / 二组 / 三组）</label>'
@@ -9457,7 +9521,7 @@ async function saveScript() {
   const styles = {};
   SCRIPT_STYLES.forEach(k => { styles[k] = (document.getElementById('sf-style-' + k).value || ''); });
   const data = {
-    category: SCRIPT_GROUP,
+    category: (window._editScript && window._editScript.category) || SCRIPT_GROUP,
     subcategory: (document.getElementById('sf-sub').value.trim() || '未分类'),
     title: document.getElementById('sf-title').value.trim(),
     script_group: (document.getElementById('sf-group') ? document.getElementById('sf-group').value : '通用'),
@@ -9484,6 +9548,231 @@ async function deleteScript(id, title) {
   if (error) { showToast('删除失败：' + error.message); return; }
   showToast('🗑️ 已删除「' + title + '」');
   loadTrainingScripts();
+}
+
+// ==================== 查验证明（licenses） ====================
+let licensesData = [];
+let _licEditItem = null;       // 编辑中的记录
+let _licEditFiles = {};        // { 经营许可证: File } 待上传
+
+async function loadLicenses() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase
+      .from('licenses')
+      .select('*')
+      .order('sort_order', { ascending: true });
+    if (error) { console.error('licenses 加载失败:', error); return; }
+    licensesData = data || [];
+    renderLicensesPage();
+  } catch (e) { console.error('licenses 加载异常:', e); }
+}
+
+function renderLicensesPage() {
+  const isAdmin = currentUser && isAdminUser();
+  const platform = document.getElementById('lic-platform')?.value || '';
+  const search = (document.getElementById('lic-search')?.value || '').toLowerCase();
+  let list = licensesData.filter(d => d.is_active !== false);
+  if (platform) list = list.filter(d => (d.platform || '') === platform);
+  if (search) list = list.filter(d =>
+    (d.shop_short || '').toLowerCase().includes(search) ||
+    (d.shop_name || '').toLowerCase().includes(search) ||
+    (d.company || '').toLowerCase().includes(search) ||
+    (d.factory || '').toLowerCase().includes(search)
+  );
+  const addBtn = document.getElementById('lic-add-btn');
+  if (addBtn) addBtn.style.display = isAdmin ? '' : 'none';
+  const countEl = document.getElementById('lic-count');
+  if (countEl) countEl.textContent = list.length + ' 家店铺';
+
+  const container = document.getElementById('lic-content');
+  if (!list.length) {
+    container.innerHTML = '<div class="lic-empty">📭 没有匹配的店铺证件<br><span style="font-size:13px;color:var(--text-secondary);margin-top:8px;display:block;">' + (isAdmin ? '点右上角「＋ 新增店铺」上架' : '请联系管理员添加') + '</span></div>';
+    return;
+  }
+  container.innerHTML = '<div class="lic-grid">' + list.map(d => {
+    const mgmt = isAdmin ? '<div class="lic-card-actions">'
+      + '<button class="btn-sm outline" onclick="openLicenseEditor(window._licRefs[\'' + d.id + '\'])">✏️ 编辑</button>'
+      + '<button class="btn-sm outline" style="color:#e74c3c;border-color:#f5c6cb;" onclick="deleteLicense(\'' + d.id + '\',\'' + escapeAttr(d.shop_short) + '\')">🗑️ 删除</button>'
+      + '</div>' : '';
+    window._licRefs = window._licRefs || {};
+    window._licRefs[d.id] = d;
+    return '<div class="lic-card">'
+      + '<div class="lic-card-head"><span class="lic-shop">' + escapeHtml(d.shop_short || d.shop_name || '未命名') + '</span>'
+      + (d.platform ? '<span class="lic-platform">' + escapeHtml(d.platform) + '</span>' : '')
+      + '</div>'
+      + '<div class="lic-company">🏢 ' + escapeHtml(d.company || '未填公司')
+      + (d.factory ? ' <span class="lic-factory">🏭 ' + escapeHtml(d.factory) + '</span>' : '')
+      + '</div>'
+      + '<div class="lic-imgs">'
+      + licImgHtml(d.license_file, '经营许可证', d.shop_short, d.platform)
+      + licImgHtml(d.business_file, '营业执照', d.shop_short, d.platform)
+      + licImgHtml(d.production_file, '生产许可证', d.shop_short, d.platform)
+      + '</div>'
+      + mgmt
+      + '</div>';
+  }).join('') + '</div>';
+}
+
+function licImgHtml(url, label, shopShort, platform) {
+  if (!url) {
+    return '<div class="lic-img empty">＋<span class="lic-img-label">' + label + '</span></div>';
+  }
+  return '<div class="lic-img" title="' + label + '" onclick="openLicensePreview(this.querySelector(\'img\').src,\'' + label + '\',\'' + escapeAttr(shopShort) + '\')">'
+    + '<img src="' + url + '" loading="lazy" alt="' + label + '" onerror="this.parentNode.classList.add(\'empty\');this.remove();">'
+    + '<span class="lic-img-label">' + label + '</span>'
+    + '</div>';
+}
+
+function openLicensePreview(src, label, shopShort) {
+  if (!src) return;
+  document.getElementById('lic-preview-img').src = src;
+  document.getElementById('lic-preview-title').textContent = '📜 ' + (shopShort || '') + ' · ' + (label || '证件');
+  document.getElementById('mod-lic-preview').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function copyLicImageUrl() {
+  const src = document.getElementById('lic-preview-img').src;
+  if (!src) return;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(src).then(() => showToast('✅ 图片链接已复制'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = src; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+    showToast('✅ 图片链接已复制');
+  }
+}
+
+function downloadLicImage() {
+  const src = document.getElementById('lic-preview-img').src;
+  if (!src) return;
+  const a = document.createElement('a');
+  a.href = src; a.download = '';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+function openLicenseEditor(item) {
+  if (!(currentUser && isAdminUser())) { showToast('仅管理员可编辑'); return; }
+  const isNew = !item;
+  _licEditItem = item ? { id: item.id, isNew: false } : { id: null, isNew: true };
+  _licEditFiles = {};
+  document.getElementById('lic-edit-title').textContent = isNew ? '＋ 新增店铺' : '✏️ 编辑 · ' + (item.shop_short || '');
+  const d = item || {};
+  const fields = [
+    { id: 'le-platform', label: '平台', val: d.platform || '', type: 'select', opts: ['', '抖音', '快手', '拼多多', '天猫', '京东', '小红书', 'YH'] },
+    { id: 'le-shop-name', label: '店铺全称', val: d.shop_name || '', ph: '如：尤赫旗舰店' },
+    { id: 'le-shop-short', label: '店铺简称', val: d.shop_short || '', ph: '如：抖音1店' },
+    { id: 'le-company', label: '所属公司', val: d.company || '', ph: '如：铜陵洛吟电子商务有限公司' },
+    { id: 'le-factory', label: '合作工厂', val: d.factory || '', ph: '如：吉林瑞尔康（没有可留空）' }
+  ];
+  let html = '<div class="modal-field-row">';
+  fields.forEach((f, i) => {
+    if (i % 2 === 0) html += '</div><div class="modal-field-row">';
+    html += '<div class="modal-field"><label>' + f.label + '</label>';
+    if (f.type === 'select') {
+      html += '<select id="' + f.id + '">' + f.opts.map(o => '<option value="' + o + '"' + (o === f.val ? ' selected' : '') + '>' + (o || '请选择') + '</option>').join('') + '</select>';
+    } else {
+      html += '<input id="' + f.id + '" value="' + escapeHtml(f.val) + '" placeholder="' + f.ph + '">';
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  // 三张证件图上传槽
+  [['license_file', '经营许可证'], ['business_file', '营业执照'], ['production_file', '生产许可证']].forEach(([key, label]) => {
+    html += licUploadSlot(key, label, d[key] || '');
+  });
+  document.getElementById('lic-edit-body').innerHTML = html;
+  document.getElementById('mod-lic-edit').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function licUploadSlot(key, label, curUrl) {
+  return '<div class="lic-edit-upload">'
+    + '<div class="leu-head"><span>' + label + '</span><span class="leu-tip">建议清晰完整，点击可查看原图</span></div>'
+    + '<div class="leu-img">'
+    + '<div id="le-preview-' + key + '" style="' + (curUrl || _licEditFiles[key] ? '' : 'display:none;') + '">'
+    + (curUrl ? '<img src="' + curUrl + '" alt="">' : '')
+    + '</div>'
+    + '<span style="font-size:12px;color:var(--text-secondary);" id="le-fname-' + key + '">' + (_licEditFiles[key] ? _licEditFiles[key].name : '') + '</span>'
+    + '<div class="leu-actions">'
+    + '<label class="btn-sm outline" style="cursor:pointer;margin:0;">📤 上传新图<input type="file" accept="image/*" style="display:none;" onchange="pickLicImg(\'' + key + '\',this)"></label>'
+    + '<button class="btn-sm outline" style="color:#e74c3c;" onclick="clearLicImg(\'' + key + '\',\'' + (curUrl || '') + '\')">✕ 移除</button>'
+    + '</div></div></div>';
+}
+
+function pickLicImg(key, input) {
+  const f = input && input.files && input.files[0];
+  if (!f) return;
+  if (f.size > 12 * 1024 * 1024) { showToast('图片过大（限 12MB）'); return; }
+  _licEditFiles[key] = f;
+  const wrap = document.getElementById('le-preview-' + key);
+  if (wrap) {
+    wrap.style.display = '';
+    wrap.innerHTML = '<img src="' + URL.createObjectURL(f) + '" alt="">';
+  }
+  const fn = document.getElementById('le-fname-' + key);
+  if (fn) fn.textContent = f.name + '（待上传）';
+}
+
+function clearLicImg(key, curUrl) {
+  delete _licEditFiles[key];
+  const wrap = document.getElementById('le-preview-' + key);
+  if (wrap) {
+    if (curUrl) { wrap.innerHTML = '<img src="' + curUrl + '" alt="">'; wrap.style.display = ''; }
+    else { wrap.innerHTML = ''; wrap.style.display = 'none'; }
+  }
+  const fn = document.getElementById('le-fname-' + key);
+  if (fn) fn.textContent = '';
+}
+
+async function saveLicense() {
+  if (!(currentUser && isAdminUser())) { showToast('仅管理员可保存'); return; }
+  const data = {
+    platform: document.getElementById('le-platform').value,
+    shop_name: document.getElementById('le-shop-name').value.trim(),
+    shop_short: document.getElementById('le-shop-short').value.trim(),
+    company: document.getElementById('le-company').value.trim(),
+    factory: document.getElementById('le-factory').value.trim()
+  };
+  if (!data.shop_short) { showToast('店铺简称不能为空'); return; }
+  // 上传待传图片
+  const keyMap = { license_file: '经营许可证', business_file: '营业执照', production_file: '生产许可证' };
+  const upKeys = Object.keys(_licEditFiles);
+  showToast('⏳ 正在保存' + (upKeys.length ? '（上传 ' + upKeys.length + ' 张图片）' : '') + '…');
+  try {
+    for (const key of upKeys) {
+      const f = _licEditFiles[key];
+      const safe = (data.shop_short || 'lic').replace(/[\/\\:*?"<>|]/g, '_');
+      const path = 'lic/' + safe + '/' + keyMap[key] + '_' + Date.now() + '.' + (f.name.split('.').pop() || 'png');
+      const { error } = await supabase.storage.from('licenses').upload(path, f, { upsert: true });
+      if (error) { showToast('图片上传失败：' + error.message); return; }
+      data[key] = supabase.storage.from('licenses').getPublicUrl(path).data.publicUrl;
+    }
+  } catch (e) { showToast('图片上传异常：' + e.message); return; }
+
+  if (_licEditItem.isNew) {
+    data.sort_order = licensesData.length + 1;
+    const { error } = await supabase.from('licenses').insert(data);
+    if (error) { showToast('保存失败：' + error.message); return; }
+    showToast('✅ 店铺已添加');
+  } else {
+    const { error } = await supabase.from('licenses').update(data).eq('id', _licEditItem.id);
+    if (error) { showToast('保存失败：' + error.message); return; }
+    showToast('✅ 店铺已更新');
+  }
+  closeModal('mod-lic-edit');
+  loadLicenses();
+}
+
+async function deleteLicense(id, name) {
+  if (!(currentUser && isAdminUser())) { showToast('仅管理员可删除'); return; }
+  if (!confirm('确定要删除店铺「' + name + '」及其证件记录吗？（Storage 图片会保留）')) return;
+  const { error } = await supabase.from('licenses').delete().eq('id', id);
+  if (error) { showToast('删除失败：' + error.message); return; }
+  showToast('🗑️ 已删除「' + name + '」');
+  loadLicenses();
 }
 
 // ==================== SOP ====================
@@ -10660,6 +10949,39 @@ init();
     <div class="modal-footer">
       <button class="btn-sm outline" onclick="closeModal('mod-penalty-standard')">关闭</button>
       <a class="btn-sm primary" href="images/penalty-standard-2026.png?v=1" target="_blank" style="text-decoration:none;">在新标签页打开</a>
+    </div>
+  </div>
+</div>
+
+<!-- 查验证明：大图预览弹窗 -->
+<div class="modal-overlay" id="mod-lic-preview" onclick="closeModal('mod-lic-preview')">
+  <div class="modal-box lic-preview-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="lic-preview-title">证件预览</h3>
+      <button class="modal-close" onclick="closeModal('mod-lic-preview')">✕</button>
+    </div>
+    <div class="modal-body lic-preview-body">
+      <div class="lic-preview-imgwrap"><img id="lic-preview-img" src="" alt=""></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm outline" onclick="copyLicImageUrl()">📋 复制链接</button>
+      <button class="btn-sm outline" onclick="downloadLicImage()">⬇ 下载图片</button>
+      <button class="btn-sm primary" onclick="window.open(document.getElementById('lic-preview-img').src,'_blank')">↗ 新标签打开</button>
+    </div>
+  </div>
+</div>
+
+<!-- 查验证明：编辑店铺弹窗 -->
+<div class="modal-overlay" id="mod-lic-edit" onclick="closeModal('mod-lic-edit')">
+  <div class="modal-box" onclick="event.stopPropagation()" style="max-width:640px;">
+    <div class="modal-header">
+      <h3 id="lic-edit-title">✏️ 编辑店铺</h3>
+      <button class="modal-close" onclick="closeModal('mod-lic-edit')">✕</button>
+    </div>
+    <div class="modal-body" id="lic-edit-body"></div>
+    <div class="modal-footer">
+      <button class="btn-sm outline" onclick="closeModal('mod-lic-edit')">取消</button>
+      <button class="btn-sm primary" onclick="saveLicense()">💾 保存</button>
     </div>
   </div>
 </div>
