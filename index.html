@@ -368,6 +368,28 @@ body {
 .training-group-tab { padding:11px 28px; border:1px solid var(--border); border-radius:12px; font-size:16px; font-weight:600; cursor:pointer; background:#fff; color:var(--text-secondary); font-family:inherit; transition:all .2s; white-space:nowrap; }
 .training-group-tab:hover { border-color:var(--primary); color:var(--primary); }
 .training-group-tab.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+/* 大类标签固定配色（按顺序循环） */
+.tg-color-0 { border-color:#7b9b6a; color:#7b9b6a; }
+.tg-color-0:hover { background:rgba(123,155,106,0.08); }
+.tg-color-0.active { background:#7b9b6a; color:#fff; }
+.tg-color-1 { border-color:#4f8fd4; color:#4f8fd4; }
+.tg-color-1:hover { background:rgba(79,143,212,0.08); }
+.tg-color-1.active { background:#4f8fd4; color:#fff; }
+.tg-color-2 { border-color:#e8993f; color:#e8993f; }
+.tg-color-2:hover { background:rgba(232,153,63,0.08); }
+.tg-color-2.active { background:#e8993f; color:#fff; }
+.tg-color-3 { border-color:#9b7ad4; color:#9b7ad4; }
+.tg-color-3:hover { background:rgba(155,122,212,0.08); }
+.tg-color-3.active { background:#9b7ad4; color:#fff; }
+.tg-color-4 { border-color:#e85d75; color:#e85d75; }
+.tg-color-4:hover { background:rgba(232,93,117,0.08); }
+.tg-color-4.active { background:#e85d75; color:#fff; }
+.tg-color-5 { border-color:#5fb3b3; color:#5fb3b3; }
+.tg-color-5:hover { background:rgba(95,179,179,0.08); }
+.tg-color-5.active { background:#5fb3b3; color:#fff; }
+.tg-color-6 { border-color:#d4729b; color:#d4729b; }
+.tg-color-6:hover { background:rgba(212,114,155,0.08); }
+.tg-color-6.active { background:#d4729b; color:#fff; }
 .g-add-btn { padding:11px 24px; border:1.5px dashed var(--primary-light); border-radius:12px; font-size:15px; cursor:pointer; background:transparent; color:var(--primary); font-family:inherit; white-space:nowrap; transition:all .2s; }
 .g-add-btn:hover { background:rgba(123,155,106,0.08); border-color:var(--primary); }
 .g-inline-edit { display:inline-flex; align-items:center; gap:4px; }
@@ -8870,17 +8892,18 @@ function setTrainingSubcat(cat) {
 function renderTrainingGroupTabs() {
   const canManage = canEdit('training');
   const groups = ['全部', ...trainingGroups().map(c => c.name)];
-  let html = groups.map(c => {
+  let html = groups.map((c, idx) => {
     const isActive = trainingGroup === c;
+    const colorCls = ' tg-color-' + (idx % 7);
     // Inline editing mode
     if (_editingGroupName && _editingGroupName === c) {
-      return `<span class="training-group-tab active g-inline-edit">`
+      return `<span class="training-group-tab active g-inline-edit${colorCls}">`
         + `<input id="group-edit-input" value="${escapeHtml(c)}" onkeydown="if(event.key==='Enter')confirmEditGroup();if(event.key==='Escape')cancelEditGroup();">`
         + `<button class="btn-sm primary" style="padding:2px 8px;font-size:11px;" onclick="confirmEditGroup()">✓</button>`
         + `<button class="btn-sm outline" style="padding:2px 8px;font-size:11px;" onclick="cancelEditGroup()">✕</button>`
         + `</span>`;
     }
-    return `<button class="training-group-tab${isActive ? ' active' : ''}" onclick="setTrainingGroup('${c}')">${c}</button>`;
+    return `<button class="training-group-tab${colorCls}${isActive ? ' active' : ''}" onclick="setTrainingGroup('${c}')">${c}</button>`;
   }).join('');
   if (canManage) {
     html += `<button class="g-add-btn" onclick="addNewGroup()">＋ 新增大类</button>`;
