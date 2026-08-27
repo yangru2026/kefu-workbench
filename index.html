@@ -421,6 +421,9 @@ body {
 .sg-三组 { border-color:#9b7ad4; color:#9b7ad4; }
 .sg-三组:hover { background:rgba(155,122,212,0.10); }
 .sg-三组.active { background:#9b7ad4; color:#fff; border-color:#9b7ad4; }
+.sg-极氧 { border-color:#2bb3a5; color:#2bb3a5; }
+.sg-极氧:hover { background:rgba(43,179,165,0.10); }
+.sg-极氧.active { background:#2bb3a5; color:#fff; border-color:#2bb3a5; }
 .cat-add-btn { padding:9px 20px; border:1.5px dashed var(--primary-light); border-radius:24px; font-size:14px; cursor:pointer; background:transparent; color:var(--primary); font-family:inherit; white-space:nowrap; transition:all .2s; }
 .cat-add-btn:hover { background:rgba(123,155,106,0.08); border-color:var(--primary); }
 .cat-inline-edit { display:inline-flex; align-items:center; gap:4px; }
@@ -9326,7 +9329,7 @@ function openTrainingDetail(d) {
 
 // ==================== 售前话术（training_scripts） ====================
 const SCRIPT_STYLES = ['标准', '亲切', '简短', '专业', '安抚'];
-const SCRIPT_GROUPS = ['通用', '一组', '二组', '三组'];
+const SCRIPT_GROUPS = ['通用', '一组', '二组', '三组', '极氧'];
 
 function renderScripts() {
   const search = (document.getElementById('training-search')?.value || '').toLowerCase();
