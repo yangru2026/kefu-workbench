@@ -3118,7 +3118,7 @@ async function loadTrainingScripts() {
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true });
     if (error) { console.error('话术加载失败:', error); return; }
-    const order = ['标准', '亲切', '简短', '专业', '安抚'];
+    const order = ['标准', '简短', '专业'];
     trainingScripts = (data || []).map(d => ({
       ...d,
       script_group: d.script_group || '通用',
@@ -9310,7 +9310,7 @@ function renderTraining() {
   }
   if (subEl) {
     subEl.textContent = isScriptCat
-      ? '按分组（通用 / 一组 / 二组 / 三组）浏览话术，点击卡片查看完整话术（标准/亲切/简短/专业/安抚 多种风格）'
+      ? '按分组（通用 / 一组 / 二组 / 三组）浏览话术，点击卡片查看完整话术（标准/简短/专业 三种风格）'
       : '按大类和小类查看培训资料，点击链接打开飞书云文档 | 修改实时同步所有客服';
   }
   if (isScriptCat) { renderScripts(); return; }
@@ -9518,7 +9518,7 @@ function openTrainingDetail(d) {
 }
 
 // ==================== 售前话术（training_scripts） ====================
-const SCRIPT_STYLES = ['标准', '亲切', '简短', '专业', '安抚'];
+const SCRIPT_STYLES = ['标准', '简短', '专业'];
 const SCRIPT_GROUPS = ['通用', '一组', '二组', '三组', '极氧'];
 // 顶级分类中走「话术」渲染的大类（与 training_categories 顶级分类联动）
 const SCRIPT_TOP_CATEGORIES = ['售前话术', '操作类'];
