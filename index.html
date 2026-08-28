@@ -9830,7 +9830,7 @@ async function saveLicense() {
   try {
     for (const key of upKeys) {
       const f = _licEditFiles[key];
-      const safe = (data.shop_short || 'lic').replace(/[\/\\:*?"<>|]/g, '_');
+      const safe = licSlug(data.shop_short || 'lic');
       const path = 'lic/' + safe + '/' + keyMap[key] + '_' + Date.now() + '.' + (f.name.split('.').pop() || 'png');
       const { error } = await supabase.storage.from('licenses').upload(path, f, { upsert: true });
       if (error) { showToast('图片上传失败：' + error.message); return; }
@@ -9917,6 +9917,32 @@ function clearFactoryImg(curUrl) {
   if (fn) fn.textContent = curUrl ? '已移除（保存后生效）' : '';
 }
 
+// 把中文名转成 Storage 可用的 ASCII 路径（常见字转拼音，兜底去非 ASCII）
+function licSlug(name) {
+  const map = {
+    '陕西福蔻': 'shanxi-fukou',
+    '西安科诗美': 'xian-keshimei',
+    '吉林瑞尔康': 'jilin-ruierkang',
+    '江苏天眼': 'jiangsu-tianyan'
+  };
+  if (map[name]) return map[name];
+  const py = {
+    '陕':'shan','西':'xi','福':'fu','蔻':'kou','安':'an','科':'ke','诗':'shi','美':'mei',
+    '吉':'ji','林':'lin','瑞':'rui','尔':'er','康':'kang','江':'jiang','苏':'su','天':'tian','眼':'yan',
+    '抖':'dou','音':'yin','快':'kuai','手':'shou','拼':'pin','多':'duo','猫':'mao',
+    '有':'you','赞':'zan','小':'xiao','红':'hong','书':'shu','京':'jing','东':'dong',
+    '店':'dian','弥':'mi','生':'sheng','极':'ji','氧':'yang','杭':'hang','州':'zhou',
+    '美':'mei','尤':'you','赫':'he','新':'xin','疆':'jiang','深':'shen','圳':'zhen',
+    '广':'guang','州':'zhou','上':'shang','海':'hai','北':'bei','京':'jing'
+  };
+  let s = name.replace(/[\\/\\:*?"<>|]/g, '_')
+    .replace(/[^\x00-\x7F]/g, c => py[c] || '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    .toLowerCase();
+  return s || 'item';
+}
+
 async function saveFactory() {
   if (!isLicenseAdmin()) { showToast('仅管理员可保存'); return; }
   const name = _factoryEditItem ? _factoryEditItem.name : (document.getElementById('fe-name')?.value || '').trim();
@@ -9926,7 +9952,7 @@ async function saveFactory() {
   showToast('⏳ 正在保存…');
   try {
     if (_factoryEditFile) {
-      const safe = name.replace(/[\/\\:*?"<>|]/g, '_');
+      const safe = licSlug(name);
       const path = 'lic/factory/' + safe + '/production_' + Date.now() + '.' + (_factoryEditFile.name.split('.').pop() || 'png');
       const { error } = await supabase.storage.from('licenses').upload(path, _factoryEditFile, { upsert: true });
       if (error) { showToast('图片上传失败：' + error.message); return; }
