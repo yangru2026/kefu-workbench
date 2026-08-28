@@ -71,20 +71,36 @@ const server = http.createServer((req, res) => {
   });
   console.log('[查验证明页]', JSON.stringify(licPage));
 
-  // 3) 切换到培训资料页（操作类顶级 tab 逻辑）
+  // 3) 切换到培训资料页
   await page.evaluate(() => window.switchPage('training'));
   await new Promise(r => setTimeout(r, 3000));
-  const trainPage = await page.evaluate(() => {
-    const tabs = document.getElementById('training-group-tabs');
-    return { tabsHtml: tabs ? tabs.innerText.slice(0, 120) : 'N/A' };
-  });
-  console.log('[培训页 Tab]', trainPage.tabsHtml.replace(/\n/g, ' | '));
 
-  // 3.1) 验证售前话术「通用」分组三级小类 Tab
+  // 3.1) 验证资料模块：第二行为培训资料大类，不含售前话术
+  const trainPage = await page.evaluate(() => {
+    const moduleTabs = document.getElementById('training-module-tabs');
+    const tabs = document.getElementById('training-group-tabs');
+    return {
+      hasModuleTabs: !!(moduleTabs && moduleTabs.innerText.includes('培训资料') && moduleTabs.innerText.includes('售前话术')),
+      tabsHtml: tabs ? tabs.innerText.slice(0, 200) : 'N/A'
+    };
+  });
+  console.log('[培训页模块Tab]', trainPage.hasModuleTabs);
+  console.log('[培训页资料大类]', trainPage.tabsHtml.replace(/\n/g, ' | '));
+
+  // 3.2) 切换到售前话术模块，验证分组 Tab
+  const scriptPage = await page.evaluate(() => {
+    setTrainingModule('话术');
+    const tabs = document.getElementById('training-group-tabs');
+    return {
+      tabsHtml: tabs ? tabs.innerText.slice(0, 120) : 'N/A',
+      hasAll: tabs ? tabs.innerText.includes('全部') : false,
+      hasJiYang: tabs ? tabs.innerText.includes('极氧') : false
+    };
+  });
+  console.log('[培训页话术分组]', scriptPage.tabsHtml.replace(/\n/g, ' | '));
+
+  // 3.3) 验证售前话术「通用」分组三级小类 Tab
   const subcatCheck = await page.evaluate(() => {
-    trainingGroup = '售前话术';
-    trainingScriptGroup = '通用';
-    trainingScriptSubcat = '全部';
     trainingCategories = [
       { id: 'g-sh', name: '售前话术', sort_order: 500, parent_id: '' },
       { id: 's1', name: '商品问题', sort_order: 10, parent_id: '售前话术-通用' },
@@ -100,8 +116,8 @@ const server = http.createServer((req, res) => {
       { id: 's11', name: '售前前置投诉顾虑', sort_order: 110, parent_id: '售前话术-通用' },
       { id: 's12', name: '商务合作咨询', sort_order: 120, parent_id: '售前话术-通用' }
     ];
-    renderTraining();
-    const el = document.getElementById('training-script-subcat-tabs');
+    setTrainingScriptGroup('通用');
+    const el = document.getElementById('training-subcat-tabs');
     const html = el ? el.innerHTML : '';
     return {
       visible: el && el.style.display !== 'none',

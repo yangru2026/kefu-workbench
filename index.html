@@ -363,6 +363,12 @@ body {
 .filter-tag:hover { border-color: var(--primary); color: var(--primary); }
 .filter-tag.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
+/* Training module tabs (顶层：培训资料 / 售前话术) */
+.training-module-tabs { display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+.training-module-tab { padding:9px 22px; border:1.5px solid var(--border); border-radius:12px; font-size:14px; font-weight:700; cursor:pointer; background:#fff; color:var(--text-secondary); font-family:inherit; transition:all .2s; white-space:nowrap; }
+.training-module-tab:hover { border-color:var(--primary); color:var(--primary); }
+.training-module-tab.active { background:var(--primary); color:#fff; border-color:var(--primary); box-shadow:0 2px 6px rgba(123,155,106,0.25); }
+
 /* Training group tabs (大类) */
 .training-group-tabs { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
 .training-group-tab { padding:7px 16px; border:1px solid var(--border); border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; background:#fff; color:var(--text-secondary); font-family:inherit; transition:all .2s; white-space:nowrap; }
@@ -2467,7 +2473,9 @@ body {
         <button class="admin-only-nav" id="train-add-btn" onclick="openTrainingEditor(null)" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">＋ 新增资料</button>
       </div>
     </div>
-    <!-- 大类 Tab -->
+    <!-- 顶层模块 Tab：培训资料 / 售前话术 -->
+    <div class="training-module-tabs" id="training-module-tabs"></div>
+    <!-- 大类 Tab / 话术分组 Tab -->
     <div class="training-group-tabs" id="training-group-tabs"></div>
     <!-- 小类 Tab（选中大类后显示） -->
     <div class="training-cat-tabs" id="training-subcat-tabs"></div>
@@ -8950,6 +8958,7 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ==================== TRAINING ====================
+let trainingModule = '资料';     // '资料' | '话术'
 let trainingGroup = '全部';
 let trainingSubcatFilter = '全部';
 let trainingScriptGroup = '全部';
@@ -8959,6 +8968,31 @@ let trainingKnowledge = [];
 
 function trainingGroups() { return trainingCategories.filter(c => !c.parent_id); }
 function trainingSubcats() { return trainingCategories.filter(c => c.parent_id); }
+
+function setTrainingModule(module) {
+  trainingModule = module;
+  trainingSubcatFilter = '全部';
+  trainingScriptGroup = '全部';
+  trainingScriptSubcat = '全部';
+  if (module === '话术') {
+    trainingGroup = SCRIPT_GROUP;
+  } else {
+    trainingGroup = '全部';
+  }
+  renderTraining();
+}
+
+function renderTrainingModuleTabs() {
+  const el = document.getElementById('training-module-tabs');
+  if (!el) return;
+  const tabs = [
+    { key: '资料', label: '📚 培训资料' },
+    { key: '话术', label: '💬 售前话术' }
+  ];
+  el.innerHTML = tabs.map(t =>
+    '<button class="training-module-tab' + (trainingModule === t.key ? ' active' : '') + '" onclick="setTrainingModule(\'' + t.key + '\')">' + t.label + '</button>'
+  ).join('');
+}
 
 function setTrainingGroup(group) {
   trainingGroup = group;
@@ -8976,25 +9010,36 @@ function setTrainingSubcat(cat) {
   renderTraining();
 }
 
-// ---------- 大类 Tab ----------
+// ---------- 大类 Tab / 话术分组 Tab ----------
 function renderTrainingGroupTabs() {
   const canManage = canEdit('training');
-  const groups = ['全部', ...trainingGroups().map(c => c.name)];
-  let html = groups.map((c, idx) => {
-    const isActive = trainingGroup === c;
-    const colorCls = ' tg-color-' + (idx % 7);
-    // Inline editing mode
-    if (_editingGroupName && _editingGroupName === c) {
-      return `<span class="training-group-tab active g-inline-edit${colorCls}">`
-        + `<input id="group-edit-input" value="${escapeHtml(c)}" onkeydown="if(event.key==='Enter')confirmEditGroup();if(event.key==='Escape')cancelEditGroup();">`
-        + `<button class="btn-sm primary" style="padding:2px 8px;font-size:11px;" onclick="confirmEditGroup()">✓</button>`
-        + `<button class="btn-sm outline" style="padding:2px 8px;font-size:11px;" onclick="cancelEditGroup()">✕</button>`
-        + `</span>`;
+  let html = '';
+  if (trainingModule === '话术') {
+    // 话术模块：第二行显示「分组」（通用/一组/二组/三组/极氧）
+    const groups = ['全部', ...SCRIPT_GROUPS];
+    html = groups.map(g => {
+      const isActive = trainingScriptGroup === g;
+      return '<button class="training-cat-tab sg-' + g + (isActive ? ' active' : '') + '" onclick="setTrainingScriptGroup(\'' + g + '\')">' + g + '</button>';
+    }).join('');
+  } else {
+    // 资料模块：第二行显示培训资料大类（不含「售前话术」）
+    const groups = ['全部', ...trainingGroups().map(c => c.name).filter(n => n !== SCRIPT_GROUP)];
+    html = groups.map((c, idx) => {
+      const isActive = trainingGroup === c;
+      const colorCls = ' tg-color-' + (idx % 7);
+      // Inline editing mode
+      if (_editingGroupName && _editingGroupName === c) {
+        return `<span class="training-group-tab active g-inline-edit${colorCls}">`
+          + `<input id="group-edit-input" value="${escapeHtml(c)}" onkeydown="if(event.key==='Enter')confirmEditGroup();if(event.key==='Escape')cancelEditGroup();">`
+          + `<button class="btn-sm primary" style="padding:2px 8px;font-size:11px;" onclick="confirmEditGroup()">✓</button>`
+          + `<button class="btn-sm outline" style="padding:2px 8px;font-size:11px;" onclick="cancelEditGroup()">✕</button>`
+          + `</span>`;
+      }
+      return `<button class="training-group-tab${colorCls}${isActive ? ' active' : ''}" onclick="setTrainingGroup('${c}')">${c}</button>`;
+    }).join('');
+    if (canManage) {
+      html += `<button class="g-add-btn" onclick="addNewGroup()">＋ 新增大类</button>`;
     }
-    return `<button class="training-group-tab${colorCls}${isActive ? ' active' : ''}" onclick="setTrainingGroup('${c}')">${c}</button>`;
-  }).join('');
-  if (canManage) {
-    html += `<button class="g-add-btn" onclick="addNewGroup()">＋ 新增大类</button>`;
   }
   document.getElementById('training-group-tabs').innerHTML = html;
 }
@@ -9003,10 +9048,40 @@ function renderTrainingGroupTabs() {
 function renderTrainingSubcatTabs() {
   const el = document.getElementById('training-subcat-tabs');
   if (!el) return;
+
+  // 话术模块：在「通用」分组下显示三级小类 Tab
+  if (trainingModule === '话术') {
+    if (trainingScriptGroup !== '通用') { el.innerHTML = ''; el.style.display = 'none'; return; }
+    el.style.display = 'flex';
+    const subs = scriptSubcats();
+    const cats = ['全部', ...subs.map(c => c.name)];
+    const canManage = canEdit('training');
+    let html = cats.map(c => {
+      const isActive = trainingScriptSubcat === c;
+      if (_editingScriptSubcatName && _editingScriptSubcatName === c) {
+        return '<span class="training-script-subcat-tab active cat-inline-edit">'
+          + '<input id="script-sub-edit-input" value="' + escapeHtml(c) + '" onkeydown="if(event.key===\'Enter\')confirmEditScriptSubcat();if(event.key===\'Escape\')cancelEditScriptSubcat();">'
+          + '<button class="btn-sm primary" style="padding:2px 6px;font-size:10px;" onclick="confirmEditScriptSubcat()">✓</button>'
+          + '<button class="btn-sm outline" style="padding:2px 6px;font-size:10px;" onclick="cancelEditScriptSubcat()">✕</button>'
+          + '</span>';
+      }
+      const manage = (canManage && c !== '全部')
+        ? '<span class="tc-manage" onclick="event.stopPropagation();startEditScriptSubcat(\'' + escapeAttr(c) + '\')">✏️</span>'
+        + '<span class="tc-manage" onclick="event.stopPropagation();deleteScriptSubcat(\'' + escapeAttr(c) + '\')">🗑️</span>'
+        : '';
+      return '<button class="training-script-subcat-tab' + (isActive ? ' active' : '') + '" onclick="setTrainingScriptSubcat(\'' + escapeAttr(c) + '\')">' + escapeHtml(c) + manage + '</button>';
+    }).join('');
+    if (canManage) {
+      html += '<button class="subcat-add-mini" onclick="addScriptSubcat()">＋ 新增小类</button>';
+    }
+    el.innerHTML = html;
+    return;
+  }
+
+  // 资料模块：按当前大类显示小类 Tab
   if (trainingGroup === '全部') { el.innerHTML = ''; el.style.display = 'none'; return; }
   el.style.display = 'flex';
   const canManage = canEdit('training');
-  if (trainingGroup === SCRIPT_GROUP) { renderScriptGroupTabs(el); return; }
   // 「操作类」为话术大类：不显示二级 Tab（小类在脚本数据里自由维护）
   if (trainingGroup === '操作类') { el.innerHTML = ''; el.style.display = 'none'; return; }
   const subs = trainingSubcats().filter(c => c.parent_id === trainingGroup);
@@ -9047,36 +9122,13 @@ function setTrainingScriptSubcat(sub) {
   renderScripts();
 }
 
-// ---------- 三级小类 Tab（仅售前话术「通用」分组） ----------
+// ---------- 三级小类 Tab（逻辑已合并到二级 Tab，容器保持空置） ----------
 let _editingScriptSubcatName = null;
 function renderTrainingScriptSubcatTabs() {
   const el = document.getElementById('training-script-subcat-tabs');
   if (!el) return;
-  // 只有「售前话术」大类 + 「通用」分组才显示
-  if (!(trainingGroup === '售前话术' && trainingScriptGroup === '通用')) { el.innerHTML = ''; el.style.display = 'none'; return; }
-  el.style.display = 'flex';
-  const subs = scriptSubcats();
-  const cats = ['全部', ...subs.map(c => c.name)];
-  const canManage = canEdit('training');
-  let html = cats.map(c => {
-    const isActive = trainingScriptSubcat === c;
-    if (_editingScriptSubcatName && _editingScriptSubcatName === c) {
-      return '<span class="training-script-subcat-tab active cat-inline-edit">'
-        + '<input id="script-sub-edit-input" value="' + escapeHtml(c) + '" onkeydown="if(event.key===\'Enter\')confirmEditScriptSubcat();if(event.key===\'Escape\')cancelEditScriptSubcat();">'
-        + '<button class="btn-sm primary" style="padding:2px 6px;font-size:10px;" onclick="confirmEditScriptSubcat()">✓</button>'
-        + '<button class="btn-sm outline" style="padding:2px 6px;font-size:10px;" onclick="cancelEditScriptSubcat()">✕</button>'
-        + '</span>';
-    }
-    const manage = (canManage && c !== '全部')
-      ? '<span class="tc-manage" onclick="event.stopPropagation();startEditScriptSubcat(\'' + escapeAttr(c) + '\')">✏️</span>'
-      + '<span class="tc-manage" onclick="event.stopPropagation();deleteScriptSubcat(\'' + escapeAttr(c) + '\')">🗑️</span>'
-      : '';
-    return '<button class="training-script-subcat-tab' + (isActive ? ' active' : '') + '" onclick="setTrainingScriptSubcat(\'' + escapeAttr(c) + '\')">' + escapeHtml(c) + manage + '</button>';
-  }).join('');
-  if (canManage) {
-    html += '<button class="subcat-add-mini" onclick="addScriptSubcat()">＋ 新增小类</button>';
-  }
-  el.innerHTML = html;
+  el.innerHTML = '';
+  el.style.display = 'none';
 }
 
 function setTrainingScriptGroup(g) {
@@ -9295,11 +9347,12 @@ function renderKnowledgeBlocks(subcat) {
 }
 
 function renderTraining() {
+  renderTrainingModuleTabs();
   renderTrainingGroupTabs();
   renderTrainingSubcatTabs();
   renderTrainingScriptSubcatTabs();
-  // 顶部「＋新增」按钮与副标题按当前大类联动
-  const isScriptCat = isScriptTopCat(trainingGroup);
+  // 顶部「＋新增」按钮与副标题按模块/大类联动
+  const isScriptCat = trainingModule === '话术' || trainingGroup === '操作类';
   const addBtn = document.getElementById('train-add-btn');
   const subEl = document.getElementById('training-subtitle');
   if (addBtn) {
@@ -9310,7 +9363,7 @@ function renderTraining() {
   }
   if (subEl) {
     subEl.textContent = isScriptCat
-      ? '按分组（通用 / 一组 / 二组 / 三组）浏览话术，点击卡片查看完整话术（标准/简短/专业 三种风格）'
+      ? '按分组浏览话术，点击卡片查看完整话术（标准/简短/专业 三种风格）'
       : '按大类和小类查看培训资料，点击链接打开飞书云文档 | 修改实时同步所有客服';
   }
   if (isScriptCat) { renderScripts(); return; }
