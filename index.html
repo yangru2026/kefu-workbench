@@ -578,6 +578,30 @@ body {
 .jy-series-spec { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; }
 .jy-series-tip { font-size: 12px; line-height: 1.7; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.6); color: var(--text); }
 
+/* 极氧品牌详情 - 按飞书文档结构扩展样式 */
+.jy-part { margin-bottom: 30px; }
+.jy-part-title { font-size: 18px; font-weight: 800; color: #5b4bd5; margin: 0 0 16px; padding-bottom: 10px; border-bottom: 2px solid #ece4fb; display: flex; align-items: center; gap: 8px; }
+.jy-sub-title { font-size: 15px; font-weight: 700; color: var(--text); margin: 20px 0 12px; display: flex; align-items: center; gap: 6px; }
+.jy-tip { border-radius: 12px; padding: 13px 16px; font-size: 13px; line-height: 1.8; margin: 12px 0; }
+.jy-tip.pos { background: #eefaf0; border: 1px solid #c8e8c8; color: #3a6b3a; }
+.jy-tip.warn { background: #fff6f1; border: 1px solid #ffd6c2; color: #b5562b; }
+.jy-tip.info { background: #f1f6ff; border: 1px solid #c8dbff; color: #3a5bb5; }
+.jy-data-table { width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 14px; overflow: hidden; border: 1px solid var(--border); margin-bottom: 6px; }
+.jy-data-table th { background: #f7f6fb; font-size: 13px; font-weight: 700; color: var(--text); padding: 11px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+.jy-data-table td { padding: 11px 14px; font-size: 13px; color: var(--text); border-bottom: 1px solid var(--border); background: #fff; vertical-align: top; line-height: 1.7; }
+.jy-data-table tr:last-child td { border-bottom: none; }
+.jy-data-table tr:nth-child(even) td { background: #fafafc; }
+.jy-data-table .col-label { font-weight: 600; color: var(--text-secondary); width: 130px; white-space: nowrap; }
+.jy-spec-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 14px; }
+.jy-spec-chip { font-size: 12px; padding: 4px 12px; border-radius: 10px; background: rgba(123,155,106,0.10); color: var(--primary); border: 1px solid var(--primary-light); }
+.jy-reco-card { border-radius: 14px; padding: 16px 18px; border: 1px solid transparent; margin-bottom: 14px; }
+.jy-reco-card.morning { background: #fffbe6; border-color: #f0e0a8; }
+.jy-reco-card.forest { background: #f0f9ff; border-color: #c5e1ff; }
+.jy-reco-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.jy-reco-card.morning h4 { color: #b58c1f; }
+.jy-reco-card.forest h4 { color: #3d7ab8; }
+.jy-reco-card .jy-reco-quote { font-size: 12px; line-height: 1.7; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.6); color: var(--text); margin-top: 8px; }
+
 @media (max-width: 768px) {
   .jy-info-grid { grid-template-columns: 1fr; }
   .jy-series-grid { grid-template-columns: 1fr; }
@@ -9474,7 +9498,7 @@ function renderTraining() {
       <div class="jy-page-header">
         <div class="jy-page-back" onclick="setTrainingSubcat('全部')">← 返回极氧列表</div>
         <h2>📗 极氧品牌介绍</h2>
-        <p>中高端硅水凝胶日抛 · 原 YOUHOO 品牌升级</p>
+        <p>尤赫（youhoo）旗下中高端美瞳品牌 · 硅水凝胶系列（含日抛 / 季抛）</p>
       </div>
       <div class="jy-page-container">
         ${getJiyangBrandFullHtml()}
@@ -9641,89 +9665,225 @@ async function deleteTraining(id, title) {
   loadTrainingFromDB();
 }
 
-// ==================== 极氧品牌定位一站式详情 ====================
+// ==================== 极氧品牌定位一站式详情（按飞书云文档 8/7 版重排） ====================
 function getJiyangBrandFullHtml() {
   return `
-    <div class="jy-brand-section">
-      <div class="jy-info-grid">
-        <div class="jy-info-card purple">
-          <h4><span>📍</span>品牌定位</h4>
-          <ul>
-            <li>定位：中高端硅水凝胶日抛</li>
-            <li>关系：原YOUHOO品牌升级变更</li>
-            <li>材质：硅水凝胶</li>
-            <li>人群：长时间佩戴、敏感眼、追求舒适度</li>
-          </ul>
-        </div>
-        <div class="jy-info-card blue">
-          <h4><span>📦</span>发货 & 生产</h4>
-          <ul>
-            <li>发货地：浙江</li>
-            <li>默认快递：中通（可选圆通）</li>
-            <li>售后特殊：可发顺丰</li>
-            <li>晨露系列：吉林瑞尔康</li>
-            <li>森氧系列：马来西亚工厂</li>
-          </ul>
-        </div>
-        <div class="jy-info-card green">
-          <h4><span>📏</span>通用参数</h4>
-          <ul>
-            <li>材质：硅水凝胶</li>
-            <li>抛型：日抛（1盒6片=3对）</li>
-            <li>度数：0 - 800度</li>
-            <li>含水量：晨露55% / 森氧47%</li>
-            <li>无需浸泡，拆开即戴</li>
-          </ul>
-        </div>
-      </div>
+  <!-- PART 01 · 品牌认知 -->
+  <div class="jy-part">
+    <div class="jy-part-title"><span>📌</span>PART 01 · 品牌认知</div>
+
+    <div class="jy-sub-title">一、🏢 品牌背景</div>
+    <div class="jy-tip info">
+      极氧 是一个独立的美瞳品牌，前身是 <b>youhoo</b>。品牌因新推出 <b>硅水凝胶</b> 产品线而进行了品牌升级，从 youhoo 更名为 极氧，以更好地传递产品核心卖点——极致透氧。<br>
+      💡 品牌名由来：「极氧」寓意 <b>极致透氧</b>，强调产品佩戴的舒适度与健康性，核心卖点围绕 <b>高透氧材质</b> 展开，尤其是新推出的硅水凝胶系列。
     </div>
 
-    <div class="jy-brand-section">
-      <div class="jy-brand-section-title"><span>📊</span>产品系列对比</div>
-      <table class="jy-compare-table">
-        <thead>
-          <tr>
-            <th style="width:110px;">对比项</th>
-            <th><div class="jy-series-head morning"><span>☀️</span>晨露系列（9款）</div></th>
-            <th><div class="jy-series-head forest"><span>🌲</span>森氧系列（4款）</div></th>
-          </tr>
-        </thead>
+    <div class="jy-sub-title">二、🎯 产品定位</div>
+    <table class="jy-data-table">
+      <thead><tr><th style="width:130px;">维度</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td class="col-label">💰 价格</td><td>客单价较高，中高端定位</td></tr>
+        <tr><td class="col-label">👥 核心人群</td><td>白领、上班族、宝妈</td></tr>
+        <tr><td class="col-label">✨ 核心卖点</td><td>极致透氧材质，主打硅水凝胶系列</td></tr>
+        <tr><td class="col-label">🏷 品牌前身</td><td>youhoo → 极氧（品牌升级）</td></tr>
+        <tr><td class="col-label">🔑 一句话定位</td><td>极氧 = 品牌升级后的 youhoo + 硅水凝胶新品线 + 中高端品质定位</td></tr>
+        <tr><td class="col-label">🗣 客服话术方向</td><td>强调品牌历史（youhoo 升级）、硅水凝胶技术优势、中高端品质保障</td></tr>
+      </tbody>
+    </table>
+    <div class="jy-tip pos">
+      🦄 宝宝，【极氧】是尤赫（youhoo）控股有限公司旗下新研发的子品牌，专攻【硅水凝胶】材质的美瞳，品牌核心就是【高透氧、高含水】，让眼睛戴起来更舒服！
+    </div>
+
+    <div class="jy-sub-title">三、🔬 双系列对比 —— 硅水凝胶日抛</div>
+    <p style="font-size:13px;color:var(--text-secondary);line-height:1.8;margin:0 0 12px;">极氧目前主要产品为 <b>硅水凝胶日抛</b>，围绕不同佩戴需求，形成 <b>晨露系列</b> 与 <b>森氧系列</b> 两大产品线。</p>
+
+    <!-- 晨露系列 -->
+    <div class="jy-reco-card morning">
+      <h4><span>🌸</span>晨露系列 —— 舒适入门 / 日常通勤</h4>
+      <table class="jy-data-table">
         <tbody>
-          <tr><td class="col-header">工厂</td><td>吉林瑞尔康</td><td>马来西亚工厂</td></tr>
-          <tr><td class="col-header">透氧量</td><td>100 DK/t</td><td>150 DK/t</td></tr>
-          <tr><td class="col-header">基弧</td><td>8.5mm</td><td>8.7mm</td></tr>
-          <tr><td class="col-header">含水量</td><td>55%</td><td>47%</td></tr>
-          <tr><td class="col-header">核心优势</td><td>高含水、易摘取</td><td>高透氧、长续航</td></tr>
-          <tr><td class="col-header">适合人群</td><td>新手、摘戴困难者</td><td>长时间佩戴、眼干者</td></tr>
-          <tr><td class="col-header">材质触感</td><td>更柔软、亲水</td><td>略硬但透氧更好</td></tr>
+          <tr><td class="col-label">💨 透氧率</td><td>100 dk/t</td></tr>
+          <tr><td class="col-label">🏭 供应商</td><td>国内龙头供应商</td></tr>
+          <tr><td class="col-label">⭐ 核心特点</td><td>高亲水·易摘取、仿生自适应设计、基弧自适应功能</td></tr>
+          <tr><td class="col-label">😊 佩戴体验</td><td>初戴约 1-2 分钟逐渐贴合，更舒适稳定</td></tr>
+          <tr><td class="col-label">👤 适合人群</td><td>新手、日常通勤、短时间佩戴（≤8小时）、喜欢自然妆感</td></tr>
+          <tr><td class="col-label">🎯 一句话卖点</td><td>"舒适水润，日常佩戴刚刚好"</td></tr>
+        </tbody>
+      </table>
+      <div class="jy-tip info">
+        📚 宝子~咱们这款硅水凝胶的镜片自带基弧自适应特性哦，刚戴上初期容易出现短暂滑片，建议先不要立刻取下。正常佩戴适应【2分钟】左右，镜片会随着眼球泪液流动慢慢调整位置、自动贴合眼球，滑片情况大多就能改善啦，您可以再试试看〜
+      </div>
+      <div class="jy-sub-title" style="margin-top:14px;">🎨 晨露系列花色（日抛）</div>
+      <div class="jy-spec-row">
+        <span class="jy-spec-chip">📏 直径：14.2mm</span>
+        <span class="jy-spec-chip">💧 含水量：58%</span>
+        <span class="jy-spec-chip">🔘 基弧：8.7mm</span>
+        <span class="jy-spec-chip">💨 透氧率：Dk/t 100</span>
+      </div>
+      <table class="jy-data-table">
+        <thead><tr><th>花色名称</th><th>特点</th><th style="width:90px;">着色直径</th></tr></thead>
+        <tbody>
+          <tr><td>🌑 暮色回响</td><td>无锁边透亮黑灰色</td><td>13.43mm</td></tr>
+          <tr><td>🌅 糖霜日落</td><td>温柔红棕色，上眼水光感十足，氛围感女神</td><td>13.47mm</td></tr>
+          <tr><td>☁ 扶光云梦</td><td>轻混血蓝灰色，深蓝色细锁边设计搭配月牙型高光，时尚又不夸张</td><td>13.15mm</td></tr>
+          <tr><td>💚 清欢水漾</td><td>环形内圈是氧气感的绿搭配精致的黑色系锁边，佩戴上眼神温柔如水，高级感满满</td><td>13.52mm</td></tr>
+          <tr><td>🌊 坠眼青花</td><td>自然扩瞳又不失神秘感</td><td>13.4mm</td></tr>
+          <tr><td>🌾 梨漫花岛</td><td>柔雾亚麻棕，女神必备</td><td>13.7mm</td></tr>
+          <tr><td>💜 璎珞半夏</td><td>低饱和粉紫调，梦幻渐变设计</td><td>13.4mm</td></tr>
+          <tr><td>🟤 琥珀柔光</td><td>复古琥珀棕调</td><td>13.6mm</td></tr>
+          <tr><td>☕ 梨花杏雨</td><td>水润清透咖啡棕</td><td>13.6mm</td></tr>
         </tbody>
       </table>
     </div>
 
-    <div class="jy-brand-section">
-      <div class="jy-brand-section-title"><span>🎨</span>系列花色</div>
-      <div class="jy-series-grid">
-        <div class="jy-series-card morning">
-          <h4><span>☀️</span>晨露系列 — 9款花色</h4>
-          <div class="jy-series-tags">
-            <span>樱花半夏</span><span>梨花杏雨</span><span>琥珀柔光</span>
-            <span>糖霜日落</span><span>暮色回响</span><span>梨源花岛</span>
-            <span>坠陨青花</span><span>扶光云梦</span><span>清欢水漾</span>
-          </div>
-          <div class="jy-series-spec">着色直径 13.40-13.50mm | 镜片直径 14.2mm</div>
-          <div class="jy-series-tip">💡 推荐话术："宝子如果是新手或者担心摘取问题，推荐晨露系列，吉林瑞尔康工厂生产，高含水材质，摘取很容易～"</div>
-        </div>
-        <div class="jy-series-card forest">
-          <h4><span>🌲</span>森氧系列 — 4款花色</h4>
-          <div class="jy-series-tags">
-            <span>梦蝶晚意</span><span>风摇南枝</span>
-            <span>春野鹿鸣</span><span>雪落松香</span>
-          </div>
-          <div class="jy-series-spec">着色直径 13.30mm | 镜片直径 14.2mm</div>
-          <div class="jy-series-tip">💡 推荐话术："宝子如果需要戴8小时以上，或者眼睛容易干，推荐森氧系列，马来西亚工厂生产，透氧更高，戴一整天也舒服～"</div>
-        </div>
+    <!-- 森氧系列 -->
+    <div class="jy-reco-card forest">
+      <h4><span>🌲</span>森氧系列 —— 技术旗舰 / 高透氧天花板</h4>
+      <table class="jy-data-table">
+        <tbody>
+          <tr><td class="col-label">💨 透氧率</td><td>150 dk/t（行业顶尖）</td></tr>
+          <tr><td class="col-label">🏭 供应商</td><td>马来西亚进口</td></tr>
+          <tr><td class="col-label">⭐ 核心特点</td><td>全球顶级透氧、敏感眼友好、长时间佩戴</td></tr>
+          <tr><td class="col-label">😊 佩戴体验</td><td>12H+ 无感佩戴，戴一整天也不闷</td></tr>
+          <tr><td class="col-label">👤 适合人群</td><td>敏感眼、长时间佩戴（≥8小时）、高要求用户、老手</td></tr>
+          <tr><td class="col-label">🎯 一句话卖点</td><td>"超高透氧，久戴更自在"</td></tr>
+        </tbody>
+      </table>
+      <div class="jy-sub-title" style="margin-top:14px;">🎨 森氧系列花色（日抛）</div>
+      <div class="jy-spec-row">
+        <span class="jy-spec-chip">📏 直径：14.1mm</span>
+        <span class="jy-spec-chip">💧 含水量：47%</span>
+        <span class="jy-spec-chip">🔘 基弧：8.8mm</span>
+        <span class="jy-spec-chip">💨 透氧率：Dk/t 150</span>
       </div>
+      <table class="jy-data-table">
+        <thead><tr><th>花色名称</th><th>特点</th><th style="width:90px;">着色直径</th></tr></thead>
+        <tbody>
+          <tr><td>🦌 春野鹿鸣</td><td>花色模拟鹿斑与林间光影交织的层次，浅棕底上晕染着不规则的灰绿斑纹，充满呼吸感与野生灵趣</td><td>13.7mm</td></tr>
+          <tr><td>❄ 雪落松香</td><td>冷冽的灰白与松针的黛绿交织，克制的高级感瞬间衬托出肌肤的冷调白皙，仿佛自带反光板</td><td>13.6mm</td></tr>
+          <tr><td>🦋 梦蝶晚窗</td><td>一层蜜糖般的暖棕光泽，通透如琉璃珠，甜蜜、澄澈，带着毛茸茸的光晕</td><td>13.7mm</td></tr>
+          <tr><td>🌿 风摇南枝</td><td>黑如墨玉，灰似青瓦，色系中自带一份"望族闺秀"的疏离贵气与从容底色</td><td>13.8mm</td></tr>
+        </tbody>
+      </table>
     </div>
+
+    <!-- 双系列核心差异对比 -->
+    <div class="jy-sub-title">📊 双系列核心差异对比</div>
+    <table class="jy-data-table">
+      <thead><tr><th style="width:120px;">维度</th><th>🌲 森氧系列</th><th>🌸 晨露系列</th></tr></thead>
+      <tbody>
+        <tr><td class="col-label">💨 核心透氧率</td><td>150 dk/t 🏆（行业顶尖）</td><td>100 dk/t（行业优秀）</td></tr>
+        <tr><td class="col-label">🎯 定位</td><td>旗舰高透氧系列</td><td>日常舒适系列</td></tr>
+        <tr><td class="col-label">👤 目标人群</td><td>敏感眼、长时间佩戴、高要求用户</td><td>新手、日常通勤、短时间佩戴</td></tr>
+        <tr><td class="col-label">⭐ 核心卖点</td><td>超高透氧，戴一整天也不闷</td><td>舒适水润，日常佩戴刚刚好</td></tr>
+        <tr><td class="col-label">🏭 供应商</td><td>🇲🇾 马来西亚进口</td><td>国内龙头供应商</td></tr>
+        <tr><td class="col-label">💧 含水量</td><td>47%</td><td>58%</td></tr>
+        <tr><td class="col-label">📏 直径</td><td>14.1mm</td><td>14.2mm</td></tr>
+        <tr><td class="col-label">💰 价格</td><td>与晨露同价</td><td>与森氧同价</td></tr>
+      </tbody>
+    </table>
+    <div class="jy-tip info">📌 💨 Dk/t 数值越高，透氧表现越强；价格相同，差异在于透氧率和佩戴场景，客服根据顾客需求推荐。</div>
+
+    <!-- 用户怎么选 -->
+    <div class="jy-sub-title">🎯 用户怎么选？—— 客服推荐话术</div>
+    <table class="jy-data-table">
+      <thead><tr><th style="width:160px;">顾客类型</th><th style="width:110px;">推荐系列</th><th>话术</th></tr></thead>
+      <tbody>
+        <tr><td>🆕 第一次尝试硅水凝胶<br>偏日常通勤</td><td>🌸 晨露系列</td><td>"晨露系列透氧100，高亲水易摘取，初戴1-2分钟就贴合，含水量58%更水润，非常适合新手入门和日常通勤佩戴"</td></tr>
+        <tr><td>💻 长时间佩戴（≥8小时）<br>上班族、宝妈</td><td>🌲 森氧系列</td><td>"森氧系列透氧150是行业顶尖，马来西亚进口，敏感眼也能12小时无感佩戴，适合长时间对着电脑的上班族和带娃的宝妈"</td></tr>
+        <tr><td>😵 戴美瞳容易眼干、红血丝<br>敏感眼</td><td>🌲 森氧系列</td><td>"森氧系列透氧率150，是真正的高透氧，能缓解眼干和红血丝问题，很多敏感眼的顾客反馈戴一整天都很舒服"</td></tr>
+        <tr><td>👁 容易摘戴困难<br>新手/手残党</td><td>🌸 晨露系列</td><td>"晨露系列主打易摘取，基弧自适应设计，新手也能轻松摘戴，不容易弄伤眼睛"</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- PART 02 · 销售渠道与运营现状 -->
+  <div class="jy-part">
+    <div class="jy-part-title"><span>📌</span>PART 02 · 销售渠道与运营现状</div>
+    <table class="jy-data-table">
+      <thead><tr><th style="width:130px;">渠道</th><th>定位</th></tr></thead>
+      <tbody>
+        <tr><td class="col-label">🐱 天猫</td><td>品牌旗舰店</td></tr>
+        <tr><td class="col-label">🎵 抖音</td><td>达人引流</td></tr>
+        <tr><td class="col-label">🔴 拼多多</td><td>低价走量</td></tr>
+        <tr><td class="col-label">📕 小红书</td><td>种草转化</td></tr>
+        <tr><td class="col-label">🏪 线下门店</td><td>体验渠道</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- PART 03 · 产品品类概览 -->
+  <div class="jy-part">
+    <div class="jy-part-title"><span>📌</span>PART 03 · 产品品类概览</div>
+
+    <div class="jy-sub-title">一、📦 季抛产品（中高端主力）</div>
+    <table class="jy-data-table">
+      <thead><tr><th>链接名称</th><th style="width:90px;">价格</th><th>到手内容</th><th>核心规则</th></tr></thead>
+      <tbody>
+        <tr><td>📦 单盒主链接</td><td><b>149元</b></td><td>1副正装美瞳 + 60ml护理液</td><td>❌ 不支持备注不同度数；不同度数需买二，买二均价139.4元（买二卖点：额外多送360ml护理液）</td></tr>
+        <tr><td>📦 断码小黄盒买一送一</td><td><b>83.1元</b></td><td>2副简包装美瞳 + 伴侣盒1个</td><td>备注花色只能选同链接花色；查库存编码：花色+度数+小黄盒（如：凌晨三点275小黄盒）</td></tr>
+        <tr><td>📦 尝鲜小黄盒</td><td><b>83.1元</b></td><td>1副简包装美瞳 + 伴侣盒1个 + 护理液60ml（美瞳仅一副）</td><td>不可备注替换非本链接的花色；查库存编码：花色+度数+小黄盒（如：酒心巧克力275小黄盒）</td></tr>
+        <tr><td>📦 断码正装送小黄盒</td><td><b>139元</b></td><td>1副正装 + 1副简包装</td><td>同上规则；不加"小黄盒"查的是正装库存</td></tr>
+        <tr><td>📦 新品买一送一</td><td><b>188元</b></td><td>1副正装 + 1副小黄盒</td><td>只有188链接才有此活动；正装只能选新品链接花色；小黄盒除极光金棕外都可选</td></tr>
+        <tr><td>📦 囤货买二送二</td><td><b>379元</b></td><td>2副正装 + 2副小黄盒 + 蒸汽眼罩一盒</td><td>正装无限制；送的小黄盒不能选极光金棕；全要极光金棕需补20元差价</td></tr>
+      </tbody>
+    </table>
+    <div class="jy-tip warn">✍ ❌ 所有季抛购买单盒不支持备注不同度数。</div>
+
+    <div class="jy-sub-title">二、📦 日抛产品（便捷卫生之选）</div>
+    <table class="jy-data-table">
+      <thead><tr><th>产品名称</th><th style="width:90px;">价格</th><th>多件优惠</th><th>库存状态</th></tr></thead>
+      <tbody>
+        <tr><td>💧 水凝胶-6片<br>（youhoo）</td><td><b>44元</b></td><td>12盒均价35/盒</td><td>⚠ 部分花色清仓断码，需确认库存</td></tr>
+        <tr><td>💎 硅水凝胶-6片<br>（极氧）</td><td><b>63.1元</b></td><td>两盒108.2（均价54.1）<br>四盒169.4（均价42.4）<br>八盒318.8（均价39.9）<br>10盒379（均价37.9）</td><td>✅ 正常</td></tr>
+      </tbody>
+    </table>
+    <div class="jy-tip warn">❌⚠ 日抛单盒不支持备注不同度数。</div>
+  </div>
+
+  <!-- PART 04 · 关键注意点 -->
+  <div class="jy-part">
+    <div class="jy-part-title"><span>📌</span>PART 04 · ⚠ 关键注意点</div>
+
+    <div class="jy-sub-title">一、🟤 极光金棕 特殊限制</div>
+    <div class="jy-tip warn">
+      • ❌ 新品买一送一（188元）：小黄盒和正装都 <b>不可选</b> 极光金棕，无补差价更换极光金棕机制。<br>
+      • ❌ 囤货买二送二（379元）：小黄盒 <b>不可选</b> 极光金棕，全要需补 <b>20元差价</b>。<br>
+      • 📦 断码链接：按库存情况，查编码时加 <b>"+小黄盒"</b>。
+    </div>
+
+    <div class="jy-sub-title">二、🔍 库存查询规范</div>
+    <div class="jy-tip info">
+      • 接待极氧/youhoo所有店铺查询库存，仓库都切换【尤赫仓】。<br>
+      • ✅ 涉及小黄盒/断码的链接，库存编码格式：<b>花色 + 度数 + 小黄盒</b>。<br>
+      • ❌ 不加"小黄盒" → 系统查的是正装库存，会 <b>误判</b>。<br>
+      • 📌 例：「酒心巧克力0小黄盒」 vs 「酒心巧克力0」（查正装）。
+    </div>
+
+    <div class="jy-sub-title">三、🔢 度数规则</div>
+    <div class="jy-tip warn">
+      ❌ <b>所有季抛/日抛单盒均不支持备注不同度数</b>。<br>
+      顾客要求左右眼不同度数 → <b>引导拍2盒</b>，或季抛推荐买一送一链接。
+    </div>
+  </div>
+
+  <!-- PART 05 · 客服接待注意事项 -->
+  <div class="jy-part">
+    <div class="jy-part-title"><span>📌</span>PART 05 · ✅ 客服接待注意事项</div>
+    <table class="jy-data-table">
+      <thead><tr><th style="width:60px;">#</th><th style="width:150px;">✅ 检查项</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>🔗 确认链接</td><td>顾客拍的是哪个链接？季抛/日抛？哪个价格？</td></tr>
+        <tr><td>2</td><td>🔢 确认度数规则</td><td>单盒不支持不同度数，需拍2盒或解释清楚</td></tr>
+        <tr><td>3</td><td>📦 小黄盒/断码库存</td><td>确认花色+度数+库存，编码后加"+小黄盒"</td></tr>
+        <tr><td>4</td><td>🟤 极光金棕限制</td><td>囤货链接（四副，两幅正装可选金棕，赠送小黄盒不可选）新品买一送一链接正装和小黄盒均不可选，注意区分</td></tr>
+        <tr><td>5</td><td>🏷 日抛清仓款</td><td>youhoo6片装下单前务必确认库存，避免超卖</td></tr>
+        <tr><td>6</td><td>🎁 活动规则核对</td><td>买二送二/买一送一的赠品明细与顾客确认</td></tr>
+        <tr><td>7</td><td>🎯 系列推荐</td><td>根据顾客需求推荐晨露/森氧系列（透氧100 vs 150），或根据颜色推荐即可。</td></tr>
+      </tbody>
+    </table>
+    <div class="jy-tip pos" style="margin-top:18px;">🎉 THANKS! 如有疑问，随时沟通 💬</div>
+  </div>
   `;
 }
 
