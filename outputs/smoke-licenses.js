@@ -129,14 +129,17 @@ const server = http.createServer((req, res) => {
   });
   console.log('[培训页三级小类]', JSON.stringify(subcatCheck));
 
-  // 3.4) 验证极氧品牌定位内嵌详情弹窗
+  // 3.4) 验证极氧品牌定位页面内直接展示
   const jiyangCheck = await page.evaluate(() => {
-    openJiyangBrandDetail();
-    const modal = document.getElementById('mod-jiyang-brand');
-    const body = document.getElementById('mod-jiyang-brand-body');
-    const text = body ? body.innerText : '';
+    setTrainingModule('资料');
+    setTrainingGroup('品牌背景和定位');
+    setTrainingSubcat('极氧');
+    const content = document.getElementById('training-content');
+    const text = content ? content.innerText : '';
+    const hasInlinePage = content && content.querySelector('.jy-page-container');
     return {
-      modalVisible: modal && modal.classList.contains('show'),
+      inlinePage: !!hasInlinePage,
+      hasHeader: text.includes('极氧品牌介绍'),
       hasBrandPosition: text.includes('中高端硅水凝胶日抛'),
       hasCompareTable: text.includes('晨露系列') && text.includes('森氧系列'),
       hasMorningSeries: text.includes('樱花半夏'),

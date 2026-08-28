@@ -535,6 +535,12 @@ body {
 
 /* 极氧品牌定位一站式详情 */
 .jy-brand-modal .modal-box { max-width: 900px; width: 92%; }
+.jy-page-header { background: linear-gradient(135deg, #f3f0ff, #e8e3ff); border: 1px solid #d6c8ff; border-radius: 14px; padding: 20px 24px; margin-bottom: 18px; }
+.jy-page-header h2 { margin: 8px 0 4px; font-size: 20px; color: #5b4bd5; display: flex; align-items: center; gap: 10px; }
+.jy-page-header p { margin: 0; font-size: 13px; color: var(--text-secondary); }
+.jy-page-back { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #7b5cb8; cursor: pointer; font-weight: 600; transition: color .15s; }
+.jy-page-back:hover { color: #5b4bd5; }
+.jy-page-container { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
 .jy-brand-section { margin-bottom: 24px; }
 .jy-brand-section-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
 .jy-info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
@@ -9461,6 +9467,22 @@ function renderTraining() {
   if (search) filtered = filtered.filter(d => (d.title || '').toLowerCase().includes(search));
 
   const container = document.getElementById('training-content');
+
+  // 极氧品牌定位：直接页面内完整展示，无需点击浮窗
+  if (trainingModule === '资料' && trainingGroup === '品牌背景和定位' && trainingSubcatFilter === '极氧') {
+    container.innerHTML = `
+      <div class="jy-page-header">
+        <div class="jy-page-back" onclick="setTrainingSubcat('全部')">← 返回极氧列表</div>
+        <h2>📗 极氧品牌介绍</h2>
+        <p>中高端硅水凝胶日抛 · 原 YOUHOO 品牌升级</p>
+      </div>
+      <div class="jy-page-container">
+        ${getJiyangBrandFullHtml()}
+      </div>
+    `;
+    return;
+  }
+
   if (!filtered.length) {
     container.innerHTML = '<div class="train-empty">📭 没有匹配的培训资料<br><span style="font-size:13px;color:var(--text-secondary);margin-top:8px;display:block;">请联系管理员添加</span></div>';
     return;
@@ -9620,8 +9642,8 @@ async function deleteTraining(id, title) {
 }
 
 // ==================== 极氧品牌定位一站式详情 ====================
-function openJiyangBrandDetail() {
-  const html = `
+function getJiyangBrandFullHtml() {
+  return `
     <div class="jy-brand-section">
       <div class="jy-info-grid">
         <div class="jy-info-card purple">
@@ -9703,7 +9725,10 @@ function openJiyangBrandDetail() {
       </div>
     </div>
   `;
-  document.getElementById('mod-jiyang-brand-body').innerHTML = html;
+}
+
+function openJiyangBrandDetail() {
+  document.getElementById('mod-jiyang-brand-body').innerHTML = getJiyangBrandFullHtml();
   document.getElementById('mod-jiyang-brand').classList.add('show');
   document.body.style.overflow = 'hidden';
 }
