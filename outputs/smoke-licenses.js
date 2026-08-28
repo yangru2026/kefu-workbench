@@ -129,6 +129,23 @@ const server = http.createServer((req, res) => {
   });
   console.log('[培训页三级小类]', JSON.stringify(subcatCheck));
 
+  // 3.4) 验证极氧品牌定位内嵌详情弹窗
+  const jiyangCheck = await page.evaluate(() => {
+    openJiyangBrandDetail();
+    const modal = document.getElementById('mod-jiyang-brand');
+    const body = document.getElementById('mod-jiyang-brand-body');
+    const text = body ? body.innerText : '';
+    return {
+      modalVisible: modal && modal.classList.contains('show'),
+      hasBrandPosition: text.includes('中高端硅水凝胶日抛'),
+      hasCompareTable: text.includes('晨露系列') && text.includes('森氧系列'),
+      hasMorningSeries: text.includes('樱花半夏'),
+      hasForestSeries: text.includes('梦蝶晚意'),
+      hasTip: text.includes('戴8小时以上')
+    };
+  });
+  console.log('[极氧品牌定位详情]', JSON.stringify(jiyangCheck));
+
   // 4) 回到首页，验证店铺分组表
   await page.evaluate(() => window.switchPage('home'));
   await new Promise(r => setTimeout(r, 1000));
