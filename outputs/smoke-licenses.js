@@ -80,6 +80,39 @@ const server = http.createServer((req, res) => {
   });
   console.log('[培训页 Tab]', trainPage.tabsHtml.replace(/\n/g, ' | '));
 
+  // 3.1) 验证售前话术「通用」分组三级小类 Tab
+  const subcatCheck = await page.evaluate(() => {
+    trainingGroup = '售前话术';
+    trainingScriptGroup = '通用';
+    trainingScriptSubcat = '全部';
+    trainingCategories = [
+      { id: 'g-sh', name: '售前话术', sort_order: 500, parent_id: '' },
+      { id: 's1', name: '商品问题', sort_order: 10, parent_id: '售前话术-通用' },
+      { id: 's2', name: '活动优惠问题', sort_order: 20, parent_id: '售前话术-通用' },
+      { id: 's3', name: '订单操作问题', sort_order: 30, parent_id: '售前话术-通用' },
+      { id: 's4', name: '催单催付', sort_order: 40, parent_id: '售前话术-通用' },
+      { id: 's5', name: '发货快递', sort_order: 50, parent_id: '售前话术-通用' },
+      { id: 's6', name: '售后保障（售前咨询售后规则）', sort_order: 60, parent_id: '售前话术-通用' },
+      { id: 's7', name: '权限规则问题', sort_order: 70, parent_id: '售前话术-通用' },
+      { id: 's8', name: '比价竞品问题', sort_order: 80, parent_id: '售前话术-通用' },
+      { id: 's9', name: '使用风险禁忌咨询', sort_order: 90, parent_id: '售前话术-通用' },
+      { id: 's10', name: '客户情绪与聊天互动', sort_order: 100, parent_id: '售前话术-通用' },
+      { id: 's11', name: '售前前置投诉顾虑', sort_order: 110, parent_id: '售前话术-通用' },
+      { id: 's12', name: '商务合作咨询', sort_order: 120, parent_id: '售前话术-通用' }
+    ];
+    renderTraining();
+    const el = document.getElementById('training-script-subcat-tabs');
+    const html = el ? el.innerHTML : '';
+    return {
+      visible: el && el.style.display !== 'none',
+      hasAll: html.includes('全部'),
+      hasSub1: html.includes('商品问题'),
+      hasSub12: html.includes('商务合作咨询'),
+      count: (html.match(/training-script-subcat-tab/g) || []).length
+    };
+  });
+  console.log('[培训页三级小类]', JSON.stringify(subcatCheck));
+
   // 4) 回到首页
   await page.evaluate(() => window.switchPage('home'));
   await new Promise(r => setTimeout(r, 1000));

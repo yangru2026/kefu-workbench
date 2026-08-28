@@ -364,8 +364,8 @@ body {
 .filter-tag.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
 /* Training group tabs (大类) */
-.training-group-tabs { display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
-.training-group-tab { padding:11px 28px; border:1px solid var(--border); border-radius:12px; font-size:16px; font-weight:600; cursor:pointer; background:#fff; color:var(--text-secondary); font-family:inherit; transition:all .2s; white-space:nowrap; }
+.training-group-tabs { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+.training-group-tab { padding:7px 16px; border:1px solid var(--border); border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; background:#fff; color:var(--text-secondary); font-family:inherit; transition:all .2s; white-space:nowrap; }
 .training-group-tab:hover { border-color:var(--primary); color:var(--primary); }
 .training-group-tab.active { background:var(--primary); color:#fff; border-color:var(--primary); }
 /* 大类标签固定配色（按顺序循环） */
@@ -390,21 +390,28 @@ body {
 .tg-color-6 { border-color:#d4729b; color:#d4729b; }
 .tg-color-6:hover { background:rgba(212,114,155,0.08); }
 .tg-color-6.active { background:#d4729b; color:#fff; }
-.g-add-btn { padding:11px 24px; border:1.5px dashed var(--primary-light); border-radius:12px; font-size:15px; cursor:pointer; background:transparent; color:var(--primary); font-family:inherit; white-space:nowrap; transition:all .2s; }
+.g-add-btn { padding:7px 14px; border:1.5px dashed var(--primary-light); border-radius:10px; font-size:12px; cursor:pointer; background:transparent; color:var(--primary); font-family:inherit; white-space:nowrap; transition:all .2s; }
 .g-add-btn:hover { background:rgba(123,155,106,0.08); border-color:var(--primary); }
 .g-inline-edit { display:inline-flex; align-items:center; gap:4px; }
-.g-inline-edit input { padding:6px 12px; border:1px solid var(--primary); border-radius:10px; font-size:14px; width:130px; font-family:inherit; outline:none; }
-.g-inline-edit button { padding:4px 10px; border:none; border-radius:8px; font-size:12px; cursor:pointer; font-family:inherit; }
+.g-inline-edit input { padding:5px 10px; border:1px solid var(--primary); border-radius:8px; font-size:12px; width:110px; font-family:inherit; outline:none; }
+.g-inline-edit button { padding:3px 8px; border:none; border-radius:6px; font-size:11px; cursor:pointer; font-family:inherit; }
 /* 大类卡片内按小类分小节 */
 .train-sub-section { border-top:1px dashed var(--border); margin-top:8px; padding-top:8px; }
 .train-sub-section:first-child { border-top:none; margin-top:0; padding-top:0; }
 .train-sub-title { font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:6px; padding-left:2px; }
 
 /* Training category sub-tabs */
-.training-cat-tabs { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
-.training-cat-tab { padding:9px 22px; border:1px solid var(--border); border-radius:24px; font-size:15px; cursor:pointer; background:transparent; color:var(--text-secondary); font-family:inherit; transition:all .2s; white-space:nowrap; }
+.training-cat-tabs { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
+.training-cat-tab { padding:5px 14px; border:1px solid var(--border); border-radius:18px; font-size:12px; cursor:pointer; background:transparent; color:var(--text-secondary); font-family:inherit; transition:all .2s; white-space:nowrap; }
 .training-cat-tab:hover { border-color:var(--primary); color:var(--primary); }
 .training-cat-tab.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+/* 售前话术通用分组下的三级小类 Tab */
+.training-script-subcat-tabs { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; padding-left:8px; border-left:3px solid var(--primary-light); }
+.training-script-subcat-tab { padding:4px 12px; border:1px solid var(--border); border-radius:14px; font-size:11px; cursor:pointer; background:transparent; color:var(--text-secondary); font-family:inherit; transition:all .2s; white-space:nowrap; }
+.training-script-subcat-tab:hover { border-color:var(--primary); color:var(--primary); }
+.training-script-subcat-tab.active { background:var(--primary-light); color:#fff; border-color:var(--primary-light); }
+.training-script-subcat-tab .tc-manage { display:none; margin-left:3px; font-size:10px; cursor:pointer; opacity:0.7; }
+.training-script-subcat-tab:hover .tc-manage { display:inline; }
 /* 售前话术分组标签颜色（默认态直接显示彩色） */
 .sg-全部 { border-color:#9ca3af; color:#6b7280; }
 .sg-全部:hover { background:rgba(107,114,128,0.08); }
@@ -424,11 +431,13 @@ body {
 .sg-极氧 { border-color:#2bb3a5; color:#2bb3a5; }
 .sg-极氧:hover { background:rgba(43,179,165,0.10); }
 .sg-极氧.active { background:#2bb3a5; color:#fff; border-color:#2bb3a5; }
-.cat-add-btn { padding:9px 20px; border:1.5px dashed var(--primary-light); border-radius:24px; font-size:14px; cursor:pointer; background:transparent; color:var(--primary); font-family:inherit; white-space:nowrap; transition:all .2s; }
+.cat-add-btn { padding:5px 12px; border:1.5px dashed var(--primary-light); border-radius:18px; font-size:12px; cursor:pointer; background:transparent; color:var(--primary); font-family:inherit; white-space:nowrap; transition:all .2s; }
 .cat-add-btn:hover { background:rgba(123,155,106,0.08); border-color:var(--primary); }
-.cat-inline-edit { display:inline-flex; align-items:center; gap:4px; }
-.cat-inline-edit input { padding:5px 10px; border:1px solid var(--primary); border-radius:12px; font-size:13px; width:110px; font-family:inherit; outline:none; }
-.cat-inline-edit button { padding:3px 9px; border:none; border-radius:8px; font-size:12px; cursor:pointer; font-family:inherit; }
+.cat-inline-edit { display:inline-flex; align-items:center; gap:3px; }
+.cat-inline-edit input { padding:4px 8px; border:1px solid var(--primary); border-radius:10px; font-size:12px; width:100px; font-family:inherit; outline:none; }
+.cat-inline-edit button { padding:2px 7px; border:none; border-radius:6px; font-size:11px; cursor:pointer; font-family:inherit; }
+.subcat-add-mini { padding:4px 10px; border:1px dashed var(--primary-light); border-radius:12px; font-size:11px; cursor:pointer; background:transparent; color:var(--primary); font-family:inherit; white-space:nowrap; transition:all .2s; }
+.subcat-add-mini:hover { background:rgba(123,155,106,0.08); border-color:var(--primary); }
 
 /* Pattern category management buttons - only show on active tab */
 .brand-tab .pcat-edit-btn, .brand-tab .pcat-del-btn { display:none; margin-left:4px; font-size:10px; background:none; border:none; cursor:pointer; color:inherit; opacity:0.7; padding:0 2px; vertical-align:middle; }
@@ -2462,6 +2471,8 @@ body {
     <div class="training-group-tabs" id="training-group-tabs"></div>
     <!-- 小类 Tab（选中大类后显示） -->
     <div class="training-cat-tabs" id="training-subcat-tabs"></div>
+    <!-- 售前话术「通用」分组下的三级小类 Tab -->
+    <div class="training-script-subcat-tabs" id="training-script-subcat-tabs"></div>
     <!-- 搜索 -->
     <div class="search-bar"><input type="text" id="training-search" placeholder="🔍 搜索资料标题..." oninput="renderTraining()"></div>
     <!-- 内容区 -->
@@ -8942,6 +8953,7 @@ document.addEventListener('keydown', function(e) {
 let trainingGroup = '全部';
 let trainingSubcatFilter = '全部';
 let trainingScriptGroup = '全部';
+let trainingScriptSubcat = '全部';
 let trainingCategories = [];
 let trainingKnowledge = [];
 
@@ -8952,6 +8964,7 @@ function setTrainingGroup(group) {
   trainingGroup = group;
   trainingSubcatFilter = '全部';
   trainingScriptGroup = '全部';
+  trainingScriptSubcat = '全部';
   renderTrainingGroupTabs();
   renderTrainingSubcatTabs();
   renderTraining();
@@ -9025,10 +9038,111 @@ function renderScriptGroupTabs(el) {
   ).join('');
 }
 
+// 售前话术「通用」分组下的小类（从 training_categories 读取，parent_id = '售前话术-通用'）
+function scriptSubcats() { return trainingCategories.filter(c => c.parent_id === '售前话术-通用').sort((a,b) => (a.sort_order||0) - (b.sort_order||0)); }
+
+function setTrainingScriptSubcat(sub) {
+  trainingScriptSubcat = sub;
+  renderTrainingScriptSubcatTabs();
+  renderScripts();
+}
+
+// ---------- 三级小类 Tab（仅售前话术「通用」分组） ----------
+let _editingScriptSubcatName = null;
+function renderTrainingScriptSubcatTabs() {
+  const el = document.getElementById('training-script-subcat-tabs');
+  if (!el) return;
+  // 只有「售前话术」大类 + 「通用」分组才显示
+  if (!(trainingGroup === '售前话术' && trainingScriptGroup === '通用')) { el.innerHTML = ''; el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  const subs = scriptSubcats();
+  const cats = ['全部', ...subs.map(c => c.name)];
+  const canManage = canEdit('training');
+  let html = cats.map(c => {
+    const isActive = trainingScriptSubcat === c;
+    if (_editingScriptSubcatName && _editingScriptSubcatName === c) {
+      return '<span class="training-script-subcat-tab active cat-inline-edit">'
+        + '<input id="script-sub-edit-input" value="' + escapeHtml(c) + '" onkeydown="if(event.key===\'Enter\')confirmEditScriptSubcat();if(event.key===\'Escape\')cancelEditScriptSubcat();">'
+        + '<button class="btn-sm primary" style="padding:2px 6px;font-size:10px;" onclick="confirmEditScriptSubcat()">✓</button>'
+        + '<button class="btn-sm outline" style="padding:2px 6px;font-size:10px;" onclick="cancelEditScriptSubcat()">✕</button>'
+        + '</span>';
+    }
+    const manage = (canManage && c !== '全部')
+      ? '<span class="tc-manage" onclick="event.stopPropagation();startEditScriptSubcat(\'' + escapeAttr(c) + '\')">✏️</span>'
+      + '<span class="tc-manage" onclick="event.stopPropagation();deleteScriptSubcat(\'' + escapeAttr(c) + '\')">🗑️</span>'
+      : '';
+    return '<button class="training-script-subcat-tab' + (isActive ? ' active' : '') + '" onclick="setTrainingScriptSubcat(\'' + escapeAttr(c) + '\')">' + escapeHtml(c) + manage + '</button>';
+  }).join('');
+  if (canManage) {
+    html += '<button class="subcat-add-mini" onclick="addScriptSubcat()">＋ 新增小类</button>';
+  }
+  el.innerHTML = html;
+}
+
 function setTrainingScriptGroup(g) {
   trainingScriptGroup = g;
+  trainingScriptSubcat = '全部';
   renderTrainingSubcatTabs();
+  renderTrainingScriptSubcatTabs();
   renderScripts();
+}
+
+// ---------- 售前话术「通用」小类管理 ----------
+function startEditScriptSubcat(name) {
+  _editingScriptSubcatName = name;
+  renderTrainingScriptSubcatTabs();
+  const input = document.getElementById('script-sub-edit-input');
+  if (input) { input.focus(); input.select(); }
+}
+function cancelEditScriptSubcat() {
+  _editingScriptSubcatName = null;
+  renderTrainingScriptSubcatTabs();
+}
+async function confirmEditScriptSubcat() {
+  const newName = document.getElementById('script-sub-edit-input').value.trim();
+  if (!newName) { cancelEditScriptSubcat(); return; }
+  if (newName === _editingScriptSubcatName) { cancelEditScriptSubcat(); return; }
+  const sub = scriptSubcats().find(c => c.name === _editingScriptSubcatName);
+  if (!sub) { cancelEditScriptSubcat(); return; }
+  const oldName = _editingScriptSubcatName;
+  const { error } = await supabase.from('training_categories').update({ name: newName }).eq('id', sub.id);
+  if (error) { showToast('修改失败：' + error.message); return; }
+  // 同步 training_scripts 中对应小类名称
+  await supabase.from('training_scripts').update({ subcategory: newName }).eq('subcategory', oldName);
+  _editingScriptSubcatName = null;
+  showToast('✅ 小类已修改，话术已同步');
+  loadTrainingCategories();
+  loadTrainingScripts();
+}
+async function addScriptSubcat() {
+  const name = prompt('请输入售前话术「通用」分组下的小类名称：');
+  if (!name || !name.trim()) return;
+  const trimmed = name.trim();
+  if (scriptSubcats().some(c => c.name === trimmed)) { showToast('该小类已存在'); return; }
+  const { error } = await supabase.from('training_categories').insert({
+    name: trimmed,
+    sort_order: (scriptSubcats().length + 1) * 10,
+    parent_id: '售前话术-通用'
+  });
+  if (error) { showToast('添加失败：' + error.message); return; }
+  showToast('✅ 小类已添加');
+  loadTrainingCategories();
+}
+async function deleteScriptSubcat(name) {
+  const sub = scriptSubcats().find(c => c.name === name);
+  if (!sub) return;
+  const count = trainingScripts.filter(s => (s.subcategory || '') === name).length;
+  const msg = count
+    ? `「${name}」下有 ${count} 个话术场景。删除后这些话术的「小类」将变为「未分类」。确定删除吗？`
+    : `确定要删除小类「${name}」吗？`;
+  if (!confirm(msg)) return;
+  if (count) await supabase.from('training_scripts').update({ subcategory: '未分类' }).eq('subcategory', name);
+  const { error } = await supabase.from('training_categories').delete().eq('id', sub.id);
+  if (error) { showToast('删除失败：' + error.message); return; }
+  showToast('🗑️ 小类已删除');
+  if (trainingScriptSubcat === name) trainingScriptSubcat = '全部';
+  loadTrainingCategories();
+  loadTrainingScripts();
 }
 
 // ---------- 大类管理 ----------
@@ -9183,6 +9297,7 @@ function renderKnowledgeBlocks(subcat) {
 function renderTraining() {
   renderTrainingGroupTabs();
   renderTrainingSubcatTabs();
+  renderTrainingScriptSubcatTabs();
   // 顶部「＋新增」按钮与副标题按当前大类联动
   const isScriptCat = isScriptTopCat(trainingGroup);
   const addBtn = document.getElementById('train-add-btn');
@@ -9416,6 +9531,11 @@ function renderScripts() {
   if (trainingScriptGroup !== '全部') {
     list = list.filter(s => (s.script_group || '通用') === trainingScriptGroup);
   }
+  // 售前话术「通用」分组下的三级小类过滤
+  const isScriptSubcatMode = (trainingGroup === '售前话术' && trainingScriptGroup === '通用');
+  if (isScriptSubcatMode && trainingScriptSubcat !== '全部') {
+    list = list.filter(s => (s.subcategory || '未分类') === trainingScriptSubcat);
+  }
   if (search) list = list.filter(s =>
     (s.title || '').toLowerCase().includes(search) ||
     (s.subcategory || '').toLowerCase().includes(search) ||
@@ -9455,9 +9575,12 @@ function renderScripts() {
 
   let html = '';
   // 始终按话题(小类)分组展示，卡片上标注所属分组
-  const subNames = [...new Set(list.map(s => s.subcategory || '未分类'))];
+  const subNames = (isScriptSubcatMode && trainingScriptSubcat !== '全部')
+    ? [trainingScriptSubcat]
+    : [...new Set(list.map(s => s.subcategory || '未分类'))];
   subNames.forEach(sn => {
     const items = list.filter(s => (s.subcategory || '未分类') === sn);
+    if (!items.length) return;
     html += '<div class="train-card"><div class="train-card-header"><h3>📂 ' + escapeHtml(sn) + '</h3>'
       + '<span class="train-card-count">' + items.length + ' 个场景</span></div>'
       + '<ul class="train-link-list">' + items.map(scriptCard).join('') + '</ul></div>';
@@ -9515,11 +9638,18 @@ function openScriptEditor(s) {
   const curGroup = sc.script_group || (trainingScriptGroup !== '全部' ? trainingScriptGroup : '通用');
   const subs = trainingSubcats().filter(c => c.parent_id === cat).map(c => c.name);
   const options = [...new Set([curSub, ...subs])].filter(Boolean).map(n => '<option value="' + escapeHtml(n) + '">').join('');
+  const isScriptSubcatMode = (cat === '售前话术' && curGroup === '通用');
+  const scriptSubOptions = isScriptSubcatMode ? scriptSubcats().map(c => c.name) : [];
   const styles = sc.styles || {};
   let html = '';
-  html += '<div class="modal-field"><label>小类（归属「' + cat + '」下，可输入新分类，或用顶部「＋新增小类」统一管理）</label>'
-    + '<input id="sf-sub" list="sf-sub-list" value="' + escapeHtml(curSub) + '" placeholder="如：佩戴问题 / 产品咨询 / 订单物流">'
-    + '<datalist id="sf-sub-list">' + options + '</datalist></div>';
+  if (isScriptSubcatMode && scriptSubOptions.length) {
+    html += '<div class="modal-field"><label>小类（售前话术「通用」分组，可在页面三级 Tab 维护）</label>'
+      + '<select id="sf-sub">' + scriptSubOptions.map(n => '<option value="' + escapeHtml(n) + '"' + (curSub === n ? ' selected' : '') + '>' + escapeHtml(n) + '</option>').join('') + '</select></div>';
+  } else {
+    html += '<div class="modal-field"><label>小类（归属「' + cat + '」下，可输入新分类，或用顶部「＋新增小类」统一管理）</label>'
+      + '<input id="sf-sub" list="sf-sub-list" value="' + escapeHtml(curSub) + '" placeholder="如：佩戴问题 / 产品咨询 / 订单物流">'
+      + '<datalist id="sf-sub-list">' + options + '</datalist></div>';
+  }
   html += '<div class="modal-field"><label>分组（通用 / 一组 / 二组 / 三组）</label>'
     + '<select id="sf-group">' + SCRIPT_GROUPS.map(g => '<option value="' + g + '"' + (curGroup === g ? ' selected' : '') + '>' + g + '</option>').join('') + '</select></div>';
   html += '<div class="modal-field"><label>场景标题</label><input id="sf-title" value="' + escapeHtml(sc.title || '') + '"></div>';
