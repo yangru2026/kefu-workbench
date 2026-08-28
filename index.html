@@ -308,6 +308,22 @@ body {
 .home-card h3 { font-size: 16px; margin-bottom: 6px; }
 .home-card p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
 
+/* 首页客服店铺分组表 */
+.shop-group-card { background: var(--card-bg); border-radius: 14px; padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06); margin-bottom: 20px; }
+.shop-group-card h3 { font-size: 16px; margin-bottom: 14px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.shop-group-table { width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+.shop-group-table thead th { background: #7b9b6a; color: #fff; font-weight: 600; font-size: 14px; padding: 12px 14px; text-align: center; border-right: 1px solid rgba(255,255,255,0.2); }
+.shop-group-table thead th:last-child { border-right: none; }
+.shop-group-table tbody td { padding: 10px 14px; font-size: 14px; color: var(--text); text-align: center; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); background: #f8faf7; }
+.shop-group-table tbody td:last-child { border-right: none; }
+.shop-group-table tbody tr:last-child td { border-bottom: none; }
+.shop-group-table tbody tr:nth-child(even) td { background: #f1f5ee; }
+.shop-group-table .group-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 700; color: #fff; }
+.shop-group-table .group-a { background: #7b9b6a; }
+.shop-group-table .group-b { background: #4f8fd4; }
+.shop-group-table .group-c { background: #e8993f; }
+.shop-group-empty { color: var(--text-secondary); opacity: 0.45; }
+
 /* Stats row */
 .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
 .stat-card {
@@ -1441,6 +1457,34 @@ body {
     <div class="announcement-actions admin-only" style="margin-bottom:16px;">
       <button class="btn-sm primary" onclick="openAnnounceForm()">✎ 发布公告</button>
     </div>
+
+    <!-- 客服店铺分组 -->
+    <div class="shop-group-card">
+      <h3><span>🏪</span>客服店铺分组 <span style="font-size:12px;font-weight:normal;color:var(--text-secondary);">（打开首页即可查看各自负责的店铺）</span></h3>
+      <table class="shop-group-table">
+        <thead>
+          <tr>
+            <th style="width:34%;"><span class="group-badge group-a">A组</span></th>
+            <th style="width:33%;"><span class="group-badge group-b">B组</span></th>
+            <th style="width:33%;"><span class="group-badge group-c">C组</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>抖音1店</td><td>拼多多1店</td><td>抖音2店</td></tr>
+          <tr><td>天猫极氧</td><td>拼多多2店</td><td>抖音4店</td></tr>
+          <tr><td>天猫MS</td><td>拼多多3店</td><td class="shop-group-empty">—</td></tr>
+          <tr><td>快手MS</td><td>拼多多4店</td><td class="shop-group-empty">—</td></tr>
+          <tr><td>京东弥生</td><td>拼多多5店</td><td class="shop-group-empty">—</td></tr>
+          <tr><td>拼多多极氧</td><td>拼多多6店</td><td class="shop-group-empty">—</td></tr>
+          <tr><td>抖音极氧</td><td>抖音3店</td><td class="shop-group-empty">—</td></tr>
+          <tr><td>小红书极氧</td><td>小红书MS</td><td class="shop-group-empty">—</td></tr>
+          <tr><td>抖音YH</td><td class="shop-group-empty">—</td><td class="shop-group-empty">—</td></tr>
+          <tr><td>有赞</td><td class="shop-group-empty">—</td><td class="shop-group-empty">—</td></tr>
+          <tr><td>护眼</td><td class="shop-group-empty">—</td><td class="shop-group-empty">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
     <div id="announcement-list" style="display:flex;flex-direction:column;gap:14px;">
       <div style="text-align:center;padding:40px;color:var(--text-secondary);">加载中...</div>
     </div>

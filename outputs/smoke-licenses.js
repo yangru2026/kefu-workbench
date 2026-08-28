@@ -129,9 +129,20 @@ const server = http.createServer((req, res) => {
   });
   console.log('[培训页三级小类]', JSON.stringify(subcatCheck));
 
-  // 4) 回到首页
+  // 4) 回到首页，验证店铺分组表
   await page.evaluate(() => window.switchPage('home'));
   await new Promise(r => setTimeout(r, 1000));
+  const homeShopGroup = await page.evaluate(() => {
+    const table = document.querySelector('.shop-group-table');
+    const text = table ? table.innerText : '';
+    return {
+      hasTable: !!table,
+      hasGroupA: text.includes('抖音1店') && text.includes('天猫极氧'),
+      hasGroupB: text.includes('拼多多1店') && text.includes('小红书MS'),
+      hasGroupC: text.includes('抖音2店') && text.includes('抖音4店')
+    };
+  });
+  console.log('[首页店铺分组]', JSON.stringify(homeShopGroup));
 
   console.log('\n===== 冒烟结果 =====');
   console.log(errors.length === 0 ? '✅ 无任何 JS 错误' : '❌ ' + errors.length + ' 个错误:');
