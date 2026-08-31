@@ -56,7 +56,7 @@ function renderAnnouncements() {
     el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary);">暂无公告</div>';
     return;
   }
-  const isAdmin = currentProfile?.role === 'admin' || currentProfile?.role === 'leader';
+  const isAdmin = currentProfile?.role === 'admin';
   el.innerHTML = announcements.map(a => {
     const date = new Date(a.created_at).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     const author = a.profiles?.name || '管理员';
@@ -1151,7 +1151,7 @@ async function renderWeeklyTrack() {
   const { start, end } = getWeeklyReportRange();
   document.getElementById('weekly-track-date').textContent = start + ' ~ ' + end;
 
-  const isLeader = currentProfile?.role === 'admin' || currentProfile?.role === 'leader';
+  const isLeader = currentProfile?.role === 'admin';
   if (!isLeader) {
     document.getElementById('weekly-track-list').innerHTML = '<p style="text-align:center;color:var(--text-secondary);">仅管理员/组长可查看全员提交情况</p>';
     return;
@@ -2306,7 +2306,7 @@ async function renderDailyTrack() {
     return;
   }
 
-  const isLeader = currentProfile?.role === 'admin' || currentProfile?.role === 'leader';
+  const isLeader = currentProfile?.role === 'admin';
   if (!isLeader) {
     list.innerHTML = '<p style="text-align:center;color:var(--text-secondary);">仅管理员/组长可查看全员提交情况</p>';
     return;
@@ -3274,8 +3274,8 @@ function subscribeCollaborators() {
 // 核心权限判断：当前用户能否编辑某页面
 function canEdit(pageKey) {
   if (!currentProfile) return false;
-  // admin/leader 全权限
-  if (currentProfile.role === 'admin' || currentProfile.role === 'leader') return true;
+  // 仅 admin 全权限（组长不在此列：组长只保留质检相关权限）
+  if (currentProfile.role === 'admin') return true;
   // 检查协作者表
   return pageCollaborators.some(c => c.page_key === pageKey && c.profile_id === currentProfile.id);
 }
@@ -3563,7 +3563,7 @@ function updateReqBadge() {
   const pending = allRequests.filter(r => r.status === 'pending').length;
   const badge = document.getElementById('req-pending-badge');
   if (!badge) return;
-  const isAdmin = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const isAdmin = currentProfile && currentProfile.role === 'admin';
   if (isAdmin && pending > 0) {
     badge.textContent = pending;
     badge.style.display = '';
@@ -3576,7 +3576,7 @@ function renderReqList() {
   const container = document.getElementById('req-list');
   if (!container) return;
 
-  const isAdmin = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const isAdmin = currentProfile && currentProfile.role === 'admin';
 
   let filtered = allRequests;
   if (!isAdmin) {
@@ -3792,7 +3792,7 @@ async function applyCompensatoryLeave(req) {
 let collabCurrentPage = null;
 
 async function openCollabPanel(pageKey) {
-  if (!currentProfile || (currentProfile.role !== 'admin' && currentProfile.role !== 'leader')) {
+  if (!currentProfile || currentProfile.role !== 'admin') {
     showToast('仅管理员可管理协作者');
     return;
   }
@@ -3836,7 +3836,7 @@ function renderCollabList() {
   const available = (typeof allStaffData !== 'undefined' ? allStaffData : [])
     .filter(s => {
       if (s.id === currentProfile?.id) return false;
-      if (s.role === 'admin' || s.role === 'leader') return false; // 管理员天生有权限
+      if (s.role === 'admin') return false; // 仅管理员天生有全权限；组长同普通客服，可被邀请为协作者
       return !currentCollabs.includes(s.id);
     });
 

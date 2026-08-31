@@ -1497,7 +1497,7 @@ body {
     <div class="nav-item" data-page="ranking"><span class="icon">🏆</span><span>客服排名</span></div>
     <div class="nav-item" data-page="presale"><span class="icon">📈</span><span>售前数据</span></div>
     <div class="nav-item" data-page="qc"><span class="icon">🔍</span><span>质检工具</span></div>
-    <div class="nav-item admin-only-nav" data-page="qc-report" style="display:none;"><span class="icon">📊</span><span>质检报告</span></div>
+    <div class="nav-item qc-admin-nav" data-page="qc-report" style="display:none;"><span class="icon">📊</span><span>质检报告</span></div>
     <div class="nav-section">账号</div>
     <div class="nav-item admin-only-nav" data-page="members" style="display:none;"><span class="icon">👥</span><span>成员管理</span></div>
     <div class="nav-item admin-only-nav" data-page="staff-info" style="display:none;"><span class="icon">👥</span><span>客服信息</span></div>
@@ -3017,17 +3017,28 @@ setTimeout(() => {
   }
 }, 12000);
 
+// 仅管理员（admin）：可进所有管理页、执行所有管理操作
+function isFullAdmin() {
+  return !!(currentProfile && currentProfile.role === 'admin');
+}
+// 质检权限（admin + leader）：组长只保留质检报告页与质检工具，其余权限与普通客服完全一致
+function isQcRole() {
+  return !!(currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader'));
+}
+
 function updateAuthUI() {
   const userEl = document.getElementById('sidebar-user');
   const nameEl = document.getElementById('visitor-name');
   const loginNav = document.getElementById('nav-login');
-  const isAdmin = currentProfile?.role === 'admin' || currentProfile?.role === 'leader';
+  const isAdmin = isFullAdmin();
+  const isQc = isQcRole();
   if (currentUser && currentProfile) {
     nameEl.textContent = currentProfile.name || '用户';
     userEl.style.cursor = 'default';
     if (loginNav) loginNav.style.display = 'none';
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
     document.querySelectorAll('.admin-only-nav').forEach(el => el.style.display = isAdmin ? '' : 'none');
+    document.querySelectorAll('.qc-admin-nav').forEach(el => el.style.display = isQc ? '' : 'none');
     // 加载协作者数据（异步，加载完后 refreshAdminUI 会自动更新权限）
     if (typeof loadPageCollaborators === 'function') loadPageCollaborators();
     if (typeof subscribeCollaborators === 'function') subscribeCollaborators();
@@ -3037,6 +3048,7 @@ function updateAuthUI() {
     if (loginNav) loginNav.style.display = '';
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.admin-only-nav').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.qc-admin-nav').forEach(el => el.style.display = 'none');
     const reqBadge = document.getElementById('req-pending-badge');
     if (reqBadge) reqBadge.style.display = 'none';
   }
@@ -3045,12 +3057,12 @@ function updateAuthUI() {
 
 function canEdit(pageKey) {
   if (!currentProfile) return false;
-  if (currentProfile.role === 'admin' || currentProfile.role === 'leader') return true;
+  if (currentProfile.role === 'admin') return true;
   return false;
 }
 
 function refreshAdminUI() {
-  const isAdmin = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const isAdmin = isFullAdmin();
   const canEditPatterns = canEdit('patterns');
   const canEditTraining = canEdit('training');
   const canEditSchedule = canEdit('schedule');
@@ -3348,7 +3360,8 @@ let aiLastAnswer = '';
 let aiBusy = false;
 
 function isAiAdmin() {
-  return !!(currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader'));
+  // 提问记录属于监看权限，仅管理员可见全部；组长同普通客服，只能看自己的
+  return isFullAdmin();
 }
 
 function renderAiPage() {
@@ -4698,7 +4711,7 @@ function teamColor(team) { return TEAM_COLORS[team] || 'var(--primary)'; }
 function updateCsTeamHint() {
   const hint = document.getElementById('cross-sales-team-hint');
   if (!hint) return;
-  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const isAdminOrLeader = isFullAdmin();
   const safeDate = crossSalesDate || getTodayStr();
   const isArchived = isCsMonthArchived(safeDate.slice(0, 7));
   let html;
@@ -4918,7 +4931,7 @@ function getCrossSalesGrandTotal() {
 
 // 最终用于渲染的明细行（含普通客服仅看本组的过滤），render 与「加载更多」共用
 function getCSDisplayRows() {
-  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const isAdminOrLeader = isFullAdmin();
   let rows = getCrossSalesDetailRows();
   // 普通客服默认只看本组；但点击排名卡片聚焦某客服时，允许查看该客服明细（即使跨组），避免明细为空
   if (!isAdminOrLeader && currentProfile?.group_name && !crossSalesRankFocus) {
@@ -4963,7 +4976,7 @@ function getCrossSalesDetailRows() {
 }
 
 function renderCrossSales() {
-  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const isAdminOrLeader = isFullAdmin();
   const staffName = currentProfile?.name || currentProfile?.real_name || '';
   // 质检功能仅对超级管理员（role=admin）开放
   const qcBtn = document.getElementById('cross-sales-qc-btn');
@@ -5315,7 +5328,7 @@ function loadMoreCsRows() {
   csCsPage++;
   const tbody = document.getElementById('cross-sales-tbody');
   if (!tbody) return;
-  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const isAdminOrLeader = isFullAdmin();
   const all = getCSDisplayRows();
   // 筛选重复模式下，加载更多也要按相同的重复过滤切片
   computeCSDupGroups(all);
@@ -5349,7 +5362,7 @@ function clearCsDupLocate() {
 
 // 删除所有重复记录的多余条（每组保留最早一条，按 id 升序）
 async function deleteCsDupExtras() {
-  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const isAdminOrLeader = isFullAdmin();
   if (!isAdminOrLeader) { showToast('⚠️ 仅管理员可批量删除'); return; }
   const groups = {};
   crossSalesData.forEach(r => {
@@ -5909,7 +5922,7 @@ function autoSaveCSRow(el) {
   if (!tr.dataset.id && tr.dataset.new !== 'true') return;
   // 已有记录：客服只能改自己名下的；管理员/主管不限
   if (tr.dataset.id) {
-    const isAdmin = currentProfile?.role === 'admin' || currentProfile?.role === 'leader';
+    const isAdmin = isFullAdmin();
     const myName = (currentProfile?.name || currentProfile?.real_name || '').trim();
     const rowStaff = (tr.querySelector('[data-field="staff_name"]')?.value || '').trim();
     if (!isAdmin && rowStaff && rowStaff !== myName) {
@@ -6259,7 +6272,7 @@ async function saveCrossSalesBatch() {
   const tbody = document.getElementById('cross-sales-tbody');
   const staffName = (currentProfile?.name || currentProfile?.real_name) || '';
   const team = currentProfile?.group_name || 'A组';
-  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const isAdminOrLeader = isFullAdmin();
 
   const toInsert = [];
   const toUpdate = [];
@@ -6385,7 +6398,7 @@ function toggleCsSelectAll(chk) {
 
 // 批量删除选中的已有记录（仅管理员）
 async function batchDeleteCsSelected() {
-  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const isAdminOrLeader = isFullAdmin();
   if (!isAdminOrLeader) { showToast('⚠️ 仅管理员可使用批量删除'); return; }
   const ids = Array.from(document.querySelectorAll('#cross-sales-tbody tr[data-id] .cs-row-check:checked')).map(cb => cb.dataset.id).filter(Boolean);
   if (ids.length === 0) { showToast('⚠️ 请先勾选要删除的记录'); return; }
@@ -6401,7 +6414,7 @@ async function batchDeleteCsSelected() {
 
 // 清空全部成交明细（仅管理员，需二次确认；在已登录的管理员会话中执行，受 RLS 允许）
 async function clearAllCrossSales() {
-  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const isAdminOrLeader = isFullAdmin();
   if (!isAdminOrLeader) { showToast('⚠️ 仅管理员可清空'); return; }
   if (!supabase) { showToast('⚠️ 数据服务未就绪，请刷新重试'); return; }
   const ok1 = confirm('⚠️ 危险操作：将清空云端【全部】连带成交明细记录，且不可恢复！\n\n此操作只删除成交明细，不影响选项配置与历史归档。\n\n确定要清空吗？');
@@ -6450,7 +6463,7 @@ async function clearAllCrossSales() {
 
 // 清空未填写的空白新增行（仅管理员）
 function batchClearCsEmpty() {
-  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const isAdminOrLeader = isFullAdmin();
   if (!isAdminOrLeader) { showToast('⚠️ 仅管理员可使用清空'); return; }
   const tbody = document.getElementById('cross-sales-tbody');
   if (!tbody) return;
@@ -6487,7 +6500,7 @@ function renderCsArchiveList() {
     wrap.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-secondary);">暂无历史数据</div>';
     return;
   }
-  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const isAdminOrLeader = isFullAdmin();
   wrap.innerHTML = months.map(m => {
     const archived = csArchivedMonths.some(a => a.month === m && a.team === 'all');
     const count = crossSalesData.filter(r => (r.record_date || '').startsWith(m)).length;
@@ -6513,7 +6526,7 @@ async function archiveCurrentCsMonth() {
 }
 
 async function archiveCsMonth(month) {
-  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const isAdminOrLeader = isFullAdmin();
   if (!isAdminOrLeader) { showToast('⚠️ 仅管理员可归档'); return; }
   if (!month) return;
   if (!confirm(`确定归档 ${month} 月份数据？\n归档后客服端将进入只读模式，管理员仍可编辑。`)) return;
@@ -6528,7 +6541,7 @@ async function archiveCsMonth(month) {
 }
 
 async function unarchiveCsMonth(month) {
-  const isAdminOrLeader = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const isAdminOrLeader = isFullAdmin();
   if (!isAdminOrLeader) { showToast('⚠️ 仅管理员可解档'); return; }
   if (!month) return;
   if (!confirm(`确定对 ${month} 月份解档？\n解档后客服可再次编辑该月数据。`)) return;
@@ -12276,7 +12289,7 @@ function updateVOCStatus() {
   const name = vocCurrentName();
   const badge = document.getElementById('voc-todo-badge');
   const prog = document.getElementById('voc-progress');
-  const isAdmin = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const isAdmin = isFullAdmin();
   if (!name) { if (badge) badge.style.display = 'none'; if (prog) prog.style.display = 'none'; return; }
   const count = getVOCTodayCount(name);
   const remain = Math.max(0, VOC_DAILY_LIMIT - count);
@@ -12631,7 +12644,7 @@ function renderVOCList() {
     return;
   }
   if (empty) empty.style.display = 'none';
-  const isAdmin = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader');
+  const isAdmin = isFullAdmin();
   wrap.innerHTML = rows.map(r => {
     const dt = r.created_at ? new Date(r.created_at) : null;
     const dtStr = dt ? (dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0') + ' ' + String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0')) : '-';
