@@ -1479,6 +1479,7 @@ body {
   <nav class="sidebar-nav">
     <div class="nav-section">客服常用</div>
     <div class="nav-item active" data-page="home"><span class="icon">🏠</span><span>首页</span></div>
+    <div class="nav-item" data-page="ai"><span class="icon">🤖</span><span>AI 提问</span></div>
     <div class="nav-item" data-page="converter"><span class="icon">🔢</span><span>度数换算</span></div>
     <div class="nav-item" data-page="patterns"><span class="icon">🎨</span><span>花色素材</span></div>
     <div class="nav-item" data-page="tools"><span class="icon">🛠</span><span>快捷工具</span></div>
@@ -2583,6 +2584,72 @@ body {
     <div class="pattern-grid" id="pattern-grid"></div>
   </div>
 
+  <!-- ===== AI 提问 ===== -->
+  <div class="page" id="page-ai">
+    <style>
+      .ai-wrap{max-width:900px;}
+      .ai-card{background:#fff;border:1px solid var(--border,#e5e7eb);border-radius:12px;padding:16px;margin-bottom:16px;}
+      .ai-label{display:block;font-size:13px;font-weight:500;color:#374151;margin:0 0 6px;}
+      .ai-req{color:#e0245e;}
+      .ai-input,.ai-textarea{width:100%;box-sizing:border-box;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;outline:none;}
+      .ai-input:focus,.ai-textarea:focus{border-color:var(--primary);}
+      .ai-textarea{resize:vertical;min-height:96px;line-height:1.6;}
+      .ai-input{margin-bottom:14px;}
+      .ai-actions{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap;}
+      .ai-submit{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:10px 26px;font-size:14px;font-weight:500;font-family:inherit;cursor:pointer;}
+      .ai-submit:disabled{opacity:.6;cursor:not-allowed;}
+      .ai-tip{font-size:12px;color:#6b7280;}
+      .ai-answer-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+      .ai-answer-head span{font-size:14px;font-weight:500;color:#111827;}
+      .ai-copy{border:1px solid #d1d5db;background:#fff;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;color:#374151;}
+      .ai-answer-body{font-size:14px;line-height:1.8;color:#1f2937;}
+      .ai-sec-title{font-weight:500;color:var(--primary);margin:12px 0 4px;}
+      .ai-sec-title:first-child{margin-top:0;}
+      .ai-thinking,.ai-empty,.ai-error{font-size:13px;color:#6b7280;padding:8px 0;}
+      .ai-error{color:#b91c1c;}
+      .ai-tabs{display:flex;gap:8px;margin:20px 0 12px;border-bottom:1px solid #e5e7eb;padding-bottom:10px;}
+      .ai-tab{border:none;background:transparent;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;font-family:inherit;color:#6b7280;}
+      .ai-tab.active{background:var(--primary);color:#fff;}
+      .ai-item{border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff;}
+      .ai-item-head{display:flex;align-items:center;gap:8px;font-size:12px;color:#6b7280;margin-bottom:6px;flex-wrap:wrap;}
+      .ai-item-name{font-weight:500;color:#374151;}
+      .ai-badge{padding:1px 7px;border-radius:10px;font-size:11px;background:#f3f4f6;color:#6b7280;}
+      .ai-badge.ok{background:#e7f6ec;color:#0f6e56;}
+      .ai-badge.fail{background:#fdecec;color:#b91c1c;}
+      .ai-q{font-size:14px;color:#111827;font-weight:500;margin-bottom:6px;word-break:break-word;}
+      .ai-a{font-size:13px;color:#4b5563;line-height:1.7;white-space:pre-wrap;word-break:break-word;max-height:110px;overflow:hidden;}
+      .ai-item.open .ai-a{max-height:none;}
+      .ai-toggle{font-size:12px;color:var(--primary);cursor:pointer;margin-top:6px;display:inline-block;}
+    </style>
+    <div class="page-header">
+      <div><h1>🤖 AI 提问</h1><p>遇到难回答的、专业的、不知道怎么组织语言的问题，直接问，会给你可以直接发给客户的回复</p></div>
+    </div>
+    <div class="ai-wrap">
+      <div class="ai-card">
+        <label class="ai-label">客户场景（选填，填了回答更准）</label>
+        <input type="text" id="ai-scene" class="ai-input" placeholder="例如：客户戴了两天说眼睛干涩，要求退货">
+        <label class="ai-label">你的问题 <span class="ai-req">*</span></label>
+        <textarea id="ai-question" class="ai-textarea" placeholder="把客户原话或者你的疑问写在这里，越具体回答越准。&#10;例如：客户问硅水凝胶和普通水凝胶到底差在哪，我不太会解释"></textarea>
+        <div class="ai-actions">
+          <button class="ai-submit" id="ai-submit-btn" onclick="submitAiQuestion()">提问</button>
+          <span class="ai-tip">AI 会自动参考工作台里的培训资料和话术作答</span>
+        </div>
+      </div>
+      <div class="ai-card" id="ai-answer-card" style="display:none;">
+        <div class="ai-answer-head">
+          <span>回答</span>
+          <button class="ai-copy" onclick="copyAiAnswer()">复制</button>
+        </div>
+        <div class="ai-answer-body" id="ai-answer-body"></div>
+      </div>
+      <div class="ai-tabs">
+        <button class="ai-tab active" id="ai-tab-mine" onclick="setAiTab('mine')">我的提问记录</button>
+        <button class="ai-tab" id="ai-tab-all" onclick="setAiTab('all')" style="display:none;">全部记录（管理员）</button>
+      </div>
+      <div id="ai-history"></div>
+    </div>
+  </div>
+
   <!-- ===== 培训资料 ===== -->
   <div class="page" id="page-training">
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -2724,6 +2791,18 @@ body {
     </div>
     <div class="qc-report-cards" id="qc-report-cards"></div>
     <div class="qc-report-tables">
+      <div class="qc-report-block">
+        <h3>质检员明细（每人一表）</h3>
+        <style>
+          .qc-insp-group{margin-bottom:18px;}
+          .qc-insp-title{font-size:13px;font-weight:500;color:#374151;margin:0 0 6px;}
+          .qc-insp-table{width:100%;border-collapse:collapse;font-size:13px;}
+          .qc-insp-table th,.qc-insp-table td{border:1px solid #e5e7eb;padding:6px 10px;text-align:left;white-space:nowrap;}
+          .qc-insp-table th{background:#f3f4f6;color:#374151;font-weight:500;}
+          .qc-insp-total td{background:#fafafa;font-weight:500;color:#111827;}
+        </style>
+        <div id="qc-report-by-inspector-detail"></div>
+      </div>
       <div class="qc-report-block">
         <h3>按质检人</h3>
         <div style="overflow:auto;max-height:420px;"><table id="qc-report-by-inspector"></table></div>
@@ -3261,6 +3340,145 @@ async function loadTrainingScripts() {
     if (currentPage === 'training') renderTraining();
   } catch(e) { console.error('话术加载异常:', e); }
 }
+
+// ==================== AI 提问 ====================
+let aiTab = 'mine';
+let aiHistory = [];
+let aiLastAnswer = '';
+let aiBusy = false;
+
+function isAiAdmin() {
+  return !!(currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader'));
+}
+
+function renderAiPage() {
+  const allTab = document.getElementById('ai-tab-all');
+  if (allTab) allTab.style.display = isAiAdmin() ? '' : 'none';
+  loadAiHistory();
+}
+
+function setAiTab(t) {
+  aiTab = t;
+  const mine = document.getElementById('ai-tab-mine');
+  const all = document.getElementById('ai-tab-all');
+  if (mine) mine.classList.toggle('active', t === 'mine');
+  if (all) all.classList.toggle('active', t === 'all');
+  loadAiHistory();
+}
+
+async function loadAiHistory() {
+  const box = document.getElementById('ai-history');
+  if (!box) return;
+  if (!supabase || !currentUser) { box.innerHTML = '<div class="ai-empty">未登录</div>'; return; }
+  box.innerHTML = '<div class="ai-empty">加载中...</div>';
+  try {
+    let q = supabase.from('ai_questions').select('*').order('created_at', { ascending: false }).limit(200);
+    // 客服永远只能查自己的；管理员切到「全部记录」才查全部
+    if (aiTab === 'mine' || !isAiAdmin()) q = q.eq('user_id', currentUser.id);
+    const { data, error } = await q;
+    if (error) throw error;
+    aiHistory = data || [];
+    renderAiHistory();
+  } catch (e) {
+    box.innerHTML = '<div class="ai-error">加载失败：' + escapeHtml(e.message || '未知错误') + '</div>';
+  }
+}
+
+function renderAiHistory() {
+  const box = document.getElementById('ai-history');
+  if (!box) return;
+  if (!aiHistory.length) { box.innerHTML = '<div class="ai-empty">还没有提问记录</div>'; return; }
+  const isAll = aiTab === 'all' && isAiAdmin();
+  box.innerHTML = aiHistory.map(function (r, i) {
+    const ok = r.status === 'success';
+    const time = String(r.created_at || '').replace('T', ' ').slice(0, 16);
+    let who = '';
+    if (isAll) {
+      who = '<span class="ai-item-name">' + escapeHtml(r.user_name || '未知') + '</span>';
+      if (r.group_name) who += '<span>' + escapeHtml(r.group_name) + '</span>';
+    }
+    let body;
+    if (ok && r.answer) {
+      body = '<div class="ai-a">' + escapeHtml(r.answer) + '</div>'
+        + '<span class="ai-toggle" onclick="toggleAiItem(' + i + ')">展开全文</span>';
+    } else {
+      body = '<div class="ai-error">' + escapeHtml(r.error || '未获得回答') + '</div>';
+    }
+    return '<div class="ai-item" id="ai-item-' + i + '">'
+      + '<div class="ai-item-head">' + who + '<span>' + escapeHtml(time) + '</span>'
+      + '<span class="ai-badge ' + (ok ? 'ok' : 'fail') + '">' + (ok ? '已回答' : '失败') + '</span>'
+      + '</div>'
+      + '<div class="ai-q">' + escapeHtml(r.question || '') + '</div>'
+      + body
+      + '</div>';
+  }).join('');
+}
+
+function toggleAiItem(i) {
+  const el = document.getElementById('ai-item-' + i);
+  if (!el) return;
+  el.classList.toggle('open');
+  const t = el.querySelector('.ai-toggle');
+  if (t) t.textContent = el.classList.contains('open') ? '收起' : '展开全文';
+}
+
+function formatAiAnswer(text) {
+  return escapeHtml(text || '')
+    .replace(/【([^】]+)】/g, '<div class="ai-sec-title">$1</div>')
+    .replace(/\n/g, '<br>');
+}
+
+async function submitAiQuestion() {
+  if (aiBusy) return;
+  const qEl = document.getElementById('ai-question');
+  const sEl = document.getElementById('ai-scene');
+  const question = ((qEl && qEl.value) ? qEl.value : '').trim();
+  if (!question) {
+    if (typeof showToast === 'function') showToast('请先写你的问题');
+    if (qEl) qEl.focus();
+    return;
+  }
+  if (!supabase || !currentUser) {
+    if (typeof showToast === 'function') showToast('未登录，请重新登录后再提问');
+    return;
+  }
+
+  aiBusy = true;
+  const btn = document.getElementById('ai-submit-btn');
+  const card = document.getElementById('ai-answer-card');
+  const body = document.getElementById('ai-answer-body');
+  if (btn) { btn.disabled = true; btn.textContent = '思考中...'; }
+  if (card) card.style.display = '';
+  if (body) body.innerHTML = '<div class="ai-thinking">AI 正在参考培训资料生成回答，请稍候...</div>';
+
+  try {
+    const { data, error } = await supabase.functions.invoke('ai-ask', {
+      body: { question: question, scene: ((sEl && sEl.value) ? sEl.value : '').trim() }
+    });
+    if (error) throw new Error(error.message || '请求失败');
+    if (data && data.error) throw new Error(data.error);
+    aiLastAnswer = (data && data.answer) || '';
+    if (body) body.innerHTML = formatAiAnswer(aiLastAnswer);
+    if (qEl) qEl.value = '';
+    loadAiHistory();
+  } catch (e) {
+    if (body) body.innerHTML = '<div class="ai-error">' + escapeHtml(e.message || '未知错误') + '</div>';
+  } finally {
+    aiBusy = false;
+    if (btn) { btn.disabled = false; btn.textContent = '提问'; }
+  }
+}
+
+async function copyAiAnswer() {
+  if (!aiLastAnswer) return;
+  try {
+    await navigator.clipboard.writeText(aiLastAnswer);
+    if (typeof showToast === 'function') showToast('已复制');
+  } catch (e) {
+    if (typeof showToast === 'function') showToast('复制失败，请手动选中复制');
+  }
+}
+window.renderAiPage = renderAiPage;
 
 function subscribeTrainingScripts() {
   if (!supabase || scriptSub) return;
@@ -7004,6 +7222,89 @@ function groupQcByInspector(data) {
   }).sort((a, b) => b.count - a.count);
 }
 
+/* ===== 质检员明细：每个质检员一张表，表内按被质检人展开 ===== */
+const QC_FIXED_INSPECTORS = ['小念', '小暖', '小雷'];
+
+function qcInspectorNameOf(r) {
+  const phone = r.created_by || '';
+  const prof = phone ? qcReportPhoneMap[phone] : null;
+  return prof ? (prof.name || prof.real_name || phone) : (phone || '未填写');
+}
+
+// 质检员名单：当前登录者排最前 + 固定三位 + 数据里出现的其他人
+function getQcInspectorList(data) {
+  const list = [];
+  const me = currentProfile ? (currentProfile.name || currentProfile.real_name) : '';
+  if (me) list.push(me);
+  QC_FIXED_INSPECTORS.forEach(function (n) { if (list.indexOf(n) < 0) list.push(n); });
+  (data || []).forEach(function (r) {
+    const n = qcInspectorNameOf(r);
+    if (n && n !== '未填写' && list.indexOf(n) < 0) list.push(n);
+  });
+  return list;
+}
+
+// 两级聚合：质检员 -> 被质检人，统计记录数/扣罚/三档严重度/讲解进度
+function groupQcByInspectorStaff(data) {
+  const inspectors = getQcInspectorList(data);
+  const byInsp = {};
+  inspectors.forEach(function (n) { byInsp[n] = {}; });
+  (data || []).forEach(function (r) {
+    const ins = qcInspectorNameOf(r);
+    if (!byInsp[ins]) byInsp[ins] = {};
+    const st = r.staff || '未填写';
+    if (!byInsp[ins][st]) {
+      byInsp[ins][st] = { staff: st, count: 0, penalty: 0, normal: 0, serious: 0, critical: 0, done: 0 };
+    }
+    const it = byInsp[ins][st];
+    it.count++;
+    it.penalty += Number(r.penalty_amount) || 0;
+    if (r.severity === '一般') it.normal++;
+    else if (r.severity === '严重') it.serious++;
+    else if (r.severity === '严重需整改') it.critical++;
+    if (r.status === 'done') it.done++;
+  });
+  return inspectors.map(function (n) {
+    const rows = Object.keys(byInsp[n] || {}).map(function (k) { return byInsp[n][k]; })
+      .sort(function (a, b) { return b.count - a.count; });
+    const total = { count: 0, penalty: 0, normal: 0, serious: 0, critical: 0, done: 0 };
+    rows.forEach(function (r) {
+      total.count += r.count; total.penalty += r.penalty; total.normal += r.normal;
+      total.serious += r.serious; total.critical += r.critical; total.done += r.done;
+    });
+    return { inspector: n, rows: rows, total: total };
+  });
+}
+
+function renderQcInspectorDetail() {
+  const box = document.getElementById('qc-report-by-inspector-detail');
+  if (!box) return;
+  const groups = groupQcByInspectorStaff(qcReportData);
+  const cols = ['被质检人', '记录数', '扣罚金额', '一般问题', '严重', '严重需整改', '讲解/确认完成情况'];
+  let html = '';
+  groups.forEach(function (g) {
+    html += '<div class="qc-insp-group">';
+    html += '<div class="qc-insp-title">质检员：' + escapeHtml(g.inspector)
+      + '（' + g.total.count + ' 条 · 扣罚 ¥' + g.total.penalty + '）</div>';
+    html += '<table class="qc-insp-table"><thead><tr>'
+      + cols.map(function (c) { return '<th>' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
+    if (!g.rows.length) {
+      html += '<tr><td colspan="' + cols.length + '" style="text-align:center;color:#999;padding:12px;">该时间范围内暂无质检记录</td></tr>';
+    } else {
+      g.rows.forEach(function (r) {
+        html += '<tr><td>' + escapeHtml(r.staff) + '</td><td>' + r.count + '</td><td>¥' + r.penalty + '</td>'
+          + '<td>' + r.normal + '</td><td>' + r.serious + '</td><td>' + r.critical + '</td>'
+          + '<td>' + r.done + '/' + r.count + '</td></tr>';
+      });
+      html += '<tr class="qc-insp-total"><td>合计</td><td>' + g.total.count + '</td><td>¥' + g.total.penalty + '</td>'
+        + '<td>' + g.total.normal + '</td><td>' + g.total.serious + '</td><td>' + g.total.critical + '</td>'
+        + '<td>' + g.total.done + '/' + g.total.count + '</td></tr>';
+    }
+    html += '</tbody></table></div>';
+  });
+  box.innerHTML = html;
+}
+
 function renderQcTable(id, headers, rows, isInspector) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -7049,6 +7350,7 @@ function renderQcReport() {
   const byStaff = groupQcAgg(data, 'staff');
   const byShop = groupQcAgg(data, 'shop');
   const bySev = groupQcAgg(data, 'severity');
+  renderQcInspectorDetail();
   renderQcTable('qc-report-by-inspector', ['质检人', '记录数', '被质检人', '扣罚金额', '待讲解', '已讲解', '完成率'], byInsp, true);
   renderQcTable('qc-report-by-staff', ['客服', '组别', '记录数', '扣罚金额', '待讲解', '已讲解', '完成率'], byStaff);
   renderQcTable('qc-report-by-shop', ['店铺', '记录数', '扣罚金额', '待讲解', '已讲解', '完成率'], byShop);
@@ -7081,6 +7383,16 @@ function exportQcReportExcel() {
   try {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(overview), '概览');
+    const inspDetail = [];
+    groupQcByInspectorStaff(data).forEach(function (g) {
+      g.rows.forEach(function (r) {
+        inspDetail.push({ '质检员': g.inspector, '被质检人': r.staff, '记录数': r.count, '扣罚金额': r.penalty,
+          '一般问题': r.normal, '严重': r.serious, '严重需整改': r.critical, '讲解/确认完成情况': r.done + '/' + r.count });
+      });
+      inspDetail.push({ '质检员': g.inspector, '被质检人': '合计', '记录数': g.total.count, '扣罚金额': g.total.penalty,
+        '一般问题': g.total.normal, '严重': g.total.serious, '严重需整改': g.total.critical, '讲解/确认完成情况': g.total.done + '/' + g.total.count });
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(inspDetail), '按质检员明细');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(byInsp), '按质检人');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(byStaff), '按客服');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(byShop), '按店铺');
@@ -7109,6 +7421,9 @@ function switchPage(page) {
     } else {
       renderTraining();
     }
+  }
+  if (page === 'ai') {
+    if (window.renderAiPage) renderAiPage();
   }
   if (page === 'patterns') {
     // 每次进入都重新拉取，保证数据最新（Realtime 仅在花色素材页激活时才刷新）
