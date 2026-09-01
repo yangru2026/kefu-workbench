@@ -313,6 +313,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .cs-kpi .l{font-size:12px;color:var(--text2);margin-top:2px}
 .cs-kpi.total .n{color:#475569}
 .cs-kpi.confirmed .n{color:#16a34a}
+.cs-kpi.auto .n{color:#2563eb}
 .cs-kpi.pending .n{color:#d97706}
 .cs-kpi.overdue .n{color:#dc2626}
 .cs-filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
@@ -322,6 +323,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .cs-row{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:#fff}
 .cs-row.overdue{border-color:#fecaca;background:#fff5f5}
 .cs-row.confirmed{background:#f9fefb}
+.cs-row.auto{border-color:#bfdbfe;background:#f5f9ff}
 .cs-staff{font-weight:600;color:var(--text);min-width:72px}
 .cs-count{font-size:12px;color:var(--text2);min-width:48px;text-align:center}
 .cs-sent{font-size:11px;color:var(--text2);min-width:120px}
@@ -329,6 +331,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .cs-status{font-size:12px;font-weight:600;line-height:1.3}
 .cs-status .cs-sub{font-size:10px;font-weight:400;color:var(--text2)}
 .cs-status.confirmed{color:#16a34a}
+.cs-status.auto{color:#2563eb}
 .cs-status.pending{color:#d97706}
 .cs-status.overdue{color:#dc2626}
 .cs-actions{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
@@ -459,6 +462,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <div class="bulk-bar" id="bulkBar">
   <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="selAllBox" onchange="toggleSelectAll(this)" style="width:16px;height:16px;accent-color:var(--primary)"> 全选本页</label>
   <span class="bulk-count" id="bulkCount">已选 0 条</span>
+  <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)">超时
+    <select id="qcSendHours" style="padding:5px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;color:var(--text);background:#fff;cursor:pointer">
+      <option value="24">24 小时</option>
+      <option value="48" selected>48 小时</option>
+      <option value="72">72 小时</option>
+    </select>
+    自动确认
+  </span>
   <button class="btn btn-p" onclick="sendShare()" style="font-size:12px;padding:6px 16px">📤 发送给客服</button>
   <button class="btn btn-s" onclick="clearSelection()" style="font-size:12px;padding:6px 14px">取消选择</button>
 </div>
@@ -1520,9 +1531,11 @@ function getShareInfo(r) {
   return { share: sh, confirmed: !!sh.confirmed_at, confirmedAt: sh.confirmed_at };
 }
 
-async function loadShares() {
+async function loadShares(doSweep) {
   try {
     if (!window.supabase) return;
+    // 先跑一次到期扫描（补自动确认 / 发提醒），再取最新数据
+    if (doSweep !== false) await runQcShareSweep();
     const { data, error } = await supabase.from('qc_shares').select('*').order('created_at', { ascending: false });
     if (error) throw error;
     qcShares = data || [];
@@ -1533,7 +1546,13 @@ async function loadShares() {
 }
 
 /* ==================== 确认状态汇总视图 ==================== */
-const CONFIRM_OVERDUE_DAYS = 3;
+const DEFAULT_AUTO_CONFIRM_HOURS = 48;  // 默认 48 小时超时自动确认
+const REMIND_BEFORE_HOURS = 12;         // 到期前 12 小时再提醒一次
+const AUTO_CONFIRM_OPTIONS = [
+  { h: 24, label: '24 小时（1 天）' },
+  { h: 48, label: '48 小时（2 天）' },
+  { h: 72, label: '72 小时（3 天）' }
+];
 
 function fmtTime(ts) {
   if (!ts) return '-';
@@ -1547,13 +1566,134 @@ function daysSince(ts) {
   if (isNaN(d.getTime())) return 0;
   return Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
 }
+// 到期时间：优先用库里的 due_at，老数据没有就按 created_at + hours 现算
+function dueAtOf(s) {
+  if (s.due_at) {
+    const d = new Date(s.due_at);
+    if (!isNaN(d.getTime())) return d;
+  }
+  const c = new Date(s.created_at);
+  if (isNaN(c.getTime())) return null;
+  return new Date(c.getTime() + (Number(s.auto_confirm_hours) || DEFAULT_AUTO_CONFIRM_HOURS) * 3600 * 1000);
+}
+// 剩余毫秒（负数=已过期）
+function msLeftOf(s) {
+  const d = dueAtOf(s);
+  if (!d) return 0;
+  return d.getTime() - Date.now();
+}
 function isOverdue(s) {
   if (s.confirmed_at) return false;
-  return daysSince(s.created_at) > CONFIRM_OVERDUE_DAYS;
+  return msLeftOf(s) <= 0;
 }
 function shareStatusOf(s) {
-  if (s.confirmed_at) return 'confirmed';
+  if (s.confirmed_at) return s.auto_confirmed ? 'auto' : 'confirmed';
   return isOverdue(s) ? 'overdue' : 'pending';
+}
+// 把毫秒拼成「1 天 5 小时 23 分」
+function fmtCountdown(ms) {
+  if (ms <= 0) return '已到期';
+  let t = Math.floor(ms / 1000);
+  const d = Math.floor(t / 86400); t -= d * 86400;
+  const h = Math.floor(t / 3600);  t -= h * 3600;
+  const m = Math.floor(t / 60);
+  if (d > 0) return d + ' 天 ' + h + ' 小时';
+  if (h > 0) return h + ' 小时 ' + m + ' 分';
+  return m + ' 分';
+}
+
+/* ===== 提醒：往工作台通知中心写一条（按姓名找 profiles） ===== */
+let qcProfileIdCache = {};
+
+async function qcNotifyStaff(staff, title, content, type) {
+  try {
+    if (!window.supabase || !staff) return false;
+    let uid = qcProfileIdCache[staff];
+    if (uid === undefined) {
+      const { data } = await supabase.from('profiles').select('id').eq('name', staff).limit(1);
+      uid = (data && data[0]) ? data[0].id : null;
+      qcProfileIdCache[staff] = uid;
+    }
+    if (!uid) { console.warn('qcNotifyStaff：未找到客服「' + staff + '」的账号，跳过站内提醒'); return false; }
+    const { error } = await supabase.from('notifications').insert({
+      user_id: uid, title: title, content: content, type: type || 'qc_confirm', is_read: false
+    });
+    if (error) { console.warn('qcNotifyStaff 写入失败:', error.message); return false; }
+    return true;
+  } catch (e) { console.warn('qcNotifyStaff 异常:', e.message); return false; }
+}
+
+/* 确认（含自动确认）后：把关联的质检记录一并置为「已讲解」 */
+async function qcMarkRecordsCoached(s) {
+  try {
+    const ids = (s.record_ids || []).map(Number).filter(n => !isNaN(n));
+    if (!ids.length || !window.supabase) return;
+    const today = new Date();
+    const p = n => String(n).padStart(2, '0');
+    const todayStr = today.getFullYear() + '-' + p(today.getMonth() + 1) + '-' + p(today.getDate());
+    const { error } = await supabase.from('qc_records')
+      .update({ status: 'done', coach_date: todayStr })
+      .in('id', ids);
+    if (error) console.warn('qcMarkRecordsCoached 失败:', error.message);
+  } catch (e) { console.warn('qcMarkRecordsCoached 异常:', e.message); }
+}
+
+/* ===== 到期扫描：补自动确认 + 发提醒（惰性触发，谁打开谁跑一次） ===== */
+let qcSweepRunning = false;
+
+async function runQcShareSweep() {
+  if (qcSweepRunning || !window.supabase) return;
+  qcSweepRunning = true;
+  try {
+    const { data, error } = await supabase
+      .from('qc_shares')
+      .select('*')
+      .is('confirmed_at', null);
+    if (error) throw error;
+    const list = data || [];
+    const now = Date.now();
+    for (const s of list) {
+      const msLeft = msLeftOf(s);
+      // 1) 到期未确认 → 自动确认
+      if (msLeft <= 0) {
+        const { error: upErr } = await supabase.from('qc_shares')
+          .update({ confirmed_at: new Date().toISOString(), auto_confirmed: true,
+                    confirm_note: '超时未确认，系统自动确认' })
+          .eq('id', s.id);
+        if (upErr) { console.warn('自动确认失败:', upErr.message); continue; }
+        s.confirmed_at = new Date().toISOString();
+        s.auto_confirmed = true;
+        await qcMarkRecordsCoached(s);
+        await qcNotifyStaff(s.staff, '⏰ 质检反馈已超时自动确认',
+          '你有一份质检反馈（' + (s.record_count || 0) + ' 条）超过 ' +
+          (Number(s.auto_confirm_hours) || DEFAULT_AUTO_CONFIRM_HOURS) +
+          ' 小时未确认，系统已自动确认为「已收到」，对应记录也已标记为已讲解。\n如有异议请及时联系质检员。');
+      }
+      // 2) 还没到期，但已进入最后 12 小时且没提醒过 → 提醒一次
+      else if (!s.reminded_at && msLeft <= REMIND_BEFORE_HOURS * 3600 * 1000) {
+        const { error: rmErr } = await supabase.from('qc_shares')
+          .update({ reminded_at: new Date().toISOString() }).eq('id', s.id);
+        if (!rmErr) {
+          s.reminded_at = new Date().toISOString();
+          await qcNotifyStaff(s.staff, '🔔 质检反馈即将超时自动确认',
+            '你有一份质检反馈（' + (s.record_count || 0) + ' 条）还没确认，还剩 ' +
+            fmtCountdown(msLeft) + '。\n到期未点确认将自动确认为「已收到」，请尽快查看。');
+        }
+      }
+    }
+    // 同步本地缓存
+    const changed = list.filter(s => s.confirmed_at || s.reminded_at);
+    if (changed.length) {
+      changed.forEach(s => {
+        const i = (qcShares || []).findIndex(x => x.id === s.id);
+        if (i > -1) qcShares[i] = Object.assign({}, qcShares[i], s);
+      });
+    }
+  } catch (e) {
+    console.warn('runQcShareSweep 异常:', e.message);
+  } finally {
+    qcSweepRunning = false;
+  }
 }
 
 function updateCsBadge() {
@@ -1579,20 +1719,24 @@ function closeConfirmStatus() {
 function renderConfirmStatus(filter) {
   const shares = qcShares || [];
   const total = shares.length;
-  const confirmed = shares.filter(s => s.confirmed_at).length;
+  const autoCount = shares.filter(s => s.confirmed_at && s.auto_confirmed).length;
+  const confirmed = shares.filter(s => s.confirmed_at && !s.auto_confirmed).length;
   const overdue = shares.filter(isOverdue).length;
-  const pending = total - confirmed - overdue;
+  const pending = total - confirmed - autoCount - overdue;
 
-  document.getElementById('csKpiTotal').textContent = total;
-  document.getElementById('csKpiConfirmed').textContent = confirmed;
-  document.getElementById('csKpiPending').textContent = pending;
-  document.getElementById('csKpiOverdue').textContent = overdue;
+  const setTxt = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  setTxt('csKpiTotal', total);
+  setTxt('csKpiConfirmed', confirmed);
+  setTxt('csKpiAuto', autoCount);
+  setTxt('csKpiPending', pending);
+  setTxt('csKpiOverdue', overdue);
 
   let list = shares.slice();
-  if (filter === 'confirmed') list = list.filter(s => s.confirmed_at);
+  if (filter === 'confirmed') list = list.filter(s => s.confirmed_at && !s.auto_confirmed);
+  else if (filter === 'auto') list = list.filter(s => s.confirmed_at && s.auto_confirmed);
   else if (filter === 'overdue') list = list.filter(isOverdue);
   else if (filter === 'pending') list = list.filter(s => !s.confirmed_at && !isOverdue(s));
-  const order = { overdue: 0, pending: 1, confirmed: 2 };
+  const order = { overdue: 0, pending: 1, auto: 2, confirmed: 3 };
   list.sort((a, b) => {
     const ra = order[shareStatusOf(a)], rb = order[shareStatusOf(b)];
     if (ra !== rb) return ra - rb;
@@ -1608,14 +1752,17 @@ function renderConfirmStatus(filter) {
       let statusHtml;
       if (st === 'confirmed') {
         statusHtml = '<span class="cs-status confirmed">✅ 已确认<br><span class="cs-sub">' + fmtTime(s.confirmed_at) + '</span></span>';
+      } else if (st === 'auto') {
+        statusHtml = '<span class="cs-status auto">⏰ 已自动确认<br><span class="cs-sub">超时未点 · ' + fmtTime(s.confirmed_at) + '</span></span>';
       } else if (st === 'overdue') {
         statusHtml = '<span class="cs-status overdue">⚠️ 逾期未确认<br><span class="cs-sub">已发 ' + daysSince(s.created_at) + ' 天</span></span>';
       } else {
-        statusHtml = '<span class="cs-status pending">📤 待确认<br><span class="cs-sub">已发 ' + daysSince(s.created_at) + ' 天</span></span>';
+        const left = msLeftOf(s);
+        statusHtml = '<span class="cs-status pending">📤 待确认<br><span class="cs-sub">剩 ' + fmtCountdown(left) + (s.reminded_at ? ' · 已催' : '') + '</span></span>';
       }
       const url = new URL('qc-share.html?token=' + s.token, location.href).href;
       const actions = '<button class="btn btn-s" style="font-size:11px;padding:4px 10px" onclick="copyShareLink(\'' + url.replace(/'/g, "\\'") + '\')">📋 复制链接</button>'
-        + (st !== 'confirmed' ? '<button class="btn btn-p" style="font-size:11px;padding:4px 10px" onclick="remindShare(\'' + s.token.replace(/'/g, "\\'") + '\')">🔔 催一下</button>' : '')
+        + (st === 'pending' || st === 'overdue' ? '<button class="btn btn-p" style="font-size:11px;padding:4px 10px" onclick="remindShare(\'' + s.token.replace(/'/g, "\\'") + '\')">🔔 催一下</button>' : '')
         + (isAdmin ? '<button class="btn btn-r" style="font-size:11px;padding:4px 10px" onclick="revokeShare(' + s.id + ')">🗑️ 撤销</button>' : '');
       return '<div class="cs-row ' + st + '">'
         + '<div class="cs-staff">' + escapeHtml(s.staff) + '</div>'
@@ -1695,20 +1842,29 @@ async function sendShare() {
   const byStaff = {};
   chosen.forEach(r => { (byStaff[r.staff] = byStaff[r.staff] || []).push(r.id); });
   const createdBy = (typeof currentAuthUser !== 'undefined' && currentAuthUser && currentAuthUser.phone) ? currentAuthUser.phone : '管理员';
+  const hoursEl = document.getElementById('qcSendHours');
+  const hours = Number(hoursEl && hoursEl.value) || DEFAULT_AUTO_CONFIRM_HOURS;
   const links = [];
   try {
     for (const staff of Object.keys(byStaff)) {
       const ids = byStaff[staff].map(Number);
       const token = genToken();
       const { data, error } = await supabase.from('qc_shares').insert({
-        token, staff, record_ids: ids, record_count: ids.length, created_by: createdBy
+        token, staff, record_ids: ids, record_count: ids.length, created_by: createdBy,
+        auto_confirm_hours: hours,
+        due_at: new Date(Date.now() + hours * 3600 * 1000).toISOString()
       }).select().single();
       if (error) throw error;
       qcShares.unshift(data);
       const url = new URL('qc-share.html?token=' + token, location.href).href;
-      links.push({ staff, url, count: ids.length });
+      links.push({ staff, url, count: ids.length, hours: hours });
+      // 发送时站内提醒客服：明确告知不点确认会自动确认
+      await qcNotifyStaff(staff, '📋 你有 ' + ids.length + ' 条质检反馈待确认',
+        '质检员发来 ' + ids.length + ' 条一对一质检反馈，请点开链接查看并点「确认收到」。\n' +
+        '注意：' + hours + ' 小时内未确认，系统将自动确认为「已收到」，对应记录会标记为已讲解。\n' +
+        '如有异议请在到期前联系质检员。');
     }
-    showToast('✅ 已生成 ' + links.length + ' 个分享链接');
+    showToast('✅ 已生成 ' + links.length + ' 个分享链接，' + hours + ' 小时后未确认将自动确认');
     renderShareModal(links);
     renderRecords();
     updateCsBadge();
@@ -1722,7 +1878,10 @@ async function sendShare() {
 function renderShareModal(links) {
   const body = document.getElementById('shareModalBody');
   if (!body) return;
-  body.innerHTML = '<p style="font-size:12px;color:var(--text2);margin-bottom:10px">把下面链接发给对应客服，对方点开即可一对一看并确认：</p>'
+  const h = links[0] && links[0].hours ? links[0].hours : DEFAULT_AUTO_CONFIRM_HOURS;
+  body.innerHTML = '<p style="font-size:12px;color:var(--text2);margin-bottom:6px">把下面链接发给对应客服，对方点开即可一对一看并确认：</p>'
+    + '<div style="font-size:12px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;margin-bottom:10px">'
+    + '⏰ 已同时发出站内提醒。<b>' + h + ' 小时</b>内未点确认，系统将<b>自动确认</b>为「已收到」，对应记录会标记为已讲解；到期前 12 小时会再提醒一次。</div>'
     + links.map(l => '<div class="share-link-row"><span class="sl-staff">' + escapeHtml(l.staff) + '</span>'
       + '<span class="sl-url">' + escapeHtml(l.url) + '</span>'
       + '<button class="btn btn-s" style="font-size:11px;padding:4px 12px" onclick="copyShareLink(\'' + l.url.replace(/'/g, "\\'") + '\')">📋 复制</button></div>').join('');
@@ -3031,6 +3190,7 @@ if (document.readyState === 'loading') {
   <div class="cs-kpi-row">
     <div class="cs-kpi total"><div class="n" id="csKpiTotal">0</div><div class="l">分享批次</div></div>
     <div class="cs-kpi confirmed"><div class="n" id="csKpiConfirmed">0</div><div class="l">已确认</div></div>
+    <div class="cs-kpi auto"><div class="n" id="csKpiAuto">0</div><div class="l">自动确认</div></div>
     <div class="cs-kpi pending"><div class="n" id="csKpiPending">0</div><div class="l">待确认</div></div>
     <div class="cs-kpi overdue"><div class="n" id="csKpiOverdue">0</div><div class="l">逾期未确认</div></div>
   </div>
@@ -3039,7 +3199,8 @@ if (document.readyState === 'loading') {
     <span class="cs-filter" data-f="pending" onclick="renderConfirmStatus('pending')">待确认</span>
     <span class="cs-filter" data-f="overdue" onclick="renderConfirmStatus('overdue')">逾期</span>
     <span class="cs-filter" data-f="confirmed" onclick="renderConfirmStatus('confirmed')">已确认</span>
-    <span style="margin-left:auto;font-size:11px;color:var(--text2);align-self:center">超过 3 天未确认标记为逾期</span>
+    <span class="cs-filter" data-f="auto" onclick="renderConfirmStatus('auto')">已自动确认</span>
+    <span style="margin-left:auto;font-size:11px;color:var(--text2);align-self:center">默认 48 小时未确认自动确认 · 到期前 12 小时自动提醒一次</span>
   </div>
   <div class="cs-list" id="csList"></div>
 </div>

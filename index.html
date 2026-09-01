@@ -12019,6 +12019,87 @@ function startNotificationPolling() {
   if (notifyTimer) clearInterval(notifyTimer);
   loadNotifications();
   notifyTimer = setInterval(loadNotifications, 60000); // 每分钟轮询一次
+  sweepQcShareAutoConfirm(); // 顺带扫一次超时的质检确认
+}
+
+/* ==================== 质检确认：超时自动确认补扫 ====================
+   没有后台定时服务，所以用「惰性触发」：工作台加载时扫一遍，
+   把到期未确认的分享自动确认掉，并在到期前 12 小时提醒一次。
+   节流：同一浏览器 30 分钟内只跑一次，避免每次刷新都打数据库。 */
+const QC_AUTO_HOURS = 48;
+const QC_REMIND_BEFORE_HOURS = 12;
+
+function qcShareDueAt(s) {
+  if (s.due_at) { const d = new Date(s.due_at); if (!isNaN(d.getTime())) return d; }
+  const c = new Date(s.created_at);
+  if (isNaN(c.getTime())) return null;
+  return new Date(c.getTime() + (Number(s.auto_confirm_hours) || QC_AUTO_HOURS) * 3600 * 1000);
+}
+
+async function sweepQcShareAutoConfirm() {
+  try {
+    if (!supabase) return;
+    const THROTTLE_MS = 30 * 60 * 1000;
+    let last = 0;
+    try { last = Number(sessionStorage.getItem('qcSweepAt') || 0); } catch (e) {}
+    if (last && Date.now() - last < THROTTLE_MS) return;
+    try { sessionStorage.setItem('qcSweepAt', String(Date.now())); } catch (e) {}
+
+    const { data, error } = await supabase.from('qc_shares').select('*').is('confirmed_at', null);
+    if (error || !data || !data.length) return;
+
+    // 姓名 -> 通知对象 id
+    const { data: profs } = await supabase.from('profiles').select('id, name');
+    const idByName = {};
+    (profs || []).forEach(p => { if (p.name) idByName[p.name] = p.id; });
+    const notify = async (staff, title, content) => {
+      const uid = idByName[staff];
+      if (!uid) return;
+      await supabase.from('notifications')
+        .insert({ user_id: uid, title: title, content: content, type: 'qc_confirm', is_read: false });
+    };
+    const markCoached = async (s) => {
+      const ids = (s.record_ids || []).map(Number).filter(n => !isNaN(n));
+      if (!ids.length) return;
+      const d = new Date(), p = n => String(n).padStart(2, '0');
+      await supabase.from('qc_records')
+        .update({ status: 'done', coach_date: d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) })
+        .in('id', ids);
+    };
+    const fmtLeft = (ms) => {
+      if (ms <= 0) return '已到期';
+      let t = Math.floor(ms / 1000);
+      const d = Math.floor(t / 86400); t -= d * 86400;
+      const h = Math.floor(t / 3600); t -= h * 3600;
+      const m = Math.floor(t / 60);
+      if (d > 0) return d + ' 天 ' + h + ' 小时';
+      if (h > 0) return h + ' 小时 ' + m + ' 分';
+      return m + ' 分';
+    };
+
+    for (const s of data) {
+      const left = (qcShareDueAt(s) ? qcShareDueAt(s).getTime() : 0) - Date.now();
+      if (left <= 0) {
+        const { error: upErr } = await supabase.from('qc_shares')
+          .update({ confirmed_at: new Date().toISOString(), auto_confirmed: true,
+                    confirm_note: '超时未确认，系统自动确认' })
+          .eq('id', s.id);
+        if (upErr) continue;
+        await markCoached(s);
+        await notify(s.staff, '⏰ 质检反馈已超时自动确认',
+          '你有一份质检反馈（' + (s.record_count || 0) + ' 条）超过 ' +
+          (Number(s.auto_confirm_hours) || QC_AUTO_HOURS) + ' 小时未确认，系统已自动确认为「已收到」，对应记录也已标记为已讲解。\n如有异议请及时联系质检员。');
+      } else if (!s.reminded_at && left <= QC_REMIND_BEFORE_HOURS * 3600 * 1000) {
+        const { error: rmErr } = await supabase.from('qc_shares')
+          .update({ reminded_at: new Date().toISOString() }).eq('id', s.id);
+        if (!rmErr) {
+          await notify(s.staff, '🔔 质检反馈即将超时自动确认',
+            '你有一份质检反馈（' + (s.record_count || 0) + ' 条）还没确认，还剩 ' + fmtLeft(left) +
+            '。\n到期未点确认将自动确认为「已收到」，请尽快查看。');
+        }
+      }
+    }
+  } catch (e) { console.warn('sweepQcShareAutoConfirm 异常:', e && e.message); }
 }
 
 // ==================== INIT ====================

@@ -53,6 +53,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .btn-primary:disabled{opacity:.6;cursor:not-allowed}
 .confirmed-state{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:12px;padding:16px 18px;margin:8px 0 24px;font-size:14px}
 .confirmed-state .ct{font-weight:600;font-size:15px;margin-bottom:4px}
+.confirmed-state.auto{background:#eff6ff;border-color:#bfdbfe;color:#1e40af}
+
+/* 超时倒计时横幅 */
+.due-banner{border-radius:12px;padding:12px 16px;margin-bottom:14px;font-size:13px;line-height:1.6;display:flex;gap:10px;align-items:flex-start}
+.due-banner .db-icon{font-size:18px;line-height:1.2}
+.due-banner .db-main{flex:1}
+.due-banner .db-title{font-weight:600;font-size:14px;margin-bottom:2px}
+.due-banner .db-count{font-weight:700;font-variant-numeric:tabular-nums}
+.due-banner.warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+.due-banner.urgent{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+.due-banner.done{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534}
 
 /* Toast */
 .toast{position:fixed;top:20px;right:20px;background:var(--sidebar-bg);color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;z-index:9999;opacity:0;transform:translateX(20px);transition:all .3s;pointer-events:none;max-width:400px}
@@ -241,16 +252,120 @@ async function fillImages(containerId, ids){
   }
 }
 
+/* ==================== 超时自动确认 ==================== */
+const DEFAULT_AUTO_HOURS = 48;
+const REMIND_BEFORE_HOURS = 12;
+let dueTimer = null;
+
+function dueAtOfShare(s){
+  if(s.due_at){ const d=new Date(s.due_at); if(!isNaN(d.getTime())) return d; }
+  const c=new Date(s.created_at); if(isNaN(c.getTime())) return null;
+  return new Date(c.getTime()+(Number(s.auto_confirm_hours)||DEFAULT_AUTO_HOURS)*3600*1000);
+}
+function msLeftOfShare(s){
+  const d=dueAtOfShare(s); if(!d) return 0;
+  return d.getTime()-Date.now();
+}
+function fmtCountdown(ms){
+  if(ms<=0) return '已到期';
+  let t=Math.floor(ms/1000);
+  const d=Math.floor(t/86400); t-=d*86400;
+  const h=Math.floor(t/3600); t-=h*3600;
+  const m=Math.floor(t/60); const sec=t-m*60;
+  if(d>0) return d+' 天 '+h+' 小时 '+m+' 分';
+  if(h>0) return h+' 小时 '+m+' 分 '+sec+' 秒';
+  return m+' 分 '+sec+' 秒';
+}
+function fmtDateTime(ts){
+  const d=new Date(ts); if(isNaN(d.getTime())) return '-';
+  const p=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
+
+/* 打开链接时先自查一次：到期未确认就直接补上自动确认 */
+async function checkAutoConfirm(){
+  if(!currentShare || currentShare.confirmed_at) return;
+  if(msLeftOfShare(currentShare) > 0) return;
+  try{
+    const {error}=await supabase.from('qc_shares')
+      .update({confirmed_at:new Date().toISOString(), auto_confirmed:true,
+               confirm_note:'超时未确认，系统自动确认'})
+      .eq('token', currentShare.token);
+    if(error) throw error;
+    currentShare.confirmed_at=new Date().toISOString();
+    currentShare.auto_confirmed=true;
+    currentShare.confirm_note='超时未确认，系统自动确认';
+    await markRecordsCoached(currentShare);
+  }catch(e){ console.warn('自动确认失败:', e.message); }
+}
+
+/* 确认（含自动确认）后：关联记录置为已讲解 */
+async function markRecordsCoached(s){
+  try{
+    const ids=(s.record_ids||[]).map(Number).filter(n=>!isNaN(n));
+    if(!ids.length) return;
+    const d=new Date(); const p=n=>String(n).padStart(2,'0');
+    const today=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
+    const {error}=await supabase.from('qc_records')
+      .update({status:'done', coach_date:today}).in('id', ids);
+    if(error) console.warn('标记已讲解失败:', error.message);
+  }catch(e){ console.warn('markRecordsCoached 异常:', e.message); }
+}
+
+/* 顶部倒计时 / 已自动确认横幅 */
+function renderDueBanner(){
+  const box=document.getElementById('dueBanner');
+  if(!box || !currentShare) return;
+  const hours=Number(currentShare.auto_confirm_hours)||DEFAULT_AUTO_HOURS;
+  if(currentShare.confirmed_at){
+    if(currentShare.auto_confirmed){
+      box.innerHTML='<div class="due-banner done"><span class="db-icon">⏰</span><div class="db-main">'
+        +'<div class="db-title">已超时自动确认</div>'
+        +'<div>超过了 '+hours+' 小时未点确认，系统已于 '+fmtDateTime(currentShare.confirmed_at)+' 自动确认为「已收到」，对应记录已标记为已讲解。如有异议请联系质检员。</div>'
+        +'</div></div>';
+    } else {
+      box.innerHTML='<div class="due-banner done"><span class="db-icon">✅</span><div class="db-main">'
+        +'<div class="db-title">你已确认收到</div><div>确认时间：'+fmtDateTime(currentShare.confirmed_at)+'</div></div></div>';
+    }
+    if(dueTimer){ clearInterval(dueTimer); dueTimer=null; }
+    return;
+  }
+  const ms=msLeftOfShare(currentShare);
+  const urgent = ms <= REMIND_BEFORE_HOURS*3600*1000;
+  box.innerHTML='<div class="due-banner '+(urgent?'urgent':'warn')+'"><span class="db-icon">'+(urgent?'🔔':'⏳')+'</span><div class="db-main">'
+    +'<div class="db-title">还剩 <span class="db-count" id="dueCount">'+fmtCountdown(ms)+'</span></div>'
+    +'<div>请在 '+hours+' 小时内点下方「确认收到」。<b>到期未点，系统将自动确认</b>为已收到，对应记录会标记为已讲解。</div>'
+    +'</div></div>';
+  if(dueTimer) clearInterval(dueTimer);
+  dueTimer=setInterval(function(){
+    if(currentShare.confirmed_at){ clearInterval(dueTimer); dueTimer=null; return; }
+    const left=msLeftOfShare(currentShare);
+    const el=document.getElementById('dueCount');
+    if(left<=0){
+      clearInterval(dueTimer); dueTimer=null;
+      checkAutoConfirm().then(function(){ renderDueBanner(); renderConfirmArea(); });
+      return;
+    }
+    if(el) el.textContent=fmtCountdown(left);
+  }, 1000);
+}
+
 function renderConfirmArea(){
-  const app=document.getElementById('app');
   const box=document.getElementById('confirmArea');
   if(!box) return;
   if(currentShare.confirmed_at){
-    const d=new Date(currentShare.confirmed_at);
-    const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
-    box.innerHTML='<div class="confirmed-state"><div class="ct">✅ 你已于 '+ds+' 确认收到</div>'+(currentShare.confirm_note?'📝 你的备注：'+escapeHtml(currentShare.confirm_note):'感谢你的查看！')+'</div>';
+    if(currentShare.auto_confirmed){
+      box.innerHTML='<div class="confirmed-state auto"><div class="ct">⏰ 已超时自动确认（'+fmtDateTime(currentShare.confirmed_at)+'）</div>'
+        +'你未在规定时间内点确认，系统已自动确认为「已收到」。如有异议请联系质检员。</div>';
+    } else {
+      const d=new Date(currentShare.confirmed_at);
+      const ds=fmtDateTime(d);
+      box.innerHTML='<div class="confirmed-state"><div class="ct">✅ 你已于 '+ds+' 确认收到</div>'+(currentShare.confirm_note?'📝 你的备注：'+escapeHtml(currentShare.confirm_note):'感谢你的查看！')+'</div>';
+    }
   } else {
     box.innerHTML='<div class="confirm-box"><h3>📝 确认收到</h3>'
+      +'<div style="font-size:12px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;margin-bottom:10px">'
+      +'⏰ 到期未点确认，系统会<b>自动确认</b>为「已收到」，对应记录将标记为已讲解。</div>'
       +'<textarea id="confirmNote" placeholder="可填写一句话备注（可选）…"></textarea>'
       +'<div style="margin-top:12px;text-align:right"><button class="btn btn-primary" id="confirmBtn" onclick="doConfirm()">✅ 确认收到</button></div></div>';
   }
@@ -261,11 +376,16 @@ async function doConfirm(){
   const note=(document.getElementById('confirmNote').value||'').trim();
   btn.disabled=true; btn.textContent='提交中…';
   try{
-    const {error}=await supabase.from('qc_shares').update({confirmed_at:new Date().toISOString(), confirm_note:note}).eq('token',currentShare.token);
+    const {error}=await supabase.from('qc_shares')
+      .update({confirmed_at:new Date().toISOString(), confirm_note:note, auto_confirmed:false})
+      .eq('token',currentShare.token);
     if(error) throw error;
     currentShare.confirmed_at=new Date().toISOString();
     currentShare.confirm_note=note;
+    currentShare.auto_confirmed=false;
+    await markRecordsCoached(currentShare);
     renderConfirmArea();
+    renderDueBanner();
     showToast('✅ 已确认收到');
   }catch(e){
     console.error(e); showToast('确认失败：'+e.message,true);
@@ -413,13 +533,17 @@ document.getElementById('imgPreviewWrapper').addEventListener('wheel', imgWheelZ
     if (r.knowledgeImages && !r.knowledge_images) r.knowledge_images = r.knowledgeImages;
   });
   currentRecords=records;
+  // 打开链接时先自查一次：到期未确认就地补自动确认
+  await checkAutoConfirm();
+
   const staff=escapeHtml(share.staff);
   const headerHtml='<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:18px;box-shadow:0 1px 3px rgba(0,0,0,.04)">'
     +'<div style="font-size:15px;font-weight:600;color:var(--text)">亲爱的 <b style="color:var(--primary)">'+staff+'</b>，以下是发给你的 <b>'+records.length+'</b> 条一对一质检反馈</div>'
     +'<div style="font-size:12px;color:var(--text2);margin-top:4px">请逐条查看，看完点下方「确认收到」即可。</div></div>';
   const cardsHtml=records.length?records.map(renderRecord).join(''):'<div class="notice">该分享暂无质检记录。</div>';
-  document.getElementById('app').innerHTML=headerHtml+cardsHtml+'<div id="confirmArea"></div>';
+  document.getElementById('app').innerHTML=headerHtml+'<div id="dueBanner"></div>'+cardsHtml+'<div id="confirmArea"></div>';
   for(const r of records) await loadImages(r);
+  renderDueBanner();
   renderConfirmArea();
 })();
 </script>
