@@ -7579,9 +7579,14 @@ function switchPage(page) {
       iframe.src = iframe.getAttribute('data-src');
       iframe.removeAttribute('data-src');
     }
-    const isAdmin = currentUser && isAdminUser();
-    document.getElementById('qc-user-badge').textContent = isAdmin ? '👑 管理员模式 · ' + (currentUser.email || currentUser.phone) : '📖 只读模式';
-    notifyQcIframe(isAdmin);
+    const isQc = !!(currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader'));
+    const role = currentProfile && currentProfile.role;
+    let badgeText;
+    if (role === 'admin') badgeText = '👑 管理员模式 · ' + (currentUser.email || currentUser.phone);
+    else if (role === 'leader') badgeText = '🛡️ 组长模式 · 可录入/删除质检';
+    else badgeText = '📖 只读模式';
+    document.getElementById('qc-user-badge').textContent = badgeText;
+    notifyQcIframe(isQc);
   }
   if (page === 'qc-report') {
     loadQcReportMonthOptions().then(loadQcReport);
@@ -7600,7 +7605,8 @@ function notifyQcIframe(admin) {
 
 window.onQcIframeLoad = function() {
   if (currentPage === 'qc') {
-    notifyQcIframe(currentUser && isAdminUser());
+    const isQc = !!(currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader'));
+    notifyQcIframe(isQc);
   }
 };
 
