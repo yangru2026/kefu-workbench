@@ -225,12 +225,19 @@ async function doLogin() {
     document.getElementById('login-phone').focus();
     return;
   }
+  const btn = document.querySelector('#login-form .login-btn');
+  const originalText = btn ? btn.textContent : '登 录';
+  if (btn) { btn.disabled = true; btn.textContent = '登录中...'; }
   try {
+    console.log('[login] start', phone);
     const ok = await signIn(phone, password);
+    console.log('[login] result', ok);
     if (ok) switchPage('home');
   } catch(e) {
     showToast('登录失败：' + (e.message || '网络错误'));
     console.error(e);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = originalText; }
   }
 }
 

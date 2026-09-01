@@ -3255,26 +3255,39 @@ async function signUp(name, phone, password) {
 }
 
 async function signIn(phone, password) {
+  console.log('[signIn] calling signInWithPassword for', phone);
   const { data, error } = await supabase.auth.signInWithPassword({
     email: phone + '@youhu.app',
     password: password
   });
-  if (error) { showToast('登录失败：' + error.message); return false; }
-  // 检查账号是否被清退（status='disabled' 禁止登录）
-  try {
-    const uid = data && data.user ? data.user.id : null;
-    if (uid) {
-      const { data: prof } = await supabase.from('profiles').select('status, name').eq('id', uid).single();
+  if (error) {
+    console.log('[signIn] auth error', error.message);
+    showToast('登录失败：' + error.message);
+    return false;
+  }
+  if (!data || !data.user) {
+    console.log('[signIn] no user in auth response');
+    showToast('登录失败：未返回用户信息');
+    return false;
+  }
+  // 登录成功，先返回 true 让页面立即跳转；状态检查放后台不阻塞
+  console.log('[signIn] auth ok, uid=', data.user.id);
+  // 异步检查账号是否被清退（status='disabled' 禁止登录）
+  setTimeout(async function checkLoginStatus() {
+    try {
+      const { data: prof, error: profErr } = await supabase.from('profiles').select('status, name').eq('id', data.user.id).single();
+      if (profErr) { console.warn('[signIn] profile check error', profErr); return; }
       if (prof && prof.status === 'disabled') {
+        console.log('[signIn] account disabled, signing out');
         await supabase.auth.signOut();
         showToast('该账号已停用，请联系管理员');
-        return false;
+        switchPage('login');
+        return;
       }
-      showToast('欢迎回来，' + (prof && prof.name ? prof.name : (currentProfile && currentProfile.name || '')));
-      return true;
-    }
-  } catch (e) { console.warn('登录状态检查失败', e); }
-  showToast('欢迎回来，' + (currentProfile?.name || ''));
+      console.log('[signIn] profile ok, name=', prof && prof.name);
+    } catch (e) { console.warn('[signIn] status check failed', e); }
+  }, 10);
+  showToast('欢迎回来');
   return true;
 }
 
@@ -12514,7 +12527,7 @@ async function applyInviteClaim() {
 }
 </script>
 
-<script src="app.js?v=20260813"></script>
+<script src="app.js?v=20260901a"></script>
 
 <!-- Pattern Editor Modal -->
 <div class="modal-overlay" id="mod-pattern" onclick="closeModal('mod-pattern')">
