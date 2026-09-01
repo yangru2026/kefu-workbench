@@ -30,12 +30,14 @@
 - **快速诊断**：`curl -o /dev/null -w "%{http_code}" -H "apikey: <KEY>" -H "Authorization: Bearer <KEY>" "https://ienmejlxukhrxjjxvfqf.supabase.co/rest/v1/qc_shares?select=id&limit=1"` → 200 有效，401 失效。
 - **缓存问题**：GitHub Pages 会缓存静态文件，部署后若仍报旧错误，客服需 `Ctrl+Shift+R` 强制刷新。
 
-## 花色素材图片链路
-- 旧花色：GitHub Pages `/patterns/` → jsDelivr CDN；中图 `/patterns/hd/*.webp?v=3`（1200px/quality 82）。
-- 新花色（飞书附件同步）：Supabase Storage `pattern-images` bucket，公开 URL；单张常 1MB+，国内访问慢（6s+）。
-- **已知问题**：Supabase Storage 未启用 Image Transformations，无法动态生成中图；lightbox 大图需走原图。
+## 角色权限函数（极易搞混，改功能时务必选对）
+- `isAdminUser()` / `isFullAdmin()` → 仅 `role === 'admin'`
+- `isQcRole()` → `admin || leader`（组长可用质检报告 + 质检工具）
+- 组长白名单（按杨茹 2026-08-31 决定）：质检报告页 + 质检工具录入/删除；其余权限同普通客服
+- 改任何「判断某人能不能进/改某功能」的地方，**先确认用哪一个**，别想当然用 `isAdminUser()`
+- 父页面（index.html）给 QC iframe 传 setQcMode 必须用 `isQcRole()`，否则组长被锁只读
 
-## 辽哥健身房（微信小程序）
+## 花色素材图片链路
 - 本地：`fitness-miniapp/`
 - AppID：`wx4d7fb2ba6a586905`
 - 状态：主体认证已完成（30元），ICP 备案待推进。

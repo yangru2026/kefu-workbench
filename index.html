@@ -2285,18 +2285,102 @@ body {
 
   <!-- ===== 成员管理 ===== -->
   <div class="page" id="page-members">
-    <div class="page-header"><h1>👥 成员管理</h1><p>查看和管理团队成员账号</p></div>
+    <div class="page-header"><h1>👥 成员管理</h1><p>邀请新成员 · 管理角色/组别 · 离职清退与恢复</p></div>
     <div class="card">
-      <h3 style="margin-bottom:16px;">团队成员列表</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <h3 style="margin:0;">团队成员列表</h3>
+        <button class="btn-sm primary" onclick="openInviteModal()">＋ 邀请新成员</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+        <select id="member-role-filter" onchange="renderMembers()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:var(--card-bg);color:var(--text);">
+          <option value="">全部角色</option>
+          <option value="admin">管理员</option>
+          <option value="leader">组长</option>
+          <option value="staff">客服</option>
+        </select>
+        <select id="member-status-filter" onchange="renderMembers()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:var(--card-bg);color:var(--text);">
+          <option value="">全部状态</option>
+          <option value="active">在职</option>
+          <option value="disabled">已清退</option>
+        </select>
+      </div>
       <div id="members-table-wrap" style="overflow-x:auto;">
-        <table class="ranking-table" style="min-width:700px;">
+        <table class="ranking-table" style="min-width:920px;">
           <thead><tr>
-            <th>姓名</th><th>真实姓名</th><th>手机号</th><th>组别</th><th>角色</th><th>注册时间</th><th>操作</th>
+            <th>花名</th><th>真实姓名</th><th>手机号</th><th>组别</th><th>角色</th><th>状态</th><th>注册时间</th><th>操作</th>
           </tr></thead>
           <tbody id="members-tbody">
-            <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-secondary);">加载中...</td></tr>
+            <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);">加载中...</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- 我发出的邀请 -->
+    <div class="card" style="margin-top:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <h3 style="margin:0;">我发出的邀请</h3>
+        <button class="btn-sm outline" onclick="loadInvites()">🔄 刷新</button>
+      </div>
+      <div id="invites-list" style="display:flex;flex-direction:column;gap:12px;"></div>
+      <div id="invites-empty" style="text-align:center;padding:20px;color:var(--text-secondary);">暂无邀请记录</div>
+    </div>
+  </div>
+
+  <!-- ===== 邀请新成员弹窗 ===== -->
+  <div class="modal-overlay" id="invite-modal" onclick="closeInviteModal()">
+    <div class="modal-box" style="max-width:520px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>＋ 邀请新成员</h3>
+        <button class="modal-close" onclick="closeInviteModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="invite-form-area">
+          <div class="form-row"><label>姓名 / 花名</label><input type="text" id="inv-name" placeholder="如：小南 / 李娜"></div>
+          <div class="form-row"><label>手机号（选填，仅记录）</label><input type="tel" id="inv-phone" placeholder="可不填" maxlength="11"></div>
+          <div class="form-row"><label>组别</label>
+            <select id="inv-group" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--card-bg);color:var(--text);">
+              <option value="A组">A组</option>
+              <option value="B组">B组</option>
+              <option value="C组">C组</option>
+              <option value="极氧组">极氧组</option>
+              <option value="">不分组</option>
+            </select>
+          </div>
+          <div class="form-row"><label>角色</label>
+            <select id="inv-role" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--card-bg);color:var(--text);">
+              <option value="staff">客服（默认）</option>
+              <option value="leader">组长</option>
+              <option value="admin">管理员</option>
+            </select>
+          </div>
+          <div class="form-row"><label>邀请有效期</label>
+            <select id="inv-expire" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--card-bg);color:var(--text);">
+              <option value="7">7 天</option>
+              <option value="30" selected>30 天</option>
+              <option value="90">90 天</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:8px;">
+            <button class="btn-sm primary" onclick="generateInvite()" style="flex:1;">生成邀请链接</button>
+            <button class="btn-sm outline" onclick="closeInviteModal()">取消</button>
+          </div>
+        </div>
+        <div id="invite-result-area" style="display:none;">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;">
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;">邀请链接（发给新人，打开即可注册并自动获得对应角色/组别）</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="text" id="invite-link" readonly style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:#fff;color:var(--text);">
+              <button class="btn-sm primary" onclick="copyInviteLink()">复制</button>
+            </div>
+            <div id="invite-qr" style="display:flex;justify-content:center;margin-top:14px;"></div>
+            <div style="text-align:center;font-size:12px;color:var(--text-secondary);margin-top:6px;">用手机扫一扫，或把上面的链接发给新人</div>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn-sm primary" onclick="copyInviteLink()">📋 复制链接</button>
+            <button class="btn-sm outline" onclick="resetInviteModal()">再生成一个</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -2999,6 +3083,10 @@ async function initSupabase() {
         if (document.getElementById('page-login').classList.contains('active')) {
           switchPage('home');
         }
+        // 邀请申领：通过邀请链接注册的新人，自动应用角色 / 组别
+        if (window.__invite && window.__invite.token && profile && profile.role === 'staff') {
+          applyInviteClaim();
+        }
       } else if (event === 'SIGNED_OUT') {
         currentUser = null;
         currentProfile = null;
@@ -3172,6 +3260,20 @@ async function signIn(phone, password) {
     password: password
   });
   if (error) { showToast('登录失败：' + error.message); return false; }
+  // 检查账号是否被清退（status='disabled' 禁止登录）
+  try {
+    const uid = data && data.user ? data.user.id : null;
+    if (uid) {
+      const { data: prof } = await supabase.from('profiles').select('status, name').eq('id', uid).single();
+      if (prof && prof.status === 'disabled') {
+        await supabase.auth.signOut();
+        showToast('该账号已停用，请联系管理员');
+        return false;
+      }
+      showToast('欢迎回来，' + (prof && prof.name ? prof.name : (currentProfile && currentProfile.name || '')));
+      return true;
+    }
+  } catch (e) { console.warn('登录状态检查失败', e); }
   showToast('欢迎回来，' + (currentProfile?.name || ''));
   return true;
 }
@@ -7572,6 +7674,7 @@ function switchPage(page) {
   }
   if (page === 'presale' && presaleActiveTab === 'monthly') { loadPresaleMonthly(); subscribePresaleMonthly(); renderPresaleMonthly(); }
   if (page === 'staff-info') loadStaffInfo();
+  if (page === 'members') { loadMembers(); loadInvites(); }
   if (page === 'qc') {
     const iframe = document.getElementById('qc-iframe');
     // 延迟加载：首次点击时才加载 iframe 内容
@@ -12123,6 +12226,294 @@ async function init() {
 
 init();
 </script>
+
+<!-- ==================== 成员管理：邀请 / 角色组别 / 清退恢复 ==================== -->
+<script>
+// 通用工具
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function roleText(r) { return ({ admin: '管理员', leader: '组长', staff: '客服' })[r] || '客服'; }
+function fmtDate(s) {
+  if (!s) return '';
+  var d = new Date(s);
+  if (isNaN(d.getTime())) return '';
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function baseUrl() {
+  return location.origin + location.pathname.replace(/index\.html$/, '');
+}
+
+// ---------- 成员列表 ----------
+var membersData = [];
+var profilesSub = null;
+
+async function loadMembers() {
+  if (!isFullAdmin()) return;
+  try {
+    var { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    if (error) { showToast('成员加载失败：' + error.message); membersData = []; }
+    else membersData = data || [];
+  } catch (e) { console.error(e); membersData = []; }
+  renderMembers();
+}
+
+function renderMembers() {
+  var rf = document.getElementById('member-role-filter').value;
+  var sf = document.getElementById('member-status-filter').value;
+  var rows = (membersData || []).filter(function (m) {
+    return (!rf || m.role === rf) && (!sf || (m.status || 'active') === sf);
+  });
+  var tb = document.getElementById('members-tbody');
+  if (!rows.length) {
+    tb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);">暂无成员</td></tr>';
+    return;
+  }
+  tb.innerHTML = rows.map(function (m) {
+    var status = m.status || 'active';
+    var isSelf = currentUser && m.id === currentUser.id;
+    var opBtn = status === 'disabled'
+      ? '<button class="btn-sm primary" onclick="restoreMember(\'' + m.id + '\')">恢复</button>'
+      : (isSelf ? '<span style="font-size:12px;color:var(--text-secondary);">本人</span>'
+                : '<button class="btn-sm danger" onclick="offboardMember(\'' + m.id + '\')">清退</button>');
+    return '<tr>' +
+      '<td>' + esc(m.name || '') + '</td>' +
+      '<td>' + esc(m.real_name || '') + '</td>' +
+      '<td>' + esc(m.phone || '') + '</td>' +
+      '<td><input value="' + esc(m.group_name || '') + '" data-id="' + m.id + '" onchange="updateMemberGroup(this)" style="width:92px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:#fff;color:var(--text);"></td>' +
+      '<td><select data-id="' + m.id + '" onchange="updateMemberRole(this)" style="padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:#fff;color:var(--text);">' +
+        ['staff', 'leader', 'admin'].map(function (r) {
+          return '<option value="' + r + '"' + (m.role === r ? ' selected' : '') + '>' + roleText(r) + '</option>';
+        }).join('') +
+      '</select></td>' +
+      '<td>' + (status === 'disabled'
+        ? '<span style="color:var(--text-secondary);">🚫 已清退</span>'
+        : '<span style="color:#2e7d32;">✅ 在职</span>') + '</td>' +
+      '<td style="font-size:12px;color:var(--text-secondary);">' + fmtDate(m.created_at) + '</td>' +
+      '<td>' + opBtn + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function updateMemberRole(sel) { updateMember(sel.dataset.id, { role: sel.value }); }
+function updateMemberGroup(inp) { updateMember(inp.dataset.id, { group_name: inp.value.trim() }); }
+
+async function updateMember(id, patch) {
+  try {
+    var { error } = await supabase.from('profiles').update(patch).eq('id', id);
+    if (error) { showToast('更新失败：' + error.message); loadMembers(); return; }
+    showToast('已更新');
+    var m = membersData.find(function (x) { return x.id === id; });
+    if (m) Object.assign(m, patch);
+    // 若改的是当前登录者，刷新侧边栏显示
+    if (currentUser && id === currentUser.id && currentProfile) {
+      Object.assign(currentProfile, patch);
+      updateAuthUI();
+    }
+  } catch (e) { console.error(e); showToast('更新失败'); }
+}
+
+async function offboardMember(id) {
+  if (!confirm('确认清退该成员？\n清退后其账号将被禁用、无法登录（可随时恢复）。')) return;
+  try {
+    var { error } = await supabase.from('profiles').update({ status: 'disabled', left_at: new Date().toISOString() }).eq('id', id);
+    if (error) { showToast('清退失败：' + error.message); return; }
+    showToast('已清退');
+    var m = membersData.find(function (x) { return x.id === id; });
+    if (m) { m.status = 'disabled'; m.left_at = new Date().toISOString(); }
+    renderMembers();
+  } catch (e) { console.error(e); showToast('清退失败'); }
+}
+
+async function restoreMember(id) {
+  try {
+    var { error } = await supabase.from('profiles').update({ status: 'active', left_at: null }).eq('id', id);
+    if (error) { showToast('恢复失败：' + error.message); return; }
+    showToast('已恢复');
+    var m = membersData.find(function (x) { return x.id === id; });
+    if (m) { m.status = 'active'; m.left_at = null; }
+    renderMembers();
+  } catch (e) { console.error(e); showToast('恢复失败'); }
+}
+
+function subscribeProfiles() {
+  if (!supabase || profilesSub) return;
+  try {
+    profilesSub = supabase.channel('profiles-admin')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, function () {
+        if (currentPage === 'members') loadMembers();
+      })
+      .subscribe();
+  } catch (e) { console.warn('profiles 订阅失败', e); }
+}
+
+// ---------- 邀请新成员 ----------
+function openInviteModal() {
+  if (!isFullAdmin()) { showToast('仅管理员可邀请成员'); return; }
+  resetInviteModal();
+  document.getElementById('invite-modal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeInviteModal() {
+  closeModal('invite-modal');
+}
+function resetInviteModal() {
+  document.getElementById('inv-name').value = '';
+  document.getElementById('inv-phone').value = '';
+  document.getElementById('inv-group').value = 'A组';
+  document.getElementById('inv-role').value = 'staff';
+  document.getElementById('inv-expire').value = '30';
+  document.getElementById('invite-form-area').style.display = '';
+  document.getElementById('invite-result-area').style.display = 'none';
+  document.getElementById('invite-qr').innerHTML = '';
+  document.getElementById('invite-link').value = '';
+}
+
+async function generateInvite() {
+  if (!isFullAdmin()) { showToast('仅管理员可邀请成员'); return; }
+  var name = document.getElementById('inv-name').value.trim();
+  var phone = document.getElementById('inv-phone').value.trim();
+  var group_name = document.getElementById('inv-group').value;
+  var role = document.getElementById('inv-role').value;
+  var days = parseInt(document.getElementById('inv-expire').value, 10) || 30;
+  if (!name) { showToast('请填写姓名 / 花名'); return; }
+  if (!crypto || !crypto.randomUUID) { showToast('浏览器不支持，请升级或使用现代浏览器'); return; }
+  var token = crypto.randomUUID();
+  var expires_at = new Date(Date.now() + days * 86400000).toISOString();
+  try {
+    var { error } = await supabase.from('pending_invites').insert({
+      token: token, phone: phone || null, name: name, group_name: group_name, role: role,
+      expires_at: expires_at, created_by: currentUser ? currentUser.id : null
+    });
+    if (error) { showToast('生成失败：' + error.message); return; }
+    var link = baseUrl() + '?invite=' + encodeURIComponent(token);
+    document.getElementById('invite-link').value = link;
+    renderInviteQR(link);
+    document.getElementById('invite-form-area').style.display = 'none';
+    document.getElementById('invite-result-area').style.display = '';
+    loadInvites();
+  } catch (e) { console.error(e); showToast('生成失败：' + (e.message || '网络错误')); }
+}
+
+function renderInviteQR(text) {
+  var box = document.getElementById('invite-qr');
+  if (!window.qrcode) { box.innerHTML = '<div style="color:#c0392b;font-size:12px;">二维码库未加载，请直接复制链接</div>'; return; }
+  try {
+    var qr = qrcode(0, 'M');
+    qr.addData(text);
+    qr.make();
+    box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 8, scalable: true });
+  } catch (e) { box.innerHTML = '<div style="color:#c0392b;font-size:12px;">二维码生成失败，请直接复制链接</div>'; }
+}
+
+function renderQRInto(id, text) {
+  var el = document.getElementById(id);
+  if (!el || !window.qrcode) return;
+  try {
+    var qr = qrcode(0, 'M');
+    qr.addData(text);
+    qr.make();
+    el.innerHTML = qr.createSvgTag({ cellSize: 3, margin: 6, scalable: true });
+  } catch (e) { el.innerHTML = ''; }
+}
+
+function copyInviteLink() {
+  var link = document.getElementById('invite-link').value;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(link).then(function () { showToast('链接已复制'); }, function () { fallbackCopy(link); });
+  } else fallbackCopy(link);
+}
+function fallbackCopy(text) {
+  var el = document.getElementById('invite-link');
+  el.focus(); el.select();
+  try { document.execCommand('copy'); showToast('链接已复制'); } catch (e) { showToast('复制失败，请手动复制'); }
+}
+function copyText(enc) {
+  var t = decodeURIComponent(enc);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(t).then(function () { showToast('已复制'); }, function () { showToast('复制失败'); });
+  } else showToast('复制失败');
+}
+
+async function loadInvites() {
+  if (!isFullAdmin()) return;
+  var wrap = document.getElementById('invites-list');
+  var empty = document.getElementById('invites-empty');
+  try {
+    var { data, error } = await supabase.from('pending_invites').select('*').order('created_at', { ascending: false });
+    if (error) { console.error(error); return; }
+    var now = Date.now();
+    var list = (data || []).filter(function (i) {
+      return !i.used_at && (!i.expires_at || new Date(i.expires_at).getTime() > now);
+    });
+    if (!list.length) { wrap.innerHTML = ''; empty.style.display = ''; return; }
+    empty.style.display = 'none';
+    var base = baseUrl();
+    wrap.innerHTML = list.map(function (i) {
+      var link = base + '?invite=' + encodeURIComponent(i.token);
+      var expTxt = i.expires_at ? ('有效期至 ' + fmtDate(i.expires_at)) : '长期有效';
+      return '<div class="card" style="box-shadow:none;background:var(--bg);">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">' +
+          '<div>' +
+            '<div style="font-weight:600;">' + esc(i.name || '未命名') + ' · <span style="color:var(--text-secondary);font-weight:400;">' + roleText(i.role) + '</span> · ' + esc(i.group_name || '未分组') + '</div>' +
+            '<div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">' + expTxt + '</div>' +
+          '</div>' +
+          '<div style="display:flex;gap:8px;">' +
+            '<button class="btn-sm outline" onclick="copyText(\'' + encodeURIComponent(link) + '\')">复制链接</button>' +
+            '<button class="btn-sm danger" onclick="deleteInvite(\'' + i.id + '\')">撤销</button>' +
+          '</div>' +
+        '</div>' +
+        '<div id="inv-qr-' + i.id + '" style="display:flex;justify-content:center;margin-top:10px;"></div>' +
+      '</div>';
+    }).join('');
+    list.forEach(function (i) {
+      var link = base + '?invite=' + encodeURIComponent(i.token);
+      renderQRInto('inv-qr-' + i.id, link);
+    });
+  } catch (e) { console.error(e); }
+}
+
+async function deleteInvite(id) {
+  if (!confirm('撤销该邀请？撤销后链接立即失效。')) return;
+  try {
+    var { error } = await supabase.from('pending_invites').delete().eq('id', id);
+    if (error) { showToast('撤销失败：' + error.message); return; }
+    showToast('已撤销');
+    loadInvites();
+  } catch (e) { console.error(e); showToast('撤销失败'); }
+}
+
+// 新人通过邀请链接注册成功后，自动应用邀请里的角色 / 组别
+async function applyInviteClaim() {
+  if (!window.__invite || !window.__invite.token || !currentUser) return;
+  if (window.__invite._claimed) return;
+  window.__invite._claimed = true;
+  var inv = window.__invite;
+  try {
+    var applied = false;
+    for (var i = 0; i < 6 && !applied; i++) {
+      try {
+        var { error } = await supabase.from('profiles').update({
+          name: inv.name || (currentProfile && currentProfile.name) || '',
+          role: inv.role,
+          group_name: inv.group_name || null
+        }).eq('id', currentUser.id);
+        if (!error) { applied = true; break; }
+      } catch (e) {}
+      await new Promise(function (r) { setTimeout(r, 400); });
+    }
+    try { await supabase.rpc('claim_invite', { p_token: inv.token }); } catch (e) {}
+    if (applied) {
+      showToast('已为你配置「' + roleText(inv.role) + '」身份' + (inv.group_name ? '（' + inv.group_name + '）' : ''));
+      var { data: pf } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+      if (pf) { currentProfile = pf; updateAuthUI(); }
+    }
+  } catch (e) { console.warn('邀请申领失败', e); }
+}
+</script>
+
 <script src="app.js?v=20260813"></script>
 
 <!-- Pattern Editor Modal -->
@@ -13062,5 +13453,27 @@ function exportVOCSummaryTXT() {
 
 </script>
 
+<!-- 二维码库：本地优先，CDN 兜底 -->
+<script>
+(function () {
+  if (window.qrcode) return;
+  var urls = [
+    'vendor/qrcode.min.js',
+    'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js',
+    'https://unpkg.com/qrcode-generator@1.4.4/qrcode.js'
+  ];
+  var i = 0;
+  function tryLoad() {
+    if (window.qrcode) return;
+    if (i >= urls.length) { console.warn('二维码库加载失败（邀请二维码将不可用，不影响复制链接）'); return; }
+    var s = document.createElement('script');
+    s.src = urls[i++];
+    s.onload = function () { if (!window.qrcode) tryLoad(); };
+    s.onerror = tryLoad;
+    document.head.appendChild(s);
+  }
+  tryLoad();
+})();
+</script>
 </body>
 </html>

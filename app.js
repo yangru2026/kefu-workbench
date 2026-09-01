@@ -1,8 +1,38 @@
 // ==================== SUPABASE REALTIME FEATURES ====================
 // 公告栏 / 登录注册 / 日报 / 售前数据 / 客服排名(实时)
 
+// 邀请链接：读取 URL 中的 invite token（同步，不依赖 supabase）
+window.__invite = null;
+(function readInviteToken() {
+  try {
+    var params = new URLSearchParams(location.search);
+    var token = params.get('invite');
+    if (token) window.__invite = { token: token, _claimed: false };
+  } catch (e) {}
+})();
+
+// 读取邀请详情并预填注册表单（在 supabase 就绪后调用）
+async function initInviteFromUrl() {
+  if (!window.__invite || !window.__invite.token) return;
+  if (!supabase) return;
+  try {
+    var { data, error } = await supabase.rpc('get_invite_by_token', { p_token: window.__invite.token });
+    if (!error && data && data.length) {
+      var inv = data[0];
+      window.__invite.name = inv.name;
+      window.__invite.role = inv.role;
+      window.__invite.group_name = inv.group_name;
+      switchLoginTab('register');
+      var nameEl = document.getElementById('reg-name');
+      if (nameEl && inv.name) nameEl.value = inv.name;
+      showToast('你被邀请加入：' + (inv.group_name || '未分组') + ' · ' + roleText(inv.role));
+    }
+  } catch (e) { console.warn('读取邀请信息失败', e); }
+}
+
 // Called when supabase is initialized
 window.onSupabaseReady = function() {
+  initInviteFromUrl();
   loadTemplates(); // 预加载模板数据
   if (currentPage === 'home') { loadAnnouncements(); subscribeAnnouncements(); }
   if (currentPage === 'daily') { loadDailyReports(); subscribeDaily(); }
@@ -209,7 +239,20 @@ async function doRegister() {
   if (password.length < 6) { showToast('密码至少6位'); return; }
   try {
     const ok = await signUp(name, phone, password);
-    if (ok) switchLoginTab('login');
+    if (!ok) return;
+    // 邀请注册：自动登录后由 SIGNED_IN 事件自动应用邀请的角色/组别
+    if (window.__invite && window.__invite.token) {
+      const signed = await signIn(phone, password);
+      if (signed) {
+        // signIn 成功会触发 SIGNED_IN → applyInviteClaim，并切到首页
+        return;
+      }
+      // 自动登录失败（如开启了邮箱验证），提示手动登录后同样会申领
+      showToast('注册成功，请登录（登录后将自动应用邀请身份）');
+      switchLoginTab('login');
+      return;
+    }
+    switchLoginTab('login');
   } catch(e) {
     showToast('注册失败：' + (e.message || '网络错误'));
     console.error(e);
