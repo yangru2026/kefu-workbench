@@ -3059,12 +3059,19 @@ async function initSupabase() {
         currentUser = session.user;
         try {
           const { data: profile } = await withTimeout(
-            supabase.from('profiles').select('*').eq('id', session.user.id).single(),
+            supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle(),
             10000, 'getProfile'
           );
-          currentProfile = profile;
+          if (profile) {
+            currentProfile = profile;
+          } else {
+            const m = session.user.user_metadata || {};
+            currentProfile = { id: session.user.id, name: m.name || '用户', role: 'staff', phone: m.phone || '' };
+          }
         } catch (pe) {
-          console.warn('读取用户资料超时或失败', pe.message);
+          console.warn('读取用户资料超时或失败，使用兜底角色', pe.message);
+          const m = session.user.user_metadata || {};
+          currentProfile = { id: session.user.id, name: m.name || '用户', role: 'staff', phone: m.phone || '' };
         }
         updateAuthUI();
         startNotificationPolling();
@@ -3076,15 +3083,39 @@ async function initSupabase() {
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
         currentUser = session.user;
-        const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-        currentProfile = profile;
+        updateAuthUI(); // 立即刷新，先退出「未登录」状态
+        try {
+          const { data: profile, error: pe } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+          if (profile) {
+            currentProfile = profile;
+          } else {
+            // profile 缺失（如触发器未建 / 记录被清）：用兜底，保证能进系统
+            console.warn('[auth] 未找到 profile 记录，使用兜底角色 staff');
+            const m = session.user.user_metadata || {};
+            currentProfile = {
+              id: session.user.id,
+              name: m.name || (session.user.email ? session.user.email.split('@')[0] : '用户'),
+              role: 'staff',
+              phone: m.phone || ''
+            };
+          }
+        } catch (e) {
+          console.warn('[auth] profile 查询失败，使用兜底', e);
+          const m = session.user.user_metadata || {};
+          currentProfile = currentProfile || {
+            id: session.user.id,
+            name: m.name || (session.user.email ? session.user.email.split('@')[0] : '用户'),
+            role: 'staff',
+            phone: m.phone || ''
+          };
+        }
         updateAuthUI();
         startNotificationPolling();
         if (document.getElementById('page-login').classList.contains('active')) {
           switchPage('home');
         }
         // 邀请申领：通过邀请链接注册的新人，自动应用角色 / 组别
-        if (window.__invite && window.__invite.token && profile && profile.role === 'staff') {
+        if (window.__invite && window.__invite.token && currentProfile && currentProfile.role === 'staff') {
           applyInviteClaim();
         }
       } else if (event === 'SIGNED_OUT') {
@@ -3270,24 +3301,46 @@ async function signIn(phone, password) {
     showToast('登录失败：未返回用户信息');
     return false;
   }
-  // 登录成功，先返回 true 让页面立即跳转；状态检查放后台不阻塞
+  // 关键：登录成功后立即回写登录态并刷新 UI，避免停留在「未登录」
+  currentUser = data.user;
+  const meta = (data.user.user_metadata) || {};
+  if (!currentProfile) {
+    currentProfile = {
+      id: data.user.id,
+      name: meta.name || phone,
+      role: 'staff',
+      group_name: '',
+      phone: meta.phone || phone
+    };
+  }
+  updateAuthUI();
   console.log('[signIn] auth ok, uid=', data.user.id);
-  // 异步检查账号是否被清退（status='disabled' 禁止登录）
-  setTimeout(async function checkLoginStatus() {
+  // 后台补全真实 profile（含角色/组别）+ 检查是否被清退（不阻塞登录）
+  (async () => {
     try {
-      const { data: prof, error: profErr } = await supabase.from('profiles').select('status, name').eq('id', data.user.id).single();
-      if (profErr) { console.warn('[signIn] profile check error', profErr); return; }
-      if (prof && prof.status === 'disabled') {
+      const { data: prof, error: pe } = await supabase
+        .from('profiles').select('*').eq('id', data.user.id).maybeSingle();
+      if (prof) {
+        currentProfile = prof;
+      } else {
+        console.warn('[signIn] 未找到 profile 记录，保持兜底登录态');
+      }
+      updateAuthUI();
+      if (currentProfile && currentProfile.status === 'disabled') {
         console.log('[signIn] account disabled, signing out');
         await supabase.auth.signOut();
         showToast('该账号已停用，请联系管理员');
         switchPage('login');
         return;
       }
-      console.log('[signIn] profile ok, name=', prof && prof.name);
-    } catch (e) { console.warn('[signIn] status check failed', e); }
-  }, 10);
-  showToast('欢迎回来');
+    } catch (e) {
+      console.warn('[signIn] profile 补充失败（不影响已登录）', e);
+    }
+  })();
+  if (document.getElementById('page-login').classList.contains('active')) {
+    switchPage('home');
+  }
+  showToast('登录成功');
   return true;
 }
 
