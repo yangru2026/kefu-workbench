@@ -219,6 +219,12 @@ async function doLogin() {
   const phone = document.getElementById('login-phone').value.trim();
   const password = document.getElementById('login-password').value;
   if (!phone || !password) { showToast('请填写手机号和密码'); return; }
+  // 防止把姓名/其他内容填进手机号框导致 Supabase 报邮箱格式错误
+  if (!/^\d{11}$/.test(phone)) {
+    showToast('手机号必须是 11 位数字，请检查输入内容');
+    document.getElementById('login-phone').focus();
+    return;
+  }
   try {
     const ok = await signIn(phone, password);
     if (ok) switchPage('home');
@@ -235,6 +241,7 @@ async function doRegister() {
   const password = document.getElementById('reg-password').value;
   const password2 = document.getElementById('reg-password2').value;
   if (!name || !phone || !password) { showToast('请填写完整信息'); return; }
+  if (!/^\d{11}$/.test(phone)) { showToast('手机号必须是 11 位数字'); return; }
   if (password !== password2) { showToast('两次密码不一致'); return; }
   if (password.length < 6) { showToast('密码至少6位'); return; }
   try {
