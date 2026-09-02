@@ -204,6 +204,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .qc-thumbs{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
 .qc-thumb{width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer;background:#f8fafc;display:block}
 .qc-thumb-more{font-size:11px;color:var(--text2);background:#f1f5f9;border-radius:6px;padding:3px 6px;align-self:center}
+.qc-thumb-count{font-size:11px;color:var(--text2);white-space:nowrap;align-self:center;margin-right:2px}
+.qc-no-thumb{font-size:12px;color:#94a3b8}
+.qc-thumb-fail{width:52px;height:52px;display:flex;align-items:center;justify-content:center;border-radius:6px;border:1px dashed #e2e8f0;background:#f8fafc;color:#94a3b8;font-size:11px;font-weight:600}
 .record-actions{display:flex;gap:6px;flex-wrap:wrap}
 .record-actions .btn{font-size:11px;padding:5px 12px}
 
@@ -768,6 +771,7 @@ let currentSeverity = '一般';
 let currentTags = [];
 let pendingImages = { scene: [], reply: [], knowledge: [], case: [] };
 const pendingUrlMap = new Map();
+const imageUrlCache = {}; // 签名 URL 本地缓存，避免表格视图大量重复请求
 
 function todayStr() {
   const d = new Date();
@@ -947,15 +951,21 @@ async function uploadPendingImages(type) {
 
 async function getImageUrl(id) {
   if (typeof id === 'string' && id.startsWith('data:')) return id;
+  if (imageUrlCache[id]) return imageUrlCache[id];
+  let url = '';
   try {
     // 优先用签名 URL（bucket 非 public 时 publicUrl 会 400，签名 URL 始终可用）
     const { data, error } = await supabase.storage.from('qc-images').createSignedUrl('qc/' + id + '.jpg', 3600);
-    if (data && data.signedUrl) return data.signedUrl;
+    if (data && data.signedUrl) url = data.signedUrl;
   } catch (e) {}
-  try {
-    const { data } = supabase.storage.from('qc-images').getPublicUrl('qc/' + id + '.jpg');
-    return data?.publicUrl || '';
-  } catch (e) { return ''; }
+  if (!url) {
+    try {
+      const { data } = supabase.storage.from('qc-images').getPublicUrl('qc/' + id + '.jpg');
+      url = data?.publicUrl || '';
+    } catch (e) { url = ''; }
+  }
+  if (url) imageUrlCache[id] = url;
+  return url;
 }
 
 // Delete from storage when record deleted
@@ -2158,15 +2168,27 @@ async function loadRecordImages(containerId, imageIds) {
 async function loadRecordThumbs(containerId, imageIds, max) {
   const container = document.getElementById(containerId);
   if (!container) return;
-  container.innerHTML = '';
+  // 保留数量提示，只清除旧的缩略图/失败占位
+  container.querySelectorAll('.qc-thumb, .qc-thumb-more, .qc-thumb-fail').forEach(n => n.remove());
   const ids = (max ? imageIds.slice(0, max) : imageIds);
-  for (const id of ids) {
-    const url = await getImageUrl(id);
-    if (!url) continue;
+  // 并行获取 URL，减少表格视图大量并发导致的加载失败
+  const results = await Promise.all(ids.map(async id => ({ id, url: await getImageUrl(id) })));
+  let loaded = 0;
+  for (const { id, url } of results) {
+    if (!url) {
+      const fail = document.createElement('span');
+      fail.className = 'qc-thumb-fail';
+      fail.title = '图片加载失败：' + id;
+      fail.textContent = '!';
+      container.appendChild(fail);
+      continue;
+    }
+    loaded++;
     const img = document.createElement('img');
     img.className = 'qc-thumb';
     img.src = url;
     img.loading = 'lazy';
+    img.onerror = () => { img.style.display = 'none'; };
     img.onclick = () => previewImage(url, id);
     container.appendChild(img);
   }
@@ -2176,6 +2198,14 @@ async function loadRecordThumbs(containerId, imageIds, max) {
     more.className = 'qc-thumb-more';
     more.textContent = '+' + rest;
     container.appendChild(more);
+  }
+  // 如果一张都没加载出来，给出文字提示（同时保留数量提示）
+  if (!loaded && imageIds.length) {
+    const fail = document.createElement('span');
+    fail.className = 'qc-thumb-fail';
+    fail.title = '图片全部加载失败';
+    fail.textContent = '加载失败';
+    container.appendChild(fail);
   }
 }
 
@@ -2201,6 +2231,10 @@ function renderRecordsTable(el, shown, list) {
     const shareBadge = si ? (si.confirmed ? '<span class="share-badge confirmed">✅</span>' : '<span class="share-badge pending">📤</span>') : '';
     const statusText = r.status==='pending'?'待讲解':'已讲解';
     const allImgs = [].concat(r.scene_images||[], r.reply_images||[], r.knowledge_images||[]);
+    const imgCount = allImgs.length;
+    const thumbCell = imgCount
+      ? '<div class="qc-thumbs" id="thumbs_' + r.id + '"><span class="qc-thumb-count">共' + imgCount + '张</span></div>'
+      : '<span class="qc-no-thumb">-</span>';
     const selCls = selectedRecordIds.has(r.id) ? ' class="selected"' : '';
     rows += '<tr' + selCls + ' data-id="' + r.id + '">'
       + (isAdmin ? '<td>' + selChk + '</td>' : '')
@@ -2212,7 +2246,7 @@ function renderRecordsTable(el, shown, list) {
       + '<td>' + (tagHtml || '-') + '</td>'
       + '<td class="td-prob">' + (probShort || '-') + '</td>'
       + '<td>' + (penalty>0 ? '<span class="penalty">¥'+penalty+'</span>' : '-') + '</td>'
-      + '<td><div class="qc-thumbs" id="thumbs_' + r.id + '"></div></td>'
+      + '<td>' + thumbCell + '</td>'
       + '<td><span class="record-status ' + (r.status==='pending'?'pending':'done') + '">' + statusText + '</span></td>'
       + '<td>' + shareBadge + '</td>'
       + (isAdmin ? '<td style="white-space:nowrap">' + (r.status==='pending' ? '<button class="btn btn-g" onclick="markDone(\''+r.id+'\')">✅</button> ' : '<button class="btn btn-s" onclick="markPending(\''+r.id+'\')">↩️</button> ')
