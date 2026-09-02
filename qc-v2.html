@@ -224,12 +224,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .close-btn:hover{color:var(--red)}
 
 /* ===== Image Preview ===== */
-.img-preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;justify-content:center;align-items:center;z-index:2000;padding:0}
+.img-preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;justify-content:center;align-items:center;z-index:2000;padding:0}
 .img-preview-overlay.active{display:flex;flex-direction:column}
 /* 滚动容器：长图可上下滑动，短图居中；图片按原始比例显示不模糊 */
 #imgPreviewWrapper{overflow:auto;-webkit-overflow-scrolling:touch;width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:pan-y}
 #imgPreviewWrapper.zoomed{cursor:grab;touch-action:none}
-#imgPreviewSrc{display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;transition:transform .12s ease;transform-origin:0 0;will-change:transform}
+#imgPreviewSrc{display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;transition:transform .12s ease;transform-origin:0 0;will-change:transform;background:#fff;-webkit-user-drag:none;user-select:none;-webkit-tap-highlight-color:transparent}
 #imgPreviewSrc.clickable{cursor:zoom-in}
 .img-preview-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.18);color:#fff;border:none;width:38px;height:38px;border-radius:50%;font-size:20px;cursor:pointer;z-index:3}
 .img-preview-close:hover{background:rgba(255,255,255,.35)}
