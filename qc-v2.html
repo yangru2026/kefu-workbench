@@ -2851,11 +2851,16 @@ function downloadXLSXWithImages(filename, rows, media) {
     '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
     '</Relationships>'
   )});
+  // 哪些行包含配图（按 rows 数组的 0-based 索引）
+  const imgRows = new Set(media.map(m => m.row));
   let sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
   sheet += '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">';
+  // Q/R/S 列（客户问题/客服回复/知识点配图列）固定宽度，便于图片完整显示
+  sheet += '<cols><col min="17" max="17" width="14"/><col min="18" max="18" width="14"/><col min="19" max="19" width="14"/></cols>';
   sheet += '<sheetData>';
   rows.forEach((row, ri) => {
-    sheet += '<row r="' + (ri + 1) + '">';
+    const hasImg = imgRows.has(ri);
+    sheet += '<row r="' + (ri + 1) + '"' + (hasImg ? ' ht="60" customHeight="1"' : '') + '>';
     row.forEach((cell, ci) => {
       const col = ci + 1; const ref = _xlsxColName(col) + (ri + 1);
       const val = cell == null ? '' : String(cell);
@@ -2878,7 +2883,7 @@ function downloadXLSXWithImages(filename, rows, media) {
   media.forEach((m, i) => {
     files.push({ name: 'xl/media/image' + (i + 1) + '.' + m.ext, data: m.data });
   });
-  const px = 110, emu = 9525, cx = px * emu, cy = px * emu;
+  const px = 80, emu = 9525, cx = px * emu, cy = px * emu;
   let dw = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
   dw += '<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">';
   media.forEach((m, i) => {
