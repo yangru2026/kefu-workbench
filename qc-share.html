@@ -133,6 +133,7 @@ function formatNumberedHtml(text){
   return lines.map((l,i)=>'<div style="margin-bottom:3px"><span style="display:inline-block;min-width:20px;font-weight:600;color:var(--primary)">'+(i+1)+'.</span>'+escapeHtml(l)+'</div>').join('');
 }
 async function getImageUrl(id){
+  try{ const {data}=await supabase.storage.from('qc-images').createSignedUrl('qc/'+id+'.jpg',3600); if(data&&data.signedUrl) return data.signedUrl; }catch(e){}
   try{ const {data}=supabase.storage.from('qc-images').getPublicUrl('qc/'+id+'.jpg'); return data&&data.publicUrl?data.publicUrl:''; }catch(e){return '';}
 }
 

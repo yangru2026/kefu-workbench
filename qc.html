@@ -541,6 +541,10 @@ async function uploadPendingImages(type) {
 
 async function getImageUrl(id) {
   try {
+    const { data } = await supabase.storage.from('qc-images').createSignedUrl('qc/' + id + '.jpg', 3600);
+    if (data && data.signedUrl) return data.signedUrl;
+  } catch(e) {}
+  try {
     const { data } = supabase.storage.from('qc-images').getPublicUrl('qc/' + id + '.jpg');
     return data?.publicUrl || '';
   } catch(e) { return ''; }
