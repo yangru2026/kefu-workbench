@@ -658,7 +658,8 @@ const DEMO_RECORDS = [
   { id: 9000000000006, staff:'示例客服C', customer_id:'C-2026****3390', shop:'私域微信', date:'2026-08-21', tags:['连带成交','话术'], severity:'严重', scene:'客户问搭配，客服未做连带推荐', reply:'这款单独卖的', problem:'错失连带成交机会', correct:'主动推荐“同系列护理液+伴侣盒”组合', knowledge:'连带成交话术', note:'', scene_images:[DEMO_IMG], reply_images:[], knowledge_images:[], status:'pending', coach_date:'', coach_note:'', penalty_amount:30, created_at:'2026-08-21T10:45:00Z' }
 ];
 
-var supabase = null;
+// Supabase client 由 initSupabaseClient()/loadSupabaseScript() 挂载到 window.supabase，
+// 不要在此处声明 var supabase，否则会覆盖 Supabase UMD 库暴露的全局对象。
 
 /* ==================== Auth State ==================== */
 let isAdmin = DEMO;
