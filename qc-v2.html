@@ -886,6 +886,13 @@ async function syncRecord(record) {
     record.replyImages = [].concat(record.keepReplyImages || [], await uploadPendingImages('reply'));
     record.knowledgeImages = [].concat(record.keepKnowledgeImages || [], await uploadPendingImages('knowledge'));
 
+    // 校验：必须至少上传一张截图（客户问题 / 客服回复 / 知识点配图）
+    const _totalImgs = (record.sceneImages.length + record.replyImages.length + record.knowledgeImages.length);
+    if (_totalImgs === 0) {
+      showToast('⚠️ 必须上传至少一张截图（客户问题 / 客服回复 / 知识点配图）才能保存', true);
+      return false;
+    }
+
     const r = {
       id: record.id,
       staff: record.staff,
@@ -1554,7 +1561,7 @@ async function addRecord(continueFlag) {
   };
 
   const ok = await syncRecord(record);
-  if (!ok) { setSyncBadge(false, '保存失败'); return; }
+  if (!ok) { setSyncBadge(false, '未保存'); return; }
 
   records.unshift(record);
   saveLocalCache();
