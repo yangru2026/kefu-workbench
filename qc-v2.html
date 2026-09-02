@@ -481,8 +481,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <div><label>店铺：</label><select id="filterShop" onchange="renderRecords()"><option value="">全部</option></select></div>
 <div><label>分类：</label><select id="filterTag" onchange="renderRecords()"><option value="">全部</option><option>话术问题</option><option>响应问题</option><option>流程问题</option><option>态度问题</option><option>产品知识</option><option>其他</option></select></div>
 <div><label>状态：</label><select id="filterStatus" onchange="renderRecords()"><option value="">全部</option><option value="pending">待讲解</option><option value="done">已讲解</option></select></div>
-<div><label>日期从：</label><input type="date" id="filterDateFrom" onchange="renderRecords()"></div>
-<div><label>到：</label><input type="date" id="filterDateTo" onchange="renderRecords()"></div>
+<div><label>月份：</label><select id="filterMonth" onchange="onFilterMonthChange()"><option value="">全部</option><option value="custom">自定义</option></select></div>
+<div id="filterDateRange" style="display:none;gap:6px;align-items:center"><input type="date" id="filterDateFrom" onchange="renderRecords()" style="max-width:130px"><span style="font-size:12px;color:var(--text2)">到</span><input type="date" id="filterDateTo" onchange="renderRecords()" style="max-width:130px"></div>
 <div><button class="btn btn-s" onclick="clearFilters()" style="font-size:11px;padding:4px 10px">清除</button></div>
 </div>
 <div class="bulk-bar" id="bulkBar">
@@ -782,6 +782,55 @@ function setQuickDate(offsetDays, targetId) {
   if (el) el.value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
+// 初始化月份筛选下拉：默认选中当前月，并提供全年月份+全部/自定义
+function initFilterMonth() {
+  const sel = document.getElementById('filterMonth');
+  const fromEl = document.getElementById('filterDateFrom');
+  const toEl = document.getElementById('filterDateTo');
+  if (!sel) return;
+  const now = new Date();
+  const year = now.getFullYear();
+  const curMonth = String(now.getMonth()+1).padStart(2,'0');
+  let opts = '<option value="">全部</option>';
+  for (let m = 1; m <= 12; m++) {
+    const v = year + '-' + String(m).padStart(2,'0');
+    const label = year + '年' + m + '月';
+    const selected = (m === now.getMonth()+1) ? ' selected' : '';
+    opts += '<option value="' + v + '"' + selected + '>' + label + '</option>';
+  }
+  opts += '<option value="custom">自定义</option>';
+  sel.innerHTML = opts;
+  // 默认填充当前月起止日期
+  if (fromEl) fromEl.value = year + '-' + curMonth + '-01';
+  if (toEl) {
+    const lastDay = new Date(year, now.getMonth()+1, 0).getDate();
+    toEl.value = year + '-' + curMonth + '-' + String(lastDay).padStart(2,'0');
+  }
+}
+
+function onFilterMonthChange() {
+  const sel = document.getElementById('filterMonth');
+  const fromEl = document.getElementById('filterDateFrom');
+  const toEl = document.getElementById('filterDateTo');
+  const rangeEl = document.getElementById('filterDateRange');
+  if (!sel || !fromEl || !toEl) return;
+  const v = sel.value;
+  if (v === '') {
+    fromEl.value = '';
+    toEl.value = '';
+    if (rangeEl) rangeEl.style.display = 'none';
+  } else if (v === 'custom') {
+    if (rangeEl) rangeEl.style.display = 'inline-flex';
+  } else {
+    if (rangeEl) rangeEl.style.display = 'none';
+    const [y, m] = v.split('-').map(Number);
+    fromEl.value = v + '-01';
+    const lastDay = new Date(y, m, 0).getDate();
+    toEl.value = v + '-' + String(lastDay).padStart(2,'0');
+  }
+  renderRecords();
+}
+
 function thisWeekStart() {
   const d = new Date();
   const day = d.getDay();
@@ -795,7 +844,7 @@ async function loadRecords(showMsg) {
   if (DEMO) {
     records = JSON.parse(JSON.stringify(DEMO_RECORDS));
     document.getElementById('inpDate').value = todayStr();
-    updateFilterOptions(); updateStats(); renderRecords(); setupPasteHandlers();
+    updateFilterOptions(); initFilterMonth(); updateStats(); renderRecords(); setupPasteHandlers();
     setSyncBadge(true, '📋 演示模式');
     if (showMsg) showToast('📋 演示模式：数据为脱敏示例');
     return;
@@ -817,6 +866,7 @@ async function loadRecords(showMsg) {
 
   document.getElementById('inpDate').value = todayStr();
   updateFilterOptions();
+  initFilterMonth();
   updateStats();
   renderRecords();
   setupPasteHandlers();
@@ -1995,7 +2045,7 @@ let qcRenderedCount = qcPageSize;
 let qcLastFilterKey = '';
 function currentFilterKey() {
   const g = id => { const el = document.getElementById(id); return el ? el.value : ''; };
-  return ['filterSearch','filterStaff','filterShop','filterTag','filterStatus','filterDateFrom','filterDateTo'].map(g).join('|');
+  return ['filterSearch','filterStaff','filterShop','filterTag','filterStatus','filterMonth','filterDateFrom','filterDateTo'].map(g).join('|');
 }
 function loadMoreRecords() { qcRenderedCount += qcPageSize; renderRecords(); }
 
@@ -2183,7 +2233,10 @@ function renderRecordsTable(el, shown, list) {
 }
 
 function clearFilters() {
-  ['filterStaff','filterShop','filterTag','filterStatus','filterDateFrom','filterDateTo','filterSearch'].forEach(id => document.getElementById(id).value = '');
+  ['filterStaff','filterShop','filterTag','filterStatus','filterSearch'].forEach(id => document.getElementById(id).value = '');
+  // 月份恢复默认当前月
+  initFilterMonth();
+  document.getElementById('filterDateRange').style.display = 'none';
   // 客服端「只看我的」时，清除筛选仍保持只看自己
   if (!isAdmin && csMyView && currentAuthUser && currentAuthUser.name) {
     document.getElementById('filterStaff').value = currentAuthUser.name;
@@ -3408,7 +3461,7 @@ function init() {
     records = JSON.parse(JSON.stringify(DEMO_RECORDS));
     document.getElementById('inpDate').value = todayStr();
     qcStaffs = DEMO_STAFFS.slice(); qcShops = DEMO_SHOPS.slice(); refreshStaffShopSelects();
-    updateFilterOptions(); updateStats(); renderRecords(); setupPasteHandlers();
+    updateFilterOptions(); initFilterMonth(); updateStats(); renderRecords(); setupPasteHandlers();
     setSyncBadge(true, '📋 演示模式');
     updateAdminUI();
     loadSnippets();
