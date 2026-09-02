@@ -2780,16 +2780,135 @@ function downloadXLSX(filename, rows) {
   a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-function exportXLSX() {
+async function exportXLSX() {
   const list = getFilteredRecords();
   if (!list.length) { showToast('没有可导出的数据'); return; }
   const header = ['日期','客服','客户ID','店铺','问题分类','严重程度','状态','扣罚金额','客户问题','客服回复','问题描述','正确做法','知识点','备注','讲解日期','讲解备注'];
-  const rows = [header].concat(list.map(r => {
+  const dataRows = list.map(r => {
     const pa = (r.penalty_amount != null ? r.penalty_amount : (r.penaltyAmount || 0)) || 0;
     return [r.date, r.staff, r.customer_id || '', r.shop, (r.tags || []).join(';'), r.severity, r.status === 'pending' ? '待讲解' : '已讲解', pa, r.scene, r.reply, r.problem, r.correct, r.knowledge, r.note, r.coach_date, r.coach_note];
-  }));
-  downloadXLSX('qc_records_' + todayStr() + '.xlsx', rows);
-  showToast('📤 Excel 已导出');
+  });
+  const rows = [header].concat(dataRows);
+  // 收集配图：每条记录每类取首图，嵌入 Excel 对应行右侧列
+  // 列映射：客户问题截图 → Q(16) / 客服回复截图 → R(17) / 知识点配图 → S(18)
+  const groups = [['scene_images', 16], ['reply_images', 17], ['knowledge_images', 18]];
+  const media = [];
+  showToast('⏳ 正在生成带图 Excel，请稍候…');
+  for (let ri = 0; ri < list.length; ri++) {
+    const r = list[ri];
+    for (const [key, col] of groups) {
+      const ids = (r[key] || []);
+      if (!ids.length) continue;
+      const id = ids[0];
+      try {
+        const url = await getImageUrl(id);
+        if (!url) continue;
+        const resp = await fetch(url);
+        if (!resp.ok) continue;
+        const buf = new Uint8Array(await resp.arrayBuffer());
+        media.push({ row: ri + 1, col, data: buf, ext: 'jpg' });
+      } catch (e) { console.warn('配图导出失败', id, e); }
+    }
+  }
+  if (!media.length) {
+    downloadXLSX('qc_records_' + todayStr() + '.xlsx', rows);
+    showToast('📤 Excel 已导出（当前这批记录无配图）');
+    return;
+  }
+  downloadXLSXWithImages('qc_records_' + todayStr() + '.xlsx', rows, media);
+  showToast('📤 Excel（含 ' + media.length + ' 张配图）已导出');
+}
+
+// 导出带嵌入图片的 xlsx（手写 OOXML：sheet + drawing + media）
+function downloadXLSXWithImages(filename, rows, media) {
+  const enc = new TextEncoder();
+  const files = [];
+  files.push({ name: '[Content_Types].xml', data: enc.encode(
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Default Extension="jpg" ContentType="image/jpeg"/>' +
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+    '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+    '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>' +
+    '</Types>'
+  )});
+  files.push({ name: '_rels/.rels', data: enc.encode(
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+    '</Relationships>'
+  )});
+  files.push({ name: 'xl/workbook.xml', data: enc.encode(
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+    '<sheets><sheet name="质检记录" sheetId="1" r:id="rId1"/></sheets></workbook>'
+  )});
+  files.push({ name: 'xl/_rels/workbook.xml.rels', data: enc.encode(
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+    '</Relationships>'
+  )});
+  let sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  sheet += '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">';
+  sheet += '<sheetData>';
+  rows.forEach((row, ri) => {
+    sheet += '<row r="' + (ri + 1) + '">';
+    row.forEach((cell, ci) => {
+      const col = ci + 1; const ref = _xlsxColName(col) + (ri + 1);
+      const val = cell == null ? '' : String(cell);
+      const isNum = /^-?\d+(\.\d+)?$/.test(val);
+      if (isNum) { sheet += '<c r="' + ref + '" t="n"><v>' + val + '</v></c>'; }
+      else { sheet += '<c r="' + ref + '" t="inlineStr"><is><t xml:space="preserve">' + _xlsxEscapeXml(val) + '</t></is></c>'; }
+    });
+    sheet += '</row>';
+  });
+  sheet += '</sheetData>';
+  sheet += '<drawing r:id="rId2"/>';
+  sheet += '</worksheet>';
+  files.push({ name: 'xl/worksheets/sheet1.xml', data: enc.encode(sheet) });
+  files.push({ name: 'xl/worksheets/_rels/sheet1.xml.rels', data: enc.encode(
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/>' +
+    '</Relationships>'
+  )});
+  media.forEach((m, i) => {
+    files.push({ name: 'xl/media/image' + (i + 1) + '.' + m.ext, data: m.data });
+  });
+  const px = 110, emu = 9525, cx = px * emu, cy = px * emu;
+  let dw = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  dw += '<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">';
+  media.forEach((m, i) => {
+    const picId = i + 1;
+    const rid = 'rId' + (i + 1);
+    dw += '<xdr:oneCellAnchor>';
+    dw += '<xdr:from><xdr:col>' + m.col + '</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' + m.row + '</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>';
+    dw += '<xdr:ext cx="' + cx + '" cy="' + cy + '"/>';
+    dw += '<xdr:pic>';
+    dw += '<xdr:nvPicPr><xdr:cNvPr id="' + picId + '" name="Picture ' + picId + '"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>';
+    dw += '<xdr:blipFill><a:blip r:embed="' + rid + '"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>';
+    dw += '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>';
+    dw += '</xdr:pic>';
+    dw += '<xdr:clientData/></xdr:oneCellAnchor>';
+  });
+  dw += '</xdr:wsDr>';
+  files.push({ name: 'xl/drawings/drawing1.xml', data: enc.encode(dw) });
+  let dwar = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  dwar += '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
+  media.forEach((m, i) => {
+    dwar += '<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image' + (i + 1) + '.' + m.ext + '"/>';
+  });
+  dwar += '</Relationships>';
+  files.push({ name: 'xl/drawings/_rels/drawing1.xml.rels', data: enc.encode(dwar) });
+
+  const zip = _xlsxBuildZip(files);
+  const blob = new Blob([zip], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob); const a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /* ==================== 话术库管理 ==================== */
