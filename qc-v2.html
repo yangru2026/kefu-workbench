@@ -964,16 +964,25 @@ async function getImageUrl(id) {
   try {
     // 优先用签名 URL（bucket 非 public 时 publicUrl 会 400，签名 URL 始终可用）
     const { data, error } = await supabase.storage.from('qc-images').createSignedUrl('qc/' + id + '.jpg', 3600);
-    if (data && data.signedUrl) url = data.signedUrl;
+    // 注意：部分 supabase-js 版本 createSignedUrl 返回的是相对路径（以 / 开头），
+    // 直接当 src 会被解析成当前站点域名而 404，必须补成绝对地址。
+    if (data && data.signedUrl) {
+      url = data.signedUrl.startsWith('http') ? data.signedUrl : SUPABASE_URL + data.signedUrl;
+    }
   } catch (e) {}
-  if (!url) {
+  // 签名 URL 没拿到有效 http 地址时，回退公开 URL（bucket 为 public 时可用）
+  if (!url || !url.startsWith('http')) {
     try {
       const { data } = supabase.storage.from('qc-images').getPublicUrl('qc/' + id + '.jpg');
-      url = data?.publicUrl || '';
+      if (data && data.publicUrl) url = data.publicUrl;
     } catch (e) { url = ''; }
   }
-  if (url) imageUrlCache[id] = url;
-  return url;
+  // 只有真正是 http(s) 绝对地址才缓存并返回，避免缓存坏的相对路径
+  if (url && url.startsWith('http')) {
+    imageUrlCache[id] = url;
+    return url;
+  }
+  return '';
 }
 
 // Delete from storage when record deleted
