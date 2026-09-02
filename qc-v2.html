@@ -155,6 +155,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .filter-bar{background:#f8fafc;border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .filter-bar label{font-size:12px;color:var(--text2);font-weight:500}
 .filter-bar select,.filter-bar input{padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;min-width:90px;background:#fff;font-family:inherit}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fff;align-items:center}
+.seg-btn{border:none;background:transparent;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--text2);font-family:inherit;white-space:nowrap}
+.seg-btn.active{background:var(--primary);color:#fff;font-weight:600}
+#csMyToggleWrap{display:none;align-items:center;gap:6px}
+#csMyToggleWrap .lbl{font-size:12px;color:var(--text2);font-weight:500}
 
 /* ===== Records ===== */
 .record-list{display:flex;flex-direction:column;gap:10px}
@@ -451,6 +456,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <div class="panel-body">
 <div class="filter-bar">
 <div style="flex:1 1 100%"><label>🔍 搜索：</label><input type="text" id="filterSearch" placeholder="输入 客户ID / 订单号 / 客服 / 店铺 / 问题关键词…" oninput="renderRecords()" style="min-width:260px;width:100%;box-sizing:border-box"></div>
+<div id="csMyToggleWrap"><span class="lbl">视角：</span><div class="seg">
+  <button type="button" class="seg-btn active" id="segMine" onclick="setCsMyView(true)">👤 只看我的</button>
+  <button type="button" class="seg-btn" id="segAll" onclick="setCsMyView(false)">🌐 全部</button>
+</div></div>
 <div><label>客服：</label><select id="filterStaff" onchange="renderRecords()"><option value="">全部</option></select></div>
 <div><label>店铺：</label><select id="filterShop" onchange="renderRecords()"><option value="">全部</option></select></div>
 <div><label>分类：</label><select id="filterTag" onchange="renderRecords()"><option value="">全部</option><option>话术问题</option><option>响应问题</option><option>流程问题</option><option>态度问题</option><option>产品知识</option><option>其他</option></select></div>
@@ -693,6 +702,33 @@ function updateAdminUI() {
   const tsb = document.getElementById('tplSaveBtn'); if (tsb) tsb.style.display = isAdmin ? '' : 'none';
   const tmb = document.getElementById('tplMgrBtn'); if (tmb) tmb.style.display = isAdmin ? '' : 'none';
   const ce = document.getElementById('caseEntry'); if (ce) ce.style.display = isAdmin ? '' : 'none';
+  // 客服端（非管理员）：默认只看自己，并显示「我的/全部」切换
+  const myWrap = document.getElementById('csMyToggleWrap');
+  if (myWrap) myWrap.style.display = isAdmin ? 'none' : 'inline-flex';
+  const segMine = document.getElementById('segMine');
+  const segAll = document.getElementById('segAll');
+  if (!isAdmin) {
+    csMyView = true;
+    const fStaff = document.getElementById('filterStaff');
+    if (fStaff && currentAuthUser && currentAuthUser.name) fStaff.value = currentAuthUser.name;
+    if (segMine) segMine.classList.add('active');
+    if (segAll) segAll.classList.remove('active');
+  } else {
+    csMyView = false;
+    if (segMine) segMine.classList.remove('active');
+    if (segAll) segAll.classList.remove('active');
+  }
+  renderRecords();
+}
+
+function setCsMyView(mine) {
+  csMyView = mine;
+  const f = document.getElementById('filterStaff');
+  if (f) f.value = (mine && currentAuthUser && currentAuthUser.name) ? currentAuthUser.name : '';
+  const segMine = document.getElementById('segMine');
+  const segAll = document.getElementById('segAll');
+  if (segMine) segMine.classList.toggle('active', mine);
+  if (segAll) segAll.classList.toggle('active', !mine);
   renderRecords();
 }
 
@@ -708,6 +744,7 @@ function showToast(msg, isError) {
 
 /* ==================== Data ==================== */
 let records = [];
+let csMyView = false; // 客服端默认只看自己
 let editingId = null;
 let currentSeverity = '一般';
 let currentTags = [];
@@ -811,6 +848,9 @@ async function syncRecord(record) {
     } else {
       const { error } = await supabase.from('qc_records').insert(r);
       if (error) { showToast('保存失败：' + error.message, true); return false; }
+      // 新增记录：自动提醒被质检客服（站内通知，无需走发送分享流程）
+      await qcNotifyStaff(r.staff, '🆕 你有新的质检记录待查看',
+        '质检员为「' + (r.staff || '') + '」登记了一条' + (r.severity || '') + '质检记录（日期：' + (r.date || '') + '，店铺：' + (r.shop || '') + '）。\n请到工作台质检模块查看详情。', 'qc_new');
     }
     return true;
   } catch(e) {
@@ -1472,13 +1512,18 @@ function updateFilterOptions() {
   // 合并：历史记录中出现过的值 + 基础表（qc_staffs / qc_shops）中的有效值，去重排序
   const staffNames = new Set(records.map(r => r.staff).filter(Boolean));
   qcStaffs.forEach(s => { if (s.is_active !== false) staffNames.add(s.name); });
+  // 客服端「只看我的」：保证当前客服姓名出现在下拉选项中
+  if (!isAdmin && csMyView && currentAuthUser && currentAuthUser.name) staffNames.add(currentAuthUser.name);
   const shopNames = new Set(records.map(r => r.shop).filter(Boolean));
   qcShops.forEach(s => { if (s.is_active !== false) shopNames.add(s.name); });
   const staffs = [...staffNames].sort();
   const shops = [...shopNames].sort();
   const fStaff = document.getElementById('filterStaff');
   const fShop = document.getElementById('filterShop');
-  const curStaff = fStaff.value, curShop = fShop.value;
+  // 客服端默认选中自己
+  let curStaff = fStaff.value;
+  if (!isAdmin && csMyView && currentAuthUser && currentAuthUser.name) curStaff = currentAuthUser.name;
+  const curShop = fShop.value;
   fStaff.innerHTML = '<option value="">全部</option>' + staffs.map(s => '<option value="' + escapeHtml(s) + '"' + (s===curStaff?' selected':'') + '>' + escapeHtml(s) + '</option>').join('');
   fShop.innerHTML = '<option value="">全部</option>' + shops.map(s => '<option value="' + escapeHtml(s) + '"' + (s===curShop?' selected':'') + '>' + escapeHtml(s) + '</option>').join('');
   // 优秀案例表单的客服/店铺下拉同步
@@ -1710,7 +1755,11 @@ function updateCsBadge() {
   const badge = document.getElementById('csBadge');
   if (!badge) return;
   const shares = qcShares || [];
-  const pendingCount = shares.filter(s => !s.confirmed_at).length; // 待确认 + 逾期
+  // 管理员看全部待确认；客服端只看自己名下的待确认/待查看
+  const myName = (currentAuthUser && currentAuthUser.name) || '';
+  const pendingCount = isAdmin
+    ? shares.filter(s => !s.confirmed_at).length
+    : shares.filter(s => s.staff === myName && !s.confirmed_at).length;
   badge.textContent = pendingCount;
   badge.classList.toggle('zero', pendingCount === 0);
 }
@@ -1727,7 +1776,11 @@ function closeConfirmStatus() {
 }
 
 function renderConfirmStatus(filter) {
-  const shares = qcShares || [];
+  let shares = qcShares || [];
+  // 客服端（非管理员）只看自己名下的确认状态
+  if (!isAdmin && currentAuthUser && currentAuthUser.name) {
+    shares = shares.filter(s => s.staff === currentAuthUser.name);
+  }
   const total = shares.length;
   const autoCount = shares.filter(s => s.confirmed_at && s.auto_confirmed).length;
   const confirmed = shares.filter(s => s.confirmed_at && !s.auto_confirmed).length;
@@ -2020,6 +2073,10 @@ async function loadRecordImages(containerId, imageIds) {
 
 function clearFilters() {
   ['filterStaff','filterShop','filterTag','filterStatus','filterDateFrom','filterDateTo','filterSearch'].forEach(id => document.getElementById(id).value = '');
+  // 客服端「只看我的」时，清除筛选仍保持只看自己
+  if (!isAdmin && csMyView && currentAuthUser && currentAuthUser.name) {
+    document.getElementById('filterStaff').value = currentAuthUser.name;
+  }
   renderRecords();
 }
 
