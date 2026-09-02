@@ -466,8 +466,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <button class="btn btn-i" onclick="openConfirmStatus()" style="font-size:11px;padding:5px 12px">📊 确认状态 <span id="csBadge" class="cs-badge zero">0</span></button>
 <button class="btn btn-s" onclick="loadRecords(true)" style="font-size:11px;padding:5px 12px">🔄 刷新</button>
 <div class="seg" id="viewModeSeg" style="margin-left:auto">
-  <button type="button" class="seg-btn active" id="vmCard" onclick="setQcViewMode('card')">🗂️ 卡片</button>
-  <button type="button" class="seg-btn" id="vmTable" onclick="setQcViewMode('table')">📑 表格</button>
+  <button type="button" class="seg-btn" id="vmCard" onclick="setQcViewMode('card')">🗂️ 卡片</button>
+  <button type="button" class="seg-btn active" id="vmTable" onclick="setQcViewMode('table')">📑 表格</button>
 </div>
 </div></div>
 <div class="panel-body">
@@ -762,7 +762,7 @@ function showToast(msg, isError) {
 /* ==================== Data ==================== */
 let records = [];
 let csMyView = false; // 客服端默认只看自己
-let qcViewMode = 'card'; // 'card' | 'table'
+let qcViewMode = 'table'; // 'card' | 'table'
 let editingId = null;
 let currentSeverity = '一般';
 let currentTags = [];
