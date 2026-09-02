@@ -7509,9 +7509,14 @@ function groupQcByInspector(data) {
 const QC_FIXED_INSPECTORS = ['小念', '小暖', '小雷'];
 
 function qcInspectorNameOf(r) {
-  const phone = r.created_by || '';
-  const prof = phone ? qcReportPhoneMap[phone] : null;
-  return prof ? (prof.name || prof.real_name || phone) : (phone || '未填写');
+  const key = r.created_by || '';
+  if (!key) return '历史未记录';
+  // created_by 存的是 phone 或 name，先按 phone 反查，再按 name 兜底
+  const byPhone = qcReportPhoneMap[key];
+  if (byPhone) return byPhone.name || byPhone.real_name || key;
+  const byName = qcReportProfileMap[key];
+  if (byName) return byName.name || byName.real_name || key;
+  return key;
 }
 
 // 质检员名单：当前登录者排最前 + 固定三位 + 数据里出现的其他人
@@ -7520,10 +7525,13 @@ function getQcInspectorList(data) {
   const me = currentProfile ? (currentProfile.name || currentProfile.real_name) : '';
   if (me) list.push(me);
   QC_FIXED_INSPECTORS.forEach(function (n) { if (list.indexOf(n) < 0) list.push(n); });
+  let hasBlank = false;
   (data || []).forEach(function (r) {
     const n = qcInspectorNameOf(r);
-    if (n && n !== '未填写' && list.indexOf(n) < 0) list.push(n);
+    if (n === '历史未记录') { hasBlank = true; return; }
+    if (n && list.indexOf(n) < 0) list.push(n);
   });
+  if (hasBlank) list.push('历史未记录');
   return list;
 }
 
