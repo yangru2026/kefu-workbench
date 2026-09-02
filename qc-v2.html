@@ -191,6 +191,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .record-img-item{border-radius:8px;overflow:hidden;border:1px solid var(--border);cursor:pointer;background:#f8fafc;aspect-ratio:1;display:flex;align-items:center;justify-content:center}
 .record-img-item img{width:100%;height:100%;object-fit:contain}
 .record-img-item .img-loading{color:var(--text2);font-size:12px}
+
+/* ===== 表格视图（方案B） ===== */
+.qc-table-wrap{overflow-x:auto;margin-bottom:8px;-webkit-overflow-scrolling:touch}
+.qc-table{border-collapse:collapse;width:100%;font-size:12px;background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.qc-table th,.qc-table td{border-bottom:1px solid var(--border);padding:8px 10px;text-align:left;vertical-align:middle;white-space:normal}
+.qc-table thead th{background:#f8fafc;font-size:11px;color:var(--text2);font-weight:600;white-space:nowrap;position:sticky;top:0}
+.qc-table tbody tr:hover{background:#fafbfc}
+.qc-table tbody tr.selected{background:rgba(123,155,106,.08)}
+.qc-table .penalty{color:#c0392b;font-weight:700}
+.qc-table .td-prob{max-width:280px}
+.qc-thumbs{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.qc-thumb{width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer;background:#f8fafc;display:block}
+.qc-thumb-more{font-size:11px;color:var(--text2);background:#f1f5f9;border-radius:6px;padding:3px 6px;align-self:center}
 .record-actions{display:flex;gap:6px;flex-wrap:wrap}
 .record-actions .btn{font-size:11px;padding:5px 12px}
 
@@ -452,6 +465,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <button class="btn btn-s" onclick="exportXLSX()" style="font-size:11px;padding:5px 12px">📤 导出Excel</button>
 <button class="btn btn-i" onclick="openConfirmStatus()" style="font-size:11px;padding:5px 12px">📊 确认状态 <span id="csBadge" class="cs-badge zero">0</span></button>
 <button class="btn btn-s" onclick="loadRecords(true)" style="font-size:11px;padding:5px 12px">🔄 刷新</button>
+<div class="seg" id="viewModeSeg" style="margin-left:auto">
+  <button type="button" class="seg-btn active" id="vmCard" onclick="setQcViewMode('card')">🗂️ 卡片</button>
+  <button type="button" class="seg-btn" id="vmTable" onclick="setQcViewMode('table')">📑 表格</button>
+</div>
 </div></div>
 <div class="panel-body">
 <div class="filter-bar">
@@ -745,6 +762,7 @@ function showToast(msg, isError) {
 /* ==================== Data ==================== */
 let records = [];
 let csMyView = false; // 客服端默认只看自己
+let qcViewMode = 'card'; // 'card' | 'table'
 let editingId = null;
 let currentSeverity = '一般';
 let currentTags = [];
@@ -1870,6 +1888,8 @@ function toggleSelectRecord(id) {
   else selectedRecordIds.add(nid);
   const card = document.querySelector('.record-card[data-id="' + nid + '"]');
   if (card) card.classList.toggle('selected', selectedRecordIds.has(nid));
+  const tr = document.querySelector('tr[data-id="' + nid + '"]');
+  if (tr) tr.classList.toggle('selected', selectedRecordIds.has(nid));
   updateBulkBar();
 }
 
@@ -1879,6 +1899,7 @@ function toggleSelectAll(box) {
   else list.forEach(r => selectedRecordIds.delete(r.id));
   document.querySelectorAll('.sel-checkbox').forEach(cb => { cb.checked = box.checked; });
   document.querySelectorAll('.record-card').forEach(card => card.classList.toggle('selected', box.checked));
+  document.querySelectorAll('tr[data-id]').forEach(tr => tr.classList.toggle('selected', box.checked));
   updateBulkBar();
 }
 
@@ -1886,6 +1907,7 @@ function clearSelection() {
   selectedRecordIds.clear();
   document.querySelectorAll('.sel-checkbox').forEach(cb => cb.checked = false);
   document.querySelectorAll('.record-card').forEach(card => card.classList.remove('selected'));
+  document.querySelectorAll('tr[data-id]').forEach(tr => tr.classList.remove('selected'));
   updateBulkBar();
 }
 
@@ -1977,6 +1999,14 @@ function currentFilterKey() {
 }
 function loadMoreRecords() { qcRenderedCount += qcPageSize; renderRecords(); }
 
+function setQcViewMode(m) {
+  qcViewMode = m;
+  const c = document.getElementById('vmCard'), t = document.getElementById('vmTable');
+  if (c) c.classList.toggle('active', m === 'card');
+  if (t) t.classList.toggle('active', m === 'table');
+  renderRecords();
+}
+
 async function renderRecords() {
   const list = getFilteredRecords();
   const el = document.getElementById('recordList');
@@ -1989,6 +2019,9 @@ async function renderRecords() {
   const fk = currentFilterKey();
   if (fk !== qcLastFilterKey) { qcLastFilterKey = fk; qcRenderedCount = qcPageSize; }
   const shown = list.slice(0, qcRenderedCount);
+
+  // 表格视图：直接列式展示内容与截图缩略图
+  if (qcViewMode === 'table') { renderRecordsTable(el, shown, list); return; }
 
   let html = '';
   for (const r of shown) {
@@ -2005,7 +2038,7 @@ async function renderRecords() {
     const shareBadge = si ? (si.confirmed ? '<span class="share-badge confirmed">✅ 已确认</span>' : '<span class="share-badge pending">📤 已发送·待确认</span>') : '';
     const selChk = '<input type="checkbox" class="sel-checkbox" data-id="' + r.id + '"' + (selectedRecordIds.has(r.id)?' checked':'') + selAttr + ' onclick="event.stopPropagation();toggleSelectRecord(\'' + r.id + '\')">';
     const selCls = selectedRecordIds.has(r.id) ? ' selected' : '';
-    html += '<div class="record-card ' + statusClass + selCls + ' collapsed" data-id="' + r.id + '">'
+    html += '<div class="record-card ' + statusClass + selCls + '" data-id="' + r.id + '">'
       + '<div class="record-header record-toggle" onclick="toggleRecordCard(\'' + r.id + '\')"><div class="record-info">'
       + selChk
       + '<span class="record-chevron">▾</span>'
@@ -2068,6 +2101,84 @@ async function loadRecordImages(containerId, imageIds) {
     div.onclick = () => previewImage(url, id);
     div.innerHTML = '<img src="' + url + '" alt="" loading="lazy">';
     container.appendChild(div);
+  }
+}
+
+/* 表格视图缩略图：合并三类图片，最多显示 max 张，点击放大 */
+async function loadRecordThumbs(containerId, imageIds, max) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+  const ids = (max ? imageIds.slice(0, max) : imageIds);
+  for (const id of ids) {
+    const url = await getImageUrl(id);
+    if (!url) continue;
+    const img = document.createElement('img');
+    img.className = 'qc-thumb';
+    img.src = url;
+    img.loading = 'lazy';
+    img.onclick = () => previewImage(url, id);
+    container.appendChild(img);
+  }
+  const rest = imageIds.length - ids.length;
+  if (rest > 0) {
+    const more = document.createElement('span');
+    more.className = 'qc-thumb-more';
+    more.textContent = '+' + rest;
+    container.appendChild(more);
+  }
+}
+
+/* 表格视图渲染（方案B）：一眼看到文字内容与截图缩略图 */
+function renderRecordsTable(el, shown, list) {
+  const tagCls = t => t==='话术问题'?'tag-huashu':t==='响应问题'?'tag-xiangying':t==='流程问题'?'tag-liucheng':t==='态度问题'?'tag-taidu':t==='产品知识'?'tag-zhishi':'tag-huashu';
+  const penaltyOf = r => (r.penalty_amount!=null?r.penalty_amount:(r.penaltyAmount||0));
+  const head = '<thead><tr>'
+    + (isAdmin ? '<th><input type="checkbox" id="selAllBox2" onchange="toggleSelectAll(this)" style="width:16px;height:16px;accent-color:var(--primary)"></th>' : '')
+    + '<th>客服</th><th>店铺</th><th>日期</th><th>客户ID</th><th>严重度</th><th>分类</th><th>问题描述</th><th>扣罚</th><th>截图</th><th>状态</th><th>确认</th>'
+    + (isAdmin ? '<th>操作</th>' : '')
+    + '</tr></thead>';
+  let rows = '';
+  for (const r of shown) {
+    const tagHtml = (r.tags||[]).map(t => '<span class="record-tag ' + tagCls(t) + '">' + t + '</span>').join(' ');
+    const sevColor = r.severity==='一般'?'#F5A623':r.severity==='严重'?'#E57373':'#7E57C2';
+    const penalty = penaltyOf(r);
+    const probText = (r.problem||'').replace(/\s+/g,' ').trim();
+    const probShort = probText.length > 80 ? escapeHtml(probText.slice(0,80)) + '…' : escapeHtml(probText);
+    const selAttr = isAdmin ? '' : ' style="display:none"';
+    const selChk = '<input type="checkbox" class="sel-checkbox" data-id="' + r.id + '"' + (selectedRecordIds.has(r.id)?' checked':'') + selAttr + ' onclick="event.stopPropagation();toggleSelectRecord(\'' + r.id + '\')">';
+    const si = getShareInfo(r);
+    const shareBadge = si ? (si.confirmed ? '<span class="share-badge confirmed">✅</span>' : '<span class="share-badge pending">📤</span>') : '';
+    const statusText = r.status==='pending'?'待讲解':'已讲解';
+    const allImgs = [].concat(r.scene_images||[], r.reply_images||[], r.knowledge_images||[]);
+    const selCls = selectedRecordIds.has(r.id) ? ' class="selected"' : '';
+    rows += '<tr' + selCls + ' data-id="' + r.id + '">'
+      + (isAdmin ? '<td>' + selChk + '</td>' : '')
+      + '<td>' + escapeHtml(r.staff) + '</td>'
+      + '<td>' + escapeHtml(r.shop) + '</td>'
+      + '<td>' + r.date + '</td>'
+      + '<td>' + (r.customer_id ? escapeHtml(r.customer_id) : '-') + '</td>'
+      + '<td><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:' + sevColor + '20;color:' + sevColor + ';font-weight:600">' + r.severity + '</span></td>'
+      + '<td>' + (tagHtml || '-') + '</td>'
+      + '<td class="td-prob">' + (probShort || '-') + '</td>'
+      + '<td>' + (penalty>0 ? '<span class="penalty">¥'+penalty+'</span>' : '-') + '</td>'
+      + '<td><div class="qc-thumbs" id="thumbs_' + r.id + '"></div></td>'
+      + '<td><span class="record-status ' + (r.status==='pending'?'pending':'done') + '">' + statusText + '</span></td>'
+      + '<td>' + shareBadge + '</td>'
+      + (isAdmin ? '<td style="white-space:nowrap">' + (r.status==='pending' ? '<button class="btn btn-g" onclick="markDone(\''+r.id+'\')">✅</button> ' : '<button class="btn btn-s" onclick="markPending(\''+r.id+'\')">↩️</button> ')
+          + '<button class="btn btn-i" onclick="editRecord(\''+r.id+'\')">✏️</button> '
+          + '<button class="btn btn-r" onclick="deleteRecord(\''+r.id+'\')">🗑️</button></td>' : '')
+      + '</tr>';
+  }
+  let html = '<div class="qc-table-wrap"><table class="qc-table">' + head + '<tbody>' + rows + '</tbody></table></div>';
+  if (list.length > shown.length) {
+    html += '<div class="record-list-footer"><button class="btn btn-s" onclick="loadMoreRecords()" style="font-size:12px;padding:7px 24px">⬇️ 加载更多（还有 ' + (list.length - shown.length) + ' 条）</button></div>';
+  }
+  el.innerHTML = html;
+  // 异步加载截图缩略图
+  for (const r of shown) {
+    const allImgs = [].concat(r.scene_images||[], r.reply_images||[], r.knowledge_images||[]);
+    if (allImgs.length) loadRecordThumbs('thumbs_' + r.id, allImgs, 4);
   }
 }
 
