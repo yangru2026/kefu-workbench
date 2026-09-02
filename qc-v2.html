@@ -964,10 +964,13 @@ async function getImageUrl(id) {
   try {
     // 优先用签名 URL（bucket 非 public 时 publicUrl 会 400，签名 URL 始终可用）
     const { data, error } = await supabase.storage.from('qc-images').createSignedUrl('qc/' + id + '.jpg', 3600);
-    // 注意：部分 supabase-js 版本 createSignedUrl 返回的是相对路径（以 / 开头），
-    // 直接当 src 会被解析成当前站点域名而 404，必须补成绝对地址。
+    // 注意：本地这个 supabase-js 版本 createSignedUrl 返回的是 /object/sign/... 相对路径
+    // （且缺 /storage/v1 前缀），直接当 src 会被解析成当前站点域名而 404，
+    // 必须补成「域名 + /storage/v1 + 相对路径」的绝对地址。
     if (data && data.signedUrl) {
-      url = data.signedUrl.startsWith('http') ? data.signedUrl : SUPABASE_URL + data.signedUrl;
+      url = data.signedUrl.startsWith('http')
+        ? data.signedUrl
+        : SUPABASE_URL + '/storage/v1' + (data.signedUrl.startsWith('/') ? data.signedUrl : '/' + data.signedUrl);
     }
   } catch (e) {}
   // 签名 URL 没拿到有效 http 地址时，回退公开 URL（bucket 为 public 时可用）
