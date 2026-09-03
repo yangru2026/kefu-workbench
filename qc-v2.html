@@ -55,6 +55,12 @@ body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-ser
 .confirm-badge.done{background:#e6f6ec;color:var(--green)}
 .confirm-badge.todo{background:#fef2f2;color:var(--red)}
 .confirm-btn{margin-top:6px}
+/* 普通客服「待你确认」红点待办提醒 */
+.todo-bar{display:none;align-items:center;gap:10px;margin:8px 0;padding:9px 14px;border-radius:10px;background:#fff4f4;border:1px solid #ffd6d6;color:#c0392b;font-weight:600;font-size:13px}
+.todo-bar.active{background:#eef7ff;border-color:#bcdcff;color:#1f6feb}
+.todo-dot{width:10px;height:10px;border-radius:50%;background:#e74c3c;box-shadow:0 0 0 4px rgba(231,76,60,.18)}
+.todo-bar.active .todo-dot{background:#1f6feb;box-shadow:0 0 0 4px rgba(31,111,235,.18)}
+.todo-pill{font-size:11px;padding:1px 7px;border-radius:10px;background:#fdecea;color:var(--red);margin-left:6px;font-weight:600;white-space:nowrap}
 /* table */
 table.grid{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
 table.grid th,table.grid td{border-bottom:1px solid var(--border);padding:8px 10px;text-align:left;font-size:13px;vertical-align:top}
@@ -181,6 +187,11 @@ table.grid tr:hover{background:#fafbf8}
   <span id="statBox" style="font-size:12px;color:var(--text2)"></span>
 </div>
 
+<div id="qcTodoBar" class="todo-bar">
+  <span class="todo-dot"></span>
+  <span id="qcTodoText">待你确认 0 条</span>
+  <button class="btn btn-sm" id="qcTodoToggle" onclick="toggleTodoMode()">查看待确认</button>
+</div>
 <div class="filters">
   <input id="filterSearch" placeholder="搜索问题/正确做法" oninput="renderRecords()" style="min-width:160px">
   <select id="filterStaff" onchange="renderRecords()"><option value="">全部客服</option></select>
@@ -334,7 +345,7 @@ let isAdmin=false, currentAuthUser=null, currentRole=null;
 let records=[], qcImagesReady=false, imageUrlCache={}, qcProfileIdCache={};
 let staffOptions=[], shopOptions=[];
 let qcConfirmations=[];
-let selectedRecordIds=new Set(), qcViewMode='table', editingId=null, pendingUploads={scene:[],reply:[],knowledge:[]};
+let selectedRecordIds=new Set(), qcViewMode='table', editingId=null, pendingUploads={scene:[],reply:[],knowledge:[]}, qcTodoMode=false;
 let lastStaff='', lastShop=''; // 连续登记：记住上次选的客服/店铺
 let qcShares=[], coachSelectedIds=new Set();
 
@@ -561,6 +572,7 @@ function updateAdminUI(){
   const an=document.getElementById('btnAnalysis'); if(an)an.style.display=isAdmin?'':'none';
   const co=document.getElementById('btnCoach'); if(co)co.style.display=isAdmin?'':'none';
   const ex=document.getElementById('btnExport'); if(ex)ex.style.display=isAdmin?'':'none';
+  updateTodoReminder();
 }
 // 父窗口设置模式
 window.setQcMode=function(admin){ isAdmin=admin; updateAdminUI(); };
@@ -699,17 +711,40 @@ async function confirmRecord(id){
 }
 
 /* ==================== 列表渲染 ==================== */
+function myUnconfirmed(r){
+  const myName = currentAuthUser ? (currentAuthUser.name||currentAuthUser.phone) : '';
+  return !isAdmin && !!myName && r.staff===myName && !getConfirm(r.id,myName);
+}
+function updateTodoReminder(){
+  const bar=document.getElementById('qcTodoBar'); if(!bar)return;
+  if(isAdmin || !currentAuthUser){ bar.style.display='none'; qcTodoMode=false; return; }
+  const myName=currentAuthUser.name||currentAuthUser.phone;
+  const pending=records.filter(r=>r.staff===myName && !getConfirm(r.id,myName)).length;
+  if(pending===0 && !qcTodoMode){ bar.style.display='none'; return; }
+  bar.style.display='flex';
+  document.getElementById('qcTodoText').textContent = pending>0 ? ('🔴 待你确认 '+pending+' 条') : '✅ 你已确认全部';
+  document.getElementById('qcTodoToggle').textContent = qcTodoMode ? '显示全部' : '查看待确认';
+  bar.classList.toggle('active', qcTodoMode);
+}
+function toggleTodoMode(){
+  qcTodoMode=!qcTodoMode;
+  if(qcTodoMode){ ['filterSearch','filterStaff','filterShop','filterTag','filterStatus','filterMonth'].forEach(id=>{const e=document.getElementById(id); if(e)e.value='';}); }
+  renderRecords();
+}
 function getFiltered(){
   const g=id=>document.getElementById(id).value;
   const f=g('filterSearch').toLowerCase(), st=g('filterStaff'), sh=g('filterShop'), tg=g('filterTag'), stt=g('filterStatus'), mo=g('filterMonth');
+  const myName = currentAuthUser ? (currentAuthUser.name||currentAuthUser.phone) : '';
   return records.filter(r=>
     (!f || (r.problem||'').toLowerCase().includes(f) || (r.correct||'').toLowerCase().includes(f) || (r.staff||'').includes(f)) &&
     (!st || r.staff===st) && (!sh || r.shop===sh) && (!tg || (r.tags||[]).includes(tg)) &&
-    (!stt || r.status===stt) && (!mo || (r.date||'').startsWith(mo))
+    (!stt || r.status===stt) && (!mo || (r.date||'').startsWith(mo)) &&
+    (!qcTodoMode || !myName || (r.staff===myName && !getConfirm(r.id,myName)))
   );
 }
 function allImgs(r){ return [...(r.scene_images||[]),...(r.reply_images||[]),...(r.knowledge_images||[])]; }
 function renderRecords(){
+  updateTodoReminder();
   const list=getFiltered(); const el=document.getElementById('recordList');
   if(!list.length){ el.innerHTML='<div class="empty">📋 暂无质检记录</div>'; return; }
   if(qcViewMode==='table'){ renderTable(el,list); } else { renderCards(el,list); }
@@ -721,7 +756,8 @@ function renderCards(el,list){
     const selAttr=canManage?'':' style="display:none"';
     h+='<div class="card" '+(canManage?'onclick="openEditModal(\''+r.id+'\')"':'')+'>'
       +'<div class="ch"><span class="staff">'+escapeHtml(r.staff)+'</span>'
-      +'<span class="status-pill status-'+r.status+'">'+(r.status==='pending'?'待讲解':'已讲解')+'</span></div>'
+      +'<span class="status-pill status-'+r.status+'">'+(r.status==='pending'?'待讲解':'已讲解')+'</span>'
+      +(myUnconfirmed(r)?'<span class="todo-pill">● 待确认</span>':'')+'</div>'
       +'<div class="meta">'+r.date+' · '+escapeHtml(r.shop)+' · <span class="sev sev-'+r.severity+'">'+r.severity+'</span></div>'
       +'<div class="tags">'+(r.tags||[]).map(t=>'<span class="tag">'+t+'</span>').join('')+'</div>'
       +'<div style="font-size:13px">❌ '+(escapeHtml((r.problem||'').substring(0,50))||'—')+'</div>';
@@ -739,7 +775,7 @@ function renderTable(el,list){
   for(const r of list){
     const canManage=isAdmin;
     h+='<tr '+(canManage?'style="cursor:pointer" onclick="openEditModal('+r.id+')"':'')+'>'
-      +'<td>'+escapeHtml(r.staff)+'</td><td>'+r.date+'</td><td>'+escapeHtml(r.shop)+'</td>'
+      +'<td>'+escapeHtml(r.staff)+(myUnconfirmed(r)?' <span class="todo-pill">● 待确认</span>':'')+'</td><td>'+r.date+'</td><td>'+escapeHtml(r.shop)+'</td>'
       +'<td>'+(r.tags||[]).map(t=>'<span class="tag">'+t+'</span>').join('')+'</td>'
       +'<td><span class="sev sev-'+r.severity+'">'+r.severity+'</span></td>'
       +'<td style="max-width:240px">'+(escapeHtml((r.problem||'').substring(0,80))||'—')+'</td>'
