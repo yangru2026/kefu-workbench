@@ -119,6 +119,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 var supabase = null;
 let currentShare = null;
 let currentRecords = [];
+const imageUrlCache = {}; // 签名 URL 本地缓存，避免反馈页重复请求
 
 function showToast(msg, isError) {
   const t = document.getElementById('toast');
@@ -133,8 +134,34 @@ function formatNumberedHtml(text){
   return lines.map((l,i)=>'<div style="margin-bottom:3px"><span style="display:inline-block;min-width:20px;font-weight:600;color:var(--primary)">'+(i+1)+'.</span>'+escapeHtml(l)+'</div>').join('');
 }
 async function getImageUrl(id){
-  try{ const {data}=await supabase.storage.from('qc-images').createSignedUrl('qc/'+id+'.jpg',3600); if(data&&data.signedUrl) return data.signedUrl; }catch(e){}
-  try{ const {data}=supabase.storage.from('qc-images').getPublicUrl('qc/'+id+'.jpg'); return data&&data.publicUrl?data.publicUrl:''; }catch(e){return '';}
+  if (typeof id === 'string' && id.startsWith('data:')) return id;
+  if (imageUrlCache[id]) return imageUrlCache[id];
+  let url = '';
+  try {
+    // 优先用签名 URL（bucket 非 public 时 publicUrl 会 400，签名 URL 始终可用）
+    const { data } = await supabase.storage.from('qc-images').createSignedUrl('qc/' + id + '.jpg', 3600);
+    // 注意：这个 supabase-js 版本 createSignedUrl 返回的是 /object/sign/... 相对路径
+    // （且缺 /storage/v1 前缀），直接当 src 会被解析成当前站点域名而 404，
+    // 必须补成「域名 + /storage/v1 + 相对路径」的绝对地址。
+    if (data && data.signedUrl) {
+      url = data.signedUrl.startsWith('http')
+        ? data.signedUrl
+        : SUPABASE_URL + '/storage/v1' + (data.signedUrl.startsWith('/') ? data.signedUrl : '/' + data.signedUrl);
+    }
+  } catch (e) {}
+  // 签名 URL 没拿到有效 http 地址时，回退公开 URL
+  if (!url || !url.startsWith('http')) {
+    try {
+      const { data } = supabase.storage.from('qc-images').getPublicUrl('qc/' + id + '.jpg');
+      if (data && data.publicUrl) url = data.publicUrl;
+    } catch (e) { url = ''; }
+  }
+  // 只缓存并返回真正的 http(s) 绝对地址
+  if (url && url.startsWith('http')) {
+    imageUrlCache[id] = url;
+    return url;
+  }
+  return '';
 }
 
 function getToken(){
