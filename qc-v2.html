@@ -3059,39 +3059,75 @@ function downloadXLSX(filename, rows) {
   a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+/* 下载单张图片为字节数组（用于导出 Excel 内嵌） */
+async function fetchImageBytes(id) {
+  let url = await getImageUrl(id);
+  if (!url) return null;
+  try {
+    const res = await fetch(url, { mode: 'cors' });
+    if (!res.ok) return null;
+    return new Uint8Array(await res.arrayBuffer());
+  } catch (e) { return null; }
+}
+/* 取图片原始宽高（用于等比缩放） */
+async function getImageDims(bytes) {
+  const blob = new Blob([bytes], { type: 'image/jpeg' });
+  const u = URL.createObjectURL(blob);
+  try {
+    const img = new Image();
+    await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = u; });
+    return { w: img.naturalWidth || 70, h: img.naturalHeight || 70 };
+  } catch (e) { return { w: 70, h: 70 }; }
+  finally { URL.revokeObjectURL(u); }
+}
+const QC_MAX_IMG = 3;   // 每字段最多导出 3 张图
+const QC_IMG_PX = 70;   // 图片最大显示边（px），等比缩放、不跨格
+
 async function exportXLSX() {
   const list = getFilteredRecords();
   if (!list.length) { showToast('没有可导出的数据'); return; }
-  const header = ['日期','客服','客户ID','店铺','问题分类','严重程度','状态','扣罚金额','客户问题','客服回复','问题描述','正确做法','知识点','备注','讲解日期','讲解备注'];
-  const dataRows = list.map(r => {
-    const pa = (r.penalty_amount != null ? r.penalty_amount : (r.penaltyAmount || 0)) || 0;
-    return [r.date, r.staff, r.customer_id || '', r.shop, (r.tags || []).join(';'), r.severity, r.status === 'pending' ? '待讲解' : '已讲解', pa, r.scene, r.reply, r.problem, r.correct, r.knowledge, r.note, r.coach_date, r.coach_note];
-  });
-  const rows = [header].concat(dataRows);
-  // 收集配图：每条记录每类取首图，嵌入 Excel 对应行右侧列
-  // 列映射：客户问题截图 → Q(16) / 客服回复截图 → R(17) / 知识点配图 → S(18)
-  const groups = [['scene_images', 16], ['reply_images', 17], ['knowledge_images', 18]];
-  const media = [];
   showToast('⏳ 正在生成带图 Excel，请稍候…');
-  for (let ri = 0; ri < list.length; ri++) {
-    const r = list[ri];
-    for (const [key, col] of groups) {
-      const ids = (r[key] || []);
-      if (!ids.length) continue;
-      const id = ids[0];
-      try {
-        const url = await getImageUrl(id);
-        if (!url) continue;
-        const resp = await fetch(url);
-        if (!resp.ok) continue;
-        const buf = new Uint8Array(await resp.arrayBuffer());
-        media.push({ row: ri + 1, col, data: buf, ext: 'jpg' });
-      } catch (e) { console.warn('配图导出失败', id, e); }
-    }
+  const header = ['日期','客服','客户ID','店铺','问题分类','严重程度','状态','扣罚金额',
+    '客户问题','客户问题截图1','客户问题截图2','客户问题截图3',
+    '客服回复','客服回复截图1','客服回复截图2','客服回复截图3',
+    '问题描述','正确做法','知识点','知识点截图1','知识点截图2','知识点截图3',
+    '备注','讲解日期','讲解备注'];
+  const C = { sceneText:8, sceneImg:[9,10,11], replyText:12, replyImg:[13,14,15], knowText:18, knowImg:[19,20,21] };
+  const rows = [header];
+  const imgPlan = [];
+  list.forEach(r => {
+    const pa = (r.penalty_amount != null ? r.penalty_amount : (r.penaltyAmount || 0)) || 0;
+    const row = new Array(header.length).fill('');
+    row[0]=r.date; row[1]=r.staff; row[2]=r.customer_id||''; row[3]=r.shop; row[4]=(r.tags||[]).join(';');
+    row[5]=r.severity; row[6]=r.status==='pending'?'待讲解':'已讲解'; row[7]=pa;
+    row[8]=r.scene||''; row[12]=r.reply||''; row[16]=r.problem||''; row[17]=r.correct||''; row[18]=r.knowledge||'';
+    row[22]=r.note||''; row[23]=r.coach_date||''; row[24]=r.coach_note||'';
+    const s = r.scene_images||[], rp = r.reply_images||[], k = r.knowledge_images||[];
+    s.slice(0,QC_MAX_IMG).forEach((id,i)=>imgPlan.push({id, ri:rows.length, ci:C.sceneImg[i]}));
+    if (s.length>QC_MAX_IMG) row[C.sceneImg[QC_MAX_IMG-1]]='（共'+s.length+'张，仅显示前'+QC_MAX_IMG+'）';
+    rp.slice(0,QC_MAX_IMG).forEach((id,i)=>imgPlan.push({id, ri:rows.length, ci:C.replyImg[i]}));
+    if (rp.length>QC_MAX_IMG) row[C.replyImg[QC_MAX_IMG-1]]='（共'+rp.length+'张，仅显示前'+QC_MAX_IMG+'）';
+    k.slice(0,QC_MAX_IMG).forEach((id,i)=>imgPlan.push({id, ri:rows.length, ci:C.knowImg[i]}));
+    if (k.length>QC_MAX_IMG) row[C.knowImg[QC_MAX_IMG-1]]='（共'+k.length+'张，仅显示前'+QC_MAX_IMG+'）';
+    rows.push(row);
+  });
+  const bytesCache = {};
+  const ids = [...new Set(imgPlan.map(p => p.id))];
+  await Promise.all(ids.map(async id => { bytesCache[id] = await fetchImageBytes(id); }));
+  const media = [];
+  for (const p of imgPlan) {
+    const b = bytesCache[p.id];
+    if (!b) continue;
+    const dims = await getImageDims(b);
+    let w = dims.w || QC_IMG_PX, h = dims.h || QC_IMG_PX;
+    let cx, cy;
+    if (w >= h) { cx = QC_IMG_PX * 9525; cy = Math.round(QC_IMG_PX * 9525 * h / w); }
+    else { cy = QC_IMG_PX * 9525; cx = Math.round(QC_IMG_PX * 9525 * w / h); }
+    media.push({ row: p.ri, col: p.ci, data: b, ext: 'jpg', cx, cy });
   }
   if (!media.length) {
     downloadXLSX('qc_records_' + todayStr() + '.xlsx', rows);
-    showToast('📤 Excel 已导出（当前这批记录无配图）');
+    showToast('📤 Excel 已导出（本批记录无配图）');
     return;
   }
   downloadXLSXWithImages('qc_records_' + todayStr() + '.xlsx', rows, media);
@@ -3124,25 +3160,30 @@ function downloadXLSXWithImages(filename, rows, media) {
     '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
     '<sheets><sheet name="质检记录" sheetId="1" r:id="rId1"/></sheets></workbook>'
   )});
+  // workbook.xml.rels：rId1=worksheet，rId2=drawing（原实现漏了 rId2，导致 Excel 不显示图片）
   files.push({ name: 'xl/_rels/workbook.xml.rels', data: enc.encode(
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
     '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+    '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="drawings/drawing1.xml"/>' +
     '</Relationships>'
   )});
-  // 哪些行包含配图（按 rows 数组的 0-based 索引）
   const imgRows = new Set(media.map(m => m.row));
   let sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
   sheet += '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">';
-  // Q/R/S 列（客户问题/客服回复/知识点配图列）固定宽度，便于图片完整显示
-  sheet += '<cols><col min="17" max="17" width="14"/><col min="18" max="18" width="14"/><col min="19" max="19" width="14"/></cols>';
+  // 图片列（客户问题/客服回复/知识点 各 1~3）加宽，确保图片完整显示在单格内
+  const imgCols = [10,11,12,14,15,16,20,21,22];
+  sheet += '<cols>';
+  imgCols.forEach(c => { sheet += '<col min="' + c + '" max="' + c + '" width="15"/>'; });
+  sheet += '</cols>';
   sheet += '<sheetData>';
   rows.forEach((row, ri) => {
     const hasImg = imgRows.has(ri);
-    sheet += '<row r="' + (ri + 1) + '"' + (hasImg ? ' ht="60" customHeight="1"' : '') + '>';
+    sheet += '<row r="' + (ri + 1) + '"' + (hasImg ? ' ht="56" customHeight="1"' : '') + '>';
     row.forEach((cell, ci) => {
       const col = ci + 1; const ref = _xlsxColName(col) + (ri + 1);
       const val = cell == null ? '' : String(cell);
+      if (val === '') { sheet += '<c r="' + ref + '"/>'; return; }
       const isNum = /^-?\d+(\.\d+)?$/.test(val);
       if (isNum) { sheet += '<c r="' + ref + '" t="n"><v>' + val + '</v></c>'; }
       else { sheet += '<c r="' + ref + '" t="inlineStr"><is><t xml:space="preserve">' + _xlsxEscapeXml(val) + '</t></is></c>'; }
@@ -3162,19 +3203,18 @@ function downloadXLSXWithImages(filename, rows, media) {
   media.forEach((m, i) => {
     files.push({ name: 'xl/media/image' + (i + 1) + '.' + m.ext, data: m.data });
   });
-  const px = 80, emu = 9525, cx = px * emu, cy = px * emu;
   let dw = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
   dw += '<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">';
   media.forEach((m, i) => {
     const picId = i + 1;
     const rid = 'rId' + (i + 1);
     dw += '<xdr:oneCellAnchor>';
-    dw += '<xdr:from><xdr:col>' + m.col + '</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' + m.row + '</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>';
-    dw += '<xdr:ext cx="' + cx + '" cy="' + cy + '"/>';
+    dw += '<xdr:from><xdr:col>' + m.col + '</xdr:col><xdr:colOff>30000</xdr:colOff><xdr:row>' + m.row + '</xdr:row><xdr:rowOff>30000</xdr:rowOff></xdr:from>';
+    dw += '<xdr:ext cx="' + m.cx + '" cy="' + m.cy + '"/>';
     dw += '<xdr:pic>';
     dw += '<xdr:nvPicPr><xdr:cNvPr id="' + picId + '" name="Picture ' + picId + '"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>';
     dw += '<xdr:blipFill><a:blip r:embed="' + rid + '"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>';
-    dw += '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>';
+    dw += '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + m.cx + '" cy="' + m.cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>';
     dw += '</xdr:pic>';
     dw += '<xdr:clientData/></xdr:oneCellAnchor>';
   });

@@ -2837,82 +2837,108 @@ body {
       <span class="qc-topbar-title">🔍 客服聊天记录质检工具</span>
       <span class="qc-topbar-user" id="qc-user-badge">管理员模式下可增删改</span>
     </div>
-    <iframe id="qc-iframe" src="about:blank" data-src="qc-v2.html?v=20260903a" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write"></iframe>
+    <iframe id="qc-iframe" src="about:blank" data-src="qc-v2.html?v=20260903b" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write"></iframe>
   </div>
 
   <style>
     #page-qc-report { padding: 20px; }
-    #page-qc-report .qc-report-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
-    #page-qc-report .qc-report-header h2 { margin:0; font-size:20px; }
-    #page-qc-report .qc-report-controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    #page-qc-report .qc-range-btn { padding:6px 14px; border:1px solid var(--primary,#7b9b6a); background:#fff; color:var(--primary,#7b9b6a); border-radius:18px; cursor:pointer; font-size:13px; font-family:inherit; }
-    #page-qc-report .qc-range-btn.active { background:var(--primary,#7b9b6a); color:#fff; }
+    #page-qc-report .qc-report-header { display:flex; flex-direction:column; gap:14px; margin-bottom:18px; }
+    #page-qc-report .qc-report-header h2 { margin:0; font-size:28px; font-weight:800; color:#1e293b; letter-spacing:1px; }
+    #page-qc-report .qc-report-header h2 #qc-report-range-hint { font-size:14px; font-weight:600; color:#64748b; letter-spacing:0; margin-left:8px; }
+    /* 控制区分两排 */
+    #page-qc-report .qc-report-controls { display:flex; flex-direction:column; gap:10px; }
+    #page-qc-report .qc-range-row, #page-qc-report .qc-action-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    #page-qc-report .qc-action-row { justify-content:flex-end; padding-top:8px; border-top:1px dashed #e5e7eb; }
+    #page-qc-report .qc-range-btn { padding:7px 16px; border:1px solid var(--primary,#7b9b6a); background:#fff; color:var(--primary,#7b9b6a); border-radius:20px; cursor:pointer; font-size:13px; font-family:inherit; transition:all .15s; }
+    #page-qc-report .qc-range-btn:hover { background:rgba(123,155,106,.08); }
+    #page-qc-report .qc-range-btn.active { background:var(--primary,#7b9b6a); color:#fff; font-weight:600; }
     #page-qc-report .qc-month-pick { display:inline-flex; align-items:center; gap:6px; font-size:13px; color:#555; }
-    #page-qc-report .qc-month-pick select { padding:5px 8px; border:1px solid #d1d5db; border-radius:8px; font-size:13px; font-family:inherit; color:#374151; background:#fff; cursor:pointer; }
+    #page-qc-report .qc-month-pick select { padding:6px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:13px; font-family:inherit; color:#374151; background:#fff; cursor:pointer; }
     #page-qc-report .qc-month-pick select:focus { outline:none; border-color:var(--primary,#7b9b6a); }
     #page-qc-report .qc-month-pick.active select { background:var(--primary,#7b9b6a); color:#fff; border-color:var(--primary,#7b9b6a); }
-    #page-qc-report .qc-report-cards { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:20px; }
-    #page-qc-report .qc-card { flex:1; min-width:140px; background:#fff; border:1px solid #eee; border-radius:12px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,.04); }
-    #page-qc-report .qc-card-val { font-size:26px; font-weight:700; color:var(--primary,#7b9b6a); }
-    #page-qc-report .qc-card-label { font-size:12px; color:#888; margin-top:4px; }
+    #page-qc-report .qc-custom-range { display:inline-flex; align-items:center; gap:6px; font-size:13px; color:#555; }
+    #page-qc-report .qc-custom-range input[type=date] { padding:5px 8px; border:1px solid #d1d5db; border-radius:8px; font-size:13px; font-family:inherit; }
+    /* 统计卡片 + 按语义着色 */
+    #page-qc-report .qc-report-cards { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:22px; }
+    #page-qc-report .qc-card { flex:1; min-width:140px; background:#fff; border:1px solid #eee; border-left:4px solid #cbd5e1; border-radius:12px; padding:16px 18px; box-shadow:0 1px 4px rgba(0,0,0,.04); }
+    #page-qc-report .qc-card-val { font-size:28px; font-weight:800; line-height:1.1; }
+    #page-qc-report .qc-card-label { font-size:12px; color:#94a3b8; margin-top:6px; font-weight:600; }
+    #page-qc-report .qc-card-total { border-left-color:#6366f1; } #page-qc-report .qc-card-total .qc-card-val { color:#4f46e5; }
+    #page-qc-report .qc-card-penalty { border-left-color:#ef4444; } #page-qc-report .qc-card-penalty .qc-card-val { color:#dc2626; }
+    #page-qc-report .qc-card-pending { border-left-color:#f97316; } #page-qc-report .qc-card-pending .qc-card-val { color:#ea580c; }
+    #page-qc-report .qc-card-done { border-left-color:#22c55e; } #page-qc-report .qc-card-done .qc-card-val { color:#16a34a; }
+    #page-qc-report .qc-card-rate { border-left-color:#06b6d4; } #page-qc-report .qc-card-rate .qc-card-val { color:#0891b2; }
+    /* 区块容器 */
     #page-qc-report .qc-report-tables { display:flex; gap:18px; flex-wrap:wrap; }
-    #page-qc-report .qc-report-block { flex:1; min-width:280px; background:#fff; border:1px solid #eee; border-radius:12px; padding:14px; }
+    #page-qc-report .qc-report-block { flex:1; min-width:280px; background:#fff; border:1px solid #eef0f2; border-radius:12px; padding:16px; }
     #page-qc-report .qc-report-block-full { flex:none; width:100%; margin-bottom:18px; box-sizing:border-box; }
-    #page-qc-report .qc-report-block h3 { margin:0 0 10px; font-size:15px; }
+    /* 二级标题：大字 + 颜色块区分 */
+    #page-qc-report .qc-report-block h3.qc-h { font-size:17px; font-weight:700; margin:0 0 12px; padding:9px 14px; border-radius:8px; display:flex; align-items:center; gap:8px; }
+    #page-qc-report .qc-h-blue { background:#eff6ff; color:#1d4ed8; }
+    #page-qc-report .qc-h-green { background:#ecfdf5; color:#047857; }
+    #page-qc-report .qc-h-purple { background:#f5f3ff; color:#6d28d9; }
+    #page-qc-report .qc-h-orange { background:#fff7ed; color:#c2410c; }
+    #page-qc-report .qc-h-red { background:#fef2f2; color:#b91c1c; }
+    /* 表格：仅保留横线 */
     #page-qc-report .qc-report-block table { width:100%; border-collapse:collapse; font-size:13px; }
-    #page-qc-report .qc-report-block th, #page-qc-report .qc-report-block td { border:1px solid #eee; padding:6px 8px; text-align:left; }
-    #page-qc-report .qc-report-block th { background:#f7f9f5; }
-    #page-qc-report .qc-report-block tbody tr:nth-child(even) td { background:#fafbf9; }
+    #page-qc-report .qc-report-block th, #page-qc-report .qc-report-block td { border:none; border-bottom:1px solid #eef0f2; padding:8px 10px; text-align:left; }
+    #page-qc-report .qc-report-block th { background:transparent; color:#6b7280; font-weight:600; font-size:12px; }
+    #page-qc-report .qc-report-block tbody tr:hover td { background:#f8fafc; }
+    #page-qc-report .qc-report-block tbody tr:nth-child(even) td { background:#fafbfc; }
+    /* 质检员明细：可折叠分组 */
+    #page-qc-report .qc-insp-details { margin-bottom:14px; }
+    #page-qc-report .qc-insp-details > summary { list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px; padding:11px 14px; background:#f1f5f9; border-radius:8px; font-size:14px; font-weight:700; color:#1f2937; transition:background .15s; }
+    #page-qc-report .qc-insp-details > summary:hover { background:#e2e8f0; }
+    #page-qc-report .qc-insp-details > summary::-webkit-details-marker { display:none; }
+    #page-qc-report .qc-insp-details > summary::before { content:'▸'; color:#64748b; font-size:12px; transition:transform .2s; }
+    #page-qc-report .qc-insp-details[open] > summary::before { content:'▾'; }
+    #page-qc-report .qc-insp-table { width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }
+    #page-qc-report .qc-insp-table th, #page-qc-report .qc-insp-table td { border:none; border-bottom:1px solid #eef0f2; padding:7px 10px; text-align:left; }
+    #page-qc-report .qc-insp-table th { background:transparent; color:#6b7280; font-weight:600; }
+    #page-qc-report .qc-insp-table td.qc-insp-staff { white-space:normal; min-width:96px; }
+    #page-qc-report .qc-insp-table th:last-child, #page-qc-report .qc-insp-table td:last-child { min-width:150px; }
+    #page-qc-report .qc-insp-total td { background:#f8fafc; font-weight:700; color:#111827; }
   </style>
   <div class="page" id="page-qc-report">
     <div class="qc-report-header">
-      <h2>📊 质检报告 <span id="qc-report-range-hint" style="font-size:13px;font-weight:400;color:#888;margin-left:6px;"></span></h2>
+      <h2>📊 质检报告 <span id="qc-report-range-hint"></span></h2>
       <div class="qc-report-controls">
-        <button class="qc-range-btn active" data-range="week" onclick="setQcReportRange('week')">本周</button>
-        <button class="qc-range-btn" data-range="month" onclick="setQcReportRange('month')">本月</button>
-        <button class="qc-range-btn" data-range="lastmonth" onclick="setQcReportRange('lastmonth')">上月</button>
-        <span class="qc-month-pick">按月份
-          <select id="qc-report-month" onchange="onQcMonthChange()"></select>
-        </span>
-        <span style="margin-left:6px;">自定义 <input type="date" id="qc-report-start"> 至 <input type="date" id="qc-report-end"> <button class="qc-range-btn" onclick="setQcReportRange('custom')">应用</button></span>
-        <span style="margin-left:auto;display:flex;align-items:center;gap:10px;">
-          <span id="qc-report-updated" style="font-size:12px;color:#999;"></span>
+        <div class="qc-range-row">
+          <button class="qc-range-btn active" data-range="week" onclick="setQcReportRange('week')">本周</button>
+          <button class="qc-range-btn" data-range="month" onclick="setQcReportRange('month')">本月</button>
+          <button class="qc-range-btn" data-range="lastmonth" onclick="setQcReportRange('lastmonth')">上月</button>
+          <span class="qc-month-pick">按月份
+            <select id="qc-report-month" onchange="onQcMonthChange()"></select>
+          </span>
+          <span class="qc-custom-range">自定义 <input type="date" id="qc-report-start"> 至 <input type="date" id="qc-report-end"> <button class="qc-range-btn" onclick="setQcReportRange('custom')">应用</button></span>
+        </div>
+        <div class="qc-action-row">
+          <span id="qc-report-updated"></span>
           <button class="qc-range-btn" onclick="refreshQcReport()">🔄 刷新</button>
           <button class="feishu-sync-btn" onclick="exportQcReportExcel()">⬇️ 导出 Excel</button>
-        </span>
+        </div>
       </div>
     </div>
     <div class="qc-report-cards" id="qc-report-cards"></div>
     <div class="qc-report-block qc-report-block-full">
-      <h3>质检员明细（每人一表）</h3>
-      <style>
-        .qc-insp-group{margin-bottom:18px;}
-        .qc-insp-title{font-size:13px;font-weight:500;color:#374151;margin:0 0 6px;}
-        .qc-insp-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:auto;}
-        .qc-insp-table th,.qc-insp-table td{border:1px solid #e5e7eb;padding:6px 10px;text-align:left;}
-        .qc-insp-table th{background:#f3f4f6;color:#374151;font-weight:500;white-space:nowrap;}
-        .qc-insp-table td{white-space:nowrap;}
-        .qc-insp-table td.qc-insp-staff{white-space:normal;min-width:96px;}
-        .qc-insp-table th:last-child,.qc-insp-table td:last-child{min-width:150px;}
-        .qc-insp-total td{background:#fafafa;font-weight:500;color:#111827;}
-      </style>
+      <h3 class="qc-h qc-h-blue">质检员明细（每人一表）</h3>
       <div id="qc-report-by-inspector-detail" style="overflow:auto;max-height:560px;"></div>
     </div>
     <div class="qc-report-tables">
       <div class="qc-report-block">
-        <h3>按质检人</h3>
+        <h3 class="qc-h qc-h-green">按质检人</h3>
         <div style="overflow:auto;max-height:420px;"><table id="qc-report-by-inspector"></table></div>
       </div>
       <div class="qc-report-block">
-        <h3>按客服</h3>
+        <h3 class="qc-h qc-h-purple">按客服</h3>
         <div style="overflow:auto;max-height:420px;"><table id="qc-report-by-staff"></table></div>
       </div>
       <div class="qc-report-block">
-        <h3>按店铺</h3>
+        <h3 class="qc-h qc-h-orange">按店铺</h3>
         <div style="overflow:auto;max-height:420px;"><table id="qc-report-by-shop"></table></div>
       </div>
       <div class="qc-report-block">
-        <h3>按严重程度</h3>
+        <h3 class="qc-h qc-h-red">按严重程度</h3>
         <div style="overflow:auto;max-height:420px;"><table id="qc-report-by-severity"></table></div>
       </div>
     </div>
@@ -7574,9 +7600,9 @@ function renderQcInspectorDetail() {
   const cols = ['被质检人', '记录数', '扣罚金额', '一般问题', '严重', '严重需整改', '讲解/确认完成情况'];
   let html = '';
   groups.forEach(function (g) {
-    html += '<div class="qc-insp-group">';
-    html += '<div class="qc-insp-title">质检员：' + escapeHtml(g.inspector)
-      + '（' + g.total.count + ' 条 · 扣罚 ¥' + g.total.penalty + '）</div>';
+    html += '<details class="qc-insp-details" open>';
+    html += '<summary>质检员：' + escapeHtml(g.inspector)
+      + '（' + g.total.count + ' 条 · 扣罚 ¥' + g.total.penalty + '）</summary>';
     html += '<table class="qc-insp-table"><thead><tr>'
       + cols.map(function (c) { return '<th>' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
     if (!g.rows.length) {
@@ -7591,7 +7617,7 @@ function renderQcInspectorDetail() {
         + '<td>' + g.total.normal + '</td><td>' + g.total.serious + '</td><td>' + g.total.critical + '</td>'
         + '<td>' + g.total.done + '/' + g.total.count + '</td></tr>';
     }
-    html += '</tbody></table></div>';
+    html += '</tbody></table></details>';
   });
   box.innerHTML = html;
 }
@@ -7628,14 +7654,14 @@ function renderQcReport() {
   const rate = total ? Math.round(done / total * 100) + '%' : '0%';
 
   const cards = [
-    { val: total, label: '质检记录数' },
-    { val: '¥' + totalPenalty, label: '扣罚总额' },
-    { val: pending, label: '待讲解' },
-    { val: done, label: '已讲解' },
-    { val: rate, label: '讲解完成率' }
+    { val: total, label: '质检记录数', cls: 'total' },
+    { val: '¥' + totalPenalty, label: '扣罚总额', cls: 'penalty' },
+    { val: pending, label: '待讲解', cls: 'pending' },
+    { val: done, label: '已讲解', cls: 'done' },
+    { val: rate, label: '讲解完成率', cls: 'rate' }
   ];
   const cardsEl = document.getElementById('qc-report-cards');
-  if (cardsEl) cardsEl.innerHTML = cards.map(c => '<div class="qc-card"><div class="qc-card-val">' + c.val + '</div><div class="qc-card-label">' + c.label + '</div></div>').join('');
+  if (cardsEl) cardsEl.innerHTML = cards.map(c => '<div class="qc-card qc-card-' + c.cls + '"><div class="qc-card-val">' + c.val + '</div><div class="qc-card-label">' + c.label + '</div></div>').join('');
 
   const byInsp = groupQcByInspector(data);
   const byStaff = groupQcAgg(data, 'staff');
