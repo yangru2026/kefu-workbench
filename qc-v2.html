@@ -251,8 +251,11 @@ async function loadSupabaseScript(){
 const DEMO = new URLSearchParams(location.search).has('demo');
 const TAGS = ['话术问题','响应问题','流程问题','态度问题','产品知识'];
 const SEVS = ['一般','严重','严重需整改'];
+const DEFAULT_SHOPS = ['抖音1店','抖音2店','抖音3店','抖音4店','拼多多1店','拼多多2店','拼多多3店','拼多多4店','拼多多5店','拼多多6店','淘宝旗舰店','天猫店','小红书店','京东店','有赞店','YH店','弥生店','极氧店'];
+const KNOWLEDGE_PRESETS = ['发货时效SOP','催单话术','美瞳参数科普','退换货流程','度数换算','售后补偿标准','活动规则','新手引导话术','品牌区分','退换货运费说明'];
 let isAdmin=false, currentAuthUser=null, currentRole=null;
 let records=[], qcImagesReady=false, imageUrlCache={}, qcProfileIdCache={};
+let staffOptions=[], shopOptions=[];
 let selectedRecordIds=new Set(), qcViewMode='table', editingId=null, pendingUploads={scene:[],reply:[],knowledge:[]};
 let qcShares=[], coachSelectedIds=new Set();
 
@@ -269,6 +272,35 @@ function todayStr(){const d=new Date();const p=n=>String(n).padStart(2,'0');retu
 function escapeHtml(t){if(!t)return'';const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
 function formatNumberedHtml(s){if(!s)return'';return s.split('\n').map(l=>'<div>'+escapeHtml(l)+'</div>').join('');}
 function showToast(msg,err){const t=document.getElementById('toast');t.textContent=msg;t.style.background=err?'#c0392b':'#2a2a2a';t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600);}
+
+/* ==================== 下拉选项 ==================== */
+function populateMetaOptions(){
+  staffOptions = [...new Set(records.map(r=>r.staff).filter(Boolean))].sort();
+  shopOptions = [...new Set([...DEFAULT_SHOPS, ...records.map(r=>r.shop).filter(Boolean)])].sort();
+}
+async function loadStaffOptionsFromProfiles(){
+  if(DEMO) return;
+  try{
+    if(!window.supabase) return;
+    const {data,error}=await supabase.from('profiles').select('name,real_name,phone').order('name');
+    if(error) throw error;
+    const names=[...(data||[]).map(p=>p.name||p.real_name||p.phone).filter(Boolean)];
+    if(currentAuthUser && (currentAuthUser.name||currentAuthUser.phone)){
+      names.push(currentAuthUser.name||currentAuthUser.phone);
+    }
+    staffOptions = [...new Set([...staffOptions,...names])].sort();
+  }catch(e){ console.warn('staff options load',e); }
+}
+function staffSelectHtml(selected){
+  const opts=[...new Set([...staffOptions,selected].filter(Boolean))].sort();
+  let h='<option value="">请选择客服</option>'+opts.map(s=>'<option'+(s===selected?' selected':'')+'>'+escapeHtml(s)+'</option>').join('');
+  return '<select id="e_staff">'+h+'</select>';
+}
+function shopSelectHtml(selected){
+  const opts=[...new Set([...shopOptions,selected].filter(Boolean))].sort();
+  let h='<option value="">请选择店铺</option>'+opts.map(s=>'<option'+(s===selected?' selected':'')+'>'+escapeHtml(s)+'</option>').join('');
+  return '<select id="e_shop">'+h+'</select>';
+}
 
 /* ==================== 权限 ==================== */
 async function checkAuth(){
@@ -371,10 +403,12 @@ async function loadQcImagesInto(list){
 }
 function afterLoad(showMsg){
   document.getElementById('filterStaff').innerHTML='<option value="">全部客服</option>'+[...new Set(records.map(r=>r.staff))].sort().map(s=>'<option>'+escapeHtml(s)+'</option>').join('');
-  document.getElementById('filterShop').innerHTML='<option value="">全部店铺</option>'+[...new Set(records.map(r=>r.shop))].filter(Boolean).sort().map(s=>'<option>'+escapeHtml(s)+'</option>').join('');
+  document.getElementById('filterShop').innerHTML='<option value="">全部店铺</option>'+[...new Set([...DEFAULT_SHOPS,...records.map(r=>r.shop).filter(Boolean)])].sort().map(s=>'<option>'+escapeHtml(s)+'</option>').join('');
   document.getElementById('filterTag').innerHTML='<option value="">全部分类</option>'+TAGS.map(t=>'<option>'+t+'</option>').join('');
   const months=[...new Set(records.map(r=>(r.date||'').substring(0,7)))].filter(Boolean).sort().reverse();
   document.getElementById('filterMonth').innerHTML='<option value="">全部月份</option>'+months.map(m=>'<option>'+m+'</option>').join('');
+  populateMetaOptions();
+  loadStaffOptionsFromProfiles();
   updateStats(); renderRecords(); handleDeepLink();
   if(showMsg)showToast('🔄 已刷新');
 }
@@ -456,17 +490,15 @@ function openEditModal(id){
   document.getElementById('editDeleteBtn').style.display = r?'inline-block':'none';
   const val=(k,d)=> r? (r[k]||d) : d;
   let h='';
-  h+='<div class="row2"><div class="fld"><label>客服姓名</label><input id="e_staff" value="'+escapeHtml(val('staff',''))+'"></div>'
+  h+='<div class="row2"><div class="fld"><label>客服姓名</label>'+staffSelectHtml(val('staff',''))+'</div>'
     +'<div class="fld"><label>客户ID（选填）</label><input id="e_cid" value="'+escapeHtml(val('customer_id',''))+'"></div></div>';
-  h+='<div class="row2"><div class="fld"><label>店铺</label><input id="e_shop" value="'+escapeHtml(val('shop',''))+'"></div>'
+  h+='<div class="row2"><div class="fld"><label>店铺</label>'+shopSelectHtml(val('shop',''))+'</div>'
     +'<div class="fld"><label>日期</label><input id="e_date" type="date" value="'+val('date',todayStr())+'"></div></div>';
   h+='<div class="fld"><label>分类（可多选）</label><div class="chip-row" id="e_tags">'+TAGS.map(t=>'<span class="chip'+(r&&(r.tags||[]).includes(t)?' on':'')+'" onclick="toggleChip(this)">'+t+'</span>').join('')+'</div></div>';
   h+='<div class="fld"><label>严重程度</label><select id="e_sev">'+SEVS.map(s=>'<option'+(val('severity','一般')===s?' selected':'')+'>'+s+'</option>').join('')+'</select></div>';
-  h+='<div class="fld"><label>场景</label><textarea id="e_scene">'+escapeHtml(val('scene',''))+'</textarea></div>';
-  h+='<div class="fld"><label>客服回复</label><textarea id="e_reply">'+escapeHtml(val('reply',''))+'</textarea></div>';
   h+='<div class="fld"><label>问题表述</label><textarea id="e_problem">'+escapeHtml(val('problem',''))+'</textarea></div>';
   h+='<div class="fld"><label>正确做法</label><textarea id="e_correct">'+escapeHtml(val('correct',''))+'</textarea></div>';
-  h+='<div class="fld"><label>知识点</label><textarea id="e_knowledge">'+escapeHtml(val('knowledge',''))+'</textarea></div>';
+  h+='<div class="fld"><label>知识点</label><input id="e_knowledge" list="e_knowledge_list" value="'+escapeHtml(val('knowledge',''))+'" placeholder="可输入或从预设中选择"><datalist id="e_knowledge_list">'+KNOWLEDGE_PRESETS.map(k=>'<option value="'+escapeHtml(k)+'"></option>').join('')+'</datalist></div>';
   h+='<div class="fld"><label>备注</label><input id="e_note" value="'+escapeHtml(val('note',''))+'"></div>';
   if(r){ h+='<div class="fld"><label>状态</label><select id="e_status"><option value="pending"'+(r.status==='pending'?' selected':'')+'>待讲解</option><option value="done"'+(r.status==='done'?' selected':'')+'>已讲解</option></select></div>'; }
   // 图片上传区
@@ -500,7 +532,7 @@ async function saveEdit(){
   const get=id=>document.getElementById(id).value;
   const tags=[...document.querySelectorAll('#e_tags .chip.on')].map(c=>c.textContent);
   const rec={ staff:get('e_staff').trim(), customer_id:get('e_cid').trim(), shop:get('e_shop').trim(),
-    date:get('e_date'), tags, severity:get('e_sev'), scene:get('e_scene'), reply:get('e_reply'),
+    date:get('e_date'), tags, severity:get('e_sev'),
     problem:get('e_problem'), correct:get('e_correct'), knowledge:get('e_knowledge'), note:get('e_note'),
     penalty_amount:0, status:'pending', coach_date:'', coach_note:'', created_by:(currentAuthUser&&(currentAuthUser.name||currentAuthUser.phone))||''
   };
@@ -729,7 +761,7 @@ function init(){
   if(DEMO){ records=JSON.parse(JSON.stringify(DEMO_RECORDS)); updateAdminUI(); isAdmin=true; updateAdminUI(); afterLoad(false); showToast('📋 演示模式：脱敏示例'); return; }
   (async()=>{
     if(!initSupabaseClient()){ try{ await loadSupabaseScript(); }catch(e){ showToast('Supabase 初始化失败：'+e.message); return; } }
-    checkAuth().then(()=>{ loadRecords(); });
+    checkAuth().then(async ()=>{ await loadStaffOptionsFromProfiles(); loadRecords(); });
   })();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init); else init();
