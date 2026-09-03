@@ -170,12 +170,12 @@ table.grid tr:hover{background:#fafbf8}
     <button id="vmTable" class="active" onclick="setView('table')">📋 表格</button>
     <button id="vmCard" onclick="setView('card')">🗂️ 卡片</button>
   </div>
-  <button class="btn" onclick="openAnalysisMode()">📊 质检分析</button>
-  <button class="btn" onclick="openCoachMode()">🎯 一对一讲解</button>
+  <button class="btn" id="btnAnalysis" onclick="openAnalysisMode()">📊 质检分析</button>
+  <button class="btn" id="btnCoach" onclick="openCoachMode()">🎯 一对一讲解</button>
   <button class="btn" id="btnSend" onclick="openSendModal()">📤 发送质检清单（含图）</button>
   <button class="btn" id="btnSelectAll" onclick="selectAllVisible()" style="display:none">☑️ 全选</button>
   <button class="btn" id="btnClearSel" onclick="clearSelection()" style="display:none">⌫ 取消全选</button>
-  <button class="btn" onclick="exportXLSX()">⬇️ 导出Excel（含图）</button>
+  <button class="btn" id="btnExport" onclick="exportXLSX()">⬇️ 导出Excel（含图）</button>
   <button class="btn" onclick="loadRecords(true)">🔄 刷新</button>
   <button class="btn" id="btnSettings" onclick="openSettingsModal()" style="display:none">⚙️ 基础数据</button>
   <span id="statBox" style="font-size:12px;color:var(--text2)"></span>
@@ -558,6 +558,9 @@ function updateAdminUI(){
   const bs=document.getElementById('btnSelectAll'); if(bs)bs.style.display=isAdmin?'':'none';
   const bc=document.getElementById('btnClearSel'); if(bc)bc.style.display=isAdmin?'':'none';
   const sb=document.getElementById('btnSettings'); if(sb)sb.style.display=isAdmin?'':'none';
+  const an=document.getElementById('btnAnalysis'); if(an)an.style.display=isAdmin?'':'none';
+  const co=document.getElementById('btnCoach'); if(co)co.style.display=isAdmin?'':'none';
+  const ex=document.getElementById('btnExport'); if(ex)ex.style.display=isAdmin?'':'none';
 }
 // 父窗口设置模式
 window.setQcMode=function(admin){ isAdmin=admin; updateAdminUI(); };
