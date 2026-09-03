@@ -70,8 +70,30 @@ table.grid tr:hover{background:#fafbf8}
 .fld textarea{resize:vertical;min-height:54px}
 .row2{display:flex;gap:10px}.row2>*{flex:1}
 .chip-row{display:flex;gap:6px;flex-wrap:wrap}
-.chip{border:1px solid var(--border);border-radius:14px;padding:4px 12px;cursor:pointer;font-size:12px;background:#fff}
-.chip.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.chip{border:1px solid transparent;border-radius:16px;padding:5px 13px;cursor:pointer;font-size:12px;font-weight:500;transition:.12s;user-select:none}
+.chip:hover{filter:brightness(.95);transform:translateY(-1px)}
+.chip.on{color:#fff !important;box-shadow:0 2px 5px rgba(0,0,0,.12)}
+/* 彩色 pill 选择（严重程度/状态） */
+.pill-row{display:flex;gap:8px;flex-wrap:wrap}
+.pill{border:1px solid transparent;border-radius:16px;padding:5px 13px;cursor:pointer;font-size:12px;font-weight:500;transition:.12s;user-select:none}
+.pill:hover{filter:brightness(.95);transform:translateY(-1px)}
+.pill.on{color:#fff !important;box-shadow:0 2px 5px rgba(0,0,0,.12)}
+/* 彩色自定义下拉（客服/店铺） */
+.color-select{position:relative}
+.cs-trigger{display:flex;align-items:center;gap:8px;width:100%;border:1px solid var(--border);border-radius:8px;padding:7px 9px;font-size:13px;background:#fff;cursor:pointer;transition:.12s}
+.cs-trigger:hover{border-color:#cbd5e1}
+.cs-trigger .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+.cs-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cs-menu{position:absolute;top:calc(100% + 5px);left:0;right:0;max-height:260px;overflow:auto;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.14);z-index:20;display:none;padding:5px}
+.cs-menu.open{display:block}
+.cs-item{display:flex;align-items:center;gap:8px;padding:7px 9px;cursor:pointer;font-size:13px;border-radius:6px;transition:.1s}
+.cs-item:hover{background:#f3f4f6}
+.cs-item .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+.cs-empty{color:var(--text2);padding:8px;font-size:12px}
+/* 知识点预设色块 */
+.preset-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.preset-chip{border-radius:12px;padding:3px 10px;font-size:12px;cursor:pointer;transition:.12s;user-select:none}
+.preset-chip:hover{filter:brightness(.95);transform:translateY(-1px)}
 .up-prev{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .up-prev img{width:64px;height:48px;object-fit:cover;border-radius:5px;border:1px solid var(--border)}
 .up-prev .x{position:relative}
@@ -276,7 +298,20 @@ async function loadSupabaseScript(){
 /* ==================== 状态 ==================== */
 const DEMO = new URLSearchParams(location.search).has('demo');
 const TAGS = ['话术问题','响应问题','流程问题','态度问题','产品知识'];
+const TAG_COLORS = {
+  '话术问题':{main:'#e08a1e',light:'#fff7ed',text:'#9a4d0b'},
+  '响应问题':{main:'#2f6fb3',light:'#eff6ff',text:'#1e4b82'},
+  '流程问题':{main:'#7c5bbf',light:'#f5f3ff',text:'#5b3e9c'},
+  '态度问题':{main:'#d9483b',light:'#fef2f2',text:'#9b2c2c'},
+  '产品知识':{main:'#3c9d5b',light:'#f0fdf4',text:'#236c3a'}
+};
 const SEVS = ['一般','严重','严重需整改'];
+const SEV_COLORS = {
+  '一般':{bg:'#fef3c7',text:'#b8791a',on:'#f59e0b'},
+  '严重':{bg:'#fee2e2',text:'#c0392b',on:'#ef4444'},
+  '严重需整改':{bg:'#ede9fe',text:'#6d28d9',on:'#8b5cf6'}
+};
+const STATUS_COLORS = {pending:{bg:'#fff4e0',text:'#c26a0b',on:'#f59e0b'}, done:{bg:'#e6f6ec',text:'#2f7a45',on:'#3c9d5b'}};
 const DEFAULT_SHOPS = ['抖音1店','抖音2店','抖音3店','抖音4店','拼多多1店','拼多多2店','拼多多3店','拼多多4店','拼多多5店','拼多多6店','淘宝旗舰店','天猫店','小红书店','京东店','有赞店','YH店','弥生店','极氧店'];
 const KNOWLEDGE_PRESETS = ['发货时效SOP','催单话术','美瞳参数科普','退换货流程','度数换算','售后补偿标准','活动规则','新手引导话术','品牌区分','退换货运费说明'];
 let isAdmin=false, currentAuthUser=null, currentRole=null;
@@ -328,15 +363,90 @@ async function loadMetaOptionsFromDB(){
   }catch(e){ optionsLoadFailed=true; console.warn('load meta options',e); }
   populateMetaOptions();
 }
+function hashHue(str){if(!str)return 0;let h=0;for(let i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))%360;return h;}
+function nameColor(str,type='main'){
+  if(!str)return type==='text'?'#64748b':'#cbd5e1';
+  const h=hashHue(str);
+  if(type==='light')return `hsl(${h},78%,95%)`;
+  if(type==='text')return `hsl(${h},70%,38%)`;
+  return `hsl(${h},72%,58%)`;
+}
 function staffSelectHtml(selected){
   const opts=[...new Set([...staffOptions,selected].filter(Boolean))].sort();
-  let h='<option value="">请选择客服</option>'+opts.map(s=>'<option'+(s===selected?' selected':'')+'>'+escapeHtml(s)+'</option>').join('');
-  return '<select id="e_staff">'+h+'</select>';
+  return colorSelectHtml('e_staff',opts,selected,'请选择客服');
 }
 function shopSelectHtml(selected){
   const opts=[...new Set([...shopOptions,selected].filter(Boolean))].sort();
-  let h='<option value="">请选择店铺</option>'+opts.map(s=>'<option'+(s===selected?' selected':'')+'>'+escapeHtml(s)+'</option>').join('');
-  return '<select id="e_shop">'+h+'</select>';
+  return colorSelectHtml('e_shop',opts,selected,'请选择店铺');
+}
+/* 彩色自定义下拉组件 */
+function colorSelectHtml(id,options,selected,placeholder){
+  const safeId=id.replace(/[^a-z0-9]/gi,'_');
+  let h='<div class="color-select" id="cs_'+safeId+'">';
+  h+='<div class="cs-trigger" onclick="toggleColorSelect(\''+safeId+'\')">';
+  h+='<span class="dot" style="background:'+nameColor(selected)+'"></span>';
+  h+='<span class="cs-text">'+(selected?escapeHtml(selected):escapeHtml(placeholder))+'</span>';
+  h+='</div><div class="cs-menu" id="csm_'+safeId+'">';
+  if(!options.length)h+='<div class="cs-empty">暂无选项</div>';
+  options.forEach(opt=>{
+    const js=escapeHtml(opt).replace(/'/g,"\\'");
+    h+='<div class="cs-item" onclick="pickColorSelect(\''+safeId+'\',\''+js+'\')">';
+    h+='<span class="dot" style="background:'+nameColor(opt)+'"></span>'+escapeHtml(opt)+'</div>';
+  });
+  h+='</div><input type="hidden" id="'+id+'" value="'+escapeHtml(selected)+'"></div>';
+  return h;
+}
+function toggleColorSelect(safeId){
+  const me=document.getElementById('csm_'+safeId);
+  const wasOpen=me.classList.contains('open');
+  document.querySelectorAll('.cs-menu.open').forEach(m=>m.classList.remove('open'));
+  if(!wasOpen)me.classList.add('open');
+}
+function pickColorSelect(safeId,val){
+  const wrap=document.getElementById('cs_'+safeId);
+  const input=wrap.querySelector('input');
+  input.value=val;
+  wrap.querySelector('.cs-text').textContent=val;
+  wrap.querySelector('.cs-trigger .dot').style.background=nameColor(val);
+  document.getElementById('csm_'+safeId).classList.remove('open');
+  input.dispatchEvent(new Event('change',{bubbles:true}));
+}
+function tagChipHtml(t,on){
+  const c=TAG_COLORS[t]||{main:nameColor(t),light:nameColor(t,'light'),text:nameColor(t,'text')};
+  return '<span class="chip'+(on?' on':'')+'" style="background:'+(on?c.main:c.light)+';color:'+(on?'#fff':c.text)+';border-color:'+c.main+'" onclick="toggleChip(this)">'+escapeHtml(t)+'</span>';
+}
+function sevPillsHtml(selected){
+  return '<div class="pill-row" id="e_sev_pills">'+SEVS.map(s=>{
+    const on=s===selected; const c=SEV_COLORS[s];
+    return '<span class="pill'+(on?' on':'')+'" style="background:'+(on?c.on:c.bg)+';color:'+(on?'#fff':c.text)+';border-color:'+c.on+'" onclick="pickPill(\'e_sev\',this,\''+s+'\')">'+escapeHtml(s)+'</span>';
+  }).join('')+'</div><input type="hidden" id="e_sev" value="'+escapeHtml(selected)+'">';
+}
+function statusPillsHtml(status){
+  const pairs=[['pending','待讲解'],['done','已讲解']];
+  return '<div class="pill-row" id="e_status_pills">'+pairs.map(([k,label])=>{
+    const on=status===k; const c=STATUS_COLORS[k];
+    return '<span class="pill'+(on?' on':'')+'" style="background:'+(on?c.on:c.bg)+';color:'+(on?'#fff':c.text)+';border-color:'+c.on+'" onclick="pickPill(\'e_status\',this,\''+k+'\')">'+escapeHtml(label)+'</span>';
+  }).join('')+'</div><input type="hidden" id="e_status" value="'+escapeHtml(status)+'">';
+}
+function pickPill(hiddenId,el,val){
+  document.getElementById(hiddenId).value=val;
+  [...el.parentElement.children].forEach(c=>{
+    c.classList.remove('on');
+    const base=c.dataset.base;
+    if(base){
+      try{const cfg=JSON.parse(base);c.style.background=cfg.bg;c.style.color=cfg.text;c.style.borderColor=cfg.on;}
+      catch(e){}
+    }
+  });
+  el.classList.add('on');
+  // 重新着色当前选中 pill
+  const onColor=el.style.borderColor;
+  el.style.background=onColor; el.style.color='#fff';
+}
+function knowledgePresetsHtml(){
+  return '<div class="preset-chips">'+KNOWLEDGE_PRESETS.map(k=>{
+    return '<span class="preset-chip" style="background:'+nameColor(k,'light')+';color:'+nameColor(k,'text')+';border:1px solid '+nameColor(k)+'" onclick="document.getElementById(\'e_knowledge\').value=this.textContent">'+escapeHtml(k)+'</span>';
+  }).join('')+'</div>';
 }
 /* 基础数据管理弹窗 */
 function openSettingsModal(){
@@ -569,13 +679,13 @@ function openEditModal(id){
     +'<div class="fld"><label>客户ID（选填）</label><input id="e_cid" value="'+escapeHtml(val('customer_id',''))+'"></div></div>';
   h+='<div class="row2"><div class="fld"><label>店铺</label>'+shopSelectHtml(val('shop',''))+'</div>'
     +'<div class="fld"><label>日期</label><input id="e_date" type="date" value="'+val('date',todayStr())+'"></div></div>';
-  h+='<div class="fld"><label>分类（可多选）</label><div class="chip-row" id="e_tags">'+TAGS.map(t=>'<span class="chip'+(r&&(r.tags||[]).includes(t)?' on':'')+'" onclick="toggleChip(this)">'+t+'</span>').join('')+'</div></div>';
-  h+='<div class="fld"><label>严重程度</label><select id="e_sev">'+SEVS.map(s=>'<option'+(val('severity','一般')===s?' selected':'')+'>'+s+'</option>').join('')+'</select></div>';
+  h+='<div class="fld"><label>分类（可多选）</label><div class="chip-row" id="e_tags">'+TAGS.map(t=>tagChipHtml(t,r&&(r.tags||[]).includes(t))).join('')+'</div></div>';
+  h+='<div class="fld"><label>严重程度</label>'+sevPillsHtml(val('severity','一般'))+'</div>';
   h+='<div class="fld"><label>问题表述</label><textarea id="e_problem">'+escapeHtml(val('problem',''))+'</textarea></div>';
   h+='<div class="fld"><label>正确做法</label><textarea id="e_correct">'+escapeHtml(val('correct',''))+'</textarea></div>';
-  h+='<div class="fld"><label>知识点</label><input id="e_knowledge" list="e_knowledge_list" value="'+escapeHtml(val('knowledge',''))+'" placeholder="可输入或从预设中选择"><datalist id="e_knowledge_list">'+KNOWLEDGE_PRESETS.map(k=>'<option value="'+escapeHtml(k)+'"></option>').join('')+'</datalist></div>';
+  h+='<div class="fld"><label>知识点</label><input id="e_knowledge" list="e_knowledge_list" value="'+escapeHtml(val('knowledge',''))+'" placeholder="可输入或从预设中选择"><datalist id="e_knowledge_list">'+KNOWLEDGE_PRESETS.map(k=>'<option value="'+escapeHtml(k)+'"></option>').join('')+'</datalist>'+knowledgePresetsHtml()+'</div>';
   h+='<div class="fld"><label>备注</label><input id="e_note" value="'+escapeHtml(val('note',''))+'"></div>';
-  if(r){ h+='<div class="fld"><label>状态</label><select id="e_status"><option value="pending"'+(r.status==='pending'?' selected':'')+'>待讲解</option><option value="done"'+(r.status==='done'?' selected':'')+'>已讲解</option></select></div>'; }
+  if(r){ h+='<div class="fld"><label>状态</label>'+statusPillsHtml(r.status)+'</div>'; }
   // 图片上传区
   ['scene','reply','knowledge'].forEach(kind=>{
     const label = kind==='scene'?'客户问题截图':kind==='reply'?'客服回复截图':'知识点配图';
@@ -839,6 +949,7 @@ function init(){
     checkAuth().then(async ()=>{ await loadMetaOptionsFromDB(); loadRecords(); });
   })();
 }
+document.addEventListener('click',e=>{ if(!e.target.closest('.color-select')) document.querySelectorAll('.cs-menu.open').forEach(m=>m.classList.remove('open')); });
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init); else init();
 </script>
 </body>
