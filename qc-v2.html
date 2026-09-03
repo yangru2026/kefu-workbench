@@ -333,6 +333,7 @@ let records=[], qcImagesReady=false, imageUrlCache={}, qcProfileIdCache={};
 let staffOptions=[], shopOptions=[];
 let qcConfirmations=[];
 let selectedRecordIds=new Set(), qcViewMode='table', editingId=null, pendingUploads={scene:[],reply:[],knowledge:[]};
+let lastStaff='', lastShop=''; // 连续登记：记住上次选的客服/店铺
 let qcShares=[], coachSelectedIds=new Set();
 
 /* ==================== DEMO 数据 ==================== */
@@ -353,8 +354,12 @@ function showToast(msg,err){const t=document.getElementById('toast');t.textConte
 let dbStaffOptions=[], dbShopOptions=[], profileStaffNames=[], optionsLoadFailed=false, optionsSeeded=false;
 function populateMetaOptions(){
   const cs = currentAuthUser ? (currentAuthUser.name||currentAuthUser.phone) : '';
-  const staffSrc = dbStaffOptions.length ? dbStaffOptions : [...profileStaffNames, ...records.map(r=>r.staff).filter(Boolean)];
-  staffOptions = [...new Set([...staffSrc, cs].filter(Boolean))].sort();
+  // 客服/店铺下拉优先取自「基础数据」(qc_options) —— 即用户维护的客服/店铺模版
+  // 基础数据为空时退回 历史记录 + profiles，但始终排除管理员本人（如杨茹），避免混入无关账号
+  const staffSrc = dbStaffOptions.length
+    ? dbStaffOptions
+    : [...new Set([...profileStaffNames, ...records.map(r=>r.staff).filter(Boolean)])].filter(n=>n!==cs);
+  staffOptions = [...new Set(staffSrc.filter(Boolean))].sort();
   const shopSrc = dbShopOptions.length ? dbShopOptions : [...DEFAULT_SHOPS, ...records.map(r=>r.shop).filter(Boolean)];
   shopOptions = [...new Set(shopSrc.filter(Boolean))].sort();
 }
@@ -765,6 +770,9 @@ function openEditModal(id){
   document.getElementById('editTitle').textContent = r?'编辑质检记录':'新增质检记录';
   document.getElementById('editDeleteBtn').style.display = r?'inline-block':'none';
   const val=(k,d)=> r? (r[k]||d) : d;
+  const req=t=> t+' <span style="color:var(--red);font-weight:700">*</span>';
+  const dStaff = editingId==null ? lastStaff : '';   // 连续登记：默认带上次选的客服
+  const dShop  = editingId==null ? lastShop  : '';   // 连续登记：默认带上次选的店铺
   let h='';
   // 1) 截图放在第一步
   const sceneLabel='客户问题截图', knowledgeLabel='知识点配图';
@@ -774,13 +782,13 @@ function openEditModal(id){
     +'<input type="file" accept="image/*" multiple onchange="onPickFiles(\'scene\',this)">'
     +'</div>'
     +'<div class="up-prev" id="prev_scene"></div></div>';
-  h+='<div class="row2"><div class="fld"><label>客服姓名</label>'+staffSelectHtml(val('staff',''))+'</div>'
+  h+='<div class="row2"><div class="fld"><label>'+req('客服姓名')+'</label>'+staffSelectHtml(val('staff',dStaff))+'</div>'
     +'<div class="fld"><label>客户ID（选填）</label><input id="e_cid" value="'+escapeHtml(val('customer_id',''))+'"></div></div>';
-  h+='<div class="row2"><div class="fld"><label>店铺</label>'+shopSelectHtml(val('shop',''))+'</div>'
-    +'<div class="fld"><label>日期</label><input id="e_date" type="date" value="'+val('date',todayStr())+'"></div></div>';
+  h+='<div class="row2"><div class="fld"><label>'+req('店铺')+'</label>'+shopSelectHtml(val('shop',dShop))+'</div>'
+    +'<div class="fld"><label>'+req('日期')+'</label><input id="e_date" type="date" value="'+val('date',todayStr())+'"></div></div>';
   h+='<div class="fld"><label>分类（可多选）</label><div class="chip-row" id="e_tags">'+TAGS.map(t=>tagChipHtml(t,r&&(r.tags||[]).includes(t))).join('')+'</div></div>';
   h+='<div class="fld"><label>严重程度</label>'+sevPillsHtml(val('severity','一般'))+'</div>';
-  h+='<div class="fld"><label>问题表述</label><textarea id="e_problem">'+escapeHtml(val('problem',''))+'</textarea></div>';
+  h+='<div class="fld"><label>'+req('问题表述')+'</label><textarea id="e_problem">'+escapeHtml(val('problem',''))+'</textarea></div>';
   h+='<div class="fld"><label>正确做法</label><textarea id="e_correct">'+escapeHtml(val('correct',''))+'</textarea></div>';
   h+='<div class="fld"><label>知识点</label><input id="e_knowledge" list="e_knowledge_list" value="'+escapeHtml(val('knowledge',''))+'" placeholder="可输入或从预设中选择"><datalist id="e_knowledge_list">'+KNOWLEDGE_PRESETS.map(k=>'<option value="'+escapeHtml(k)+'"></option>').join('')+'</datalist>'+knowledgePresetsHtml()+'</div>';
   h+='<div class="fld"><label>备注</label><input id="e_note" value="'+escapeHtml(val('note',''))+'"></div>';
@@ -836,10 +844,15 @@ async function saveEdit(){
   const tags=[...document.querySelectorAll('#e_tags .chip.on')].map(c=>c.textContent);
   const rec={ staff:get('e_staff').trim(), customer_id:get('e_cid').trim(), shop:get('e_shop').trim(),
     date:get('e_date'), tags, severity:get('e_sev'),
-    problem:get('e_problem'), correct:get('e_correct'), knowledge:get('e_knowledge'), note:get('e_note'),
+    problem:get('e_problem').trim(), correct:get('e_correct'), knowledge:get('e_knowledge'), note:get('e_note'),
     penalty_amount:0, status:'pending', coach_date:'', coach_note:'', created_by:(currentAuthUser&&(currentAuthUser.name||currentAuthUser.phone))||''
   };
-  if(!rec.staff||!rec.date){ showToast('请填写客服和日期',true); return; }
+  // 必填校验：不填无法保存
+  if(!rec.staff){ showToast('请选择客服姓名（必填）',true); return; }
+  if(!rec.shop){ showToast('请选择店铺（必填）',true); return; }
+  if(!rec.date){ showToast('请选择日期（必填）',true); return; }
+  if(!rec.problem){ showToast('请填写问题表述（必填）',true); return; }
+  lastStaff=rec.staff; lastShop=rec.shop; // 记住本次选择，方便连续登记
   if(DEMO){ saveDemo(rec); closeEditModal(); loadRecords(); return; }
   try{
     let recId=editingId;
