@@ -1078,9 +1078,10 @@ async function loadQcImagesInto(list) {
     }
   } catch (e) { console.warn('qc_images 读取异常（降级用旧数组）:', e.message); return false; }
   for (const r of list) {
-    r.scene_images     = map[r.id + '|scene']     || [];
-    r.reply_images     = map[r.id + '|reply']     || [];
-    r.knowledge_images = map[r.id + '|knowledge'] || [];
+    // 仅在 qc_images 表确实有该行时，才用它覆盖；否则保留 records 里已有的旧数组（兼容历史数据）
+    if (map[r.id + '|scene']     !== undefined) r.scene_images     = map[r.id + '|scene'];
+    if (map[r.id + '|reply']     !== undefined) r.reply_images     = map[r.id + '|reply'];
+    if (map[r.id + '|knowledge'] !== undefined) r.knowledge_images = map[r.id + '|knowledge'];
   }
   qcImagesReady = true;
   return true;
