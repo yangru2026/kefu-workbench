@@ -212,11 +212,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .qc-table .penalty{color:#c0392b;font-weight:700}
 .qc-table .td-prob{max-width:280px}
 .qc-thumbs{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
-.qc-thumb{width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer;background:#f8fafc;display:block}
+.qc-thumb{width:46px;height:46px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer;background:#f8fafc;display:block}
 .qc-thumb-more{font-size:11px;color:var(--text2);background:#f1f5f9;border-radius:6px;padding:3px 6px;align-self:center}
 .qc-thumb-count{font-size:11px;color:var(--text2);white-space:nowrap;align-self:center;margin-right:2px}
 .qc-no-thumb{font-size:12px;color:#94a3b8}
-.qc-thumb-fail{width:52px;height:52px;display:flex;align-items:center;justify-content:center;border-radius:6px;border:1px dashed #e2e8f0;background:#f8fafc;color:#94a3b8;font-size:11px;font-weight:600}
+.qc-thumb-fail{width:46px;height:46px;display:flex;align-items:center;justify-content:center;border-radius:6px;border:1px dashed #e2e8f0;background:#f8fafc;color:#94a3b8;font-size:11px;font-weight:600}
 .record-actions{display:flex;gap:6px;flex-wrap:wrap}
 .record-actions .btn{font-size:11px;padding:5px 12px}
 
@@ -585,7 +585,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <div class="modal-overlay" id="editModal"><div class="modal">
 <div class="modal-header"><h3>✏️ 编辑质检记录</h3><button class="close-btn" onclick="closeEditModal()">×</button></div>
 <div class="modal-body" id="editBody"></div>
-<div class="modal-footer"><button class="btn btn-p" onclick="saveEdit()">保存修改</button><button class="btn btn-s" onclick="closeEditModal()">取消</button></div>
+<div class="modal-footer"><button class="btn btn-r" onclick="deleteEditingRecord()">🗑️ 删除</button><button class="btn btn-p" onclick="saveEdit()">保存修改</button><button class="btn btn-s" onclick="closeEditModal()">取消</button></div>
 </div></div>
 
 <!-- Coach Modal -->
@@ -2456,15 +2456,21 @@ async function renderRecords() {
     const statusText = r.status==='pending'?'待讲解':'已讲解';
     const statusClass = r.status==='pending'?'pending':'done';
 
-    const selAttr = isAdmin ? '' : ' style="display:none"';
+    const canManage = isAdmin;
+    const selAttr = canManage ? '' : ' style="display:none"';
     const si = getShareInfo(r);
     const shareBadge = si ? (si.confirmed ? '<span class="share-badge confirmed">✅ 已确认</span>' : '<span class="share-badge pending">📤 已发送·待确认</span>') : '';
     const selChk = '<input type="checkbox" class="sel-checkbox" data-id="' + r.id + '"' + (selectedRecordIds.has(r.id)?' checked':'') + selAttr + ' onclick="event.stopPropagation();toggleSelectRecord(\'' + r.id + '\')">';
     const selCls = selectedRecordIds.has(r.id) ? ' selected' : '';
-    html += '<div class="record-card ' + statusClass + selCls + '" data-id="' + r.id + '">'
-      + '<div class="record-header record-toggle" onclick="toggleRecordCard(\'' + r.id + '\')"><div class="record-info">'
+    const cardOnclick = canManage ? ' onclick="editRecord(\'' + r.id + '\')"' : '';
+    const cardCursor = canManage ? ' style="cursor:pointer"' : '';
+    const headerCls = canManage ? 'record-header' : 'record-header record-toggle';
+    const headerOnclick = canManage ? '' : ' onclick="toggleRecordCard(\'' + r.id + '\')"';
+    const chevron = canManage ? '' : '<span class="record-chevron">▾</span>';
+    html += '<div class="record-card ' + statusClass + selCls + cardCursor + '" data-id="' + r.id + '"' + cardOnclick + '>'
+      + '<div class="' + headerCls + '"' + headerOnclick + '><div class="record-info">'
       + selChk
-      + '<span class="record-chevron">▾</span>'
+      + chevron
       + '<span class="record-name">' + escapeHtml(r.staff) + '</span>'
       + '<span class="record-shop">' + escapeHtml(r.shop) + '</span>'
       + (r.customer_id ? '<span class="record-cid">👤 ' + escapeHtml(r.customer_id) + '</span>' : '')
@@ -2489,11 +2495,14 @@ async function renderRecords() {
     if (r.coach_date) html += '<div class="record-section"><div class="record-section-title">📢 讲解记录</div><div class="record-section-text" style="background:rgba(123,155,106,.05);border:1px solid rgba(123,155,106,.2);color:var(--primary)">📅 讲解日期：' + r.coach_date + (r.coach_note ? '<br>📝 讲解备注：' + escapeHtml(r.coach_note) : '') + '</div></div>';
 
     html += '</div><div class="record-actions">';
-    if (isAdmin) {
-      if (r.status === 'pending') html += '<button class="btn btn-g" onclick="markDone(\'' + r.id + '\')">✅ 标记已讲解</button>';
-      else html += '<button class="btn btn-s" onclick="markPending(\'' + r.id + '\')">↩️ 标记待讲解</button>';
-      html += '<button class="btn btn-i" onclick="editRecord(\'' + r.id + '\')">✏️ 编辑</button>';
-      html += '<button class="btn btn-r" onclick="deleteRecord(\'' + r.id + '\')">🗑️ 删除</button>';
+    if (canManage) {
+      // 管理员/质检员：整卡点击即进入编辑，不显示按钮
+    } else {
+      if (r.received_at) {
+        html += '<span class="share-badge confirmed">✅ 已确认收到 ' + ((r.received_at||'').slice(0,10)) + '</span>';
+      } else {
+        html += '<button class="btn btn-g" style="font-size:11px;padding:4px 12px" onclick="confirmReceived(\'' + r.id + '\')">✅ 确认收到</button>';
+      }
     }
     html += '</div></div>';
   }
@@ -2521,7 +2530,7 @@ async function loadRecordImages(containerId, imageIds) {
     if (!url) continue;
     const div = document.createElement('div');
     div.className = 'record-img-item';
-    div.onclick = () => previewImage(url, id);
+    div.onclick = (e) => { e.stopPropagation(); previewImage(url, id); };
     // 新结构上传的图片路径以 rec/ 开头，路径内嵌记录编号 → 结构上不可能错配
     const bound = (typeof id === 'string' && id.indexOf('rec/') === 0);
     const badge = bound ? '<span class="img-trust-badge">✓绑定</span>' : '';
@@ -2555,7 +2564,7 @@ async function loadRecordThumbs(containerId, imageIds, max) {
     img.src = url;
     img.loading = 'lazy';
     img.onerror = () => { img.style.display = 'none'; };
-    img.onclick = () => previewImage(url, id);
+    img.onclick = (e) => { e.stopPropagation(); previewImage(url, id); };
     container.appendChild(img);
   }
   const rest = imageIds.length - ids.length;
@@ -2579,10 +2588,10 @@ async function loadRecordThumbs(containerId, imageIds, max) {
 function renderRecordsTable(el, shown, list) {
   const tagCls = t => t==='话术问题'?'tag-huashu':t==='响应问题'?'tag-xiangying':t==='流程问题'?'tag-liucheng':t==='态度问题'?'tag-taidu':t==='产品知识'?'tag-zhishi':'tag-huashu';
   const penaltyOf = r => (r.penalty_amount!=null?r.penalty_amount:(r.penaltyAmount||0));
+  const canManage = isAdmin;
   const head = '<thead><tr>'
-    + (isAdmin ? '<th><input type="checkbox" id="selAllBox2" onchange="toggleSelectAll(this)" style="width:16px;height:16px;accent-color:var(--primary)"></th>' : '')
-    + '<th>客服</th><th>店铺</th><th>日期</th><th>客户ID</th><th>严重度</th><th>分类</th><th>问题描述</th><th>扣罚</th><th>截图</th><th>状态</th><th>确认</th>'
-    + (isAdmin ? '<th>操作</th>' : '')
+    + (canManage ? '<th><input type="checkbox" id="selAllBox2" onchange="toggleSelectAll(this)" style="width:16px;height:16px;accent-color:var(--primary)"></th>' : '')
+    + '<th>客服</th><th>店铺</th><th>日期</th><th>客户ID</th><th>严重度</th><th>分类</th><th>问题表述</th><th>正确做法</th><th>扣罚</th><th>截图</th><th>状态</th><th>确认</th>'
     + '</tr></thead>';
   let rows = '';
   for (const r of shown) {
@@ -2591,19 +2600,31 @@ function renderRecordsTable(el, shown, list) {
     const penalty = penaltyOf(r);
     const probText = (r.problem||'').replace(/\s+/g,' ').trim();
     const probShort = probText.length > 80 ? escapeHtml(probText.slice(0,80)) + '…' : escapeHtml(probText);
-    const selAttr = isAdmin ? '' : ' style="display:none"';
+    const correctText = (r.correct||'').replace(/\s+/g,' ').trim();
+    const correctShort = correctText.length > 60 ? escapeHtml(correctText.slice(0,60)) + '…' : escapeHtml(correctText);
+    const selAttr = canManage ? '' : ' style="display:none"';
     const selChk = '<input type="checkbox" class="sel-checkbox" data-id="' + r.id + '"' + (selectedRecordIds.has(r.id)?' checked':'') + selAttr + ' onclick="event.stopPropagation();toggleSelectRecord(\'' + r.id + '\')">';
     const si = getShareInfo(r);
     const shareBadge = si ? (si.confirmed ? '<span class="share-badge confirmed">✅</span>' : '<span class="share-badge pending">📤</span>') : '';
     const statusText = r.status==='pending'?'待讲解':'已讲解';
     const allImgs = [].concat(r.scene_images||[], r.reply_images||[], r.knowledge_images||[]);
-    const imgCount = allImgs.length;
-    const thumbCell = imgCount
-      ? '<div class="qc-thumbs" id="thumbs_' + r.id + '"><span class="qc-thumb-count">共' + imgCount + '张</span></div>'
+    const thumbCell = allImgs.length
+      ? '<div class="qc-thumbs" id="thumbs_' + r.id + '"></div>'
       : '<span class="qc-no-thumb">-</span>';
+    // 确认列：管理员/质检员看分享状态（信息）；普通客服点「确认收到」
+    let confirmCell;
+    if (canManage) {
+      confirmCell = shareBadge || '<span class="qc-no-thumb">-</span>';
+    } else if (r.received_at) {
+      confirmCell = '<span class="share-badge confirmed">✅ 已确认<br><span style="font-size:10px">' + ((r.received_at||'').slice(0,10)) + '</span></span>';
+    } else {
+      confirmCell = '<button class="btn btn-g" style="font-size:11px;padding:4px 10px" onclick="confirmReceived(\'' + r.id + '\')">确认收到</button>';
+    }
     const selCls = selectedRecordIds.has(r.id) ? ' class="selected"' : '';
-    rows += '<tr' + selCls + ' data-id="' + r.id + '">'
-      + (isAdmin ? '<td>' + selChk + '</td>' : '')
+    const rowOnclick = canManage ? ' onclick="editRecord(\'' + r.id + '\')"' : '';
+    const rowCursor = canManage ? ' style="cursor:pointer"' : '';
+    rows += '<tr' + selCls + rowOnclick + rowCursor + ' data-id="' + r.id + '">'
+      + (canManage ? '<td>' + selChk + '</td>' : '')
       + '<td>' + escapeHtml(r.staff) + '</td>'
       + '<td>' + escapeHtml(r.shop) + '</td>'
       + '<td>' + r.date + '</td>'
@@ -2611,13 +2632,11 @@ function renderRecordsTable(el, shown, list) {
       + '<td><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:' + sevColor + '20;color:' + sevColor + ';font-weight:600">' + r.severity + '</span></td>'
       + '<td>' + (tagHtml || '-') + '</td>'
       + '<td class="td-prob">' + (probShort || '-') + '</td>'
+      + '<td class="td-correct">' + (correctShort || '-') + '</td>'
       + '<td>' + (penalty>0 ? '<span class="penalty">¥'+penalty+'</span>' : '-') + '</td>'
       + '<td>' + thumbCell + '</td>'
       + '<td><span class="record-status ' + (r.status==='pending'?'pending':'done') + '">' + statusText + '</span></td>'
-      + '<td>' + shareBadge + '</td>'
-      + (isAdmin ? '<td style="white-space:nowrap">' + (r.status==='pending' ? '<button class="btn btn-g" onclick="markDone(\''+r.id+'\')">✅</button> ' : '<button class="btn btn-s" onclick="markPending(\''+r.id+'\')">↩️</button> ')
-          + '<button class="btn btn-i" onclick="editRecord(\''+r.id+'\')">✏️</button> '
-          + '<button class="btn btn-r" onclick="deleteRecord(\''+r.id+'\')">🗑️</button></td>' : '')
+      + '<td>' + confirmCell + '</td>'
       + '</tr>';
   }
   let html = '<div class="qc-table-wrap"><table class="qc-table">' + head + '<tbody>' + rows + '</tbody></table></div>';
@@ -2625,10 +2644,10 @@ function renderRecordsTable(el, shown, list) {
     html += '<div class="record-list-footer"><button class="btn btn-s" onclick="loadMoreRecords()" style="font-size:12px;padding:7px 24px">⬇️ 加载更多（还有 ' + (list.length - shown.length) + ' 条）</button></div>';
   }
   el.innerHTML = html;
-  // 异步加载截图缩略图
+  // 异步加载截图缩略图（直接显示图片，点击放大）
   for (const r of shown) {
     const allImgs = [].concat(r.scene_images||[], r.reply_images||[], r.knowledge_images||[]);
-    if (allImgs.length) loadRecordThumbs('thumbs_' + r.id, allImgs, 4);
+    if (allImgs.length) loadRecordThumbs('thumbs_' + r.id, allImgs, 6);
   }
 }
 
@@ -2699,6 +2718,37 @@ async function deleteRecord(id) {
   records = records.filter(x => x.id != id);
   updateStats(); renderRecords();
   showToast('🗑️ 已删除');
+}
+
+async function deleteEditingRecord() {
+  if (!editingId) return;
+  if (!isAdmin) { showToast('⚠️ 只读模式', true); return; }
+  if (!confirm('确定删除这条质检记录？')) return;
+  const r = records.find(x => x.id == editingId);
+  if (r) { await saveImageSnapshot(r, 'deleteRecord'); await deleteRecordImages(r); }
+  try { await supabase.from('qc_records').delete().eq('id', editingId); } catch(e) {}
+  records = records.filter(x => x.id != editingId);
+  updateStats(); renderRecords();
+  closeEditModal();
+  showToast('🗑️ 已删除');
+}
+
+async function confirmReceived(id) {
+  const r = records.find(x => x.id == id);
+  if (!r) return;
+  if (r.received_at) { showToast('已确认收到，无需重复'); return; }
+  const who = (currentAuthUser && (currentAuthUser.name || currentAuthUser.phone)) || '';
+  const ts = new Date().toISOString();
+  try {
+    const { error } = await supabase.from('qc_records').update({ received_at: ts, received_by: who }).eq('id', id);
+    if (error) throw error;
+    r.received_at = ts; r.received_by = who;
+    showToast('✅ 已确认收到');
+  } catch (e) {
+    showToast('⚠️ 确认失败：' + e.message + '（若提示字段不存在，请先在 Supabase 执行 add_qc_received_fields.sql）', true);
+    return;
+  }
+  updateStats(); renderRecords();
 }
 
 /* ==================== Edit Modal ==================== */
