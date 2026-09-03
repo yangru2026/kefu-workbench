@@ -2309,13 +2309,11 @@ async function markDone(id) {
   if (!isAdmin) { showToast('⚠️ 只读模式', true); return; }
   const r = records.find(x => x.id == id);
   if (!r) return;
-  // 保留已有图片，避免 syncRecord 把图片清空（标记讲解不改图，原图必须全部保留）
-  r.keepSceneImages = r.scene_images || [];
-  r.keepReplyImages = r.reply_images || [];
-  r.keepKnowledgeImages = r.knowledge_images || [];
   const note = prompt('讲解备注（可选）：') || '';
-  r.status = 'done'; r.coach_date = todayStr(); r.coach_note = note;
-  await syncRecord(r);
+  const updates = { status: 'done', coach_date: todayStr(), coach_note: note };
+  const { error } = await supabase.from('qc_records').update(updates).eq('id', id);
+  if (error) { showToast('更新失败：' + error.message, true); return; }
+  Object.assign(r, updates);
   updateStats(); renderRecords();
 }
 
@@ -2323,12 +2321,10 @@ async function markPending(id) {
   if (!isAdmin) { showToast('⚠️ 只读模式', true); return; }
   const r = records.find(x => x.id == id);
   if (!r) return;
-  // 保留已有图片，避免 syncRecord 把图片清空（退回待讲解不改图，原图必须全部保留）
-  r.keepSceneImages = r.scene_images || [];
-  r.keepReplyImages = r.reply_images || [];
-  r.keepKnowledgeImages = r.knowledge_images || [];
-  r.status = 'pending'; r.coach_date = ''; r.coach_note = '';
-  await syncRecord(r);
+  const updates = { status: 'pending', coach_date: '', coach_note: '' };
+  const { error } = await supabase.from('qc_records').update(updates).eq('id', id);
+  if (error) { showToast('更新失败：' + error.message, true); return; }
+  Object.assign(r, updates);
   updateStats(); renderRecords();
 }
 
