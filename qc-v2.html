@@ -95,6 +95,11 @@ table.grid tr:hover{background:#fafbf8}
 .preset-chip{border-radius:12px;padding:3px 10px;font-size:12px;cursor:pointer;transition:.12s;user-select:none}
 .preset-chip:hover{filter:brightness(.95);transform:translateY(-1px)}
 .up-prev{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+/* 截图粘贴上传区 */
+.paste-zone{border:2px dashed #d1d5db;border-radius:10px;padding:14px;text-align:center;cursor:pointer;background:#fafafa;transition:.15s;position:relative}
+.paste-zone:hover{border-color:var(--primary);background:#f3f6f1}
+.paste-zone .paste-hint{font-size:12px;color:var(--text2);pointer-events:none}
+.paste-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .up-prev img{width:64px;height:48px;object-fit:cover;border-radius:5px;border:1px solid var(--border)}
 .up-prev .x{position:relative}
 .up-prev .x span{position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer}
@@ -675,6 +680,14 @@ function openEditModal(id){
   document.getElementById('editDeleteBtn').style.display = r?'inline-block':'none';
   const val=(k,d)=> r? (r[k]||d) : d;
   let h='';
+  // 1) 截图放在第一步
+  const sceneLabel='客户问题截图', knowledgeLabel='知识点配图';
+  h+='<div class="fld"><label>'+sceneLabel+'（可多张，支持 Ctrl+V 粘贴）</label>'
+    +'<div class="paste-zone" onpaste="handlePaste(event,\'scene\')" tabindex="0">'
+    +'<div class="paste-hint">📎 点击选择图片，或在此按 Ctrl+V 粘贴截图</div>'
+    +'<input type="file" accept="image/*" multiple onchange="onPickFiles(\'scene\',this)">'
+    +'</div>'
+    +'<div class="up-prev" id="prev_scene"></div></div>';
   h+='<div class="row2"><div class="fld"><label>客服姓名</label>'+staffSelectHtml(val('staff',''))+'</div>'
     +'<div class="fld"><label>客户ID（选填）</label><input id="e_cid" value="'+escapeHtml(val('customer_id',''))+'"></div></div>';
   h+='<div class="row2"><div class="fld"><label>店铺</label>'+shopSelectHtml(val('shop',''))+'</div>'
@@ -686,22 +699,41 @@ function openEditModal(id){
   h+='<div class="fld"><label>知识点</label><input id="e_knowledge" list="e_knowledge_list" value="'+escapeHtml(val('knowledge',''))+'" placeholder="可输入或从预设中选择"><datalist id="e_knowledge_list">'+KNOWLEDGE_PRESETS.map(k=>'<option value="'+escapeHtml(k)+'"></option>').join('')+'</datalist>'+knowledgePresetsHtml()+'</div>';
   h+='<div class="fld"><label>备注</label><input id="e_note" value="'+escapeHtml(val('note',''))+'"></div>';
   if(r){ h+='<div class="fld"><label>状态</label>'+statusPillsHtml(r.status)+'</div>'; }
-  // 图片上传区
-  ['scene','reply','knowledge'].forEach(kind=>{
-    const label = kind==='scene'?'客户问题截图':kind==='reply'?'客服回复截图':'知识点配图';
-    h+='<div class="fld"><label>'+label+'（可多张）</label>'
-      +'<input type="file" accept="image/*" multiple onchange="onPickFiles(\''+kind+'\',this)">'
-      +'<div class="up-prev" id="prev_'+kind+'"></div></div>';
-  });
+  // 知识点配图保留
+  h+='<div class="fld"><label>'+knowledgeLabel+'（可多张，支持 Ctrl+V 粘贴）</label>'
+    +'<div class="paste-zone" onpaste="handlePaste(event,\'knowledge\')" tabindex="0">'
+    +'<div class="paste-hint">📎 点击选择图片，或在此按 Ctrl+V 粘贴截图</div>'
+    +'<input type="file" accept="image/*" multiple onchange="onPickFiles(\'knowledge\',this)">'
+    +'</div>'
+    +'<div class="up-prev" id="prev_knowledge"></div></div>';
   document.getElementById('editBody').innerHTML=h;
   // 渲染已有图预览
-  if(r){ ['scene','reply','knowledge'].forEach(kind=>{ (r[kind+'_images']||[]).forEach(p=>addPreview(kind,p,false)); }); }
+  if(r){ ['scene','knowledge'].forEach(kind=>{ (r[kind+'_images']||[]).forEach(p=>addPreview(kind,p,false)); }); }
   document.getElementById('editModal').classList.add('active');
 }
 function toggleChip(el){ el.classList.toggle('on'); }
 function onPickFiles(kind,input){
-  for(const f of input.files){ const rd=new FileReader(); rd.onload=()=>addPreview(kind,rd.result,true,f); rd.readAsDataURL(f); }
+  for(const f of input.files){ addPreviewFromFile(kind,f); }
   input.value='';
+}
+function addPreviewFromFile(kind,f){
+  if(!f || !f.type.startsWith('image/')) return;
+  const rd=new FileReader(); rd.onload=()=>addPreview(kind,rd.result,true,f); rd.readAsDataURL(f);
+}
+function handlePaste(e,kind){
+  e.preventDefault(); e.stopPropagation();
+  const dt=e.clipboardData || window.clipboardData;
+  if(!dt)return;
+  if(dt.files && dt.files.length){
+    for(const f of dt.files){ addPreviewFromFile(kind,f); }
+  } else if(dt.items){
+    for(const item of dt.items){
+      if(item.kind==='file' && item.type.startsWith('image/')){
+        const f=item.getAsFile(); if(f) addPreviewFromFile(kind,f);
+      }
+    }
+  }
+  showToast('📎 已粘贴图片');
 }
 function addPreview(kind,src,isNew,file=null){
   pendingUploads[kind].push({src,file,isNew:!!isNew});
