@@ -162,8 +162,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 #csMyToggleWrap .lbl{font-size:12px;color:var(--text2);font-weight:500}
 
 /* ===== Records ===== */
-.record-list{display:flex;flex-direction:column;gap:10px}
-.record-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px;transition:all .2s}
+.record-list{display:flex;flex-direction:column;gap:12px}
+.record-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;transition:all .2s}
 .record-card:hover{border-color:var(--primary-light);box-shadow:0 2px 12px rgba(0,0,0,.04)}
 .record-card.pending{border-left:4px solid var(--red)}
 .record-card.done{border-left:4px solid var(--success)}
@@ -188,9 +188,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .record-section-title{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px}
 .record-section-text{font-size:12px;color:var(--text);line-height:1.6;background:#f8fafc;padding:8px 10px;border-radius:6px;white-space:pre-wrap;word-break:break-word}
 .record-img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:6px}
-.record-img-item{border-radius:8px;overflow:hidden;border:1px solid var(--border);cursor:pointer;background:#f8fafc;aspect-ratio:1;display:flex;align-items:center;justify-content:center}
+.record-img-item{border-radius:8px;overflow:hidden;border:1px solid var(--border);cursor:pointer;background:#f8fafc;aspect-ratio:1;display:flex;align-items:center;justify-content:center;position:relative}
 .record-img-item img{width:100%;height:100%;object-fit:contain}
 .record-img-item .img-loading{color:var(--text2);font-size:12px}
+
+/* ===== 统一徽章（清爽化） ===== */
+.qc-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;line-height:1.4;white-space:nowrap;vertical-align:middle}
+.qc-badge.sev-normal{background:rgba(245,166,35,.14);color:#b9770e;border:1px solid rgba(245,166,35,.3)}
+.qc-badge.sev-important{background:rgba(229,115,115,.14);color:#c0392b;border:1px solid rgba(229,115,115,.3)}
+.qc-badge.sev-critical{background:rgba(126,87,194,.14);color:#6a43b8;border:1px solid rgba(126,87,194,.3)}
+.qc-badge.penalty{background:#fdecea;color:#c0392b;border:1px solid #f5c6c0;font-weight:700}
+/* 图片可信角标：路径自带记录编号 = 结构上不可能错配 */
+.img-trust-badge{position:absolute;top:4px;left:4px;font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;background:rgba(76,175,80,.94);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);z-index:2;pointer-events:none;display:inline-flex;align-items:center;gap:2px}
+.qc-thumb.bound{box-shadow:0 0 0 2px rgba(76,175,80,.55);border-color:rgba(76,175,80,.7)}
 
 /* ===== 表格视图（方案B） ===== */
 .qc-table-wrap{overflow-x:auto;margin-bottom:8px;-webkit-overflow-scrolling:touch}
@@ -328,6 +338,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 /* ===== 确认状态汇总视图 ===== */
 .cs-badge{display:inline-block;min-width:18px;height:18px;line-height:18px;padding:0 5px;border-radius:9px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;text-align:center;margin-left:4px;vertical-align:middle}
 .cs-badge.zero{display:none}
+/* ---- 图片修复中心 ---- */
+.ifx-note{font-size:12px;line-height:1.7;background:#FFF8E6;border:1px solid #F5D98A;border-radius:8px;padding:10px 12px;color:#8A6410;margin-bottom:12px}
+.ifx-group{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;background:#fff}
+.ifx-group-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12px;color:var(--text2);margin-bottom:8px}
+.ifx-group-head b{font-size:13px;color:var(--text)}
+.ifx-group-head .ifx-actions{margin-left:auto;display:flex;gap:6px}
+.ifx-grid{display:flex;flex-wrap:wrap;gap:8px}
+.ifx-cell{position:relative;width:104px}
+.ifx-cell img{width:104px;height:104px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:zoom-in;background:#F4F4F4}
+.ifx-cell .ifx-kind{position:absolute;top:4px;left:4px;font-size:10px;background:rgba(0,0,0,.6);color:#fff;padding:1px 5px;border-radius:5px}
+.ifx-cell .ifx-mini{width:100%;margin-top:4px;font-size:11px;padding:3px 0;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;color:var(--text2)}
+.ifx-cell .ifx-mini:hover{border-color:var(--primary);color:var(--primary)}
+.ifx-assign{margin-top:6px;display:none;gap:4px;flex-direction:column}
+.ifx-assign select{width:100%;font-size:11px;padding:3px;border:1px solid var(--border);border-radius:6px}
+.ifx-empty{text-align:center;color:var(--text2);font-size:13px;padding:26px 0}
 .cs-kpi-row{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
 .cs-kpi{flex:1;min-width:110px;background:#f8faf5;border:1px solid var(--border);border-radius:10px;padding:12px 14px;text-align:center}
 .cs-kpi .n{font-size:22px;font-weight:700;line-height:1.1}
@@ -467,6 +492,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <button class="btn btn-y" onclick="openAnalysisMode()" style="font-size:11px;padding:5px 12px">📊 质检分析</button>
 <button class="btn btn-s" onclick="exportXLSX()" style="font-size:11px;padding:5px 12px">📤 导出Excel</button>
 <button class="btn btn-i" onclick="openConfirmStatus()" style="font-size:11px;padding:5px 12px">📊 确认状态 <span id="csBadge" class="cs-badge zero">0</span></button>
+<button class="btn btn-y" id="btnImgFix" onclick="openImgFix()" style="font-size:11px;padding:5px 12px;display:none">🖼️ 图片修复 <span id="imgFixBadge" class="cs-badge zero">0</span></button>
 <button class="btn btn-s" onclick="loadRecords(true)" style="font-size:11px;padding:5px 12px">🔄 刷新</button>
 <div class="seg" id="viewModeSeg" style="margin-left:auto">
   <button type="button" class="seg-btn" id="vmCard" onclick="setQcViewMode('card')">🗂️ 卡片</button>
@@ -723,6 +749,7 @@ function updateAdminUI() {
   const tsb = document.getElementById('tplSaveBtn'); if (tsb) tsb.style.display = isAdmin ? '' : 'none';
   const tmb = document.getElementById('tplMgrBtn'); if (tmb) tmb.style.display = isAdmin ? '' : 'none';
   const ce = document.getElementById('caseEntry'); if (ce) ce.style.display = isAdmin ? '' : 'none';
+  const bif = document.getElementById('btnImgFix'); if (bif) bif.style.display = (isAdmin && !DEMO) ? '' : 'none';
   // 客服端（非管理员）：默认只看自己，并显示「我的/全部」切换
   const myWrap = document.getElementById('csMyToggleWrap');
   if (myWrap) myWrap.style.display = isAdmin ? 'none' : 'inline-flex';
@@ -865,7 +892,9 @@ async function loadRecords(showMsg) {
         reply_images: r.reply_images || r.replyImages || [],
         knowledge_images: r.knowledge_images || r.knowledgeImages || []
       }));
-      setSyncBadge(true, '已同步云端');
+      // 以 qc_images 表为权威来源覆盖图片关系；表不存在时自动降级用上面的旧数组
+      await loadQcImagesInto(records);
+      setSyncBadge(true, qcImagesReady ? '已同步云端' : '已同步（图片旧结构）');
     }
   } catch(e) { console.error(e); records = []; setSyncBadge(false, '加载失败'); }
 
@@ -875,6 +904,7 @@ async function loadRecords(showMsg) {
   updateStats();
   renderRecords();
   setupPasteHandlers();
+  refreshImgFixBadgeLight();
   if (showMsg) showToast('🔄 已刷新列表');
 }
 
@@ -882,10 +912,10 @@ async function syncRecord(record) {
   if (DEMO) { showToast('📋 演示模式：数据仅供展示，不可保存', true); return false; }
   if (!isAdmin) { showToast('⚠️ 只读模式，无法保存', true); return; }
   try {
-    // Upload pending images first
-    record.sceneImages = [].concat(record.keepSceneImages || [], await uploadPendingImages('scene'));
-    record.replyImages = [].concat(record.keepReplyImages || [], await uploadPendingImages('reply'));
-    record.knowledgeImages = [].concat(record.keepKnowledgeImages || [], await uploadPendingImages('knowledge'));
+    // 先上传本次待传图片；文件路径内嵌 record.id，天然可溯源
+    record.sceneImages = [].concat(record.keepSceneImages || [], await uploadPendingImages('scene', record.id));
+    record.replyImages = [].concat(record.keepReplyImages || [], await uploadPendingImages('reply', record.id));
+    record.knowledgeImages = [].concat(record.keepKnowledgeImages || [], await uploadPendingImages('knowledge', record.id));
 
     // 校验：必须至少上传一张截图（客户问题 / 客服回复 / 知识点配图）
     const _totalImgs = (record.sceneImages.length + record.replyImages.length + record.knowledgeImages.length);
@@ -932,6 +962,15 @@ async function syncRecord(record) {
       await qcNotifyStaff(r.staff, '🆕 你有新的质检记录待查看',
         '质检员为「' + (r.staff || '') + '」登记了一条' + (r.severity || '') + '质检记录（日期：' + (r.date || '') + '，店铺：' + (r.shop || '') + '）。\n请到工作台质检模块查看详情。', 'qc_new');
     }
+
+    // 图片关系写入 qc_images（权威来源）；qc_records 里的数组只作兼容镜像
+    await syncQcImages(record.id, {
+      scene: record.sceneImages, reply: record.replyImages, knowledge: record.knowledgeImages
+    });
+    // 同步内存，保证界面立即显示正确的图
+    record.scene_images     = record.sceneImages || [];
+    record.reply_images     = record.replyImages || [];
+    record.knowledge_images = record.knowledgeImages || [];
     return true;
   } catch(e) {
     console.error(e);
@@ -940,30 +979,46 @@ async function syncRecord(record) {
   }
 }
 
-async function uploadPendingImages(type) {
-  const ids = [];
+/* 上传待传图片，返回「完整存储路径」数组。
+   ownerKey 为归属标识（质检记录 id，或优秀案例的 case-<id>），
+   会写进文件路径本身 → 文件自证归属，是这次重做的根因修复点。 */
+async function uploadPendingImages(type, ownerKey) {
+  const paths = [];
   for (const img of pendingImages[type]) {
-    if (img.uploaded) {
-      ids.push(img.id);
-      continue;
-    }
+    if (img.uploaded && img.path) { paths.push(img.path); continue; }
     try {
-      const filePath = 'qc/' + img.id + '.jpg';
+      const owner = String(ownerKey || 'unsorted');
+      const filePath = 'rec/' + owner + '/' + type + '-' + Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.jpg';
       const { error } = await supabase.storage.from('qc-images').upload(filePath, img.blob, { upsert: true, contentType: 'image/jpeg' });
-      if (!error) { ids.push(img.id); img.uploaded = true; }
+      if (!error) { paths.push(filePath); img.uploaded = true; img.path = filePath; }
       else { showToast('⚠️ 图片上传失败：' + error.message, true); console.warn('Upload error:', error); }
     } catch(e) { showToast('⚠️ 图片上传失败：' + e.message, true); console.warn('Upload error:', e); }
   }
-  return ids;
+  return paths;
 }
 
-async function getImageUrl(id) {
-  if (typeof id === 'string' && id.startsWith('data:')) return id;
-  if (imageUrlCache[id]) return imageUrlCache[id];
+/* ---------------- 图片路径工具 ----------------
+   图片引用有两种形态，统一由 imgPathOf() 转成存储桶内真实路径：
+     · 新格式（推荐）：完整路径 rec/<记录id>/<字段>-<时间戳>-<随机>.jpg
+       → 路径里自带记录归属，即使数据库关系意外丢失也能反查回去
+     · 旧格式（兼容）：裸文件 id  img_<时间戳>_<随机>
+       → 实际路径 qc/<id>.jpg，不含任何归属信息（历史错配的根因） */
+function imgPathOf(ref) {
+  if (!ref) return '';
+  const s = String(ref);
+  if (s.indexOf('/') !== -1) return s;   // 已是完整路径
+  return 'qc/' + s + '.jpg';             // 兼容历史裸 id
+}
+
+async function getImageUrl(ref) {
+  if (typeof ref === 'string' && ref.startsWith('data:')) return ref;
+  const path = imgPathOf(ref);
+  if (!path) return '';
+  if (imageUrlCache[path]) return imageUrlCache[path];
   let url = '';
   try {
     // 优先用签名 URL（bucket 非 public 时 publicUrl 会 400，签名 URL 始终可用）
-    const { data, error } = await supabase.storage.from('qc-images').createSignedUrl('qc/' + id + '.jpg', 3600);
+    const { data } = await supabase.storage.from('qc-images').createSignedUrl(path, 3600);
     // 注意：本地这个 supabase-js 版本 createSignedUrl 返回的是 /object/sign/... 相对路径
     // （且缺 /storage/v1 前缀），直接当 src 会被解析成当前站点域名而 404，
     // 必须补成「域名 + /storage/v1 + 相对路径」的绝对地址。
@@ -976,24 +1031,312 @@ async function getImageUrl(id) {
   // 签名 URL 没拿到有效 http 地址时，回退公开 URL（bucket 为 public 时可用）
   if (!url || !url.startsWith('http')) {
     try {
-      const { data } = supabase.storage.from('qc-images').getPublicUrl('qc/' + id + '.jpg');
+      const { data } = supabase.storage.from('qc-images').getPublicUrl(path);
       if (data && data.publicUrl) url = data.publicUrl;
     } catch (e) { url = ''; }
   }
   // 只有真正是 http(s) 绝对地址才缓存并返回，避免缓存坏的相对路径
   if (url && url.startsWith('http')) {
-    imageUrlCache[id] = url;
+    imageUrlCache[path] = url;
     return url;
   }
   return '';
 }
 
-// Delete from storage when record deleted
+// 删除记录时清理存储桶文件（qc_images 里的关联行由外键 ON DELETE CASCADE 自动清）
 async function deleteRecordImages(record) {
-  const allIds = [...(record.scene_images||[]), ...(record.reply_images||[]), ...(record.knowledge_images||[])];
-  for (const id of allIds) {
-    try { await supabase.storage.from('qc-images').remove(['qc/' + id + '.jpg']); } catch(e) {}
+  const refs = [...(record.scene_images||[]), ...(record.reply_images||[]), ...(record.knowledge_images||[])];
+  const paths = refs.map(imgPathOf).filter(Boolean);
+  if (!paths.length) return;
+  try { await supabase.storage.from('qc-images').remove(paths); } catch(e) {}
+}
+
+/* ---------------- qc_images：图片↔记录的权威关系表 ----------------
+   qcImagesReady=false 表示表还没建好（用户尚未执行 add_qc_images_table.sql），
+   此时自动降级读 qc_records 的旧数组，保证工具照常可用。 */
+let qcImagesReady = false;
+
+// 批量把 qc_images 里的图片挂到内存记录上（覆盖旧数组）
+async function loadQcImagesInto(list) {
+  if (!list || !list.length) return false;
+  const ids = list.map(r => r.id);
+  const map = {};
+  const CHUNK = 150;
+  try {
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      const { data, error } = await supabase.from('qc_images')
+        .select('record_id,kind,seq,file_path,trust')
+        .in('record_id', ids.slice(i, i + CHUNK))
+        .neq('trust', 'suspect')
+        .order('seq', { ascending: true });
+      if (error) { console.warn('qc_images 读取失败（降级用旧数组）:', error.message); return false; }
+      for (const row of (data || [])) {
+        const k = row.record_id + '|' + row.kind;
+        (map[k] = map[k] || []).push(row.file_path);
+      }
+    }
+  } catch (e) { console.warn('qc_images 读取异常（降级用旧数组）:', e.message); return false; }
+  for (const r of list) {
+    r.scene_images     = map[r.id + '|scene']     || [];
+    r.reply_images     = map[r.id + '|reply']     || [];
+    r.knowledge_images = map[r.id + '|knowledge'] || [];
   }
+  qcImagesReady = true;
+  return true;
+}
+
+/* 把一条记录的图片关系写入 qc_images。
+   顺序刻意设计为「先插入、后清理」，任何时刻都不会出现「关系空窗」，
+   即使中途失败也只是多留几行冗余，绝不会让图片和记录失联。 */
+async function syncQcImages(recordId, mapping) {
+  if (!qcImagesReady) return false;
+  const rows = [];
+  for (const kind of ['scene', 'reply', 'knowledge']) {
+    (mapping[kind] || []).forEach((ref, i) => {
+      const p = imgPathOf(ref);
+      if (p) rows.push({
+        record_id: recordId, kind, seq: i, file_path: p,
+        trust: 'ok', source: 'upload',
+        uploaded_by: (currentAuthUser && (currentAuthUser.name || currentAuthUser.phone)) || ''
+      });
+    });
+  }
+  try {
+    // ① 先写入（唯一索引冲突则跳过）
+    if (rows.length) {
+      const { error } = await supabase.from('qc_images')
+        .upsert(rows, { onConflict: 'record_id,kind,file_path', ignoreDuplicates: true });
+      if (error) { console.warn('qc_images 写入失败:', error.message); showToast('⚠️ 图片关联写入失败：' + error.message, true); return false; }
+    }
+    // ② 再清掉本次被移除的图（按主键精确删，不用 in 字符串拼接）
+    const { data: existing } = await supabase.from('qc_images')
+      .select('id,kind,file_path').eq('record_id', recordId);
+    const keep = new Set(rows.map(x => x.kind + '|' + x.file_path));
+    const dropIds = (existing || []).filter(e => !keep.has(e.kind + '|' + e.file_path)).map(e => e.id);
+    if (dropIds.length) await supabase.from('qc_images').delete().in('id', dropIds);
+    return true;
+  } catch (e) { console.warn('syncQcImages 异常:', e.message); return false; }
+}
+
+/* ==================== 图片修复中心（待核对 + 无主图认领） ==================== */
+const IFX_KIND_LABEL = { scene: '客户问题', reply: '客服回复', knowledge: '知识点' };
+let ifxTab = 'suspect';
+let ifxSuspect = [];          // qc_images 里 trust='suspect' 的行
+let ifxOrphan = [];           // 存储桶里没有任何记录引用的文件路径
+const ifxPathByKey = {};      // DOM key -> 文件路径
+
+async function openImgFix() {
+  if (!isAdmin) { showToast('⚠️ 只读模式', true); return; }
+  document.getElementById('imgFixModal').classList.add('active');
+  document.getElementById('ifxBody').innerHTML = '<div class="ifx-empty">加载中…</div>';
+  await refreshImgFixData();
+  setImgFixTab(ifxTab);
+}
+
+function closeImgFix() { document.getElementById('imgFixModal').classList.remove('active'); }
+
+async function refreshImgFixData() {
+  ifxSuspect = []; ifxOrphan = [];
+  if (!qcImagesReady) { updateImgFixBadge(); return; }
+  try {
+    const { data: sus } = await supabase.from('qc_images')
+      .select('id,record_id,kind,seq,file_path').eq('trust', 'suspect').order('record_id');
+    ifxSuspect = sus || [];
+
+    // 所有已被引用的路径
+    const { data: used } = await supabase.from('qc_images').select('file_path');
+    const usedSet = new Set((used || []).map(x => x.file_path));
+
+    // 只需扫历史扁平目录 qc/（新格式 rec/ 上传即登记，不会变孤儿）
+    const files = [];
+    let offset = 0;
+    for (let guard = 0; guard < 20; guard++) {
+      const { data: page, error } = await supabase.storage.from('qc-images')
+        .list('qc', { limit: 1000, offset, sortBy: { column: 'created_at', order: 'desc' } });
+      if (error || !page || !page.length) break;
+      for (const f of page) if (f.name && f.name.indexOf('.') > -1) files.push('qc/' + f.name);
+      if (page.length < 1000) break;
+      offset += 1000;
+    }
+    ifxOrphan = files.filter(p => !usedSet.has(p));
+  } catch (e) { console.warn('图片修复数据加载失败:', e.message); }
+  updateImgFixBadge();
+}
+
+function updateImgFixBadge() {
+  const n = ifxSuspect.length + ifxOrphan.length;
+  const b = document.getElementById('imgFixBadge');
+  if (b) { b.textContent = n; b.className = 'cs-badge' + (n ? '' : ' zero'); }
+  const cs = document.getElementById('ifxCntSuspect'); if (cs) cs.textContent = '(' + ifxSuspect.length + ')';
+  const co = document.getElementById('ifxCntOrphan'); if (co) co.textContent = '(' + ifxOrphan.length + ')';
+}
+
+// 轻量角标：只数 suspect，不扫存储桶，用于列表加载后提示
+async function refreshImgFixBadgeLight() {
+  if (!qcImagesReady || DEMO || !isAdmin) return;
+  try {
+    const { count } = await supabase.from('qc_images')
+      .select('id', { count: 'exact', head: true }).eq('trust', 'suspect');
+    const b = document.getElementById('imgFixBadge');
+    if (b) { b.textContent = count || 0; b.className = 'cs-badge' + (count ? '' : ' zero'); }
+  } catch (e) {}
+}
+
+function setImgFixTab(tab) {
+  ifxTab = tab;
+  document.getElementById('ifxTabSuspect').classList.toggle('active', tab === 'suspect');
+  document.getElementById('ifxTabOrphan').classList.toggle('active', tab === 'orphan');
+  if (tab === 'suspect') renderIfxSuspect(); else renderIfxOrphan();
+}
+
+function ifxNotReadyHtml() {
+  return '<div class="ifx-empty">⚠️ 还没建好 qc_images 表<br>'
+    + '<span style="font-size:12px">请先在 Supabase → SQL Editor 依次执行 <b>add_qc_images_table.sql</b> 和 <b>migrate_qc_images.sql</b></span></div>';
+}
+
+async function renderIfxSuspect() {
+  const el = document.getElementById('ifxBody');
+  if (!qcImagesReady) { el.innerHTML = ifxNotReadyHtml(); return; }
+  if (!ifxSuspect.length) { el.innerHTML = '<div class="ifx-empty">🎉 没有待核对的图片，一切正常</div>'; return; }
+  const groups = {};
+  for (const row of ifxSuspect) (groups[row.record_id] = groups[row.record_id] || []).push(row);
+  const rids = Object.keys(groups);
+  let html = '';
+  for (const rid of rids) {
+    const rec = records.find(x => String(x.id) === String(rid));
+    const info = rec
+      ? escapeHtml(rec.staff || '') + ' · ' + escapeHtml(rec.shop || '') + ' · ' + (rec.date || '')
+        + ' · ' + escapeHtml((rec.problem || '').replace(/\s+/g, ' ').slice(0, 34))
+      : '记录 ' + rid;
+    html += '<div class="ifx-group">'
+      + '<div class="ifx-group-head"><b>' + info + '</b>'
+      + '<span>' + groups[rid].length + ' 张待核对</span>'
+      + '<span class="ifx-actions">'
+      + '<button class="btn btn-g" style="font-size:11px;padding:4px 10px" onclick="ifxConfirmRecord(\'' + rid + '\')">✅ 确认无误</button>'
+      + '<button class="btn btn-r" style="font-size:11px;padding:4px 10px" onclick="ifxRejectRecord(\'' + rid + '\')">🗑️ 全部移除</button>'
+      + '</span></div>'
+      + '<div class="ifx-grid" id="ifxGrid_' + rid + '"></div></div>';
+  }
+  el.innerHTML = html;
+  for (const rid of rids) {
+    const grid = document.getElementById('ifxGrid_' + rid);
+    if (!grid) continue;
+    for (const row of groups[rid]) {
+      const url = await getImageUrl(row.file_path);
+      if (!url) continue;
+      const cell = document.createElement('div');
+      cell.className = 'ifx-cell';
+      cell.innerHTML = '<span class="ifx-kind">' + (IFX_KIND_LABEL[row.kind] || row.kind) + '</span>';
+      const im = document.createElement('img');
+      im.src = url;
+      im.onclick = () => previewImage(url, row.file_path);
+      const btn = document.createElement('button');
+      btn.className = 'ifx-mini'; btn.textContent = '移除这张';
+      btn.onclick = () => ifxRejectOne(row.id);
+      cell.appendChild(im); cell.appendChild(btn);
+      grid.appendChild(cell);
+    }
+  }
+}
+
+async function renderIfxOrphan() {
+  const el = document.getElementById('ifxBody');
+  if (!qcImagesReady) { el.innerHTML = ifxNotReadyHtml(); return; }
+  if (!ifxOrphan.length) { el.innerHTML = '<div class="ifx-empty">🎉 存储里没有无主图片</div>'; return; }
+  const shown = ifxOrphan.slice(0, 60);
+  el.innerHTML = '<div class="ifx-group"><div class="ifx-group-head"><b>📦 无主图片</b>'
+    + '<span>共 ' + ifxOrphan.length + ' 张' + (ifxOrphan.length > shown.length ? '，本页显示前 ' + shown.length + ' 张' : '') + '</span></div>'
+    + '<div class="ifx-grid" id="ifxOrphGrid"></div></div>';
+  const grid = document.getElementById('ifxOrphGrid');
+  const recOpts = ifxRecordOptions();
+  for (const path of shown) {
+    const url = await getImageUrl(path);
+    if (!url) continue;
+    const key = path.replace(/[^a-zA-Z0-9]/g, '_');
+    ifxPathByKey[key] = path;
+    const cell = document.createElement('div');
+    cell.className = 'ifx-cell';
+    cell.style.width = '152px';
+    cell.innerHTML = '<img src="' + url + '" style="width:152px;height:152px">'
+      + '<button class="ifx-mini" onclick="ifxToggleAssign(\'' + key + '\')">📌 归位到记录</button>'
+      + '<div class="ifx-assign" id="ifxAsg_' + key + '">'
+      + '<select id="ifxRec_' + key + '">' + recOpts + '</select>'
+      + '<select id="ifxKind_' + key + '"><option value="scene">客户问题截图</option><option value="reply">客服回复截图</option><option value="knowledge">知识点配图</option></select>'
+      + '<button class="ifx-mini" style="border-color:var(--primary);color:var(--primary);font-weight:700" onclick="ifxClaim(\'' + key + '\')">确认归位</button>'
+      + '</div>';
+    const im = cell.querySelector('img');
+    if (im) { im.style.cursor = 'zoom-in'; im.onclick = () => previewImage(url, path); }
+    grid.appendChild(cell);
+  }
+}
+
+function ifxRecordOptions() {
+  const list = records.slice()
+    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
+    .slice(0, 400);
+  let o = '<option value="">选择归属记录…</option>';
+  for (const r of list) {
+    const label = (r.date || '') + ' · ' + (r.staff || '') + ' · ' + (r.shop || '')
+      + ' · ' + (r.problem || '').replace(/\s+/g, ' ').slice(0, 16);
+    o += '<option value="' + r.id + '">' + escapeHtml(label) + '</option>';
+  }
+  return o;
+}
+
+function ifxToggleAssign(key) {
+  const box = document.getElementById('ifxAsg_' + key);
+  if (!box) return;
+  box.style.display = (box.style.display === 'flex') ? 'none' : 'flex';
+}
+
+async function ifxClaim(key) {
+  const path = ifxPathByKey[key];
+  const recSel = document.getElementById('ifxRec_' + key);
+  const kindSel = document.getElementById('ifxKind_' + key);
+  const rid = recSel ? recSel.value : '';
+  const kind = (kindSel && kindSel.value) || 'scene';
+  if (!path || !rid) { showToast('⚠️ 请先选择要归位到哪条记录', true); return; }
+  const rec = records.find(x => String(x.id) === String(rid));
+  const seq = rec ? (rec[kind + '_images'] || []).length : 0;
+  const { error } = await supabase.from('qc_images').insert({
+    record_id: Number(rid), kind, seq, file_path: path,
+    trust: 'orphan', source: 'claim', note: '人工认领归位',
+    uploaded_by: (currentAuthUser && (currentAuthUser.name || currentAuthUser.phone)) || ''
+  });
+  if (error) { showToast('归位失败：' + error.message, true); return; }
+  showToast('📌 已归位到该记录');
+  await afterIfxChange();
+}
+
+async function ifxConfirmRecord(rid) {
+  const { error } = await supabase.from('qc_images')
+    .update({ trust: 'ok', note: '人工核对确认无误' })
+    .eq('record_id', rid).eq('trust', 'suspect');
+  if (error) { showToast('操作失败：' + error.message, true); return; }
+  showToast('✅ 已确认，图片回到记录上');
+  await afterIfxChange();
+}
+
+async function ifxRejectRecord(rid) {
+  if (!confirm('把这条记录下的待核对图片全部移除？\n\n图片文件不会被删除，会退回「无主图片」等重新归位。')) return;
+  const { error } = await supabase.from('qc_images')
+    .delete().eq('record_id', rid).eq('trust', 'suspect');
+  if (error) { showToast('操作失败：' + error.message, true); return; }
+  showToast('🗑️ 已移除，可在「无主图片」里重新归位');
+  await afterIfxChange();
+}
+
+async function ifxRejectOne(rowId) {
+  const { error } = await supabase.from('qc_images').delete().eq('id', rowId);
+  if (error) { showToast('操作失败：' + error.message, true); return; }
+  await afterIfxChange();
+}
+
+async function afterIfxChange() {
+  await refreshImgFixData();
+  setImgFixTab(ifxTab);
+  await loadQcImagesInto(records);
+  updateStats(); renderRecords();
 }
 
 /* ==================== Paste Handlers ==================== */
@@ -1417,8 +1760,9 @@ async function addGoodCase() {
   const highlights = document.getElementById('caseHighlights').value.trim();
   if (!title || !staff || !shop) { showToast('⚠️ 请填写案例标题、客服姓名、所属店铺', true); return; }
   try {
-    const imgIds = await uploadPendingImages('case');
+    // 先生成 id，再上传，让文件路径带上案例归属（rec/case-<id>/...）
     const id = Date.now() * 1000 + Math.floor(Math.random() * 1000);
+    const imgIds = await uploadPendingImages('case', 'case-' + id);
     const row = { id, title, staff, shop, date, tags: currentCaseTags, scenario, reply, highlights, images: imgIds, created_by: currentAuthUser?.phone || '' };
     const { error } = await supabase.from('qc_good_cases').insert(row);
     if (error) { showToast('保存失败：' + error.message, true); return; }
@@ -1435,9 +1779,8 @@ async function deleteGoodCase(id) {
   if (!confirm('确定删除这条优秀案例？')) return;
   const c = goodCases.find(x => x.id == id);
   if (c && (c.images || []).length) {
-    for (const imgId of c.images) {
-      try { await supabase.storage.from('qc-images').remove(['qc/' + imgId + '.jpg']); } catch(e) {}
-    }
+    const paths = c.images.map(imgPathOf).filter(Boolean);
+    if (paths.length) { try { await supabase.storage.from('qc-images').remove(paths); } catch(e) {} }
   }
   try { await supabase.from('qc_good_cases').delete().eq('id', id); } catch(e) {}
   goodCases = goodCases.filter(x => x.id != id);
@@ -2127,8 +2470,8 @@ async function renderRecords() {
       + (r.customer_id ? '<span class="record-cid">👤 ' + escapeHtml(r.customer_id) + '</span>' : '')
       + '<span class="record-date">📅 ' + r.date + '</span>'
       + '<span class="record-status ' + statusClass + '">' + statusText + '</span>'
-      + (r.severity!=='一般' ? '<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:' + sevColor + '20;color:' + sevColor + ';font-weight:600">' + r.severity + '</span>' : '')
-      + (((r.penalty_amount!=null?r.penalty_amount:(r.penaltyAmount||0))>0) ? '<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#fdecea;color:#c0392b;font-weight:700">💰 扣 ¥'+((r.penalty_amount!=null?r.penalty_amount:(r.penaltyAmount||0)))+'</span>' : '')
+      + '<span class="qc-badge ' + (r.severity==='一般'?'sev-normal':r.severity==='严重'?'sev-important':'sev-critical') + '">' + r.severity + '</span>'
+      + (((r.penalty_amount!=null?r.penalty_amount:(r.penaltyAmount||0))>0) ? '<span class="qc-badge penalty">💰 扣 ¥'+((r.penalty_amount!=null?r.penalty_amount:(r.penaltyAmount||0)))+'</span>' : '')
       + shareBadge
       + '</div></div>'
       + '<div class="record-tags">' + tagHtml + '</div>'
@@ -2179,7 +2522,10 @@ async function loadRecordImages(containerId, imageIds) {
     const div = document.createElement('div');
     div.className = 'record-img-item';
     div.onclick = () => previewImage(url, id);
-    div.innerHTML = '<img src="' + url + '" alt="" loading="lazy">';
+    // 新结构上传的图片路径以 rec/ 开头，路径内嵌记录编号 → 结构上不可能错配
+    const bound = (typeof id === 'string' && id.indexOf('rec/') === 0);
+    const badge = bound ? '<span class="img-trust-badge">✓绑定</span>' : '';
+    div.innerHTML = badge + '<img src="' + url + '" alt="" loading="lazy">';
     container.appendChild(div);
   }
 }
@@ -2205,7 +2551,7 @@ async function loadRecordThumbs(containerId, imageIds, max) {
     }
     loaded++;
     const img = document.createElement('img');
-    img.className = 'qc-thumb';
+    img.className = 'qc-thumb' + ((typeof id === 'string' && id.indexOf('rec/') === 0) ? ' bound' : '');
     img.src = url;
     img.loading = 'lazy';
     img.onerror = () => { img.style.display = 'none'; };
@@ -3644,6 +3990,24 @@ if (document.readyState === 'loading') {
     <textarea id="ssNewName" placeholder="可粘贴多个，用回车 / 逗号 / ， 分隔" rows="3" style="margin-top:6px;width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;box-sizing:border-box;font-family:inherit;font-size:12px;resize:vertical"></textarea>
     <div style="font-size:11px;color:var(--text2);margin-top:4px">支持一次添加多个，自动去重，已存在会自动跳过</div>
     <button class="btn-mgr save" style="margin-top:6px" onclick="addSs()">保存新增</button></div>
+</div>
+</div></div>
+
+<!-- 图片修复中心：待核对 + 无主图片认领 -->
+<div class="modal-overlay" id="imgFixModal"><div class="modal" style="max-width:980px">
+<div class="modal-header"><h3>🖼️ 图片修复中心</h3><button class="close-btn" onclick="closeImgFix()">×</button></div>
+<div class="modal-body" style="padding:14px">
+  <div class="ifx-note">
+    <b>说明：</b>历史上有一批图片是按「上传时间」猜出来配给记录的，可能张冠李戴，已统一移到这里等人工核对，记录页上暂不显示。<br>
+    ·「⚠️ 待核对」：逐条看图，对得上点 <b>确认无误</b>，对不上点 <b>移除</b>（图片不会删，会退回无主池）。<br>
+    ·「📦 无主图片」：存储里没有归属的图，看图认出属于哪条记录后，选记录 + 选位置即可归位。<br>
+    · 今后新上传的图，文件路径里自带记录编号，<b>结构上不会再失联</b>，此处应长期为空。
+  </div>
+  <div class="ss-tabs">
+    <button class="ss-tab active" id="ifxTabSuspect" onclick="setImgFixTab('suspect')">⚠️ 待核对 <span id="ifxCntSuspect">0</span></button>
+    <button class="ss-tab" id="ifxTabOrphan" onclick="setImgFixTab('orphan')">📦 无主图片 <span id="ifxCntOrphan">0</span></button>
+  </div>
+  <div id="ifxBody"><div class="ifx-empty">加载中…</div></div>
 </div>
 </div></div>
 
