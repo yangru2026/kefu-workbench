@@ -592,14 +592,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 <div class="modal-overlay" id="coachModal"><div class="modal" style="max-width:850px">
 <div class="modal-header"><h3>🎯 一对一讲解模式</h3><button class="close-btn" onclick="closeCoachModal()">×</button></div>
 <div class="modal-body" id="coachBody"></div>
-<div class="modal-footer"><button class="btn btn-p" onclick="window.print()">🖨️ 打印讲解单</button><button class="btn btn-s" onclick="closeCoachModal()">关闭</button></div>
+<div class="modal-footer"><button class="btn btn-g" id="coachSendBtn" style="display:none" onclick="sendCoachSheet()">📤 发送(本人+负责人)</button><button class="btn btn-p" onclick="window.print()">🖨️ 打印讲解单</button><button class="btn btn-s" onclick="closeCoachModal()">关闭</button></div>
 </div></div>
 
 <!-- Analysis Modal -->
 <div class="modal-overlay" id="analysisModal"><div class="modal" style="max-width:900px">
 <div class="modal-header"><h3>📊 客服质检质量分析</h3><button class="close-btn" onclick="closeAnalysisModal()">×</button></div>
 <div class="modal-body" id="analysisBody"></div>
-<div class="modal-footer"><button class="btn btn-p" onclick="window.print()">🖨️ 打印分析报告</button><button class="btn btn-s" onclick="closeAnalysisModal()">关闭</button></div>
+<div class="modal-footer"><button class="btn btn-g" id="analysisSendBtn" style="display:none" onclick="sendAnalysisReport()">📤 发送(本人+负责人)</button><button class="btn btn-p" onclick="window.print()">🖨️ 打印分析报告</button><button class="btn btn-s" onclick="closeAnalysisModal()">关闭</button></div>
 </div></div>
 
 <!-- Image Preview -->
@@ -905,6 +905,7 @@ async function loadRecords(showMsg) {
   renderRecords();
   setupPasteHandlers();
   refreshImgFixBadgeLight();
+  handleDeepLink();
   if (showMsg) showToast('🔄 已刷新列表');
 }
 
@@ -3129,6 +3130,7 @@ async function renderCoachSheet() {
       html += '</div>';
     }
     if (isAdmin) html += '<div style="margin:14px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn btn-g" onclick="batchMarkCoachDone()" style="font-size:12px;padding:6px 16px">✅ 标记所选已讲解</button><span id="coachSelCount" style="font-size:12px;color:var(--text2)">已选 ' + coachSelectedIds.size + ' 条</span><span style="font-size:11px;color:var(--text2)">勾选讲解单中的「讲完勾选」，批量标记无需逐条操作</span></div>';
+    const _csb0 = document.getElementById('coachSendBtn'); if (_csb0) _csb0.style.display = 'none';
     el.innerHTML = html;
     return;
   }
@@ -3151,6 +3153,7 @@ async function renderCoachSheet() {
     html += '</div>';
   }
   if (isAdmin) html += '<div style="margin:14px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn btn-g" onclick="batchMarkCoachDone()" style="font-size:12px;padding:6px 16px">✅ 标记所选已讲解</button><span id="coachSelCount" style="font-size:12px;color:var(--text2)">已选 ' + coachSelectedIds.size + ' 条</span><span style="font-size:11px;color:var(--text2)">勾选讲解单中的「讲完勾选」，批量标记无需逐条操作</span></div>';
+  const _csb = document.getElementById('coachSendBtn'); if (_csb) _csb.style.display = (isAdmin) ? '' : 'none';
   el.innerHTML = html;
 }
 
@@ -3257,12 +3260,12 @@ function openAnalysisMode() {
   document.getElementById('analysisModal').classList.add('active');
 }
 
-function renderAnalysisSheet() {
+async function renderAnalysisSheet() {
   const staff = document.getElementById('analysisStaffSelect').value;
   const el = document.getElementById('analysisSheet');
   if (!staff) { el.innerHTML = ''; return; }
 
-  if (staff === '_all_') { renderAllStaffSummary(el); return; }
+  if (staff === '_all_') { const _sb = document.getElementById('analysisSendBtn'); if (_sb) _sb.style.display = 'none'; await renderAllStaffSummary(el); return; }
 
   const allRecs = records.filter(r => r.staff === staff).sort((a,b) => b.date.localeCompare(a.date));
   const pendingRecs = allRecs.filter(r => r.status === 'pending');
@@ -3339,15 +3342,20 @@ function renderAnalysisSheet() {
     html += '</table></div>';
   }
 
-  html += '<div class="analysis-section"><h4>📅 时间线（最近10条）</h4>';
-  allRecs.slice(0,10).forEach(r => {
-    html += '<div class="timeline-item"><div class="timeline-dot ' + r.status + '"></div><div class="timeline-content"><div class="timeline-date">' + r.date + ' | ' + r.shop + '</div><div class="timeline-text">' + escapeHtml((r.problem||'').substring(0,60)) + '</div><div class="timeline-tags">' + (r.tags||[]).map(t => '<span class="timeline-tag" style="background:#f1f5f9">' + t + '</span>').join('') + '</div></div></div>';
-  });
+  html += '<div class="analysis-section"><h4>📅 时间线（最近10条，含配图）</h4>';
+  for (const r of allRecs.slice(0,10)) {
+    const imgs = await analysisThumbsHtml(r);
+    html += '<div class="timeline-item"><div class="timeline-dot ' + r.status + '"></div><div class="timeline-content"><div class="timeline-date">' + r.date + ' | ' + r.shop + '</div><div class="timeline-text">' + escapeHtml((r.problem||'').substring(0,60)) + '</div><div class="timeline-tags">' + (r.tags||[]).map(t => '<span class="timeline-tag" style="background:#f1f5f9">' + t + '</span>').join('') + '</div>' + imgs + '</div></div>';
+  }
   html += '</div>';
+
+  const _sendBtn = document.getElementById('analysisSendBtn');
+  if (_sendBtn) _sendBtn.style.display = (isAdmin) ? '' : 'none';
+
   el.innerHTML = html;
 }
 
-function renderAllStaffSummary(el) {
+async function renderAllStaffSummary(el) {
   const allStaff = [...new Set(records.map(r => r.staff))].sort();
   const pendingTotal = records.filter(r => r.status === 'pending').length;
   const doneTotal = records.filter(r => r.status === 'done').length;
@@ -3385,6 +3393,101 @@ function renderAllStaffSummary(el) {
 }
 
 function closeAnalysisModal() { document.getElementById('analysisModal').classList.remove('active'); }
+
+/* ==================== 质检分析 / 讲解单：配图 + 一键发送 + 深链 ==================== */
+
+// 渲染单条记录在时间线里的配图缩略图（点击放大，长图不损清晰度）
+async function analysisThumbsHtml(r) {
+  const groups = [
+    { label: '客户问题', imgs: r.scene_images || r.sceneImages || [] },
+    { label: '客服回复', imgs: r.reply_images || r.replyImages || [] },
+    { label: '知识点', imgs: r.knowledge_images || r.knowledgeImages || [] }
+  ];
+  let out = '';
+  let any = false;
+  for (const g of groups) {
+    if (!g.imgs.length) continue;
+    any = true;
+    out += '<div style="margin:4px 0 2px;font-size:11px;color:var(--text2)">📸 ' + g.label + '：</div><div style="display:flex;flex-wrap:wrap;gap:5px">';
+    for (const imgId of g.imgs) {
+      const url = await getImageUrl(imgId);
+      if (url) out += '<img src="' + url + '" onclick="previewImage(\'' + url + '\',\'' + String(imgId).replace(/'/g, "\\'") + '\')" style="max-width:90px;max-height:64px;border-radius:4px;border:1px solid var(--border);object-fit:contain;cursor:zoom-in" title="点击放大">';
+    }
+    out += '</div>';
+  }
+  return any ? '<div class="timeline-imgs" style="margin-top:4px">' + out + '</div>' : '';
+}
+
+// 给全部负责人（管理员 / 组长）发站内信
+async function qcNotifyAdmins(title, content, type) {
+  try {
+    if (!window.supabase) return;
+    const { data, error } = await supabase.from('profiles').select('id').in('role', ['admin','leader']);
+    if (error || !data || !data.length) return;
+    for (const p of data) {
+      await supabase.from('notifications').insert({ user_id: p.id, title: title, content: content, type: type || 'qc_confirm', is_read: false });
+    }
+  } catch (e) { console.warn('qcNotifyAdmins 异常:', e.message); }
+}
+
+// 发送后弹出可复制的直达链接
+function showSendLinkModal(title, url, staff) {
+  const body = document.getElementById('shareModalBody');
+  if (!body) return;
+  body.innerHTML = '<p style="font-size:13px;margin-bottom:6px">' + title + '</p>'
+    + '<div style="font-size:12px;color:var(--success);background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 10px;margin-bottom:10px">✅ 已通过站内信发送给「' + escapeHtml(staff) + '」（本人）及全部负责人（管理员/组长）。对方点开链接即可直达查看并放大配图。</div>'
+    + '<div class="share-link-row"><span class="sl-staff">直达链接</span>'
+    + '<span class="sl-url">' + escapeHtml(url) + '</span>'
+    + '<button class="btn btn-s" style="font-size:11px;padding:4px 12px" onclick="copyShareLink(\'' + url.replace(/'/g, "\\'") + '\')">📋 复制</button></div>';
+  document.getElementById('shareModal').classList.add('active');
+}
+
+// 一键发送质检分析报告（本人 = 该客服 + 负责人 = 管理员/组长）
+async function sendAnalysisReport() {
+  if (!isAdmin) { showToast('⚠️ 只读模式，无法发送', true); return; }
+  const staff = document.getElementById('analysisStaffSelect').value;
+  if (!staff) { showToast('请先在上方选择要发送的客服', true); return; }
+  if (staff === '_all_') { showToast('请选择具体某位客服再发送（汇总版暂不支持发送）', true); return; }
+  const url = new URL('qc-v2.html?share=analysis&staff=' + encodeURIComponent(staff), location.href).href;
+  const title = '📊 ' + staff + ' 的质检分析报告';
+  const content = '质检主管发来「' + staff + '」的质检分析报告（含配图），点开直达查看：\n' + url;
+  await qcNotifyStaff(staff, title, content, 'qc_analysis');
+  await qcNotifyAdmins(title, content, 'qc_analysis');
+  showToast('✅ 已发送给「' + staff + '」（本人）和负责人');
+  showSendLinkModal('📊 分析报告已发送', url, staff);
+}
+
+// 一键发送讲解单（本人 = 该客服 + 负责人 = 管理员/组长）
+async function sendCoachSheet() {
+  if (!isAdmin) { showToast('⚠️ 只读模式，无法发送', true); return; }
+  const staff = document.getElementById('coachStaffSelect').value;
+  if (!staff) { showToast('请先在上方选择要发送的客服', true); return; }
+  if (staff === '_all_') { showToast('请选择具体某位客服再发送（汇总版暂不支持发送）', true); return; }
+  const url = new URL('qc-v2.html?share=coach&staff=' + encodeURIComponent(staff), location.href).href;
+  const title = '🎯 ' + staff + ' 的质检问题讲解单';
+  const content = '质检主管发来「' + staff + '」的质检讲解单（含配图），点开直达查看：\n' + url;
+  await qcNotifyStaff(staff, title, content, 'qc_coach');
+  await qcNotifyAdmins(title, content, 'qc_coach');
+  showToast('✅ 已发送给「' + staff + '」（本人）和负责人');
+  showSendLinkModal('🎯 讲解单已发送', url, staff);
+}
+
+// 深链：从分享链接直达打开对应报告/讲解单（一键发送后负责人点链接即可查看）
+function handleDeepLink() {
+  try {
+    const params = new URLSearchParams(location.search);
+    const share = params.get('share');
+    const staff = params.get('staff');
+    if (!share) return;
+    if (share === 'analysis') {
+      openAnalysisMode();
+      if (staff) { const sel = document.getElementById('analysisStaffSelect'); if (sel) { sel.value = staff; renderAnalysisSheet(); } }
+    } else if (share === 'coach') {
+      openCoachMode();
+      if (staff) { const sel = document.getElementById('coachStaffSelect'); if (sel) { sel.value = staff; renderCoachSheet(); } }
+    }
+  } catch (e) { console.warn('handleDeepLink 异常:', e.message); }
+}
 
 /* ==================== Export ==================== */
 /* ============ 纯前端生成 .xlsx（不依赖任何外部库） ============ */
@@ -3979,6 +4082,7 @@ function init() {
     loadQcTemplates();
     loadGoodCases();
     showToast('📋 演示模式：数据为脱敏示例，不可保存', true);
+    handleDeepLink();
     return;
   }
   loadLocalCache();
