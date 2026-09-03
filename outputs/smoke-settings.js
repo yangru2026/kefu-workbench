@@ -36,12 +36,17 @@ const sleep = ms => new Promise(r=>setTimeout(r,ms));
   await sleep(100);
   const emptyToast = await page.evaluate(()=>document.getElementById('toast').textContent);
 
-  // 4) DEMO 下点添加（有值）→ 预期「演示模式不可保存」守卫
-  await page.evaluate(()=>{ document.getElementById('setStaffInput').value='测试客服'; addOption('staff'); });
+  // 4) DEMO 下点批量添加 → 预期「演示模式不可保存」守卫
+  await page.evaluate(()=>{ document.getElementById('setStaffInput').value='测试客服A,测试客服B\n测试客服C'; addBatchOptions('staff'); });
   await sleep(100);
   const demoToast = await page.evaluate(()=>document.getElementById('toast').textContent);
 
-  // 5) 彩色下拉组件 HTML 生成函数（客服/店铺）
+  // 5) 批量识别预览
+  await page.evaluate(()=>{ document.getElementById('setShopInput').value='抖音5店，小红书店 京东店\n天猫店'; parseOptionPreview('shop'); });
+  await sleep(100);
+  const previewTags = await page.evaluate(()=>document.querySelectorAll('#setShopPreview .tag').length);
+
+  // 6) 彩色下拉组件 HTML 生成函数（客服/店铺）
   const selectHtml = await page.evaluate(()=>{
     staffOptions=['示例客服A','示例客服B']; shopOptions=['抖音1店','淘宝旗舰店'];
     return {
@@ -62,10 +67,12 @@ const sleep = ms => new Promise(r=>setTimeout(r,ms));
     tagHasColor: selectHtml.tag.includes('background') && selectHtml.tag.includes('态度问题'),
     realErrors:real
   };
+  report.previewTags = previewTags;
   console.log(JSON.stringify(report,null,2));
   const ok = btnVisible && modalInfo.open && modalInfo.staffList && modalInfo.shopList && modalInfo.staffInput && modalInfo.shopInput
     && modalInfo.staffTags>0 && modalInfo.shopTags>0
     && /请输入名称/.test(emptyToast) && /演示模式/.test(demoToast)
+    && previewTags===4
     && report.staffIsColorSelect && report.shopIsColorSelect && report.sevHasPills && report.tagHasColor && real.length===0;
   console.log(ok?'SETTINGS_OK':'SETTINGS_FAIL');
   process.exit(ok?0:1);

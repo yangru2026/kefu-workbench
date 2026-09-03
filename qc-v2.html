@@ -246,16 +246,20 @@ table.grid tr:hover{background:#fafbf8}
   <p style="font-size:12px;color:var(--text2);margin:0 0 10px">这里维护的客服名单与店铺明细，会同步到「新增 / 编辑质检记录」的客服 / 店铺下拉框。删除后不会改动已有记录。</p>
   <div class="fld"><label>客服名单</label>
     <div id="setStaffList" class="tag-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px"></div>
+    <textarea id="setStaffInput" placeholder="可批量粘贴，支持换行 / 逗号 / 空格 / 制表符分隔" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:13px;min-height:60px;resize:vertical"></textarea>
+    <div id="setStaffPreview" class="tag-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0;min-height:22px"></div>
     <div style="display:flex;gap:6px">
-      <input id="setStaffInput" placeholder="输入客服姓名后点添加" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:13px">
-      <button class="btn btn-primary" onclick="addOption('staff')">＋ 添加</button>
+      <button class="btn" onclick="parseOptionPreview('staff')">🔍 自动识别</button>
+      <button class="btn btn-primary" onclick="addBatchOptions('staff')">＋ 确认添加</button>
     </div>
   </div>
   <div class="fld" style="margin-top:12px"><label>店铺明细</label>
     <div id="setShopList" class="tag-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px"></div>
+    <textarea id="setShopInput" placeholder="可批量粘贴，支持换行 / 逗号 / 空格 / 制表符分隔" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:13px;min-height:60px;resize:vertical"></textarea>
+    <div id="setShopPreview" class="tag-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0;min-height:22px"></div>
     <div style="display:flex;gap:6px">
-      <input id="setShopInput" placeholder="输入店铺名称后点添加" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:13px">
-      <button class="btn btn-primary" onclick="addOption('shop')">＋ 添加</button>
+      <button class="btn" onclick="parseOptionPreview('shop')">🔍 自动识别</button>
+      <button class="btn btn-primary" onclick="addBatchOptions('shop')">＋ 确认添加</button>
     </div>
   </div>
 </div>
@@ -468,9 +472,38 @@ function renderSettingsList(){
   sl.innerHTML = staffHtml.map(s=>'<span class="tag" style="display:inline-flex;align-items:center;gap:6px">'+escapeHtml(s)+' <span style="cursor:pointer;color:var(--red);font-weight:700" data-name="'+escapeHtml(s)+'" onclick="deleteOption(\'staff\',this.getAttribute(\'data-name\'))">×</span></span>').join('') || '<span style="font-size:12px;color:var(--text2)">暂无，请在下方添加</span>';
   spl.innerHTML = shopHtml.map(s=>'<span class="tag" style="display:inline-flex;align-items:center;gap:6px">'+escapeHtml(s)+' <span style="cursor:pointer;color:var(--red);font-weight:700" data-name="'+escapeHtml(s)+'" onclick="deleteOption(\'shop\',this.getAttribute(\'data-name\'))">×</span></span>').join('') || '<span style="font-size:12px;color:var(--text2)">暂无，请在下方添加</span>';
 }
+function parseOptionNames(text){
+  if(!text)return [];
+  return [...new Set(text.split(/[\n,，;；\t ]+/).map(s=>s.trim()).filter(Boolean))];
+}
+function parseOptionPreview(cat){
+  const inp=document.getElementById(cat==='staff'?'setStaffInput':'setShopInput');
+  const box=document.getElementById(cat==='staff'?'setStaffPreview':'setShopPreview');
+  const names=parseOptionNames(inp.value);
+  box.innerHTML=names.map(n=>'<span class="tag" style="background:'+nameColor(n,'light')+';color:'+nameColor(n,'text')+';border:1px solid '+nameColor(n)+';padding:2px 7px;border-radius:4px">'+escapeHtml(n)+'</span>').join('') || '<span style="font-size:12px;color:var(--text2)">未识别到名称</span>';
+  showToast('识别到 '+names.length+' 条');
+}
+async function addBatchOptions(cat){
+  const inp=document.getElementById(cat==='staff'?'setStaffInput':'setShopInput');
+  const previewBox=document.getElementById(cat==='staff'?'setStaffPreview':'setShopPreview');
+  const names=parseOptionNames(inp.value);
+  if(!names.length){ showToast('请输入名称',true); return; }
+  if(DEMO){ showToast('📋 演示模式不可保存',true); return; }
+  try{
+    if(!window.supabase) throw new Error('未连接');
+    const existing=new Set(cat==='staff'?dbStaffOptions:dbShopOptions);
+    const newNames=names.filter(n=>!existing.has(n));
+    if(!newNames.length){ showToast('这些名称都已存在',true); return; }
+    const rows=newNames.map(n=>({category:cat,name:n}));
+    const {error}=await supabase.from('qc_options').insert(rows);
+    if(error) throw error;
+    if(cat==='staff') dbStaffOptions=[...new Set([...dbStaffOptions,...newNames])]; else dbShopOptions=[...new Set([...dbShopOptions,...newNames])];
+    populateMetaOptions(); renderSettingsList(); inp.value=''; previewBox.innerHTML=''; showToast('✅ 已添加 '+newNames.length+' 条');
+  }catch(e){ showToast('添加失败：'+e.message,true); }
+}
 async function addOption(cat){
   const inp=document.getElementById(cat==='staff'?'setStaffInput':'setShopInput');
-  const name=inp.value.trim(); if(!name){ showToast('请输入名称',true); return; }
+  const name=(inp.value||'').trim(); if(!name){ showToast('请输入名称',true); return; }
   if(DEMO){ showToast('📋 演示模式不可保存',true); return; }
   try{
     if(!window.supabase) throw new Error('未连接');
