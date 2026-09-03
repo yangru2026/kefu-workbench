@@ -61,6 +61,8 @@ body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-ser
 .todo-dot{width:10px;height:10px;border-radius:50%;background:#e74c3c;box-shadow:0 0 0 4px rgba(231,76,60,.18)}
 .todo-bar.active .todo-dot{background:#1f6feb;box-shadow:0 0 0 4px rgba(31,111,235,.18)}
 .todo-pill{font-size:11px;padding:1px 7px;border-radius:10px;background:#fdecea;color:var(--red);margin-left:6px;font-weight:600;white-space:nowrap}
+.urgent-pill{font-size:11px;padding:1px 7px;border-radius:10px;background:#e74c3c;color:#fff;margin-left:6px;font-weight:700;white-space:nowrap;animation:urgentPulse 1.3s infinite}
+@keyframes urgentPulse{0%{box-shadow:0 0 0 0 rgba(231,76,60,.55)}70%{box-shadow:0 0 0 6px rgba(231,76,60,0)}100%{box-shadow:0 0 0 0 rgba(231,76,60,0)}}
 /* table */
 table.grid{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
 table.grid th,table.grid td{border-bottom:1px solid var(--border);padding:8px 10px;text-align:left;font-size:13px;vertical-align:top}
@@ -705,12 +707,24 @@ async function confirmRecord(id){
     const {error}=await supabase.from('qc_confirmations').insert({record_id:id, staff:myName, user_id:(currentAuthUser&&currentAuthUser.id)||null, confirmed_at:new Date().toISOString()});
     if(error) throw error;
     qcConfirmations.push({record_id:id, staff:myName, confirmed_at:new Date().toISOString()});
+    const r=records.find(x=>x.id==id);
+    const info=(r?((r.date||'')+' · '+(r.shop||'')):'');
+    await qcNotifyAdmins('✅ '+myName+' 已确认质检', '客服 '+myName+' 已确认一条质检记录'+(info?'（'+info+'）':'')+'。', 'qc_confirm');
     renderRecords();
     showToast('✅ 本人已确认：已知晓该质检问题');
   }catch(e){ showToast('确认失败：'+e.message,true); }
 }
 
 /* ==================== 列表渲染 ==================== */
+const QC_TODO_OVERDUE_DAYS=3; // 未确认超过该天数标红「加急」
+function qcPendingDays(r){
+  let t=0;
+  if(r.created_at){ t=new Date(r.created_at).getTime(); }
+  if((!t||isNaN(t)) && r.date){ t=new Date(r.date+'T00:00:00').getTime(); }
+  if(!t||isNaN(t)) return 0;
+  return Math.max(0, Math.floor((Date.now()-t)/86400000));
+}
+function isOverdue(r){ return myUnconfirmed(r) && qcPendingDays(r) >= QC_TODO_OVERDUE_DAYS; }
 function myUnconfirmed(r){
   const myName = currentAuthUser ? (currentAuthUser.name||currentAuthUser.phone) : '';
   return !isAdmin && !!myName && r.staff===myName && !getConfirm(r.id,myName);
@@ -719,10 +733,12 @@ function updateTodoReminder(){
   const bar=document.getElementById('qcTodoBar'); if(!bar)return;
   if(isAdmin || !currentAuthUser){ bar.style.display='none'; qcTodoMode=false; return; }
   const myName=currentAuthUser.name||currentAuthUser.phone;
-  const pending=records.filter(r=>r.staff===myName && !getConfirm(r.id,myName)).length;
+  const pendingList=records.filter(r=>r.staff===myName && !getConfirm(r.id,myName));
+  const pending=pendingList.length;
+  const overdue=pendingList.filter(r=>qcPendingDays(r) >= QC_TODO_OVERDUE_DAYS).length;
   if(pending===0 && !qcTodoMode){ bar.style.display='none'; return; }
   bar.style.display='flex';
-  document.getElementById('qcTodoText').textContent = pending>0 ? ('🔴 待你确认 '+pending+' 条') : '✅ 你已确认全部';
+  document.getElementById('qcTodoText').textContent = pending>0 ? ('🔴 待你确认 '+pending+' 条'+(overdue>0?'（'+overdue+' 条加急）':'')) : '✅ 你已确认全部';
   document.getElementById('qcTodoToggle').textContent = qcTodoMode ? '显示全部' : '查看待确认';
   bar.classList.toggle('active', qcTodoMode);
 }
@@ -735,12 +751,14 @@ function getFiltered(){
   const g=id=>document.getElementById(id).value;
   const f=g('filterSearch').toLowerCase(), st=g('filterStaff'), sh=g('filterShop'), tg=g('filterTag'), stt=g('filterStatus'), mo=g('filterMonth');
   const myName = currentAuthUser ? (currentAuthUser.name||currentAuthUser.phone) : '';
-  return records.filter(r=>
+  const list = records.filter(r=>
     (!f || (r.problem||'').toLowerCase().includes(f) || (r.correct||'').toLowerCase().includes(f) || (r.staff||'').includes(f)) &&
     (!st || r.staff===st) && (!sh || r.shop===sh) && (!tg || (r.tags||[]).includes(tg)) &&
     (!stt || r.status===stt) && (!mo || (r.date||'').startsWith(mo)) &&
     (!qcTodoMode || !myName || (r.staff===myName && !getConfirm(r.id,myName)))
   );
+  if(qcTodoMode) list.sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (''+(b.created_at||'')).localeCompare(''+(a.created_at||'')));
+  return list;
 }
 function allImgs(r){ return [...(r.scene_images||[]),...(r.reply_images||[]),...(r.knowledge_images||[])]; }
 function renderRecords(){
@@ -757,7 +775,8 @@ function renderCards(el,list){
     h+='<div class="card" '+(canManage?'onclick="openEditModal(\''+r.id+'\')"':'')+'>'
       +'<div class="ch"><span class="staff">'+escapeHtml(r.staff)+'</span>'
       +'<span class="status-pill status-'+r.status+'">'+(r.status==='pending'?'待讲解':'已讲解')+'</span>'
-      +(myUnconfirmed(r)?'<span class="todo-pill">● 待确认</span>':'')+'</div>'
+      +(myUnconfirmed(r)?'<span class="todo-pill">● 待确认</span>':'')
+      +(isOverdue(r)?'<span class="urgent-pill">🔥 加急'+qcPendingDays(r)+'天</span>':'')+'</div>'
       +'<div class="meta">'+r.date+' · '+escapeHtml(r.shop)+' · <span class="sev sev-'+r.severity+'">'+r.severity+'</span></div>'
       +'<div class="tags">'+(r.tags||[]).map(t=>'<span class="tag">'+t+'</span>').join('')+'</div>'
       +'<div style="font-size:13px">❌ '+(escapeHtml((r.problem||'').substring(0,50))||'—')+'</div>';
@@ -775,7 +794,7 @@ function renderTable(el,list){
   for(const r of list){
     const canManage=isAdmin;
     h+='<tr '+(canManage?'style="cursor:pointer" onclick="openEditModal('+r.id+')"':'')+'>'
-      +'<td>'+escapeHtml(r.staff)+(myUnconfirmed(r)?' <span class="todo-pill">● 待确认</span>':'')+'</td><td>'+r.date+'</td><td>'+escapeHtml(r.shop)+'</td>'
+      +'<td>'+escapeHtml(r.staff)+(myUnconfirmed(r)?' <span class="todo-pill">● 待确认</span>':'')+(isOverdue(r)?' <span class="urgent-pill">🔥 加急'+qcPendingDays(r)+'天</span>':'')+'</td><td>'+r.date+'</td><td>'+escapeHtml(r.shop)+'</td>'
       +'<td>'+(r.tags||[]).map(t=>'<span class="tag">'+t+'</span>').join('')+'</td>'
       +'<td><span class="sev sev-'+r.severity+'">'+r.severity+'</span></td>'
       +'<td style="max-width:240px">'+(escapeHtml((r.problem||'').substring(0,80))||'—')+'</td>'
