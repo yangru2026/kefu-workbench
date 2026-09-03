@@ -79,8 +79,8 @@ table.grid tr:hover{background:#fafbf8}
 /* lightbox */
 .img-preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,.86);display:none;align-items:center;justify-content:center;z-index:80;flex-direction:column}
 .img-preview-overlay.active{display:flex}
-#imgPreviewWrapper{max-width:92vw;max-height:82vh;overflow:auto;display:flex;align-items:center;justify-content:center;cursor:grab}
-#imgPreviewSrc{max-width:100%;max-height:82vh;object-fit:contain;user-select:none}
+#imgPreviewWrapper{max-width:92vw;max-height:82vh;overflow:auto;display:flex;align-items:flex-start;justify-content:center;cursor:grab}
+#imgPreviewSrc{display:block;image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;user-select:none}
 .img-preview-close{position:absolute;top:14px;right:18px;color:#fff;font-size:30px;cursor:pointer;z-index:81}
 .img-preview-hint{position:absolute;top:14px;left:18px;color:#ccc;font-size:12px}
 .img-preview-toolbar{position:absolute;bottom:16px;display:flex;gap:8px;align-items:center;background:rgba(0,0,0,.5);padding:6px 12px;border-radius:20px}
@@ -223,7 +223,7 @@ table.grid tr:hover{background:#fafbf8}
 <button title="缩小" onclick="imgZoomStep(-0.3)">－</button>
 <span id="imgZoomLabel" onclick="imgResetZoom()">100%</span>
 <button title="放大" onclick="imgZoomStep(0.3)">＋</button>
-<button title="适应宽度" onclick="imgFitWidth()">⤢</button>
+<button title="适应屏幕" onclick="imgFitScreen()">⤢</button>
 </div>
 </div>
 
@@ -313,15 +313,24 @@ function previewImage(url,name){
   img.style.transform=''; imgZoom=1; imgX=0; imgY=0; wrap.scrollTop=0; wrap.scrollLeft=0;
   img.src=url; document.getElementById('imgPreviewName').textContent=name||'';
   document.getElementById('imgPreview').classList.add('active');
-  img.onload=()=>{ if(img.naturalWidth>wrap.clientWidth) imgFitWidth(true); updateZoomLabel(); };
+  img.onload=()=>{ imgFitWidth(); };
 }
 function closeImgPreview(){ document.getElementById('imgPreview').classList.remove('active'); }
 function imgToggleZoom(){ imgZoom = imgZoom>1?1:2; applyZoom(); }
 function imgZoomStep(d){ imgZoom=Math.max(0.4,Math.min(4,imgZoom+d)); applyZoom(); }
 function imgResetZoom(){ imgZoom=1; applyZoom(); }
-function imgFitWidth(keepZoom){ const img=document.getElementById('imgPreviewSrc'); const wrap=document.getElementById('imgPreviewWrapper');
-  const scaleX=wrap.clientWidth/img.naturalWidth; const scaleY=wrap.clientHeight/img.naturalHeight;
-  const s=Math.min(scaleX,scaleY,1); if(!keepZoom){imgZoom=s;} img.style.width=(img.naturalWidth*s*imgZoom)+'px'; img.style.height='auto'; updateZoomLabel(); }
+function imgFitWidth(){
+  const img=document.getElementById('imgPreviewSrc'); const wrap=document.getElementById('imgPreviewWrapper');
+  const s=Math.min(wrap.clientWidth/img.naturalWidth, 1);
+  imgZoom=s;
+  img.style.width=(img.naturalWidth*imgZoom)+'px'; img.style.height='auto'; updateZoomLabel();
+}
+function imgFitScreen(){
+  const img=document.getElementById('imgPreviewSrc'); const wrap=document.getElementById('imgPreviewWrapper');
+  const s=Math.min(wrap.clientWidth/img.naturalWidth, wrap.clientHeight/img.naturalHeight, 1);
+  imgZoom=s;
+  applyZoom();
+}
 function applyZoom(){ const img=document.getElementById('imgPreviewSrc'); img.style.width=(img.naturalWidth*imgZoom)+'px'; img.style.height='auto'; updateZoomLabel(); }
 function updateZoomLabel(){ document.getElementById('imgZoomLabel').textContent=Math.round(imgZoom*100)+'%'; }
 function imgDragStart(e){ imgDrag=true; imgSX=e.clientX; imgSY=e.clientY; const w=document.getElementById('imgPreviewWrapper'); imgSX-=w.scrollLeft; imgSY-=w.scrollTop; w.style.cursor='grabbing'; }
@@ -474,11 +483,11 @@ function openEditModal(id){
 }
 function toggleChip(el){ el.classList.toggle('on'); }
 function onPickFiles(kind,input){
-  for(const f of input.files){ const rd=new FileReader(); rd.onload=()=>addPreview(kind,rd.result,true); rd.readAsDataURL(f); }
+  for(const f of input.files){ const rd=new FileReader(); rd.onload=()=>addPreview(kind,rd.result,true,f); rd.readAsDataURL(f); }
   input.value='';
 }
-function addPreview(kind,src,isNew){
-  pendingUploads[kind].push({src,file:null,isNew:!!isNew});
+function addPreview(kind,src,isNew,file=null){
+  pendingUploads[kind].push({src,file,isNew:!!isNew});
   renderPreview(kind);
 }
 function renderPreview(kind){
