@@ -50,6 +50,11 @@ body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-ser
 .status-pill{font-size:11px;padding:2px 8px;border-radius:10px}
 .status-pending{background:#fff4e0;color:var(--orange)}
 .status-done{background:#e6f6ec;color:var(--green)}
+/* 本人确认 */
+.confirm-badge{font-size:11px;padding:2px 8px;border-radius:10px;display:inline-block;white-space:nowrap}
+.confirm-badge.done{background:#e6f6ec;color:var(--green)}
+.confirm-badge.todo{background:#fef2f2;color:var(--red)}
+.confirm-btn{margin-top:6px}
 /* table */
 table.grid{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
 table.grid th,table.grid td{border-bottom:1px solid var(--border);padding:8px 10px;text-align:left;font-size:13px;vertical-align:top}
@@ -167,7 +172,7 @@ table.grid tr:hover{background:#fafbf8}
   </div>
   <button class="btn" onclick="openAnalysisMode()">📊 质检分析</button>
   <button class="btn" onclick="openCoachMode()">🎯 一对一讲解</button>
-  <button class="btn" id="btnSend" onclick="openSendModal()">📤 发送记录</button>
+  <button class="btn" id="btnSend" onclick="openSendModal()">📤 发送质检清单（含图）</button>
   <button class="btn" onclick="exportXLSX()">⬇️ 导出Excel</button>
   <button class="btn" onclick="loadRecords(true)">🔄 刷新</button>
   <button class="btn" id="btnSettings" onclick="openSettingsModal()" style="display:none">⚙️ 基础数据</button>
@@ -222,7 +227,7 @@ table.grid tr:hover{background:#fafbf8}
 
 <!-- 发送记录 Modal -->
 <div class="modal-overlay" id="sendModal"><div class="modal" style="max-width:520px">
-<div class="modal-header"><h3>📤 发送质检记录（一对一反馈）</h3><button class="close-btn" onclick="closeSendModal()">×</button></div>
+<div class="modal-header"><h3>📤 发送质检清单（一对一反馈，含图）</h3><button class="close-btn" onclick="closeSendModal()">×</button></div>
 <div class="modal-body">
   <div class="fld"><label>按勾选记录发送（在列表勾选后）</label><div id="sendPreview" style="font-size:13px;color:var(--text2)">请先在列表勾选要发送的记录</div></div>
   <div class="fld"><label>自动确认时限（小时）</label><input id="sendHours" type="number" value="48" min="1" style="max-width:120px"></div>
@@ -326,6 +331,7 @@ const KNOWLEDGE_PRESETS = ['发货时效SOP','催单话术','美瞳参数科普'
 let isAdmin=false, currentAuthUser=null, currentRole=null;
 let records=[], qcImagesReady=false, imageUrlCache={}, qcProfileIdCache={};
 let staffOptions=[], shopOptions=[];
+let qcConfirmations=[];
 let selectedRecordIds=new Set(), qcViewMode='table', editingId=null, pendingUploads={scene:[],reply:[],knowledge:[]};
 let qcShares=[], coachSelectedIds=new Set();
 
@@ -632,10 +638,53 @@ function afterLoad(showMsg){
   document.getElementById('filterMonth').innerHTML='<option value="">全部月份</option>'+months.map(m=>'<option>'+m+'</option>').join('');
   populateMetaOptions();
   loadMetaOptionsFromDB();
+  loadConfirmations().then(()=>renderRecords());
   updateStats(); renderRecords(); handleDeepLink();
   if(showMsg)showToast('🔄 已刷新');
 }
 function updateStats(){ const p=records.filter(r=>r.status==='pending').length; document.getElementById('statBox').textContent='共 '+records.length+' 条 · 待讲解 '+p+' 条'; }
+
+/* ==================== 本人确认（模式二） ==================== */
+function getConfirm(recordId,staff){ return qcConfirmations.find(c=>c.record_id===recordId && c.staff===staff); }
+function getConfirms(recordId){ return qcConfirmations.filter(c=>c.record_id===recordId); }
+function fmtConfirmTime(t){ try{ const d=new Date(t); const p=n=>String(n).padStart(2,'0'); return (d.getMonth()+1)+'/'+d.getDate()+' '+p(d.getHours())+':'+p(d.getMinutes()); }catch(e){ return ''; } }
+async function loadConfirmations(){
+  if(DEMO){ qcConfirmations=[]; return; }
+  try{
+    if(!window.supabase) return;
+    const {data,error}=await supabase.from('qc_confirmations').select('record_id,staff,confirmed_at');
+    if(error) throw error;
+    qcConfirmations=data||[];
+  }catch(e){ console.warn('load confirmations',e); qcConfirmations=[]; }
+}
+function confirmControlHtml(r){
+  const myName = currentAuthUser ? (currentAuthUser.name||currentAuthUser.phone) : '';
+  const isSubject = !!myName && r.staff===myName;
+  if(isSubject){
+    const c=getConfirm(r.id,myName);
+    if(c) return '<span class="confirm-badge done">✅ 本人已确认 '+fmtConfirmTime(c.confirmed_at)+'</span>';
+    return '<button class="btn btn-sm btn-primary confirm-btn" onclick="confirmRecord('+r.id+')">本人确认已知晓</button>';
+  }
+  if(isAdmin){
+    const list=getConfirms(r.id);
+    if(list.length) return '<span class="confirm-badge done">✅ '+(list.map(x=>escapeHtml(x.staff)).join('、'))+' 已确认</span>';
+    return '<span class="confirm-badge todo">未确认</span>';
+  }
+  return '';
+}
+async function confirmRecord(id){
+  const myName = currentAuthUser ? (currentAuthUser.name||currentAuthUser.phone) : '';
+  if(!myName){ showToast('未登录',true); return; }
+  if(DEMO){ showToast('📋 演示模式不可确认',true); return; }
+  try{
+    if(!window.supabase) throw new Error('未连接');
+    const {error}=await supabase.from('qc_confirmations').insert({record_id:id, staff:myName, user_id:(currentAuthUser&&currentAuthUser.id)||null, confirmed_at:new Date().toISOString()});
+    if(error) throw error;
+    qcConfirmations.push({record_id:id, staff:myName, confirmed_at:new Date().toISOString()});
+    renderRecords();
+    showToast('✅ 本人已确认：已知晓该质检问题');
+  }catch(e){ showToast('确认失败：'+e.message,true); }
+}
 
 /* ==================== 列表渲染 ==================== */
 function getFiltered(){
@@ -665,13 +714,16 @@ function renderCards(el,list){
       +'<div class="tags">'+(r.tags||[]).map(t=>'<span class="tag">'+t+'</span>').join('')+'</div>'
       +'<div style="font-size:13px">❌ '+(escapeHtml((r.problem||'').substring(0,50))||'—')+'</div>';
     if(canManage){ h+='<input type="checkbox" class="sel-checkbox" data-id="'+r.id+'"'+(selectedRecordIds.has(r.id)?' checked':'')+selAttr+' onclick="event.stopPropagation();toggleSelect('+r.id+')"> 勾选发送'; }
-    h+= thumbsHtml(allImgs(r)) + '</div>';
+    h+= thumbsHtml(allImgs(r));
+    const cc=confirmControlHtml(r);
+    if(cc) h+='<div style="margin-top:8px">'+cc+'</div>';
+    h+='</div>';
   }
   el.innerHTML=h;
   bindThumbs(el);
 }
 function renderTable(el,list){
-  let h='<table class="grid"><thead><tr><th>客服</th><th>日期</th><th>店铺</th><th>分类</th><th>严重程度</th><th>问题表述</th><th>正确做法</th><th>截图</th><th>状态</th>'+(isAdmin?'<th>选择</th>':'')+'</tr></thead><tbody>';
+  let h='<table class="grid"><thead><tr><th>客服</th><th>日期</th><th>店铺</th><th>分类</th><th>严重程度</th><th>问题表述</th><th>正确做法</th><th>截图</th><th>状态</th><th>确认</th>'+(isAdmin?'<th>选择</th>':'')+'</tr></thead><tbody>';
   for(const r of list){
     const canManage=isAdmin;
     h+='<tr '+(canManage?'style="cursor:pointer" onclick="openEditModal('+r.id+')"':'')+'>'
@@ -682,6 +734,7 @@ function renderTable(el,list){
       +'<td style="max-width:240px">'+(escapeHtml((r.correct||'').substring(0,80))||'—')+'</td>'
       +'<td>'+thumbsHtml(allImgs(r),true)+'</td>'
       +'<td><span class="status-pill status-'+r.status+'">'+(r.status==='pending'?'待讲解':'已讲解')+'</span></td>'
+      +'<td>'+confirmControlHtml(r)+'</td>'
       + (canManage?'<td onclick="event.stopPropagation()"><input type="checkbox" class="sel-checkbox" data-id="'+r.id+'"'+(selectedRecordIds.has(r.id)?' checked':'')+' onclick="toggleSelect('+r.id+')"></td>':'')
       +'</tr>';
   }
