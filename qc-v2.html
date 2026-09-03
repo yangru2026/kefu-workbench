@@ -2305,11 +2305,26 @@ function filterByStatus(status) {
 }
 
 /* ==================== Record Actions ==================== */
+async function saveImageSnapshot(record, triggeredBy) {
+  if (!record || !record.id) return;
+  try {
+    await supabase.from('qc_image_snapshots').insert({
+      record_id: record.id,
+      scene_images: record.scene_images || [],
+      reply_images: record.reply_images || [],
+      knowledge_images: record.knowledge_images || [],
+      status_before: record.status || '',
+      triggered_by: triggeredBy || ''
+    });
+  } catch (e) { console.warn('保存图片快照失败:', e.message); }
+}
+
 async function markDone(id) {
   if (!isAdmin) { showToast('⚠️ 只读模式', true); return; }
   const r = records.find(x => x.id == id);
   if (!r) return;
   const note = prompt('讲解备注（可选）：') || '';
+  await saveImageSnapshot(r, 'markDone');
   const updates = { status: 'done', coach_date: todayStr(), coach_note: note };
   const { error } = await supabase.from('qc_records').update(updates).eq('id', id);
   if (error) { showToast('更新失败：' + error.message, true); return; }
@@ -2321,6 +2336,7 @@ async function markPending(id) {
   if (!isAdmin) { showToast('⚠️ 只读模式', true); return; }
   const r = records.find(x => x.id == id);
   if (!r) return;
+  await saveImageSnapshot(r, 'markPending');
   const updates = { status: 'pending', coach_date: '', coach_note: '' };
   const { error } = await supabase.from('qc_records').update(updates).eq('id', id);
   if (error) { showToast('更新失败：' + error.message, true); return; }
@@ -2332,7 +2348,7 @@ async function deleteRecord(id) {
   if (!isAdmin) { showToast('⚠️ 只读模式', true); return; }
   if (!confirm('确定删除这条质检记录？')) return;
   const r = records.find(x => x.id == id);
-  if (r) await deleteRecordImages(r);
+  if (r) { await saveImageSnapshot(r, 'deleteRecord'); await deleteRecordImages(r); }
   try { await supabase.from('qc_records').delete().eq('id', id); } catch(e) {}
   records = records.filter(x => x.id != id);
   updateStats(); renderRecords();
@@ -2346,6 +2362,7 @@ async function editRecord(id) {
   if (!isAdmin) { showToast('⚠️ 只读模式', true); return; }
   const r = records.find(x => x.id == id);
   if (!r) return;
+  await saveImageSnapshot(r, 'editRecord');
   editingId = id;
   clearPendingImages(); // 清空上一次的待上传图片，避免串台
   currentEditImgType = 'scene';
