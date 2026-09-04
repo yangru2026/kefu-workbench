@@ -20,9 +20,11 @@ const BASE = 'http://127.0.0.1:8123/index.html';
     const names=['奶茶棕','小鹿棕','雾灰甜茶','微醺酒红','云雾灰','冰川蓝','樱语粉','黑巧慕斯','琥珀日落','薄荷奶绿','焦糖玛奇朵','雾霾蓝灰','粉紫恋人','橄榄绿','蜜桃乌龙','烟熏紫灰','北海道奶蓝','玫瑰豆沙','青提苏打','月夜黑耀','奶油杏子','海盐蓝','暮色玫瑰','森屿绿','香芋波波','星光紫','初雪白','琥珀枫叶','蜜橘汽水','静夜蓝'];
     const tiers=['29.9元/副','49.9元/副','59.9元/副','69元/副'];
     const groups=['小直径','小直径','大直径'];
+    const types=['日抛','日抛','月抛','半年抛'];
+    const series=['倾慕系列','星眸系列','云裳系列'];
     const brands=['弥生','极氧'];
-    const rows=names.map((n,i)=>mk('a'+(i+1), brands[i%2], i%2?'月抛':'日抛', n, {
-      price_tier: i<26 ? tiers[i%4] : '', diam_group: i<26 ? groups[i%3] : '',
+    const rows=names.map((n,i)=>mk('a'+(i+1), brands[i%2], types[i%4], n, {
+      series: series[i%3], price_tier: i<26 ? tiers[i%4] : '', diam_group: i<26 ? groups[i%3] : '',
       diameter: groups[i%3]==='大直径' ? '14.5' : '14.2', disc: i===26
     }));
     window.__rows = rows;
@@ -45,13 +47,16 @@ const BASE = 'http://127.0.0.1:8123/index.html';
     const sq=document.getElementById('pp-search'); if(sq) sq.value='';
     const sd=document.getElementById('pp-show-disc'); if(sd) sd.checked=false;
     ppRenderLimit = PP_PAGE_SIZE;
-    // 通过真实入口进入弥生价格速查（switchPage 别名路由）→ 第一层：价格档卡片
+    // 通过真实入口进入弥生价格速查（switchPage 别名路由）→ 第一层：四维度分区卡片
     switchPage('price-miyang');
   });
   await new Promise(r=>setTimeout(r,600));
   await page.screenshot({path:'outputs/pp-page-preview.png', fullPage:false});
-  // 第二层：进入 29.9 档，展示档内花色按直径分组
-  await page.evaluate(()=>{ openPpTier('29.9元/副'); });
+  // 第二层：进入「按价格 29.9元/副」明细
+  await page.evaluate(()=>{
+    const card = [...document.querySelectorAll('#pp-content .pp-tiercard')].find(c=>c.querySelector('.pp-tiercard-price') && c.querySelector('.pp-tiercard-price').textContent==='29.9元/副');
+    if (card) card.click(); else openPpDim('price','29.9元/副');
+  });
   await new Promise(r=>setTimeout(r,600));
   await page.screenshot({path:'outputs/pp-tier-preview.png', fullPage:false});
   await browser.close();
