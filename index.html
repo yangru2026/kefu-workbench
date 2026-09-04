@@ -9761,6 +9761,12 @@ const PP_SPECIALS = [
     ] },
 ];
 function ppSpecialTags(p) { const a = []; PP_SPECIALS.forEach(s => { if (s.match(p)) a.push(s.label); }); return a; }
+// 特殊品归属去重：同时命中多条规则的花色只归入数组顺序最前的分类（初音优先于定轴），
+// 避免初音花色在定轴明细里重复出现（杨茹：这些花色已在初音分类里有了）
+function ppSpecialOwn(s, list) {
+  const idx = PP_SPECIALS.indexOf(s);
+  return list.filter(p => s.match(p) && !PP_SPECIALS.some((prev, i) => i < idx && prev.match(p)));
+}
 // 价格显示单位：初音日抛按「盒」，其余（含半年抛）按「副」。只改显示，不动库里的档位名
 function ppTierLabel(p) {
   const t = p.priceTier || '';
@@ -9825,7 +9831,7 @@ function renderPatternPricePage() {
 
   // 高价特殊品红卡（首层/汇总层复用）：联名机制直接印在卡面上，不点进去就能看全
   const spCard = s => {
-    const n = items.filter(s.match).length;
+    const n = ppSpecialOwn(s, items).length;
     return '<div class="pp-tiercard l1" style="--c:' + s.color + '" onclick="openPpDim(\'special\',\'' + s.key + '\')">'
       + '<div class="pp-tiercard-price">⚠️ ' + s.label + '</div>'
       + '<div class="pp-tiercard-sub">共 ' + n + ' 款 · 禁止按普通款备注此系列</div>'
@@ -9846,8 +9852,8 @@ function renderPatternPricePage() {
         + '<div class="pp-tiercard-enter">点击查看分类 →</div></div>';
     });
     html += '</div>';
-    // 高价特殊品专区（初音/定轴）：只要当前范围有匹配就单独红卡展示，防客服发错普通备注
-    const spHits = PP_SPECIALS.filter(s => items.some(s.match));
+    // 高价特殊品专区（初音/定轴）：只要当前范围有归属款就单独红卡展示，防客服发错普通备注
+    const spHits = PP_SPECIALS.filter(s => ppSpecialOwn(s, items).length);
     if (spHits.length) {
       html += '<div class="pp-special-head">⚠️ 高价特殊品（' + spHits.map(s => s.label).join(' / ') + '）· 价格更高，禁止按普通款发备注，发前务必核对价格！</div><div class="pp-tiercards">' + spHits.map(spCard).join('') + '</div>';
     }
@@ -9856,7 +9862,7 @@ function renderPatternPricePage() {
     // ===== 第二层：该分类下的选项卡片（如各系列 / 各抛型 / 各价格档） =====
     html += '<button class="pp-back" onclick="ppBackToDims()">← 返回分类入口</button>';
     if (ppDimView.dim === 'special') {
-      const spHits = PP_SPECIALS.filter(s => items.some(s.match));
+      const spHits = PP_SPECIALS.filter(s => ppSpecialOwn(s, items).length);
       const spTotal = items.filter(p => ppSpecialTags(p).length > 0).length;
       html += '<div class="pp-group-title special">⚠️ 高价特殊品<span class="pp-count">共 ' + spTotal + ' 款</span></div>';
       html += '<div class="pp-tiercards">' + spHits.map(spCard).join('') + '</div>';
@@ -9877,7 +9883,7 @@ function renderPatternPricePage() {
     let opt = null, isNone = false, detail = [], titleVal = ppDimView.val, spDef = null;
     if (isSpecial) {
       spDef = PP_SPECIALS.find(s => s.key === ppDimView.val) || null;
-      detail = spDef ? items.filter(spDef.match) : [];
+      detail = spDef ? ppSpecialOwn(spDef, items) : [];   // 命中多规则的花色只归最前分类，定轴明细不含初音款
       titleVal = spDef ? spDef.label : '特殊品';
     } else {
       opt = ppDimOptions(def.dim, items);

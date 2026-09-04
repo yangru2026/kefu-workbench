@@ -64,6 +64,10 @@ const BASE = 'http://127.0.0.1:8123/index.html';
   });
   await new Promise(r=>setTimeout(r,600));
   await page.screenshot({path:'outputs/pp-special-preview.png', fullPage:true});
+  // 定轴明细（验证归属去重：初音定轴款已归初音分类，此处只剩纯定轴款 + 少女漫机制）
+  await page.evaluate(()=>{ openPpDim('special','dingzhou'); });
+  await new Promise(r=>setTimeout(r,600));
+  await page.screenshot({path:'outputs/pp-dingzhou-preview.png', fullPage:true});
   // 回第一层 → 第二层：点「按系列」→ 该分类下的系列选项卡片
   await page.evaluate(()=>{ ppBackToDims(); });
   await new Promise(r=>setTimeout(r,300));
