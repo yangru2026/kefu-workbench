@@ -755,6 +755,12 @@ body {
 .pp-tiercard.l1:hover{border-color:var(--c);box-shadow:0 8px 18px color-mix(in srgb,var(--c) 15%,transparent)}
 .pp-tiercards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;justify-content:center;padding:0 4px}
 @media (max-width:720px){.pp-tiercards{grid-template-columns:minmax(0,1fr)}}
+/* 第二层选项卡：数量多时自适应多列紧凑排版，一眼看全 */
+.pp-tiercards.pp-opt-grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.pp-opt-grid .pp-tiercard{padding:16px 14px 12px}
+.pp-opt-grid .pp-tiercard .pp-tiercard-price{font-size:16px}
+.pp-opt-grid .pp-tiercard .pp-tiercard-sub{font-size:12px;margin:4px 0 8px}
+.pp-opt-grid .pp-tiercard-enter{font-size:12px}
 .pp-tiercard{position:relative;background:#fff;border:1px solid var(--border-soft);border-radius:16px;padding:18px 16px 14px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow);overflow:hidden}
 .pp-tiercard:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:#f59e0b}
 .pp-tiercard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#f59e0b,#d97706)}
@@ -9768,7 +9774,7 @@ function renderPatternPricePage() {
     const opt = ppDimOptions(def.dim, items);
     html += '<button class="pp-back" onclick="ppBackToDims()">← 返回分类入口</button>';
     html += '<div class="pp-group-title">' + def.icon + ' ' + def.title + '<span class="pp-count">' + items.length + ' 款</span></div>';
-    html += '<div class="pp-tiercards">';
+    html += '<div class="pp-tiercards pp-opt-grid">';
     opt.list.forEach(v => { html += dimCard(def, v, v, items.filter(p => opt.get(p) === v), false); });
     html += dimCard(def, '__none__', opt.noneLabel, items.filter(p => !opt.get(p)), true);
     html += '</div>';

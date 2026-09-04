@@ -102,6 +102,8 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     o.seriesInfo = content().includes('倾慕系列') && content().includes('星眸系列') && content().includes('未填系列');
     o.l2NoPatterns = !content().includes('奶茶棕') && !content().includes('加测甲');   // 选项卡面不出现花色名
     o.l2NoCheckbox = document.querySelectorAll('#pp-content .pp-check').length===0;
+    o.optGridOk = !!document.querySelector('#pp-content .pp-tiercards.pp-opt-grid');   // 第二层自适应多列网格
+    o.optGridCols = getComputedStyle(document.querySelector('#pp-content .pp-opt-grid')).gridTemplateColumns.split(' ').length;   // 宽屏≥3列
     const bb = document.getElementById('pp-batch-bar');
     o.batchBarHiddenCsL2 = !bb || bb.style.display==='none';
     ppBackToDims();
@@ -316,9 +318,10 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     priceOptionCardsDisc:4, jiyangPriceCards:1,
     adminChecks:3, quickSelects:6,
     pagedCards:2, afterMoreCards:4,
+    optGridCols:3,
     tierCardsJiyang:4
   };
-  const needed = ['treeFieldsOk','l1Info','noCardsLayer1','noCheckbox','noQuick','noPatternNames','no499','batchBarHiddenCs','backBtn','l2Title','seriesInfo','l2NoPatterns','l2NoCheckbox','batchBarHiddenCsL2','backOk','backLabelOk','typeTitleOk','typePatterns','typeGroupsOk','csTierNoCheckbox','batchBarHiddenCsTier','backToL2Ok','diamGroupsByPrice','priceGroupsByDiam','batchBarEl','batchBarHiddenL1','batchBarHiddenL2','batchBarVisibleTier','disc69Card','discVisible','loadMoreOk','oldNavGone','aliasReset','aliasJiyangOk','navActiveJiyang','aliasMiyangOk','navActiveMiyang','aliasBarHiddenL1','quickOk','localSynced','movedOut','batchOk','selClearedAfter','searchOk','editorPriceExists','editorDgExists','editorOptions','filterFnOk'];
+  const needed = ['treeFieldsOk','l1Info','noCardsLayer1','noCheckbox','noQuick','noPatternNames','no499','batchBarHiddenCs','backBtn','l2Title','seriesInfo','l2NoPatterns','l2NoCheckbox','optGridOk','batchBarHiddenCsL2','backOk','backLabelOk','typeTitleOk','typePatterns','typeGroupsOk','csTierNoCheckbox','batchBarHiddenCsTier','backToL2Ok','diamGroupsByPrice','priceGroupsByDiam','batchBarEl','batchBarHiddenL1','batchBarHiddenL2','batchBarVisibleTier','disc69Card','discVisible','loadMoreOk','oldNavGone','aliasReset','aliasJiyangOk','navActiveJiyang','aliasMiyangOk','navActiveMiyang','aliasBarHiddenL1','quickOk','localSynced','movedOut','batchOk','selClearedAfter','searchOk','editorPriceExists','editorDgExists','editorOptions','filterFnOk'];
   const numericKeys = Object.keys(numeric);
   const missing = needed.concat(numericKeys).filter(k=>!(k in out));
   const ok = missing.length===0 && needed.every(k=>out[k]===true) && numericKeys.every(k=>out[k]>=numeric[k]);
