@@ -717,6 +717,37 @@ body {
 .pcard-copy:active { transform:scale(0.95); }
 .pcard-copy.copied { background:#00b894; }
 .pattern-empty { text-align:center; padding:60px 20px; color:var(--text-secondary); }
+/* 花色价格速查 */
+.pp-batch-bar{display:none;align-items:center;gap:8px;flex-wrap:wrap;background:#f0f7ee;border:1px solid var(--border-soft);border-radius:12px;padding:9px 14px;margin-bottom:12px;font-size:13px}
+.pp-batch-bar b{color:var(--primary)}
+.pp-batch-bar select{border:1px solid var(--border);border-radius:8px;padding:5px 8px;font-size:13px;max-width:180px}
+.pp-toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:2px 0 14px}
+.pp-toolbar input[type=text]{flex:1;min-width:200px;max-width:360px;padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;background:var(--bg-warm)}
+.pp-toolbar input[type=text]:focus{outline:none;border-color:var(--primary-light);background:#fff}
+.pp-group{margin-bottom:26px}
+.pp-group-title{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:800;color:var(--primary);padding:6px 2px;border-bottom:2px solid var(--primary);margin-bottom:14px}
+.pp-group-title.pp-warn{color:#b45309;border-color:#f59e0b}
+.pp-tier{margin-bottom:18px}
+.pp-tier-title{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#92400e;background:#fef3c7;border:1px solid #fde68a;padding:4px 13px;border-radius:16px;margin-bottom:9px}
+.pp-tier-title.pp-tier-warn{color:#9a3412;background:#ffedd5;border-color:#fed7aa}
+.pp-count{font-size:11px;background:rgba(0,0,0,.09);color:inherit;border-radius:9px;padding:0 7px;line-height:1.7}
+.pp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:12px}
+.pp-card{position:relative;background:#fff;border:1px solid var(--border-soft);border-radius:14px;overflow:hidden;cursor:pointer;transition:all .2s;box-shadow:var(--shadow)}
+.pp-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--primary-light)}
+.pp-card.sel{border-color:var(--primary);box-shadow:0 0 0 2px rgba(76,122,76,.35)}
+.pp-card.disc{opacity:.62}
+.pp-img{position:relative;aspect-ratio:1/1;background:#f3f5f2}
+.pp-img img{width:100%;height:100%;object-fit:cover;display:block}
+.pp-img .img-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#c3cbc2;font-size:26px}
+.pp-price-tag{position:absolute;left:7px;bottom:7px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:12px;font-weight:700;padding:2px 10px;border-radius:11px;box-shadow:0 1px 5px rgba(0,0,0,.25)}
+.pp-price-tag.none{background:rgba(107,114,128,.85)}
+.pp-disc-badge{position:absolute;top:7px;left:7px;background:#d97706;color:#fff;font-size:11px;padding:1px 8px;border-radius:10px;z-index:2}
+.pp-check{position:absolute;top:6px;right:6px;z-index:3;background:rgba(255,255,255,.94);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.pp-check input{width:15px;height:15px;cursor:pointer;accent-color:var(--primary)}
+.pp-body{padding:8px 10px 10px}
+.pp-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px}
+.pp-new-inline{font-size:10px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border-radius:8px;padding:0 5px;line-height:1.6;flex-shrink:0}
+.pp-meta{font-size:11px;color:var(--text-secondary);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* Link list */
 .link-list { list-style: none; }
@@ -1482,6 +1513,7 @@ body {
     <div class="nav-item" data-page="ai"><span class="icon">🤖</span><span>AI 提问</span></div>
     <div class="nav-item" data-page="converter"><span class="icon">🔢</span><span>度数换算</span></div>
     <div class="nav-item" data-page="patterns"><span class="icon">🎨</span><span>花色素材</span></div>
+    <div class="nav-item" data-page="pattern-price"><span class="icon">💰</span><span>花色价格速查</span></div>
     <div class="nav-item" data-page="tools"><span class="icon">🛠</span><span>快捷工具</span></div>
     <div class="nav-item" data-page="cross-sales"><span class="icon">🛒</span><span>连带成交</span></div>
     <div class="nav-item" data-page="voc"><span class="icon">📣</span><span>客户之声</span><span class="badge" id="voc-todo-badge" style="display:none;"></span></div>
@@ -2656,9 +2688,11 @@ body {
       <div class="filter-row" id="pattern-filter-type"></div>
       <div class="filter-row" id="pattern-filter-fixedaxis"></div>
       <div class="filter-row" id="pattern-filter-diameter"></div>
+      <div class="filter-row" id="pattern-filter-diamgroup"></div>
       <div class="filter-row" id="pattern-filter-basecurve"></div>
       <div class="filter-row" id="pattern-filter-series"></div>
       <div class="filter-row" id="pattern-filter-color"></div>
+      <div class="filter-row" id="pattern-filter-price"></div>
       <div class="filter-row" id="pattern-filter-status"></div>
       <div class="pattern-search-row">
         <input type="text" id="pattern-search" placeholder="🔍 搜索花色名称..." oninput="onPatternSearch()">
@@ -2666,6 +2700,27 @@ body {
       </div>
     </div>
     <div class="pattern-grid" id="pattern-grid"></div>
+  </div>
+
+  <!-- ===== 花色价格速查 ===== -->
+  <div class="page" id="page-pattern-price">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div><h1>💰 花色价格速查</h1><p>直径分组 × 价格档，卖货前先核对价格档，防止低价备注高价花色 | 与花色素材库实时同步</p></div>
+    </div>
+    <div class="pp-batch-bar" id="pp-batch-bar">
+      <b>✅ 已选 <span id="pp-sel-count">0</span> 款</b>
+      <select id="pp-batch-price"></select>
+      <select id="pp-batch-diam"></select>
+      <button class="btn-sm primary" onclick="applyPatternBatchTag()">应用到选中</button>
+      <button class="btn-sm outline" onclick="clearPatternPriceSel()">取消选择</button>
+      <span style="font-size:12px;color:var(--text-muted);">勾选多款一键打标；价格档/直径分组的增删改在「花色素材」页对应筛选行右键管理</span>
+    </div>
+    <div class="pp-toolbar">
+      <input type="text" id="pp-search" placeholder="🔍 搜索花色名称/系列/品牌..." oninput="renderPatternPricePage()">
+      <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;"><input type="checkbox" id="pp-show-disc" onchange="renderPatternPricePage()"> 显示已下架</label>
+      <span class="pattern-stats" id="pp-stats"></span>
+    </div>
+    <div id="pp-content"></div>
   </div>
 
   <!-- ===== AI 提问 ===== -->
@@ -3237,6 +3292,9 @@ function refreshAdminUI() {
   // 花色素材「协作者」按钮（仅管理员可见）
   const collabPatternsBtn = document.getElementById('collab-patterns-btn');
   if (collabPatternsBtn) collabPatternsBtn.style.display = isAdmin ? '' : 'none';
+  // 花色价格速查「批量打标」栏（管理员/协作者可见）
+  const ppBatchBar = document.getElementById('pp-batch-bar');
+  if (ppBatchBar) ppBatchBar.style.display = canEditPatterns ? 'flex' : 'none';
   // 培训资料「新增」按钮
   const trainBtn = document.getElementById('train-add-btn');
   if (trainBtn) trainBtn.style.display = canEditTraining ? '' : 'none';
@@ -3727,6 +3785,7 @@ async function loadPatternsFromDB() {
     updateStats();
     renderPatternFilters();
     renderPatterns();
+    if (currentPage === 'pattern-price') renderPatternPricePage();
     subscribePatterns();
   } catch(e) {
     console.error('花色素材加载异常:', e);
@@ -3750,7 +3809,7 @@ function subscribePatterns() {
   if (!supabase || patternSub) return;
   patternSub = supabase.channel('pattern-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'pattern_assets' }, () => {
-      if (currentPage !== 'patterns') return; // 非花色素材页时不浪费全量重拉
+      if (currentPage !== 'patterns' && currentPage !== 'pattern-price') return; // 非花色相关页时不浪费全量重拉
       debouncedReload('patterns', loadPatternsFromDB);
     })
     .subscribe();
@@ -7245,6 +7304,7 @@ async function loadPatternCategories() {
     }
     patternCategories = data || [];
     if (currentPage === 'patterns') { renderPatternFilters(); }
+    else if (currentPage === 'pattern-price') { renderPatternPricePage(); }
   } catch(e) {
     console.error('花色分类加载异常:', e);
   }
@@ -7254,7 +7314,7 @@ function subscribePatternCategories() {
   if (!supabase) return;
   supabase.channel('pattern-cat-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'pattern_categories' }, () => {
-      if (currentPage !== 'patterns') return;
+      if (currentPage !== 'patterns' && currentPage !== 'pattern-price') return;
       debouncedReload('pattern-cat', loadPatternCategories);
     })
     .subscribe();
@@ -7284,6 +7344,8 @@ function buildPatternTree(flatData) {
       description: p.description || '',
       baseCurve: p.base_curve || '',
       fixedAxis: p.fixed_axis || '',
+      priceTier: p.price_tier || '',
+      diamGroup: p.diam_group || '',
       createdAt: p.created_at || '',
       sortOrder: typeof p.sort_order === 'number' ? p.sort_order : (parseInt(p.sort_order, 10) || 0),
       _id: p.id,
@@ -7746,6 +7808,12 @@ function switchPage(page) {
     // 每次进入都重新拉取，保证数据最新（Realtime 仅在花色素材页激活时才刷新）
     if (window.loadPatternCategories) loadPatternCategories();
     loadPatternsFromDB();
+  }
+  if (page === 'pattern-price') {
+    // 每次进入都重新拉取，保证数据最新
+    if (window.loadPatternCategories) loadPatternCategories();
+    if (!patternData || Object.keys(patternData.brands || {}).length === 0) loadPatternsFromDB();
+    else renderPatternPricePage();
   }
   if (page === 'licenses') {
     // 每次进入都重新拉取，保证数据最新
@@ -8288,7 +8356,9 @@ let patternSeries = '全部';
 let patternColor = '全部';
 let patternFixedAxis = '全部'; // '全部' | '定轴' | '非定轴'
 let patternStatusFilter = '全部'; // '全部' | '在售' | '下架'
-let patternCategories = []; // [{id, category_type:'brand'|'type'|'diameter'|'series'|'color', name, sort_order}]
+let patternPriceFilter = '全部';  // 价格档筛选（值=档位名 或 '全部'）
+let patternDiamGroupFilter = '全部'; // 直径分组筛选（小直径/大直径 或 '全部'）
+let patternCategories = []; // [{id, category_type:'brand'|'type'|'diameter'|'series'|'color'|'price'|'diam_group', name, sort_order}]
 
 function setPatternStatus(status) {
   patternStatusFilter = status;
@@ -8386,6 +8456,18 @@ function getPatternColors(brand, type, series, diameter) {
 function getPatternBaseCurves(brand, type, diameter) {
   const items = getFilteredItems(brand, type, '全部', diameter, '全部', patternFixedAxis);
   return [...new Set(items.map(p => p.baseCurve).filter(Boolean))].sort();
+}
+
+function getPatternPrices(brand, type) {
+  const items = getFilteredItems(brand, type, '全部', '全部', '全部', patternFixedAxis);
+  const names = [...new Set(items.map(p => p.priceTier).filter(Boolean))];
+  const num = s => parseFloat(String(s).replace(/[^0-9.]/g, '')) || 0;
+  return names.sort((a, b) => num(a) - num(b) || a.localeCompare(b));
+}
+
+function getPatternDiamGroups(brand, type) {
+  const items = getFilteredItems(brand, type, '全部', '全部', '全部', patternFixedAxis);
+  return [...new Set(items.map(p => p.diamGroup).filter(Boolean))];
 }
 
 function getFilteredItems(brand, type, series, diameter, baseCurve, fixedAxis) {
@@ -8499,6 +8581,33 @@ function renderPatternFilters() {
     diameterRow.style.display = diameterRow.innerHTML ? 'flex' : 'none';
   }
 
+  // 直径分组 filter — 右键菜单触发编辑/删除
+  const dgData = getMergedCats('diam_group', getPatternDiamGroups(patternBrand, patternType));
+  const dgRow = document.getElementById('pattern-filter-diamgroup');
+  if (dgData.length > 0) {
+    let dgHtml = '<span class="flabel">直径分组</span>' +
+      '<button class="flink' + (patternDiamGroupFilter === '全部' ? ' active' : '') + '" onclick="setPatternDiamGroup(\'全部\')">全部</button>';
+    dgData.forEach(g => {
+      if (_editingPatCat && _editingPatCat.type === 'diam_group' && _editingPatCat.oldName === g.name) {
+        dgHtml += `<span class="flink active pcat-inline-edit">
+          <input id="pcat-edit-input" value="${escapeHtml(g.name)}" onkeydown="if(event.key==='Enter')confirmEditPatCat();if(event.key==='Escape')cancelEditPatCat();">
+          <button class="btn-sm primary" onclick="confirmEditPatCat()">✓</button>
+          <button class="btn-sm outline" onclick="cancelEditPatCat()">✕</button></span>`;
+      } else {
+        const ctxAttr = isAdmin ? ` oncontextmenu="showPatCatCtxMenu(event,'diam_group','${escapeAttr(g.name)}')"` : '';
+        dgHtml += `<button class="flink${patternDiamGroupFilter === g.name ? ' active' : ''}" onclick="setPatternDiamGroup('${escapeAttr(g.name)}')"${ctxAttr}>${escapeHtml(g.name)}</button>`;
+      }
+    });
+    if (isAdmin) {
+      dgHtml += `<button class="pcat-add-mini" onclick="addPatCat('diam_group')">＋</button>`;
+    }
+    dgRow.innerHTML = dgHtml;
+    dgRow.style.display = 'flex';
+  } else {
+    dgRow.innerHTML = isAdmin ? '<span class="flabel">直径分组</span><button class="pcat-add-mini" onclick="addPatCat(\'diam_group\')">＋ 添加直径分组</button>' : '';
+    dgRow.style.display = dgRow.innerHTML ? 'flex' : 'none';
+  }
+
   // 基弧 filter — 数据驱动分类（不托管，从花色数据中提取）
   const baseCurveData = getPatternBaseCurves(patternBrand, patternType, patternDiameter);
   const baseCurveRow = document.getElementById('pattern-filter-basecurve');
@@ -8569,6 +8678,33 @@ function renderPatternFilters() {
     colorRow.style.display = colorRow.innerHTML ? 'flex' : 'none';
   }
 
+  // 价格档 filter — 右键菜单触发编辑/删除
+  const priceData = getMergedCats('price', getPatternPrices(patternBrand, patternType));
+  const priceRow = document.getElementById('pattern-filter-price');
+  if (priceData.length > 0) {
+    let priceHtml = '<span class="flabel">价格档</span>' +
+      '<button class="flink' + (patternPriceFilter === '全部' ? ' active' : '') + '" onclick="setPatternPrice(\'全部\')">全部</button>';
+    priceData.forEach(p => {
+      if (_editingPatCat && _editingPatCat.type === 'price' && _editingPatCat.oldName === p.name) {
+        priceHtml += `<span class="flink active pcat-inline-edit">
+          <input id="pcat-edit-input" value="${escapeHtml(p.name)}" onkeydown="if(event.key==='Enter')confirmEditPatCat();if(event.key==='Escape')cancelEditPatCat();">
+          <button class="btn-sm primary" onclick="confirmEditPatCat()">✓</button>
+          <button class="btn-sm outline" onclick="cancelEditPatCat()">✕</button></span>`;
+      } else {
+        const ctxAttr = isAdmin ? ` oncontextmenu="showPatCatCtxMenu(event,'price','${escapeAttr(p.name)}')"` : '';
+        priceHtml += `<button class="flink${patternPriceFilter === p.name ? ' active' : ''}" onclick="setPatternPrice('${escapeAttr(p.name)}')"${ctxAttr}>${escapeHtml(p.name)}</button>`;
+      }
+    });
+    if (isAdmin) {
+      priceHtml += `<button class="pcat-add-mini" onclick="addPatCat('price')">＋</button>`;
+    }
+    priceRow.innerHTML = priceHtml;
+    priceRow.style.display = 'flex';
+  } else {
+    priceRow.innerHTML = isAdmin ? '<span class="flabel">价格档</span><button class="pcat-add-mini" onclick="addPatCat(\'price\')">＋ 添加价格档</button>' : '';
+    priceRow.style.display = priceRow.innerHTML ? 'flex' : 'none';
+  }
+
   // 定轴 filter — 数据驱动，从品牌+抛型级别统计（不受直径/基弧/系列限制）
   const allItemsForAxis = getFilteredItems(patternBrand, patternType, '全部', '全部', '全部', '全部');
   const fixedAxisCount = allItemsForAxis.filter(p => p.fixedAxis && p.fixedAxis.trim()).length;
@@ -8598,6 +8734,8 @@ function switchPatternBrand(b) {
   patternColor = '全部';
   patternFixedAxis = '全部';
   patternStatusFilter = '全部';
+  patternPriceFilter = '全部';
+  patternDiamGroupFilter = '全部';
   patternPage = 1;
   renderPatternFilters();
   renderPatterns();
@@ -8611,6 +8749,8 @@ function setPatternType(t) {
   patternColor = '全部';
   patternFixedAxis = '全部';
   patternStatusFilter = '全部';
+  patternPriceFilter = '全部';
+  patternDiamGroupFilter = '全部';
   patternPage = 1;
   renderPatternFilters();
   renderPatterns();
@@ -8627,6 +8767,22 @@ function setPatternSeries(s) {
 
 function setPatternColor(c) {
   patternColor = c;
+  patternStatusFilter = '全部';
+  patternPage = 1;
+  renderPatternFilters();
+  renderPatterns();
+}
+
+function setPatternPrice(v) {
+  patternPriceFilter = v;
+  patternStatusFilter = '全部';
+  patternPage = 1;
+  renderPatternFilters();
+  renderPatterns();
+}
+
+function setPatternDiamGroup(v) {
+  patternDiamGroupFilter = v;
   patternStatusFilter = '全部';
   patternPage = 1;
   renderPatternFilters();
@@ -8664,7 +8820,7 @@ async function confirmEditPatCat() {
     await supabase.from('pattern_categories').insert({ category_type: _editingPatCat.type, name: newName, sort_order: maxOrder + 1 });
   }
   // 级联更新花色数据中对应字段
-  const fieldMap = { brand: 'brand', type: 'type', diameter: 'diameter', series: 'series', color: 'color' };
+  const fieldMap = { brand: 'brand', type: 'type', diameter: 'diameter', series: 'series', color: 'color', price: 'price_tier', diam_group: 'diam_group' };
   const field = fieldMap[_editingPatCat.type];
   if (field) {
     const { error: e2 } = await supabase.from('pattern_assets').update({ [field]: newName }).eq(field, _editingPatCat.oldName);
@@ -8676,6 +8832,8 @@ async function confirmEditPatCat() {
   else if (_editingPatCat.type === 'diameter' && patternDiameter === _editingPatCat.oldName) patternDiameter = newName;
   else if (_editingPatCat.type === 'series' && patternSeries === _editingPatCat.oldName) patternSeries = newName;
   else if (_editingPatCat.type === 'color' && patternColor === _editingPatCat.oldName) patternColor = newName;
+  else if (_editingPatCat.type === 'price' && patternPriceFilter === _editingPatCat.oldName) patternPriceFilter = newName;
+  else if (_editingPatCat.type === 'diam_group' && patternDiamGroupFilter === _editingPatCat.oldName) patternDiamGroupFilter = newName;
   _editingPatCat = null;
   showToast('✅ 分类已修改，花色数据已同步更新');
   await loadPatternCategories();
@@ -8687,14 +8845,14 @@ async function deletePatCat(type, name) {
   // 也允许删除关联花色字段，并从数据库清掉对应记录（如果存在）
   const cat = patternCategories.find(c => c.category_type === type && c.name === name);
   // 统计受影响的花色数量
-  const fieldMap = { brand: 'brand', type: 'type', diameter: 'diameter', series: 'series', color: 'color' };
+  const fieldMap = { brand: 'brand', type: 'type', diameter: 'diameter', series: 'series', color: 'color', price: 'price_tier', diam_group: 'diam_group' };
   const field = fieldMap[type];
   let count = 0;
   if (field) {
     const { count: c, error } = await supabase.from('pattern_assets').select('*', { count: 'exact', head: true }).eq(field, name);
     if (!error) count = c || 0;
   }
-  const typeLabelMap = { brand: '品牌', type: '抛型', diameter: '直径', series: '系列', color: '色系' };
+  const typeLabelMap = { brand: '品牌', type: '抛型', diameter: '直径', series: '系列', color: '色系', price: '价格档', diam_group: '直径分组' };
   const typeLabel = typeLabelMap[type] || type;
 
   if (type === 'brand') {
@@ -8729,6 +8887,8 @@ async function deletePatCat(type, name) {
   else if (type === 'diameter' && patternDiameter === name) patternDiameter = '全部';
   else if (type === 'series' && patternSeries === name) patternSeries = '全部';
   else if (type === 'color' && patternColor === name) patternColor = '全部';
+  else if (type === 'price' && patternPriceFilter === name) patternPriceFilter = '全部';
+  else if (type === 'diam_group' && patternDiamGroupFilter === name) patternDiamGroupFilter = '全部';
   await loadPatternCategories();
   await loadPatternsFromDB();
 }
@@ -8747,6 +8907,10 @@ function getCatMergeCandidates(type) {
     candidates = getMergedCats('type', getPatternTypes(patternBrand)).map(c => c.name);
   } else if (type === 'series') {
     candidates = getMergedCats('series', getPatternSeries(patternBrand, patternType, patternDiameter)).map(c => c.name);
+  } else if (type === 'price') {
+    candidates = getMergedCats('price', getPatternPrices(patternBrand, patternType)).map(c => c.name);
+  } else if (type === 'diam_group') {
+    candidates = getMergedCats('diam_group', getPatternDiamGroups(patternBrand, patternType)).map(c => c.name);
   }
   // 加上 pattern_categories 中同类型的标准分类
   const std = patternCategories.filter(c => c.category_type === type).map(c => c.name);
@@ -8755,7 +8919,7 @@ function getCatMergeCandidates(type) {
 
 function showCatMergeModal(type, name, count, cat) {
   _catMergeState = { type, name, count, cat };
-  const typeLabelMap = { type: '抛型', diameter: '直径', series: '系列', color: '色系' };
+  const typeLabelMap = { type: '抛型', diameter: '直径', series: '系列', color: '色系', price: '价格档', diam_group: '直径分组' };
   const typeLabel = typeLabelMap[type] || type;
   const modal = document.getElementById('cat-merge-modal');
   const title = document.getElementById('cat-merge-title');
@@ -8802,9 +8966,9 @@ function onCatMergeModeChange() {
 async function executeCatMerge() {
   if (!_catMergeState) return;
   const { type, name, count, cat } = _catMergeState;
-  const fieldMap = { type: 'type', diameter: 'diameter', series: 'series', color: 'color' };
+  const fieldMap = { type: 'type', diameter: 'diameter', series: 'series', color: 'color', price: 'price_tier', diam_group: 'diam_group' };
   const field = fieldMap[type];
-  const typeLabelMap = { type: '抛型', diameter: '直径', series: '系列', color: '色系' };
+  const typeLabelMap = { type: '抛型', diameter: '直径', series: '系列', color: '色系', price: '价格档', diam_group: '直径分组' };
   const typeLabel = typeLabelMap[type] || type;
   const mode = document.querySelector('input[name="cat-merge-mode"]:checked').value;
 
@@ -8830,6 +8994,8 @@ async function executeCatMerge() {
   else if (type === 'diameter' && patternDiameter === name) patternDiameter = '全部';
   else if (type === 'series' && patternSeries === name) patternSeries = '全部';
   else if (type === 'color' && patternColor === name) patternColor = '全部';
+  else if (type === 'price' && patternPriceFilter === name) patternPriceFilter = '全部';
+  else if (type === 'diam_group' && patternDiamGroupFilter === name) patternDiamGroupFilter = '全部';
 
   closeCatMergeModal();
   await loadPatternCategories();
@@ -8837,7 +9003,7 @@ async function executeCatMerge() {
 }
 
 async function addPatCat(type) {
-  const labels = { brand: '品牌', type: '抛型', diameter: '直径', series: '系列', color: '色系' };
+  const labels = { brand: '品牌', type: '抛型', diameter: '直径', series: '系列', color: '色系', price: '价格档', diam_group: '直径分组' };
   const name = prompt(`请输入新${labels[type]}名称：`);
   if (!name || !name.trim()) return;
   let trimmed = name.trim();
@@ -8905,6 +9071,13 @@ function renderPatterns() {
   // 色系筛选
   if (patternColor !== '全部') {
     items = items.filter(p => p.color === patternColor);
+  }
+  // 直径分组 / 价格档筛选
+  if (patternDiamGroupFilter !== '全部') {
+    items = items.filter(p => (p.diamGroup || '') === patternDiamGroupFilter);
+  }
+  if (patternPriceFilter !== '全部') {
+    items = items.filter(p => (p.priceTier || '') === patternPriceFilter);
   }
   // 状态筛选：全部 / 在售 / 下架
   if (patternStatusFilter === '在售') {
@@ -9284,6 +9457,11 @@ function renderEditorForm(pattern) {
     + '</select></div></div>'
     + '<div class="modal-field-row"><div class="modal-field"><label>直径</label><input id="ef-diameter" value="' + escapeHtml(t.diameter || '') + '" placeholder="14.2mm"></div>'
     + '<div class="modal-field"><label>着色直径</label><input id="ef-cdiam" value="' + escapeHtml(t.colorDiameter || '') + '" placeholder="13.5"></div></div>'
+    + '<div class="modal-field-row"><div class="modal-field"><label>价格档</label><select id="ef-price">'
+    + (() => { const mp = patternCategories.filter(c => c.category_type === 'price').map(c => c.name); const cur = t.priceTier || ''; const opts = ['', ...mp]; if (cur && opts.indexOf(cur) === -1) opts.push(cur); return opts.map(o => '<option value="' + escapeHtml(o) + '"' + (o === cur ? ' selected' : '') + '>' + (o === '' ? '（未设置）' : escapeHtml(o)) + '</option>').join(''); })()
+    + '</select></div><div class="modal-field"><label>直径分组</label><select id="ef-diamgroup">'
+    + (() => { const mg = patternCategories.filter(c => c.category_type === 'diam_group').map(c => c.name); const cur = t.diamGroup || ''; const opts = ['', ...mg]; if (cur && opts.indexOf(cur) === -1) opts.push(cur); return opts.map(o => '<option value="' + escapeHtml(o) + '"' + (o === cur ? ' selected' : '') + '>' + (o === '' ? '（未分组）' : escapeHtml(o)) + '</option>').join(''); })()
+    + '</select></div></div>'
     + '<div class="modal-field-row"><div class="modal-field"><label>基弧</label><input id="ef-basecurve" value="' + escapeHtml(t.baseCurve || '') + '" placeholder="8.6"></div>'
     + '<div class="modal-field"><label>定轴</label><input id="ef-fixedaxis" value="' + escapeHtml(t.fixedAxis || '') + '" placeholder="如 90°（留空表示非定轴）"></div></div>'
     + '<div class="modal-field-row"><div class="modal-field"><label>材质</label><input id="ef-material" value="' + escapeHtml(t.material || '') + '" placeholder="硅水凝胶"></div>'
@@ -9374,6 +9552,8 @@ async function savePattern() {
     series: document.getElementById('ef-series').value.trim(),
     color: document.getElementById('ef-color').value,
     diameter: document.getElementById('ef-diameter').value.trim(),
+    price_tier: document.getElementById('ef-price')?.value || '',
+    diam_group: document.getElementById('ef-diamgroup')?.value || '',
     base_curve: document.getElementById('ef-basecurve').value.trim(),
     fixed_axis: document.getElementById('ef-fixedaxis').value.trim(),
     color_diameter: document.getElementById('ef-cdiam').value.trim(),
@@ -9429,6 +9609,131 @@ async function toggleDiscontinued(id, markDiscontinued) {
 function closeModal(id) {
   document.getElementById(id).classList.remove('show');
   document.body.style.overflow = '';
+}
+
+// ==================== 花色价格速查页 ====================
+let ppSel = new Set();      // 批量打标选中的花色 id
+let _ppLbIdx = 0;
+
+function ppManagedNames(type) {
+  return patternCategories.filter(c => c.category_type === type).map(c => c.name);
+}
+function ppTierList() {
+  const managed = ppManagedNames('price');
+  const used = getAllPatternItems().map(p => p.priceTier).filter(Boolean);
+  const extras = [...new Set(used)].filter(n => !managed.includes(n));
+  const num = s => parseFloat(String(s).replace(/[^0-9.]/g, '')) || 0;
+  return [...managed, ...extras].sort((a, b) => num(a) - num(b) || a.localeCompare(b));
+}
+function ppGroupList() {
+  const managed = ppManagedNames('diam_group');
+  const used = getAllPatternItems().map(p => p.diamGroup).filter(Boolean);
+  const extras = [...new Set(used)].filter(n => !managed.includes(n));
+  return [...managed, ...extras];
+}
+function renderPatternPricePage() {
+  const canManage = canEdit('patterns');
+  // 批量打标下拉（管理员可见时才有意义）
+  const bp = document.getElementById('pp-batch-price');
+  if (bp) bp.innerHTML = '<option value="">（不修改价格档）</option>' + ppTierList().map(t => '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + '</option>').join('') + '<option value="__clear__">✕ 清空价格档</option>';
+  const bd = document.getElementById('pp-batch-diam');
+  if (bd) bd.innerHTML = '<option value="">（不修改直径分组）</option>' + ppGroupList().map(t => '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + '</option>').join('') + '<option value="__clear__">✕ 清空直径分组</option>';
+
+  const search = (document.getElementById('pp-search')?.value || '').toLowerCase().trim();
+  const showDisc = !!document.getElementById('pp-show-disc')?.checked;
+  let items = getAllPatternItems();
+  if (!showDisc) items = items.filter(p => !p.isDiscontinued);
+  if (search) {
+    items = items.filter(p => ((p.name || '') + ' ' + (p.series || '') + ' ' + (p.color || '') + ' ' + (p._brand || '')).toLowerCase().includes(search));
+  }
+  const stats = document.getElementById('pp-stats');
+  if (stats) {
+    const noTag = items.filter(p => !p.diamGroup || !p.priceTier).length;
+    stats.innerHTML = '共 <b>' + items.length + '</b> 款 · <span style="color:var(--danger,#d9483b)">未打标 ' + noTag + ' 款</span>';
+  }
+  const content = document.getElementById('pp-content');
+  const groups = [...ppGroupList(), ''];
+  const tiers = [...ppTierList(), ''];
+  let html = '';
+  groups.forEach(g => {
+    const gItems = items.filter(p => (p.diamGroup || '') === g);
+    if (gItems.length === 0) return;
+    html += '<div class="pp-group"><div class="pp-group-title' + (g === '' ? ' pp-warn' : '') + '">' + (g === '' ? '⏳ 待分组（未标直径）' : escapeHtml(g)) + '<span class="pp-count">' + gItems.length + '</span></div>';
+    tiers.forEach(t => {
+      const tItems = gItems.filter(p => (p.priceTier || '') === t)
+        .sort((a, b) => (b.sortOrder || 0) - (a.sortOrder || 0) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+      if (tItems.length === 0) return;
+      html += '<div class="pp-tier"><div class="pp-tier-title' + (t === '' ? ' pp-tier-warn' : '') + '">' + (t === '' ? '❓ 未标价格' : escapeHtml(t)) + '<span class="pp-count">' + tItems.length + '</span></div><div class="pp-grid">';
+      tItems.forEach(p => { html += ppCardHtml(p, canManage); });
+      html += '</div></div>';
+    });
+    html += '</div>';
+  });
+  if (!html) html = '<div class="pattern-empty">😕 没有匹配的花色，先到「花色素材」给花色打上价格档和直径分组吧</div>';
+  content.innerHTML = html;
+  updatePpSelCount();
+}
+
+function ppCardHtml(p, canManage) {
+  const eyeUrlList = (p.eyeImgs && p.eyeImgs.length) ? p.eyeImgs : (p.eyeImg ? [p.eyeImg] : []);
+  const lensUrlList = (p.lensImgs && p.lensImgs.length) ? p.lensImgs : (p.lensImg ? [p.lensImg] : []);
+  const images = [];
+  eyeUrlList.forEach((url, i) => { const c = addCacheBuster(toCdnUrl(url)); images.push({ thumb: c, large: url ? toLargeImageUrl(url) : '', hd: c, type: 'eye', hint: i > 0 ? '上眼效果 ' + (i + 1) : '上眼效果' }); });
+  lensUrlList.forEach((url, i) => { const c = addCacheBuster(toCdnUrl(url)); images.push({ thumb: c, large: url ? toLargeImageUrl(url) : '', hd: c, type: 'lens', hint: i > 0 ? '镜片图 ' + (i + 1) : '镜片图' }); });
+  let lbKey = '';
+  if (images.length) { lbKey = 'plb' + (++_ppLbIdx); window._lbImages = window._lbImages || {}; window._lbImages[lbKey] = images; }
+  const rawSrc = (p.thumbEye && p.thumbEye.trim()) ? p.thumbEye : (eyeUrlList[0] || (p.thumbLens && p.thumbLens.trim()) || lensUrlList[0] || '');
+  const imgHtml = rawSrc
+    ? '<img src="' + escapeHtml(addCacheBuster(toCdnUrl(rawSrc))) + '" loading="lazy" decoding="async" alt="' + escapeHtml(p.name) + '">'
+    : '<div class="img-placeholder"><span>👁️</span>暂无图片</div>';
+  const priceTag = p.priceTier
+    ? '<span class="pp-price-tag">' + escapeHtml(p.priceTier) + '</span>'
+    : '<span class="pp-price-tag none">未标价</span>';
+  const discBadge = p.isDiscontinued ? '<div class="pp-disc-badge">已下架</div>' : '';
+  const isNew = (() => { if (!p.createdAt) return false; const c = new Date(p.createdAt).getTime(); return !isNaN(c) && (Date.now() - c) < 30 * 86400000; })();
+  const newInline = (!p.isDiscontinued && isNew) ? '<span class="pp-new-inline">🆕</span>' : '';
+  const chk = canManage
+    ? '<label class="pp-check" onclick="event.stopPropagation()" title="勾选后批量打标"><input type="checkbox" ' + (ppSel.has(p._id) ? 'checked' : '') + ' onchange="ppToggleSel(\'' + escapeAttr(String(p._id)) + '\',this.checked,this)"></label>'
+    : '';
+  const clickAttr = lbKey ? ' onclick="openLightbox(window._lbImages[\'' + lbKey + '\'])"' : '';
+  const nameStyle = p.isDiscontinued ? ' style="text-decoration:line-through;opacity:.65;"' : '';
+  const metaParts = [p._brand, p.series, p.diameter ? '直径' + p.diameter : ''].filter(Boolean);
+  return '<div class="pp-card' + (p.isDiscontinued ? ' disc' : '') + (ppSel.has(p._id) ? ' sel' : '') + '"' + clickAttr + '>'
+    + '<div class="pp-img">' + discBadge + imgHtml + priceTag + chk + '</div>'
+    + '<div class="pp-body"><div class="pp-name"' + nameStyle + '>' + escapeHtml(p.name) + newInline + '</div>'
+    + '<div class="pp-meta">' + escapeHtml(metaParts.join(' · ')) + '</div></div>'
+    + '</div>';
+}
+
+function ppToggleSel(id, checked, el) {
+  if (checked) ppSel.add(id); else ppSel.delete(id);
+  const card = el && el.closest ? el.closest('.pp-card') : null;
+  if (card) card.classList.toggle('sel', checked);
+  updatePpSelCount();
+}
+function updatePpSelCount() {
+  const el = document.getElementById('pp-sel-count');
+  if (el) el.textContent = ppSel.size;
+}
+function clearPatternPriceSel() {
+  ppSel.clear();
+  renderPatternPricePage();
+}
+async function applyPatternBatchTag() {
+  if (!ppSel.size) { showToast('请先勾选要打标的花色'); return; }
+  const upd = {};
+  const bp = document.getElementById('pp-batch-price');
+  const bd = document.getElementById('pp-batch-diam');
+  if (bp && bp.value) upd.price_tier = bp.value === '__clear__' ? '' : bp.value;
+  if (bd && bd.value) upd.diam_group = bd.value === '__clear__' ? '' : bd.value;
+  if (Object.keys(upd).length === 0) { showToast('请先选择要设置的价格档或直径分组'); return; }
+  if (!confirm('确定把选中的 ' + ppSel.size + ' 款花色' + (upd.price_tier !== undefined ? '设为价格档「' + (upd.price_tier || '未设置') + '」' : '') + (upd.diam_group !== undefined ? '、直径分组「' + (upd.diam_group || '未分组') + '」' : '') + ' 吗？')) return;
+  const ids = [...ppSel];
+  const { error } = await supabase.from('pattern_assets').update(upd).in('id', ids);
+  if (error) { showToast('批量更新失败：' + error.message); return; }
+  showToast('✅ 已批量更新 ' + ids.length + ' 款花色');
+  ppSel.clear();
+  loadPatternsFromDB();
 }
 
 // 首页扣罚标准通知横幅
