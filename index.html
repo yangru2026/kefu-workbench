@@ -745,9 +745,6 @@ body {
 .pp-quick select{flex:1;min-width:0;border:1px solid var(--border);border-radius:8px;padding:4px 4px;font-size:12px;font-family:inherit;background:var(--bg-warm);color:var(--text-primary);cursor:pointer}
 .pp-quick select:focus{outline:none;border-color:var(--primary-light)}
 .pp-loadmore-wrap{text-align:center;padding:16px 0 6px}
-/* 价格速查页品牌页签（加作用域，不影响花色素材页的全局 brand-tab） */
-#pp-brand-tabs{background:transparent;box-shadow:none;border-radius:14px;gap:10px}
-#pp-brand-tabs .brand-tab{flex:0 0 auto;padding:9px 30px;border-radius:999px;font-weight:700;transition:all .2s}
 .pp-disc-badge{position:absolute;top:7px;left:7px;background:#d97706;color:#fff;font-size:11px;padding:1px 8px;border-radius:10px;z-index:2}
 .pp-check{position:absolute;top:6px;right:6px;z-index:3;background:rgba(255,255,255,.94);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .pp-check input{width:15px;height:15px;cursor:pointer;accent-color:var(--primary)}
@@ -1520,12 +1517,13 @@ body {
     <div class="nav-item" data-page="ai"><span class="icon">🤖</span><span>AI 提问</span></div>
     <div class="nav-item" data-page="converter"><span class="icon">🔢</span><span>度数换算</span></div>
     <div class="nav-item" data-page="patterns"><span class="icon">🎨</span><span>花色素材</span></div>
-    <div class="nav-item" data-page="pattern-price"><span class="icon">💰</span><span>花色价格速查</span></div>
     <div class="nav-item" data-page="tools"><span class="icon">🛠</span><span>快捷工具</span></div>
     <div class="nav-item" data-page="cross-sales"><span class="icon">🛒</span><span>连带成交</span></div>
     <div class="nav-item" data-page="voc"><span class="icon">📣</span><span>客户之声</span><span class="badge" id="voc-todo-badge" style="display:none;"></span></div>
     <div class="nav-item" data-page="daily"><span class="icon">🌙</span><span>汇报</span></div>
     <div class="nav-section">常用资料</div>
+    <div class="nav-item" data-page="price-miyang"><span class="icon">💰</span><span>弥生价格速查</span></div>
+    <div class="nav-item" data-page="price-jiyang"><span class="icon">💰</span><span>极氧价格速查</span></div>
     <div class="nav-item" data-page="training"><span class="icon">📚</span><span>培训资料</span></div>
     <div class="nav-item" data-page="licenses"><span class="icon">📜</span><span>查验证明</span></div>
     <div class="nav-item" data-page="sop"><span class="icon">📄</span><span>新人SOP</span></div>
@@ -2709,12 +2707,11 @@ body {
     <div class="pattern-grid" id="pattern-grid"></div>
   </div>
 
-  <!-- ===== 花色价格速查 ===== -->
+  <!-- ===== 花色价格速查（由「常用资料 → 弥生/极氧价格速查」两个入口共用，品牌在 switchPage 别名中锁定） ===== -->
   <div class="page" id="page-pattern-price">
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-      <div><h1>💰 花色价格速查</h1><p>直径分组 × 价格档，卖货前先核对价格档，防止低价备注高价花色 | 与花色素材库实时同步</p></div>
+      <div><h1>💰 弥生价格速查</h1><p>直径分组 × 价格档，卖货前先核对价格档，防止低价备注高价花色 | 与花色素材库实时同步</p></div>
     </div>
-    <div class="brand-tabs" id="pp-brand-tabs" style="margin-bottom:12px;"></div>
     <div class="pp-batch-bar" id="pp-batch-bar">
       <b>✅ 已选 <span id="pp-sel-count">0</span> 款</b>
       <select id="pp-batch-price"></select>
@@ -7790,6 +7787,24 @@ function exportQcReportExcel() {
 }
 
 function switchPage(page) {
+  // 品牌价格速查别名：price-miyang / price-jiyang → 共用价格速查页，锁定各自品牌
+  const PP_ALIAS = { 'price-miyang': '弥生', 'price-jiyang': '极氧' };
+  if (PP_ALIAS[page]) {
+    ppBrandFilter = PP_ALIAS[page];
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const ppEl = document.getElementById('page-pattern-price');
+    if (ppEl) ppEl.classList.add('active');
+    currentPage = 'pattern-price';   // 实时订阅/权限等逻辑继续按价格速查页工作
+    const h1 = document.querySelector('#page-pattern-price h1');
+    if (h1) h1.textContent = '💰 ' + PP_ALIAS[page] + '价格速查';
+    if (window.loadPatternCategories) loadPatternCategories();
+    if (!patternData || Object.keys(patternData.brands || {}).length === 0) loadPatternsFromDB();
+    else renderPatternPricePage();
+    refreshAdminUI();
+    return;
+  }
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -9650,22 +9665,8 @@ function renderPatternPricePage() {
   const bd = document.getElementById('pp-batch-diam');
   if (bd) bd.innerHTML = '<option value="">（不修改直径分组）</option>' + ppGroupList().map(t => '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + '</option>').join('') + '<option value="__clear__">✕ 清空直径分组</option>';
 
-  // 品牌页签（无「全部」，默认选中第一个品牌；未选中也有底色，一眼可辨）
-  const tabsEl = document.getElementById('pp-brand-tabs');
-  if (tabsEl) {
-    const brandNames = getMergedCats('brand', getPatternBrands()).map(b => b.name);
-    if (!brandNames.includes(ppBrandFilter)) ppBrandFilter = brandNames[0] || '';
-    const PASTEL = ['#e6efdf','#fdeeda','#e3edfa','#fae8ee','#eef9e0','#f1e9fa','#e0f2f1'];
-    const SOLID  = ['#4c7a4c','#c96f10','#3b76c4','#c2527e','#5d8a1e','#7d5fc4','#0f8a8a'];
-    tabsEl.innerHTML = brandNames.map((b, i) => {
-      const pastel = PASTEL[i % PASTEL.length], solid = SOLID[i % SOLID.length];
-      const act = ppBrandFilter === b;
-      return '<button class="brand-tab' + (act ? ' active' : '') + '"'
-        + ' style="background:' + (act ? solid : pastel) + ';color:' + (act ? '#fff' : '#42504a') + ';'
-        + (act ? 'box-shadow:0 2px 8px ' + solid + '59;' : 'box-shadow:inset 0 0 0 1.5px ' + solid + '45;') + '"'
-        + ' onclick="setPpBrand(\'' + escapeAttr(b) + '\')">' + escapeHtml(b) + '</button>';
-    }).join('') + (canManage ? '<button class="brand-tab pcat-add-mini" onclick="addPatCat(\'brand\')" style="flex:none;min-width:auto;padding:9px 14px;font-size:16px;border:none;background:var(--bg-warm);color:var(--text-secondary);">＋</button>' : '');
-  }
+  // 品牌由入口（switchPage 别名）锁定，页面内不再显示品牌页签
+  if (!ppBrandFilter || ppBrandFilter === '全部') ppBrandFilter = (getMergedCats('brand', getPatternBrands()).map(b => b.name)[0]) || '弥生';
 
   const search = (document.getElementById('pp-search')?.value || '').toLowerCase().trim();
   const showDisc = !!document.getElementById('pp-show-disc')?.checked;
@@ -9718,8 +9719,7 @@ function renderPatternPricePage() {
   updatePpSelCount();
 }
 
-// 品牌页签 / 搜索 / 显示已下架 / 加载更多
-function setPpBrand(b) { ppBrandFilter = b; ppRenderLimit = PP_PAGE_SIZE; renderPatternPricePage(); }
+// 搜索 / 显示已下架 / 加载更多（品牌由入口锁定，不再有页签切换）
 function onPpShowDisc() { ppRenderLimit = PP_PAGE_SIZE; renderPatternPricePage(); }
 function ppLoadMore() {
   const y = window.scrollY;
