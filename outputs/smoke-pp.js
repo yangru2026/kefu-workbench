@@ -213,8 +213,9 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     const h1 = document.querySelector('#page-pattern-price h1').textContent;
     const cj = document.getElementById('pp-content').textContent;
     o.aliasReset = ppDimView===null && ppBrandFilter==='极氧' && h1.includes('极氧');
-    o.aliasJiyangOk = o.aliasReset && cj.includes('按价格') && cj.includes('1 款花色') && !cj.includes('奶茶棕');
-    o.tierCardsJiyang = document.querySelectorAll('#pp-content .pp-tiercard').length;   // 4 张分类大卡
+    o.aliasJiyangOk = o.aliasReset && !cj.includes('按价格') && cj.includes('1 款花色') && !cj.includes('奶茶棕');   // 杨茹 2026-09-04：极氧首层去掉「按价格」
+    o.jiyangNoSpecial = !document.querySelector('.pp-special-head');   // 初音/少女漫定轴是弥生特殊品，极氧不展示
+    o.tierCardsJiyang = document.querySelectorAll('#pp-content .pp-tiercard').length;   // 3 张分类大卡（抛型/系列/直径）
     openPpDim('price');
     o.jiyangPriceCards = document.querySelectorAll('#pp-content .pp-tiercard').length;  // 极氧价格层仅 49.9 一张
     o.jiyang499Ok = document.getElementById('pp-content').textContent.includes('49.9元/副');
@@ -523,11 +524,11 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     adminChecks:3, quickSelects:6,
     pagedCards:2, afterMoreCards:4,
     optGridCols:3,
-    tierCardsJiyang:4,
+    tierCardsJiyang:3,
     spL1Cards:6, spDetailCards:2, spBadgeCount:2, spL2Cards:2,
     spSearchOneCards:5, spAdminChecks:2, spQuickSelects:4, spMechRows:8, spTypeChips:2, spDzMechRows:17, spDzDetailCards:1, noteInputCount:3, spMechGridCols:2
   };
-  const needed = ['treeFieldsOk','l1Info','noCardsLayer1','noCheckbox','noQuick','noPatternNames','no499','batchBarHiddenCs','backBtn','l2Title','seriesInfo','l2NoPatterns','l2NoCheckbox','optGridOk','batchBarHiddenCsL2','backOk','backLabelOk','typeTitleOk','typePatterns','typeGroupsOk','csTierNoCheckbox','batchBarHiddenCsTier','backToL2Ok','diamGroupsByPrice','priceGroupsByDiam','batchBarEl','batchBarHiddenL1','batchBarHiddenL2','batchBarVisibleTier','disc69Card','discVisible','loadMoreOk','oldNavGone','aliasReset','aliasJiyangOk','navActiveJiyang','aliasMiyangOk','navActiveMiyang','aliasBarHiddenL1','quickOk','localSynced','movedOut','batchOk','selClearedAfter','searchOk','editorPriceExists','editorDgExists','editorOptions','filterFnOk','priceSubOk','priceDayGroupOk','priceRestGroupOk','spHeadOk','spRedSubOk','spMechCardOk','spL1NoChecks','spL1NoQuick','spDzMechOk','spDzNoteOk','spBannerOk','spMechDetailOk','spTitleOk','spBadgeOk','spUnitBoxOk','spUnitPairOk','spTypeChipOk','spDzDetailOk','spDzOwnOk','noteEveryCardOk','noteLoadedOk','noteUpsertOk','noteCsViewOk','noteLocalFallbackOk','spBackLabelOk','spBatchHiddenCs','spL2CountOk','spBackToL1Ok','spZoneGoneOnSearch','spSearchOneOk','spAdminBarOk','spMechGridWrapOk','spMechGridOk','spMechGridFullOk','noteGuardTaExists','noteGuardNoNav','noteGuardNavOk','staffResetFnOk','staffResetBtnAdmin','staffResetBtnCs'];
+  const needed = ['treeFieldsOk','l1Info','noCardsLayer1','noCheckbox','noQuick','noPatternNames','no499','batchBarHiddenCs','backBtn','l2Title','seriesInfo','l2NoPatterns','l2NoCheckbox','optGridOk','batchBarHiddenCsL2','backOk','backLabelOk','typeTitleOk','typePatterns','typeGroupsOk','csTierNoCheckbox','batchBarHiddenCsTier','backToL2Ok','diamGroupsByPrice','priceGroupsByDiam','batchBarEl','batchBarHiddenL1','batchBarHiddenL2','batchBarVisibleTier','disc69Card','discVisible','loadMoreOk','oldNavGone','aliasReset','aliasJiyangOk','jiyangNoSpecial','navActiveJiyang','aliasMiyangOk','navActiveMiyang','aliasBarHiddenL1','quickOk','localSynced','movedOut','batchOk','selClearedAfter','searchOk','editorPriceExists','editorDgExists','editorOptions','filterFnOk','priceSubOk','priceDayGroupOk','priceRestGroupOk','spHeadOk','spRedSubOk','spMechCardOk','spL1NoChecks','spL1NoQuick','spDzMechOk','spDzNoteOk','spBannerOk','spMechDetailOk','spTitleOk','spBadgeOk','spUnitBoxOk','spUnitPairOk','spTypeChipOk','spDzDetailOk','spDzOwnOk','noteEveryCardOk','noteLoadedOk','noteUpsertOk','noteCsViewOk','noteLocalFallbackOk','spBackLabelOk','spBatchHiddenCs','spL2CountOk','spBackToL1Ok','spZoneGoneOnSearch','spSearchOneOk','spAdminBarOk','spMechGridWrapOk','spMechGridOk','spMechGridFullOk','noteGuardTaExists','noteGuardNoNav','noteGuardNavOk','staffResetFnOk','staffResetBtnAdmin','staffResetBtnCs'];
   const numericKeys = Object.keys(numeric);
   const missing = needed.concat(numericKeys).filter(k=>!(k in out));
   const ok = missing.length===0 && needed.every(k=>out[k]===true) && numericKeys.every(k=>out[k]>=numeric[k]);
