@@ -46,3 +46,15 @@
 - **语法检查**：`node -e "..."` 提取 inline `<script>` 逐段 `new Function(m[1])` 校验。
 - **无头浏览器冒烟测试**：`puppeteer-core`（绝对路径 require）+ Edge headless，本地起服务加载页面检查 `console`/`pageerror`。
 - **线上验证**：以 `git push` 成功 + 本地冒烟测试为准，勿因本沙箱外网慢而误判未部署。
+- **冒烟必备套路（2026-09-04 沉淀，模板 `outputs/smoke-pp.js`）**：
+  1. 大 evaluate 拆多步 + 每步超时 + 全局看门狗，否则卡死时 SIGTERM 无输出；
+  2. 页面有 `confirm()/alert()` 必须 `page.on('dialog', d=>d.accept())`，否则 evaluate 永久挂起（最常见 SIGTERM 根因）；
+  3. supabase mock：`.select()`/`.order()` 链式返回 this + thenable；`.in(col, vals)` 别漏列名；
+  4. 临时覆盖 `window.loadPatternsFromDB` 等加载函数拦截异步副作用；
+  5. 调 `renderEditorForm` 前先初始化 `window._editPattern`/`window._editImages`；
+  6. 分步 evaluate 返回值要 Object.assign 合并，否则断言空跑不报错。
+
+## 花色价格速查页（2026-09-04，commit 5cd5e16）
+- 菜单「💰 花色价格速查」：直径分组 × 价格档两级分组，防低价错标高价花色；未打标落「⏳ 待分组」「❓ 未标价格」。
+- 数据：`pattern_assets.price_tier`/`diam_group` + `pattern_categories` 扩展 `price`/`diam_group` 类型（档位右键/合并对话框自维护）；迁移 SQL `add_pattern_price_tier.sql`（幂等，直径≥14.5 自动预填大直径）。
+- 管理员批量勾选打标；客服只读；花色素材页筛选行 + 编辑弹窗（ef-price/ef-diamgroup）同步支持两字段。
