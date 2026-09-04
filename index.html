@@ -757,7 +757,14 @@ body {
 .pp-tiercards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;justify-content:center;padding:0 4px}
 @media (max-width:720px){.pp-tiercards{grid-template-columns:minmax(0,1fr)}}
 /* 第二层选项卡：数量多时自适应多列紧凑排版，一眼看全 */
-.pp-tiercards.pp-opt-grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.pp-tiercards.pp-opt-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;max-width:980px;margin-left:auto;margin-right:auto}
+.pp-tiercards.pp-opt-grid .pp-tiercard{padding:16px 18px}
+.pp-note-input{width:100%;box-sizing:border-box;border:1.5px dashed #f59e0b;border-radius:8px;background:#fffbeb;color:#92400e;font-size:12.5px;font-weight:600;padding:6px 9px;margin-bottom:10px;resize:vertical;min-height:44px;line-height:1.5;font-family:inherit;cursor:text}
+.pp-note-input:focus{outline:none;border-color:#d97706;background:#fff}
+.pp-note-input::placeholder{color:#d97706;opacity:.65;font-weight:400}
+.pp-note-view{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:6px 9px;margin-bottom:10px;font-size:12.5px;font-weight:700;line-height:1.5}
+@media(max-width:900px){.pp-tiercards.pp-opt-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.pp-tiercards.pp-opt-grid{grid-template-columns:1fr}}
 .pp-opt-grid .pp-tiercard{padding:16px 14px 12px}
 .pp-opt-grid .pp-tiercard .pp-tiercard-price{font-size:16px}
 .pp-opt-grid .pp-tiercard .pp-tiercard-sub{font-size:12px;margin:4px 0 8px}
@@ -3839,6 +3846,8 @@ async function loadPatternsFromDB() {
     renderPatterns();
     if (currentPage === 'pattern-price') renderPatternPricePage();
     subscribePatterns();
+    loadPpCardNotes();
+    subscribePpNotes();
   } catch(e) {
     console.error('花色素材加载异常:', e);
     showToast('花色素材加载异常: ' + e.message);
@@ -3865,6 +3874,44 @@ function subscribePatterns() {
       debouncedReload('patterns', loadPatternsFromDB);
     })
     .subscribe();
+}
+
+// ---------- 价格速查卡片提醒（pp_card_notes 表，管理员填写、全员实时可见） ----------
+let ppCardNotes = {};          // { '品牌|维度|值': 提醒文字 }
+let ppNotesSub = null;
+const _ppNoteSaveTimers = {};
+async function loadPpCardNotes() {
+  try {
+    if (!supabase || !supabase.from) return;
+    const { data, error } = await supabase.from('pp_card_notes').select('note_key,note_text');
+    if (error) { console.warn('卡片提醒加载失败:', error.message); return; }
+    const map = {};
+    (data || []).forEach(r => { if (r && r.note_key) map[r.note_key] = r.note_text || ''; });
+    ppCardNotes = map;
+    // 正在输入的框不被远端刷新覆盖；无输入焦点时才重渲染
+    if (currentPage === 'pattern-price' && !(document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('pp-note-input'))) renderPatternPricePage();
+  } catch(e) { console.warn('卡片提醒加载异常:', e); }
+}
+function subscribePpNotes() {
+  if (!supabase || !supabase.channel || ppNotesSub) return;
+  ppNotesSub = supabase.channel('pp-card-notes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'pp_card_notes' }, () => {
+      debouncedReload('ppNotes', loadPpCardNotes);
+    })
+    .subscribe();
+}
+function ppNoteKey(dim, val) { return (ppBrandFilter || '') + '|' + dim + '|' + val; }
+function onPpNoteInput(key, el) {
+  clearTimeout(_ppNoteSaveTimers[key]);
+  _ppNoteSaveTimers[key] = setTimeout(async () => {
+    const text = el.value;
+    ppCardNotes[key] = text;
+    try {
+      const { error } = await supabase.from('pp_card_notes').upsert({ note_key: key, note_text: text }, { onConflict: 'note_key' });
+      if (error) { showToast('提醒保存失败：' + error.message); return; }
+      showToast('✅ 提醒已同步给全员');
+    } catch(e) { showToast('提醒保存失败：' + (e.message || e)); }
+  }, 600);
 }
 
 // ---------- 从飞书同步 ----------
@@ -9814,9 +9861,15 @@ function renderPatternPricePage() {
   const content = document.getElementById('pp-content');
   let html = '';
 
-  // 选项卡片（第二层用）：只展示统计信息，点进去才看花色
+  // 选项卡片（第二层用）：顶部提醒框 + 统计信息，点进去才看花色
   const dimCard = (def, key, label, list, none) => {
     if (!list.length) return '';
+    const noteEditable = canEdit('patterns');
+    const nKey = ppNoteKey(def.dim, key);
+    const noteVal = ppCardNotes[nKey] || '';
+    const noteHtml = noteEditable
+      ? '<textarea class="pp-note-input" rows="2" placeholder="＋ 填写提醒（全员可见）" onclick="event.stopPropagation()" oninput="onPpNoteInput(\'' + escapeAttr(nKey) + '\',this)">' + escapeHtml(noteVal) + '</textarea>'
+      : (noteVal ? '<div class="pp-note-view">📢 ' + escapeHtml(noteVal) + '</div>' : '');
     const bDef = PP_DIMS.find(d => d.dim === def.badgeOf);
     const counts = {};
     list.forEach(p => { const b = bDef.key(p); if (b) counts[b] = (counts[b] || 0) + 1; });
@@ -9824,6 +9877,7 @@ function renderPatternPricePage() {
     const badges = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 4)
       .map((b, i) => '<span class="pp-dtag ' + ['small','big','unk'][i % 3] + '">' + escapeHtml(b) + ' ' + counts[b] + '</span>').join('');
     return '<div class="pp-tiercard' + (none ? ' none' : '') + '" onclick="openPpDim(\'' + escapeAttr(def.dim) + '\',\'' + escapeAttr(key) + '\')">'
+      + noteHtml
       + '<div class="pp-tiercard-price">' + escapeHtml(label) + '</div>'
       + '<div class="pp-tiercard-sub">共 ' + list.length + ' 款</div>'
       + '<div class="pp-tiercard-tags">' + badges + (unk ? '<span class="pp-dtag unk">未分 ' + unk + '</span>' : '') + '</div>'

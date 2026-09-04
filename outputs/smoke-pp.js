@@ -221,6 +221,38 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     return o;
   });
 
+  // ===== 卡片提醒框：管理员可编辑 + 远端回显 + 防抖保存（第二层选项卡） =====
+  await ev('cardNotes', async ()=>{
+    const o={};
+    const upserts=[];
+    const q={ _rows:[], _table:'',
+      select(){ return this; }, order(){ return this; },
+      then(res){ return Promise.resolve({data:this._table==='pp_card_notes'
+        ? [{note_key:'弥生|price|29.9元/副',note_text:'即将下架，优先推新款'}] : [], error:null}).then(res); },
+      upsert(u){ upserts.push({table:this._table,u}); return Promise.resolve({data:null,error:null}); }
+    };
+    window.supabase = { from(t){ q._table=t; return q; } };
+    currentProfile={role:'admin',name:'杨茹'};
+    currentPage='pattern-price'; ppBrandFilter='弥生'; ppDimView={dim:'price',val:null}; ppRenderLimit=PP_PAGE_SIZE;   // 第二层：选项卡
+    await loadPpCardNotes();
+    renderPatternPricePage();
+    const notes=[...document.querySelectorAll('#pp-content .pp-note-input')];
+    o.noteInputCount=notes.length;                       // 每张渲染出的选项卡 1 个
+    o.noteEveryCardOk=notes.length===document.querySelectorAll('#pp-content .pp-tiercard').length && notes.length>=3;
+    o.noteLoadedOk=!!notes[0] && notes[0].value==='即将下架，优先推新款';   // 远端文字回显
+    if(notes[0]){ notes[0].value='改提醒'; onPpNoteInput('弥生|price|29.9元/副', notes[0]); }
+    await new Promise(r=>setTimeout(r,850));             // 等 600ms 防抖
+    o.noteUpsertOk=upserts.length===1 && upserts[0].table==='pp_card_notes'
+      && upserts[0].u.note_key==='弥生|price|29.9元/副' && upserts[0].u.note_text==='改提醒';
+    // 客服视角：提醒变只读公告条
+    currentProfile=null; renderPatternPricePage();
+    o.noteCsViewOk=document.querySelectorAll('#pp-content .pp-note-input').length===0
+      && document.getElementById('pp-content').textContent.includes('📢 改提醒');
+    // 还原客服默认态，避免影响后续断言
+    ppCardNotes={}; renderPatternPricePage();
+    return o;
+  });
+
   // ===== 卡片快捷改档：跨档移动（管理员，按价格明细内） =====
   await ev('quickSet', async ()=>{
     const o={};
@@ -428,9 +460,9 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     optGridCols:3,
     tierCardsJiyang:4,
     spL1Cards:6, spDetailCards:2, spBadgeCount:2, spL2Cards:2,
-    spSearchOneCards:5, spAdminChecks:2, spQuickSelects:4, spMechRows:8, spTypeChips:2, spDzMechRows:17, spDzDetailCards:1
+    spSearchOneCards:5, spAdminChecks:2, spQuickSelects:4, spMechRows:8, spTypeChips:2, spDzMechRows:17, spDzDetailCards:1, noteInputCount:3
   };
-  const needed = ['treeFieldsOk','l1Info','noCardsLayer1','noCheckbox','noQuick','noPatternNames','no499','batchBarHiddenCs','backBtn','l2Title','seriesInfo','l2NoPatterns','l2NoCheckbox','optGridOk','batchBarHiddenCsL2','backOk','backLabelOk','typeTitleOk','typePatterns','typeGroupsOk','csTierNoCheckbox','batchBarHiddenCsTier','backToL2Ok','diamGroupsByPrice','priceGroupsByDiam','batchBarEl','batchBarHiddenL1','batchBarHiddenL2','batchBarVisibleTier','disc69Card','discVisible','loadMoreOk','oldNavGone','aliasReset','aliasJiyangOk','navActiveJiyang','aliasMiyangOk','navActiveMiyang','aliasBarHiddenL1','quickOk','localSynced','movedOut','batchOk','selClearedAfter','searchOk','editorPriceExists','editorDgExists','editorOptions','filterFnOk','spHeadOk','spRedSubOk','spMechCardOk','spL1NoChecks','spL1NoQuick','spDzMechOk','spDzNoteOk','spBannerOk','spMechDetailOk','spTitleOk','spBadgeOk','spUnitBoxOk','spUnitPairOk','spTypeChipOk','spDzDetailOk','spDzOwnOk','spBackLabelOk','spBatchHiddenCs','spL2CountOk','spBackToL1Ok','spZoneGoneOnSearch','spSearchOneOk','spAdminBarOk'];
+  const needed = ['treeFieldsOk','l1Info','noCardsLayer1','noCheckbox','noQuick','noPatternNames','no499','batchBarHiddenCs','backBtn','l2Title','seriesInfo','l2NoPatterns','l2NoCheckbox','optGridOk','batchBarHiddenCsL2','backOk','backLabelOk','typeTitleOk','typePatterns','typeGroupsOk','csTierNoCheckbox','batchBarHiddenCsTier','backToL2Ok','diamGroupsByPrice','priceGroupsByDiam','batchBarEl','batchBarHiddenL1','batchBarHiddenL2','batchBarVisibleTier','disc69Card','discVisible','loadMoreOk','oldNavGone','aliasReset','aliasJiyangOk','navActiveJiyang','aliasMiyangOk','navActiveMiyang','aliasBarHiddenL1','quickOk','localSynced','movedOut','batchOk','selClearedAfter','searchOk','editorPriceExists','editorDgExists','editorOptions','filterFnOk','spHeadOk','spRedSubOk','spMechCardOk','spL1NoChecks','spL1NoQuick','spDzMechOk','spDzNoteOk','spBannerOk','spMechDetailOk','spTitleOk','spBadgeOk','spUnitBoxOk','spUnitPairOk','spTypeChipOk','spDzDetailOk','spDzOwnOk','noteEveryCardOk','noteLoadedOk','noteUpsertOk','noteCsViewOk','spBackLabelOk','spBatchHiddenCs','spL2CountOk','spBackToL1Ok','spZoneGoneOnSearch','spSearchOneOk','spAdminBarOk'];
   const numericKeys = Object.keys(numeric);
   const missing = needed.concat(numericKeys).filter(k=>!(k in out));
   const ok = missing.length===0 && needed.every(k=>out[k]===true) && numericKeys.every(k=>out[k]>=numeric[k]);
