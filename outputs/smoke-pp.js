@@ -169,6 +169,15 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     ppBackToDimOptions('price');
     o.priceOptionCardsDisc = document.querySelectorAll('#pp-content .pp-tiercard').length;  // 29.9+59.9+69+未标价 = 4
     o.disc69Card = document.getElementById('pp-content').textContent.includes('69元/副');
+    // 价格档按抛型分块：日抛一块、其他/混合一块（本 seed 的 59.9 同时含日抛+半年抛 → 归混合）
+    const subs=[...document.querySelectorAll('#pp-content .pp-sub-title')];
+    o.priceSubOk = subs.length>=2 && subs.some(e=>e.textContent.includes('日抛')) && subs.some(e=>e.textContent.includes('其他 / 混合'));
+    const daySub=subs.find(e=>e.textContent.includes('日抛'));
+    const dayGrid=daySub && daySub.nextElementSibling;
+    o.priceDayGroupOk = !!dayGrid && dayGrid.classList.contains('pp-tiercards') && dayGrid.textContent.includes('29.9元/副') && !dayGrid.textContent.includes('69元/副');
+    const restSub=subs.find(e=>e.textContent.includes('其他 / 混合'));
+    const restGrid=restSub && restSub.nextElementSibling;
+    o.priceRestGroupOk = !!restGrid && restGrid.textContent.includes('69元/副') && restGrid.textContent.includes('59.9元/副');
     openPpDim('price','69元/副');
     o.discVisible = document.getElementById('pp-content').textContent.includes('老款棕');
     document.getElementById('pp-show-disc').checked = false;
@@ -512,7 +521,7 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     spL1Cards:6, spDetailCards:2, spBadgeCount:2, spL2Cards:2,
     spSearchOneCards:5, spAdminChecks:2, spQuickSelects:4, spMechRows:8, spTypeChips:2, spDzMechRows:17, spDzDetailCards:1, noteInputCount:3, spMechGridCols:2
   };
-  const needed = ['treeFieldsOk','l1Info','noCardsLayer1','noCheckbox','noQuick','noPatternNames','no499','batchBarHiddenCs','backBtn','l2Title','seriesInfo','l2NoPatterns','l2NoCheckbox','optGridOk','batchBarHiddenCsL2','backOk','backLabelOk','typeTitleOk','typePatterns','typeGroupsOk','csTierNoCheckbox','batchBarHiddenCsTier','backToL2Ok','diamGroupsByPrice','priceGroupsByDiam','batchBarEl','batchBarHiddenL1','batchBarHiddenL2','batchBarVisibleTier','disc69Card','discVisible','loadMoreOk','oldNavGone','aliasReset','aliasJiyangOk','navActiveJiyang','aliasMiyangOk','navActiveMiyang','aliasBarHiddenL1','quickOk','localSynced','movedOut','batchOk','selClearedAfter','searchOk','editorPriceExists','editorDgExists','editorOptions','filterFnOk','spHeadOk','spRedSubOk','spMechCardOk','spL1NoChecks','spL1NoQuick','spDzMechOk','spDzNoteOk','spBannerOk','spMechDetailOk','spTitleOk','spBadgeOk','spUnitBoxOk','spUnitPairOk','spTypeChipOk','spDzDetailOk','spDzOwnOk','noteEveryCardOk','noteLoadedOk','noteUpsertOk','noteCsViewOk','spBackLabelOk','spBatchHiddenCs','spL2CountOk','spBackToL1Ok','spZoneGoneOnSearch','spSearchOneOk','spAdminBarOk','spMechGridWrapOk','spMechGridOk','spMechGridFullOk','noteGuardTaExists','noteGuardNoNav','noteGuardNavOk','staffResetFnOk','staffResetBtnAdmin','staffResetBtnCs'];
+  const needed = ['treeFieldsOk','l1Info','noCardsLayer1','noCheckbox','noQuick','noPatternNames','no499','batchBarHiddenCs','backBtn','l2Title','seriesInfo','l2NoPatterns','l2NoCheckbox','optGridOk','batchBarHiddenCsL2','backOk','backLabelOk','typeTitleOk','typePatterns','typeGroupsOk','csTierNoCheckbox','batchBarHiddenCsTier','backToL2Ok','diamGroupsByPrice','priceGroupsByDiam','batchBarEl','batchBarHiddenL1','batchBarHiddenL2','batchBarVisibleTier','disc69Card','discVisible','loadMoreOk','oldNavGone','aliasReset','aliasJiyangOk','navActiveJiyang','aliasMiyangOk','navActiveMiyang','aliasBarHiddenL1','quickOk','localSynced','movedOut','batchOk','selClearedAfter','searchOk','editorPriceExists','editorDgExists','editorOptions','filterFnOk','priceSubOk','priceDayGroupOk','priceRestGroupOk','spHeadOk','spRedSubOk','spMechCardOk','spL1NoChecks','spL1NoQuick','spDzMechOk','spDzNoteOk','spBannerOk','spMechDetailOk','spTitleOk','spBadgeOk','spUnitBoxOk','spUnitPairOk','spTypeChipOk','spDzDetailOk','spDzOwnOk','noteEveryCardOk','noteLoadedOk','noteUpsertOk','noteCsViewOk','spBackLabelOk','spBatchHiddenCs','spL2CountOk','spBackToL1Ok','spZoneGoneOnSearch','spSearchOneOk','spAdminBarOk','spMechGridWrapOk','spMechGridOk','spMechGridFullOk','noteGuardTaExists','noteGuardNoNav','noteGuardNavOk','staffResetFnOk','staffResetBtnAdmin','staffResetBtnCs'];
   const numericKeys = Object.keys(numeric);
   const missing = needed.concat(numericKeys).filter(k=>!(k in out));
   const ok = missing.length===0 && needed.every(k=>out[k]===true) && numericKeys.every(k=>out[k]>=numeric[k]);

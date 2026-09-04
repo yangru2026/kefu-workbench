@@ -726,6 +726,9 @@ body {
 .pp-toolbar input[type=text]:focus{outline:none;border-color:var(--primary-light);background:#fff}
 .pp-group{margin-bottom:26px}
 .pp-group-title{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:800;color:var(--primary);padding:6px 2px;border-bottom:2px solid var(--primary);margin-bottom:14px}
+/* 价格页抛型分块小标题（☀️日抛 / 🌙半年抛 / 📦其他） */
+.pp-sub-title{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;color:var(--text);margin:16px 2px 12px;padding-left:8px;border-left:4px solid var(--primary)}
+.pp-sub-title .pp-count{font-size:12px;color:var(--text-secondary);font-weight:600}
 .pp-group-title.pp-warn{color:#b45309;border-color:#f59e0b}
 .pp-group-title.special{color:#be123c;border-color:#f43f5e}
 .pp-tier{margin-bottom:18px}
@@ -9939,10 +9942,34 @@ function renderPatternPricePage() {
       const def = PP_DIMS.find(d => d.dim === ppDimView.dim) || PP_DIMS[3];
       const opt = ppDimOptions(def.dim, items);
       html += '<div class="pp-group-title">' + def.icon + ' ' + def.title + '<span class="pp-count">' + items.length + ' 款</span></div>';
-      html += '<div class="pp-tiercards pp-opt-grid">';
-      opt.list.forEach(v => { html += dimCard(def, v, v, items.filter(p => opt.get(p) === v), false); });
-      html += dimCard(def, '__none__', opt.noneLabel, items.filter(p => !opt.get(p)), true);
-      html += '</div>';
+      if (def.dim === 'price') {
+        // 价格档按抛型分块：日抛一块、半年抛一块、其余（月抛/混合/未标）一块——同抛型排一起好区分（杨茹）
+        const tiers = opt.list.map(v => ({ v: v, list: items.filter(p => opt.get(p) === v) }));
+        const noneList = items.filter(p => !opt.get(p));
+        const singleType = list => { const ts = [...new Set(list.map(p => p._type || '').filter(Boolean))]; return ts.length === 1 ? ts[0] : ''; };
+        const blocks = [
+          { icon: '☀️', name: '日抛', list: tiers.filter(t => singleType(t.list) === '日抛') },
+          { icon: '🌙', name: '半年抛', list: tiers.filter(t => singleType(t.list) === '半年抛') }
+        ];
+        const used = new Set([].concat(blocks[0].list, blocks[1].list).map(t => t.v));
+        const rest = tiers.filter(t => !used.has(t.v));
+        const blockHtml = b => b.list.length
+          ? '<div class="pp-sub-title">' + b.icon + ' ' + b.name + '<span class="pp-count">' + b.list.reduce((n, t) => n + t.list.length, 0) + ' 款</span></div>'
+            + '<div class="pp-tiercards pp-opt-grid">' + b.list.map(t => dimCard(def, t.v, t.v, t.list, false)).join('') + '</div>'
+          : '';
+        html += blockHtml(blocks[0]) + blockHtml(blocks[1]);
+        if (rest.length) html += blockHtml({ icon: '📦', name: '其他 / 混合', list: rest });
+        if (noneList.length) {
+          html += '<div class="pp-sub-title">📦 未标价格档<span class="pp-count">' + noneList.length + ' 款</span></div><div class="pp-tiercards pp-opt-grid">';
+          html += dimCard(def, '__none__', opt.noneLabel, noneList, true);
+          html += '</div>';
+        }
+      } else {
+        html += '<div class="pp-tiercards pp-opt-grid">';
+        opt.list.forEach(v => { html += dimCard(def, v, v, items.filter(p => opt.get(p) === v), false); });
+        html += dimCard(def, '__none__', opt.noneLabel, items.filter(p => !opt.get(p)), true);
+        html += '</div>';
+      }
     }
   } else {
     // ===== 第三层：花色明细 =====

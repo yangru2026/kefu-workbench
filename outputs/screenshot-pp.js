@@ -77,6 +77,12 @@ const BASE = 'http://127.0.0.1:8123/index.html';
   });
   await new Promise(r=>setTimeout(r,600));
   await page.screenshot({path:'outputs/pp-tier-preview.png', fullPage:false});
+  // 按价格 L2：价格档按抛型分块（☀️日抛 / 🌙半年抛 / 📦其他混合）
+  await page.evaluate(()=>{ ppBackToDims(); });
+  await new Promise(r=>setTimeout(r,300));
+  await page.evaluate(()=>{ openPpDim('price'); });
+  await new Promise(r=>setTimeout(r,600));
+  await page.screenshot({path:'outputs/pp-price-preview.png', fullPage:true});
   await browser.close();
   console.log('SHOT_OK');
   process.exit(0);
