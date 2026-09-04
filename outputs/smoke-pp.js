@@ -370,6 +370,10 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     // 单位：初音日抛显示「/盒」，初音未来半年抛保持「/副」（客服视图无下拉，无干扰文本）
     o.spUnitBoxOk = c().includes('49.9元/盒') && !c().includes('49.9元/副');
     o.spUnitPairOk = c().includes('69元/副');
+    // 抛型大标签：每个分组标题前彩色大字标明日抛/半年抛
+    o.spTypeChips = document.querySelectorAll('#pp-content .pp-gtype').length;   // 2 组各 1 个
+    o.spTypeChipOk = [...document.querySelectorAll('#pp-content .pp-gtype')].some(e=>e.textContent==='日抛')
+      && [...document.querySelectorAll('#pp-content .pp-gtype')].some(e=>e.textContent==='半年抛');
     o.spBackLabelOk = (document.querySelector('#pp-content .pp-back')||{textContent:''}).textContent.includes('返回高价特殊品');
     const bbC=document.getElementById('pp-batch-bar');
     o.spBatchHiddenCs = !bbC || bbC.style.display==='none';
@@ -410,9 +414,9 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     optGridCols:3,
     tierCardsJiyang:4,
     spL1Cards:6, spDetailCards:2, spBadgeCount:2, spL2Cards:2,
-    spSearchOneCards:5, spAdminChecks:2, spQuickSelects:4, spMechRows:4
+    spSearchOneCards:5, spAdminChecks:2, spQuickSelects:4, spMechRows:8, spTypeChips:2
   };
-  const needed = ['treeFieldsOk','l1Info','noCardsLayer1','noCheckbox','noQuick','noPatternNames','no499','batchBarHiddenCs','backBtn','l2Title','seriesInfo','l2NoPatterns','l2NoCheckbox','optGridOk','batchBarHiddenCsL2','backOk','backLabelOk','typeTitleOk','typePatterns','typeGroupsOk','csTierNoCheckbox','batchBarHiddenCsTier','backToL2Ok','diamGroupsByPrice','priceGroupsByDiam','batchBarEl','batchBarHiddenL1','batchBarHiddenL2','batchBarVisibleTier','disc69Card','discVisible','loadMoreOk','oldNavGone','aliasReset','aliasJiyangOk','navActiveJiyang','aliasMiyangOk','navActiveMiyang','aliasBarHiddenL1','quickOk','localSynced','movedOut','batchOk','selClearedAfter','searchOk','editorPriceExists','editorDgExists','editorOptions','filterFnOk','spHeadOk','spRedSubOk','spMechCardOk','spL1NoChecks','spL1NoQuick','spBannerOk','spMechDetailOk','spTitleOk','spBadgeOk','spUnitBoxOk','spUnitPairOk','spBackLabelOk','spBatchHiddenCs','spL2CountOk','spBackToL1Ok','spZoneGoneOnSearch','spSearchOneOk','spAdminBarOk'];
+  const needed = ['treeFieldsOk','l1Info','noCardsLayer1','noCheckbox','noQuick','noPatternNames','no499','batchBarHiddenCs','backBtn','l2Title','seriesInfo','l2NoPatterns','l2NoCheckbox','optGridOk','batchBarHiddenCsL2','backOk','backLabelOk','typeTitleOk','typePatterns','typeGroupsOk','csTierNoCheckbox','batchBarHiddenCsTier','backToL2Ok','diamGroupsByPrice','priceGroupsByDiam','batchBarEl','batchBarHiddenL1','batchBarHiddenL2','batchBarVisibleTier','disc69Card','discVisible','loadMoreOk','oldNavGone','aliasReset','aliasJiyangOk','navActiveJiyang','aliasMiyangOk','navActiveMiyang','aliasBarHiddenL1','quickOk','localSynced','movedOut','batchOk','selClearedAfter','searchOk','editorPriceExists','editorDgExists','editorOptions','filterFnOk','spHeadOk','spRedSubOk','spMechCardOk','spL1NoChecks','spL1NoQuick','spBannerOk','spMechDetailOk','spTitleOk','spBadgeOk','spUnitBoxOk','spUnitPairOk','spTypeChipOk','spBackLabelOk','spBatchHiddenCs','spL2CountOk','spBackToL1Ok','spZoneGoneOnSearch','spSearchOneOk','spAdminBarOk'];
   const numericKeys = Object.keys(numeric);
   const missing = needed.concat(numericKeys).filter(k=>!(k in out));
   const ok = missing.length===0 && needed.every(k=>out[k]===true) && numericKeys.every(k=>out[k]>=numeric[k]);

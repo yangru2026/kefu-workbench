@@ -789,6 +789,8 @@ body {
 .pp-mech-row b{font-size:17px;color:#e11d48;line-height:1.1}
 .pp-mech-box{font-weight:700}
 .pp-mech-gift{color:#be123c;opacity:.85;font-size:11.5px}
+/* 特殊品明细分组标题的抛型大标签（日抛/半年抛一眼分清） */
+.pp-gtype{font-size:15px;font-weight:800;color:#fff;padding:3px 14px;border-radius:10px;line-height:1.3;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.15)}
 .pp-check{position:absolute;top:6px;right:6px;z-index:3;background:rgba(255,255,255,.94);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .pp-check input{width:15px;height:15px;cursor:pointer;accent-color:var(--primary)}
 .pp-body{padding:8px 10px 10px}
@@ -9876,6 +9878,8 @@ function renderPatternPricePage() {
     const gList = (def.dim === 'diam' || isSpecial) ? ppTierList() : ppDimOptions('diam', items).list;
     const limit = Math.max(1, ppRenderLimit || PP_PAGE_SIZE);
     let shown = 0, truncated = false;
+    // 抛型大标签配色：分组标题一眼看出是日抛还是半年抛
+    const PP_TYPE_COLORS = { '日抛': '#2563eb', '月抛': '#7c3aed', '季抛': '#0d9488', '半年抛': '#d97706', '年抛': '#dc2626' };
     for (const g of [...gList, '']) {
       if (truncated) break;
       const gItems = detail.filter(p => (gd.get(p) || '') === g);
@@ -9883,7 +9887,15 @@ function renderPatternPricePage() {
       // 组标题单位：组内全是初音日抛 → 「/盒」，其余（含半年抛）保持「/副」
       let gLabel = g;
       if (g !== '' && gItems.every(p => (p.series || '').includes('初音') && p._type === '日抛')) gLabel = String(g).replace(/\/副$/, '/盒');
-      let gHtml = '<div class="pp-group"><div class="pp-group-title' + (g === '' ? ' pp-warn' : '') + '">' + (g === '' ? gd.noneLabel : escapeHtml(gLabel)) + '<span class="pp-count">' + gItems.length + '</span></div>';
+      // 组内抛型大字标签（特殊品明细专用）：单一抛型显示彩色大字，混合则标「混合抛型」
+      let typeChip = '';
+      if (isSpecial) {
+        const tset = [...new Set(gItems.map(p => p._type || '').filter(Boolean))];
+        typeChip = tset.length === 1
+          ? '<span class="pp-gtype" style="background:' + (PP_TYPE_COLORS[tset[0]] || '#6b7280') + '">' + escapeHtml(tset[0]) + '</span>'
+          : '<span class="pp-gtype" style="background:#6b7280">混合抛型</span>';
+      }
+      let gHtml = '<div class="pp-group"><div class="pp-group-title' + (g === '' ? ' pp-warn' : '') + '">' + typeChip + (g === '' ? gd.noneLabel : escapeHtml(gLabel)) + '<span class="pp-count">' + gItems.length + '</span></div>';
       let gShown = 0;
       let tHtml = '<div class="pp-grid">';
       for (const p of gItems) {
