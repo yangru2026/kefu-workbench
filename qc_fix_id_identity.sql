@@ -46,6 +46,9 @@ WHERE column_name = 'id'
 ORDER BY table_name;
 
 -- 4) 验证：无真实写入的干跑（回滚，不会留数据）
+--    注意：线上表 shop 为 NOT NULL，验证行需带上 shop
 BEGIN;
-INSERT INTO qc_records (staff, date, problem) VALUES ('__诊断__', '2026-09-04', '自增验证，即将回滚');
+INSERT INTO qc_records (staff, shop, date, problem)
+VALUES ('__诊断__', '__诊断__', '2026-09-04', '自增验证，即将回滚');
 ROLLBACK;
+-- 成功标志：Results 无红色报错（INSERT 后随即回滚，不留数据）
