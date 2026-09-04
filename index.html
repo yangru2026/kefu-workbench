@@ -9936,9 +9936,11 @@ function renderPatternPricePage() {
   };
 
   if (!ppDimView) {
-    // ===== 第一层：四张「按XX分类」大卡片，第一视觉只看分类入口 =====
+    // ===== 第一层：按品牌定制分类入口（杨茹 2026-09-04：极氧价格档少，去掉「按价格」；初音/少女漫定轴是弥生特殊品，极氧不展示） =====
+    const isJiyang = ppBrandFilter === '极氧';
+    const dims = isJiyang ? PP_DIMS.filter(d => d.dim !== 'price') : PP_DIMS;
     html = '<div class="pp-tiercards">';
-    PP_DIMS.forEach(def => {
+    dims.forEach(def => {
       const opt = ppDimOptions(def.dim, items);
       let opts = opt.list.filter(v => items.some(p => opt.get(p) === v)).length;
       if (items.some(p => !opt.get(p))) opts++;   // 未填类也算一类
@@ -9949,7 +9951,7 @@ function renderPatternPricePage() {
     });
     html += '</div>';
     // 高价特殊品专区（初音/定轴）：只要当前范围有归属款就单独红卡展示，防客服发错普通备注
-    const spHits = PP_SPECIALS.filter(s => ppSpecialOwn(s, items).length);
+    const spHits = isJiyang ? [] : PP_SPECIALS.filter(s => ppSpecialOwn(s, items).length);
     if (spHits.length) {
       html += '<div class="pp-special-head">⚠️ 高价特殊品（' + spHits.map(s => s.label).join(' / ') + '）· 价格更高，禁止按普通款发备注，发前务必核对价格！</div><div class="pp-tiercards">' + spHits.map(spCard).join('') + '</div>';
     }
