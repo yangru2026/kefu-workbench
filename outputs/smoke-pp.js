@@ -362,8 +362,8 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     // 定轴红卡：少女漫机制三组（单副/满减50·2副/满减80·3副）+ 参与范围警示（初音除外）
     o.spDzMechOk = c().includes('单副 · 到手同价') && c().includes('满减50 · 2副混搭') && c().includes('满减80 · 3副混搭')
       && c().includes('69.8') && c().includes('正常+定轴') && c().includes('99.7') && c().includes('129.7') && c().includes('省80');
-    o.spDzNoteOk = c().includes('仅限少女漫定轴款 + 普通款混搭参与') && c().includes('初音系列除外不能选')
-      && document.querySelectorAll('#pp-content .pp-mech-note').length >= 1;
+    o.spDzNoteOk = c().includes('仅限少女漫定轴款 + 普通款混搭参与')
+      && [...document.querySelectorAll('#pp-content .pp-mech-note')].every(n=>!n.textContent.includes('初音'));   // 定轴警示框不再提前音（杨茹：初音板块已有，放少女漫里易混淆）
     o.spDzMechRows = document.querySelectorAll('#pp-content .pp-mech-row').length;  // 首层双卡合计：初音8 + 定轴9 = 17
     // 点初音红卡 → 直达明细（客服）：banner/机制条/标题/红色角标/按价格档分组
     openPpDim('special','chuyin');
@@ -386,7 +386,8 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     // 定轴明细页：机制完整标题 + 警示注释同步常驻
     openPpDim('special','dingzhou');
     o.spDzDetailOk = c().includes('少女漫单副选购') && c().includes('满减50元机制') && c().includes('满减80元机制')
-      && c().includes('初音系列除外不能选') && c().includes('均43.2');
+      && c().includes('均43.2')
+      && [...document.querySelectorAll('#pp-content .pp-mech-note')].every(n=>!n.textContent.includes('初音'));
     // 返回 → 特殊品汇总层（s5 同时命中两条，去重后共 3 款）
     ppBackToDimOptions('special');
     o.spL2Cards = document.querySelectorAll('#pp-content .pp-tiercard').length;   // 2 张红卡
