@@ -2846,9 +2846,31 @@ function renderStaffTable() {
       + '<button class="btn-sm outline" onclick="event.stopPropagation();openAcctsModal(\'' + s.id + '\',\'' + escapeAttr(nickname) + '\')" title="账号本">📒</button>'
       + '<button class="btn-sm outline" onclick="event.stopPropagation();openOTDrawer(\'' + s.id + '\',\'' + escapeAttr(nickname) + '\')" title="管理加班调休">⏱️</button>'
       + '<button class="btn-sm outline" onclick="event.stopPropagation();copyStaffRow(\'' + s.id + '\')" title="复制该行">📋</button>'
+      + (isAdmin ? '<button class="btn-sm outline" onclick="event.stopPropagation();adminResetPwd(\'' + escapeAttr(phone) + '\',\'' + escapeAttr(nickname) + '\')" title="重置工作台登录密码">🔑</button>' : '')
       + '</div></td>'
       + '</tr>';
   }).join('');
+}
+
+// ========== 管理员一键重置客服工作台登录密码 ==========
+// 通过 Edge Function reset-password（服务端校验 admin 角色 + service_role 改密）
+async function adminResetPwd(phone, nickname) {
+  if (!isAdminUser()) { showToast('仅管理员可重置密码'); return; }
+  if (!phone || phone === '-') { showToast('该客服未登记手机号，无法重置'); return; }
+  if (!confirm('确定为「' + nickname + '」重置工作台登录密码？\n重置后原密码立即失效。')) return;
+  const newPwd = 'yh' + Math.floor(100000 + Math.random() * 900000);   // 临时密码：yh + 6位数字
+  showToast('正在重置，请稍候...');
+  try {
+    const { data, error } = await supabase.functions.invoke('reset-password', {
+      body: { phone: phone, new_password: newPwd }
+    });
+    if (error) { showToast('重置失败：' + (error.message || '网络异常')); return; }
+    if (!data || !data.ok) { showToast('重置失败：' + ((data && data.message) || '未知错误')); return; }
+    prompt('✅ 已重置！选中并复制下面的临时密码，发给 ' + nickname + '：', newPwd);
+    showToast('密码已重置');
+  } catch (e) {
+    showToast('重置失败：重置功能未部署或网络异常');
+  }
 }
 
 // ========== 加班调休抽屉 ==========
