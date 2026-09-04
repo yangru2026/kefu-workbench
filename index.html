@@ -789,12 +789,13 @@ body {
 .pp-special-badge{position:absolute;bottom:7px;right:7px;background:linear-gradient(135deg,#e11d48,#be123c);color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:11px;z-index:2;box-shadow:0 1px 5px rgba(0,0,0,.3);white-space:nowrap;pointer-events:none}
 .pp-special-head{margin:24px 4px 12px;font-size:13px;font-weight:800;color:#be123c;padding:10px 14px;background:#fff1f2;border:1.5px solid #fecdd3;border-radius:12px}
 .pp-special-banner{margin:0 2px 12px;font-size:13px;font-weight:700;color:#9f1239;background:linear-gradient(90deg,#ffe4e6,#fff1f2);border:1px solid #fda4af;border-radius:12px;padding:9px 13px}
-/* 初音联名多盒机制（红卡/明细页复用） */
-.pp-mech{width:100%;box-sizing:border-box;text-align:left;background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:9px 13px;margin:2px 0 10px;display:flex;flex-direction:column;gap:7px}
+/* 初音联名多盒机制（红卡/明细页复用）：多组机制自适应并排（宽屏多列压高度，窄屏自动回退单列） */
+.pp-mech-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;align-items:start;margin:2px 0}
+.pp-mech{width:100%;box-sizing:border-box;text-align:left;background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:9px 13px;margin:0;display:flex;flex-direction:column;gap:7px}
 .pp-mech-title{font-size:12.5px;font-weight:800;color:#e11d48;letter-spacing:.3px}
-.pp-mech-row{display:flex;align-items:baseline;gap:7px;font-size:13px;color:#9f1239;padding:3.5px 0;border-bottom:1px dashed rgba(225,29,72,.16)}
+.pp-mech-row{display:flex;align-items:baseline;gap:7px;font-size:12.5px;color:#9f1239;padding:2.5px 0;border-bottom:1px dashed rgba(225,29,72,.16)}
 .pp-mech-row:last-child{border-bottom:none;padding-bottom:0}
-.pp-mech-row b{font-size:18px;color:#e11d48;line-height:1.1;min-width:52px}
+.pp-mech-row b{font-size:16px;color:#e11d48;line-height:1.1;min-width:50px}
 .pp-mech-box{font-weight:700;font-size:13px}
 .pp-mech-gift{color:#be123c;font-size:12px;font-weight:600}
 .pp-mech-note{font-size:11.5px;font-weight:700;color:#c2410c;background:#fff7ed;border:1px dashed #fdba74;border-radius:8px;padding:4px 8px;margin-bottom:5px;line-height:1.4}
@@ -9825,10 +9826,11 @@ function ppTierLabel(p) {
 function ppMechHtml(sp, full) {
   if (!sp || !sp.mechs || !sp.mechs.length) return '';
   const note = sp.note ? '<div class="pp-mech-note">⚠️ ' + escapeHtml(sp.note) + '</div>' : '';
-  return note + sp.mechs.map(m => '<div class="pp-mech">'
+  const groups = sp.mechs.map(m => '<div class="pp-mech">'
     + '<div class="pp-mech-title">📋 ' + escapeHtml(full ? m.title : m.short) + '</div>'
     + m.rows.map(r => '<div class="pp-mech-row"><b>' + escapeHtml(r.price) + '</b><span class="pp-mech-box">/' + escapeHtml(r.boxes) + '</span>' + (r.gift ? '<span class="pp-mech-gift">' + escapeHtml(r.gift) + '</span>' : '') + '</div>').join('')
     + '</div>').join('');
+  return note + '<div class="pp-mech-grid">' + groups + '</div>';
 }
 function renderPatternPricePage() {
   const canManage = canEdit('patterns');
