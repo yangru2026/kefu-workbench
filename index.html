@@ -3888,11 +3888,20 @@ function subscribePatterns() {
 let ppCardNotes = {};          // { '品牌|维度|值': 提醒文字 }
 let ppNotesSub = null;
 const _ppNoteSaveTimers = {};
+let _ppNoteTableWarned = false;
 async function loadPpCardNotes() {
   try {
     if (!supabase || !supabase.from) return;
     const { data, error } = await supabase.from('pp_card_notes').select('note_key,note_text');
-    if (error) { console.warn('卡片提醒加载失败:', error.message); return; }
+    if (error) {
+      console.warn('卡片提醒加载失败:', error.message);
+      // 表不存在时明确提醒管理员去建表，避免"输入了却没保存"反复发生
+      if (!_ppNoteTableWarned && /does not exist|not found|404/i.test(error.message || '')) {
+        _ppNoteTableWarned = true;
+        showToast('提醒表未创建：请在 Supabase 执行 pp_card_notes 建表 SQL（可找小布要）');
+      }
+      return;
+    }
     const map = {};
     (data || []).forEach(r => { if (r && r.note_key) map[r.note_key] = r.note_text || ''; });
     ppCardNotes = map;
@@ -3910,15 +3919,18 @@ function subscribePpNotes() {
 }
 function ppNoteKey(dim, val) { return (ppBrandFilter || '') + '|' + dim + '|' + val; }
 function onPpNoteInput(key, el) {
+  // 输入即存本地草稿：即使云端保存失败（表未建/断网/没等防抖就刷新），文字也不丢
+  try { localStorage.setItem('ppNote|' + key, el.value); } catch (e) {}
   clearTimeout(_ppNoteSaveTimers[key]);
   _ppNoteSaveTimers[key] = setTimeout(async () => {
     const text = el.value;
     ppCardNotes[key] = text;
     try {
       const { error } = await supabase.from('pp_card_notes').upsert({ note_key: key, note_text: text }, { onConflict: 'note_key' });
-      if (error) { showToast('提醒保存失败：' + error.message); return; }
+      if (error) { showToast('提醒保存失败：' + error.message + '（文字已暂存本机，不会丢）'); return; }
+      try { localStorage.removeItem('ppNote|' + key); } catch (e) {}
       showToast('✅ 提醒已同步给全员');
-    } catch(e) { showToast('提醒保存失败：' + (e.message || e)); }
+    } catch(e) { showToast('提醒保存失败：' + (e.message || e) + '（文字已暂存本机，不会丢）'); }
   }, 600);
 }
 
@@ -9881,7 +9893,11 @@ function renderPatternPricePage() {
     if (!list.length) return '';
     const noteEditable = canEdit('patterns');
     const nKey = ppNoteKey(def.dim, key);
-    const noteVal = ppCardNotes[nKey] || '';
+    let noteVal = ppCardNotes[nKey];
+    if (noteVal === undefined || noteVal === null) {
+      // 云端没有记录时回显本机草稿（保存失败/表未建也不丢字）
+      try { noteVal = localStorage.getItem('ppNote|' + nKey) || ''; } catch (e) { noteVal = ''; }
+    }
     const noteHtml = noteEditable
       ? '<textarea class="pp-note-input" rows="2" placeholder="＋ 填写提醒（全员可见）" onclick="event.stopPropagation()" oninput="onPpNoteInput(\'' + escapeAttr(nKey) + '\',this)">' + escapeHtml(noteVal) + '</textarea>'
       : (noteVal ? '<div class="pp-note-view">📢 ' + escapeHtml(noteVal) + '</div>' : '');
