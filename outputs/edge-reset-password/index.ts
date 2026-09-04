@@ -5,8 +5,10 @@
 //   2. 服务端查 profiles 校验调用者 role === 'admin' 且未停用
 //   3. 用内置 SUPABASE_SERVICE_ROLE_KEY 走 admin API 改密（密钥不出服务端）
 // 部署：Supabase Dashboard → Edge Functions → Create a new function
-//       → 命名 reset-password → 粘贴本文件全部代码 → Deploy
-// 前端调用：supabase.functions.invoke('reset-password', { body: { phone, new_password } })
+//       → 粘贴本文件全部代码 → Deploy
+// ⚠️ 实际部署名为 super-responder（2026-09-04 部署时的命名；Supabase 部署后不支持改名），
+//    前端 app.js 的 adminResetPwd 已按 super-responder 调用，如重建需两边同步。
+// 前端调用：supabase.functions.invoke('super-responder', { body: { phone, new_password } })
 // ============================================================
 import { createClient } from "npm:@supabase/supabase-js@2";
 

@@ -464,7 +464,7 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
   // ===== 客服信息页：管理员🔑重置密码按钮 + 函数定义（不真调接口） =====
   await ev('staffReset', ()=>{
     const o = {};
-    o.staffResetFnOk = typeof adminResetPwd === 'function';
+    o.staffResetFnOk = typeof adminResetPwd === 'function' && adminResetPwd.toString().includes('super-responder');
     allStaffData = [{ id:'u1', name:'小琳', real_name:'林某', phone:'13800001111', group_name:'A组' }];
     allOvertimeRecords = []; allLeaveRecords = []; staffSearchTerm = '';
     // 管理员视角：操作列有 🔑（adminResetPwd）

@@ -2861,12 +2861,13 @@ async function adminResetPwd(phone, nickname) {
   const newPwd = 'yh' + Math.floor(100000 + Math.random() * 900000);   // 临时密码：yh + 6位数字
   showToast('正在重置，请稍候...');
   try {
-    const { data, error } = await supabase.functions.invoke('reset-password', {
+    // 云端函数实际部署名为 super-responder（Supabase 部署后不支持改名），代码即 reset-password 重置逻辑
+    const { data, error } = await supabase.functions.invoke('super-responder', {
       body: { phone: phone, new_password: newPwd }
     });
     if (error) {
       const m = error.message || '';
-      if (/Failed to send/i.test(m)) showToast('云端重置函数未部署或名称不对：请到 Supabase 后台 Edge Functions 确认 reset-password 已 Deploy');
+      if (/Failed to send/i.test(m)) showToast('云端重置函数未部署或名称不对：请到 Supabase 后台 Edge Functions 确认 super-responder 已 Deploy');
       else showToast('重置失败：' + m);
       return;
     }
