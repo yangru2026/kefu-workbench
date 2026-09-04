@@ -753,7 +753,8 @@ body {
 .pp-tiercard.l1 .pp-tiercard-sub{font-size:14px;margin:10px 0 14px}
 .pp-tiercard.l1 .pp-tiercard-enter{color:var(--c)}
 .pp-tiercard.l1:hover{border-color:var(--c);box-shadow:0 8px 18px color-mix(in srgb,var(--c) 15%,transparent)}
-.pp-tiercards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.pp-tiercards{display:grid;grid-template-columns:repeat(2,minmax(0,320px));gap:16px;justify-content:center;padding:0 10px}
+@media (max-width:720px){.pp-tiercards{grid-template-columns:minmax(0,320px)}}
 .pp-tiercard{position:relative;background:#fff;border:1px solid var(--border-soft);border-radius:16px;padding:18px 16px 14px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow);overflow:hidden}
 .pp-tiercard:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:#f59e0b}
 .pp-tiercard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#f59e0b,#d97706)}
