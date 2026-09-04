@@ -359,9 +359,10 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     o.spMechRows = document.querySelectorAll('#pp-content .pp-mech-row').length;  // 初音8 + 定轴9 = 17
     o.spL1NoChecks = document.querySelectorAll('#pp-content .pp-check').length===0;
     o.spL1NoQuick = document.querySelectorAll('#pp-content .pp-quick').length===0;
-    // 定轴红卡：少女漫机制三组（单副/满减50·2副/满减80·3副）+ 参与范围警示（初音除外）
-    o.spDzMechOk = c().includes('单副 · 到手同价') && c().includes('满减50 · 2副混搭') && c().includes('满减80 · 3副混搭')
-      && c().includes('69.8') && c().includes('正常+定轴') && c().includes('99.7') && c().includes('129.7') && c().includes('省80');
+    // 定轴红卡：少女漫机制三组（1副/2副/3副，只写数量+价格）+ 参与范围警示
+    o.spDzMechOk = c().includes('📋 1副') && c().includes('📋 2副') && c().includes('📋 3副 · 最划算')
+      && c().includes('69.8') && c().includes('正常款+定轴款') && c().includes('99.7') && c().includes('129.7')
+      && c().includes('⭐最划算') && !c().includes('满减');   // 满减字样已去掉（杨茹：只写数量和价格）
     o.spDzNoteOk = c().includes('仅限少女漫定轴款 + 普通款混搭参与')
       && [...document.querySelectorAll('#pp-content .pp-mech-note')].every(n=>!n.textContent.includes('初音'));   // 定轴警示框不再提前音（杨茹：初音板块已有，放少女漫里易混淆）
     o.spDzMechRows = document.querySelectorAll('#pp-content .pp-mech-row').length;  // 首层双卡合计：初音8 + 定轴9 = 17
@@ -387,8 +388,8 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     openPpDim('special','dingzhou');
     o.spDzDetailCards = document.querySelectorAll('#pp-content .pp-card').length;   // 1（s3 定轴灰；s5 已归初音）
     o.spDzOwnOk = !c().includes('初音定轴');   // 明细不含初音定轴款花色名
-    o.spDzDetailOk = c().includes('少女漫单副选购') && c().includes('满减50元机制') && c().includes('满减80元机制')
-      && c().includes('均43.2')
+    o.spDzDetailOk = c().includes('单副 · 到手价') && c().includes('2副 · 到手价') && c().includes('3副 · 到手价')
+      && c().includes('129.7') && !c().includes('满减')
       && [...document.querySelectorAll('#pp-content .pp-mech-note')].every(n=>!n.textContent.includes('初音'));
     // 返回 → 特殊品汇总层（s5 同时命中两条，去重后共 3 款）
     ppBackToDimOptions('special');
