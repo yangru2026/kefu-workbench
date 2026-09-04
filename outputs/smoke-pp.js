@@ -356,9 +356,15 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     o.spMechCardOk = c().includes('日抛 · 按「盒」') && c().includes('半年抛 · 按「副」')
       && c().includes('49.9') && c().includes('/1盒') && c().includes('赠明信片+佩戴棒') && c().includes('199.4')
       && c().includes('69') && c().includes('/1副') && c().includes('小卡+护理液+伴侣盒') && c().includes('232.5') && c().includes('亚克力手持镜');
-    o.spMechRows = document.querySelectorAll('#pp-content .pp-mech-row').length;  // 日抛 4 档 + 半年抛 4 档 = 8
+    o.spMechRows = document.querySelectorAll('#pp-content .pp-mech-row').length;  // 初音8 + 定轴9 = 17
     o.spL1NoChecks = document.querySelectorAll('#pp-content .pp-check').length===0;
     o.spL1NoQuick = document.querySelectorAll('#pp-content .pp-quick').length===0;
+    // 定轴红卡：少女漫机制三组（单副/满减50·2副/满减80·3副）+ 参与范围警示（初音除外）
+    o.spDzMechOk = c().includes('单副 · 到手同价') && c().includes('满减50 · 2副混搭') && c().includes('满减80 · 3副混搭')
+      && c().includes('69.8') && c().includes('正常+定轴') && c().includes('99.7') && c().includes('129.7') && c().includes('省80');
+    o.spDzNoteOk = c().includes('仅限少女漫定轴款 + 普通款混搭参与') && c().includes('初音系列除外不能选')
+      && document.querySelectorAll('#pp-content .pp-mech-note').length >= 1;
+    o.spDzMechRows = document.querySelectorAll('#pp-content .pp-mech-row').length;  // 首层双卡合计：初音8 + 定轴9 = 17
     // 点初音红卡 → 直达明细（客服）：banner/机制条/标题/红色角标/按价格档分组
     openPpDim('special','chuyin');
     o.spDetailCards = document.querySelectorAll('#pp-content .pp-card').length;   // 初音粉 + 初音定轴 = 2
@@ -377,6 +383,10 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     o.spBackLabelOk = (document.querySelector('#pp-content .pp-back')||{textContent:''}).textContent.includes('返回高价特殊品');
     const bbC=document.getElementById('pp-batch-bar');
     o.spBatchHiddenCs = !bbC || bbC.style.display==='none';
+    // 定轴明细页：机制完整标题 + 警示注释同步常驻
+    openPpDim('special','dingzhou');
+    o.spDzDetailOk = c().includes('少女漫单副选购') && c().includes('满减50元机制') && c().includes('满减80元机制')
+      && c().includes('初音系列除外不能选') && c().includes('均43.2');
     // 返回 → 特殊品汇总层（s5 同时命中两条，去重后共 3 款）
     ppBackToDimOptions('special');
     o.spL2Cards = document.querySelectorAll('#pp-content .pp-tiercard').length;   // 2 张红卡
@@ -414,9 +424,9 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     optGridCols:3,
     tierCardsJiyang:4,
     spL1Cards:6, spDetailCards:2, spBadgeCount:2, spL2Cards:2,
-    spSearchOneCards:5, spAdminChecks:2, spQuickSelects:4, spMechRows:8, spTypeChips:2
+    spSearchOneCards:5, spAdminChecks:2, spQuickSelects:4, spMechRows:8, spTypeChips:2, spDzMechRows:17
   };
-  const needed = ['treeFieldsOk','l1Info','noCardsLayer1','noCheckbox','noQuick','noPatternNames','no499','batchBarHiddenCs','backBtn','l2Title','seriesInfo','l2NoPatterns','l2NoCheckbox','optGridOk','batchBarHiddenCsL2','backOk','backLabelOk','typeTitleOk','typePatterns','typeGroupsOk','csTierNoCheckbox','batchBarHiddenCsTier','backToL2Ok','diamGroupsByPrice','priceGroupsByDiam','batchBarEl','batchBarHiddenL1','batchBarHiddenL2','batchBarVisibleTier','disc69Card','discVisible','loadMoreOk','oldNavGone','aliasReset','aliasJiyangOk','navActiveJiyang','aliasMiyangOk','navActiveMiyang','aliasBarHiddenL1','quickOk','localSynced','movedOut','batchOk','selClearedAfter','searchOk','editorPriceExists','editorDgExists','editorOptions','filterFnOk','spHeadOk','spRedSubOk','spMechCardOk','spL1NoChecks','spL1NoQuick','spBannerOk','spMechDetailOk','spTitleOk','spBadgeOk','spUnitBoxOk','spUnitPairOk','spTypeChipOk','spBackLabelOk','spBatchHiddenCs','spL2CountOk','spBackToL1Ok','spZoneGoneOnSearch','spSearchOneOk','spAdminBarOk'];
+  const needed = ['treeFieldsOk','l1Info','noCardsLayer1','noCheckbox','noQuick','noPatternNames','no499','batchBarHiddenCs','backBtn','l2Title','seriesInfo','l2NoPatterns','l2NoCheckbox','optGridOk','batchBarHiddenCsL2','backOk','backLabelOk','typeTitleOk','typePatterns','typeGroupsOk','csTierNoCheckbox','batchBarHiddenCsTier','backToL2Ok','diamGroupsByPrice','priceGroupsByDiam','batchBarEl','batchBarHiddenL1','batchBarHiddenL2','batchBarVisibleTier','disc69Card','discVisible','loadMoreOk','oldNavGone','aliasReset','aliasJiyangOk','navActiveJiyang','aliasMiyangOk','navActiveMiyang','aliasBarHiddenL1','quickOk','localSynced','movedOut','batchOk','selClearedAfter','searchOk','editorPriceExists','editorDgExists','editorOptions','filterFnOk','spHeadOk','spRedSubOk','spMechCardOk','spL1NoChecks','spL1NoQuick','spDzMechOk','spDzNoteOk','spBannerOk','spMechDetailOk','spTitleOk','spBadgeOk','spUnitBoxOk','spUnitPairOk','spTypeChipOk','spDzDetailOk','spBackLabelOk','spBatchHiddenCs','spL2CountOk','spBackToL1Ok','spZoneGoneOnSearch','spSearchOneOk','spAdminBarOk'];
   const numericKeys = Object.keys(numeric);
   const missing = needed.concat(numericKeys).filter(k=>!(k in out));
   const ok = missing.length===0 && needed.every(k=>out[k]===true) && numericKeys.every(k=>out[k]>=numeric[k]);
