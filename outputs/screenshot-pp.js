@@ -47,15 +47,15 @@ const BASE = 'http://127.0.0.1:8123/index.html';
     const sq=document.getElementById('pp-search'); if(sq) sq.value='';
     const sd=document.getElementById('pp-show-disc'); if(sd) sd.checked=false;
     ppRenderLimit = PP_PAGE_SIZE;
-    // 通过真实入口进入弥生价格速查（switchPage 别名路由）→ 第一层：四维度分区卡片
+    // 通过真实入口进入弥生价格速查（switchPage 别名路由）→ 第一层：四张分类大卡片
     switchPage('price-miyang');
   });
   await new Promise(r=>setTimeout(r,600));
   await page.screenshot({path:'outputs/pp-page-preview.png', fullPage:false});
-  // 第二层：进入「按价格 29.9元/副」明细
+  // 第二层：点「按系列」→ 该分类下的系列选项卡片
   await page.evaluate(()=>{
-    const card = [...document.querySelectorAll('#pp-content .pp-tiercard')].find(c=>c.querySelector('.pp-tiercard-price') && c.querySelector('.pp-tiercard-price').textContent==='29.9元/副');
-    if (card) card.click(); else openPpDim('price','29.9元/副');
+    const card = [...document.querySelectorAll('#pp-content .pp-tiercard.l1')].find(c=>c.textContent.includes('按系列'));
+    if (card) card.click(); else openPpDim('series');
   });
   await new Promise(r=>setTimeout(r,600));
   await page.screenshot({path:'outputs/pp-tier-preview.png', fullPage:false});

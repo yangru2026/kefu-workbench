@@ -747,6 +747,9 @@ body {
 .pp-loadmore-wrap{text-align:center;padding:16px 0 6px}
 /* 第一层：价格档大卡片（点进去才看花色） */
 .pp-dim-title{font-size:15px;font-weight:800;color:var(--text);margin:20px 2px 10px;padding-left:9px;border-left:4px solid var(--primary);line-height:1.3}
+.pp-tiercard.l1{padding:26px 22px 20px;min-height:132px}
+.pp-tiercard.l1 .pp-tiercard-price{font-size:20px}
+.pp-tiercard.l1 .pp-tiercard-sub{font-size:14px;margin:6px 0 14px}
 .pp-tiercards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
 .pp-tiercard{position:relative;background:#fff;border:1px solid var(--border-soft);border-radius:16px;padding:18px 16px 14px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow);overflow:hidden}
 .pp-tiercard:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:#f59e0b}
@@ -3317,7 +3320,7 @@ function refreshAdminUI() {
   if (collabPatternsBtn) collabPatternsBtn.style.display = isAdmin ? '' : 'none';
   // 花色价格速查「批量打标」栏（管理员/协作者可见）
   const ppBatchBar = document.getElementById('pp-batch-bar');
-  if (ppBatchBar) ppBatchBar.style.display = (canEditPatterns && ppDimView) ? 'flex' : 'none';   // 只在进入明细后显示
+  if (ppBatchBar) ppBatchBar.style.display = (canEditPatterns && ppDimView && ppDimView.val) ? 'flex' : 'none';   // 只在花色明细（第三层）显示
   // 培训资料「新增」按钮
   const trainBtn = document.getElementById('train-add-btn');
   if (trainBtn) trainBtn.style.display = canEditTraining ? '' : 'none';
@@ -9705,9 +9708,9 @@ function renderPatternPricePage() {
   // 品牌由入口（switchPage 别名）锁定；未标价档用 '__none__' 表示
   if (!ppBrandFilter || ppBrandFilter === '全部') ppBrandFilter = (getMergedCats('brand', getPatternBrands()).map(b => b.name)[0]) || '弥生';
 
-  // 批量条只在进入某个维度的明细后显示
+  // 批量条只在进入某个分类的花色明细后显示（第三层）
   const bb = document.getElementById('pp-batch-bar');
-  if (bb) bb.style.display = (canManage && ppDimView) ? 'flex' : 'none';
+  if (bb) bb.style.display = (canManage && ppDimView && ppDimView.val) ? 'flex' : 'none';
 
   const search = (document.getElementById('pp-search')?.value || '').toLowerCase().trim();
   const showDisc = !!document.getElementById('pp-show-disc')?.checked;
@@ -9725,39 +9728,53 @@ function renderPatternPricePage() {
   const content = document.getElementById('pp-content');
   let html = '';
 
+  // 选项卡片（第二层用）：只展示统计信息，点进去才看花色
+  const dimCard = (def, key, label, list, none) => {
+    if (!list.length) return '';
+    const bDef = PP_DIMS.find(d => d.dim === def.badgeOf);
+    const counts = {};
+    list.forEach(p => { const b = bDef.key(p); if (b) counts[b] = (counts[b] || 0) + 1; });
+    const unk = list.length - Object.values(counts).reduce((a, b) => a + b, 0);
+    const badges = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 4)
+      .map((b, i) => '<span class="pp-dtag ' + ['small','big','unk'][i % 3] + '">' + escapeHtml(b) + ' ' + counts[b] + '</span>').join('');
+    return '<div class="pp-tiercard' + (none ? ' none' : '') + '" onclick="openPpDim(\'' + escapeAttr(def.dim) + '\',\'' + escapeAttr(key) + '\')">'
+      + '<div class="pp-tiercard-price">' + escapeHtml(label) + '</div>'
+      + '<div class="pp-tiercard-sub">共 ' + list.length + ' 款</div>'
+      + '<div class="pp-tiercard-tags">' + badges + (unk ? '<span class="pp-dtag unk">未分 ' + unk + '</span>' : '') + '</div>'
+      + '<div class="pp-tiercard-enter">点击查看全部花色 →</div></div>';
+  };
+
   if (!ppDimView) {
-    // ===== 第一层：四个维度分区，每区一张张选项大卡片（只展示统计信息，点进去才看花色） =====
-    const dimCard = (def, key, label, list, none) => {
-      if (!list.length) return '';
-      const bDef = PP_DIMS.find(d => d.dim === def.badgeOf);
-      const counts = {};
-      list.forEach(p => { const b = bDef.key(p); if (b) counts[b] = (counts[b] || 0) + 1; });
-      const unk = list.length - Object.values(counts).reduce((a, b) => a + b, 0);
-      const badges = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 4)
-        .map((b, i) => '<span class="pp-dtag ' + ['small','big','unk'][i % 3] + '">' + escapeHtml(b) + ' ' + counts[b] + '</span>').join('');
-      return '<div class="pp-tiercard' + (none ? ' none' : '') + '" onclick="openPpDim(\'' + escapeAttr(def.dim) + '\',\'' + escapeAttr(key) + '\')">'
-        + '<div class="pp-tiercard-price">' + escapeHtml(label) + '</div>'
-        + '<div class="pp-tiercard-sub">共 ' + list.length + ' 款</div>'
-        + '<div class="pp-tiercard-tags">' + badges + (unk ? '<span class="pp-dtag unk">未分 ' + unk + '</span>' : '') + '</div>'
-        + '<div class="pp-tiercard-enter">点击查看全部花色 →</div></div>';
-    };
-    let anyCard = false;
+    // ===== 第一层：四张「按XX分类」大卡片，第一视觉只看分类入口 =====
+    html = '<div class="pp-tiercards">';
     PP_DIMS.forEach(def => {
       const opt = ppDimOptions(def.dim, items);
-      let sec = '<div class="pp-dim-title">' + def.icon + ' ' + def.title + '</div><div class="pp-tiercards">';
-      opt.list.forEach(v => { sec += dimCard(def, v, v, items.filter(p => opt.get(p) === v), false); });
-      sec += dimCard(def, '__none__', opt.noneLabel, items.filter(p => !opt.get(p)), true);
-      sec += '</div>';
-      if (sec.includes('pp-tiercard')) { html += sec; anyCard = true; }
+      let opts = opt.list.filter(v => items.some(p => opt.get(p) === v)).length;
+      if (items.some(p => !opt.get(p))) opts++;   // 未填类也算一类
+      html += '<div class="pp-tiercard l1" onclick="openPpDim(\'' + def.dim + '\')">'
+        + '<div class="pp-tiercard-price">' + def.icon + ' ' + def.title + '</div>'
+        + '<div class="pp-tiercard-sub">共 ' + opts + ' 类 · ' + items.length + ' 款花色</div>'
+        + '<div class="pp-tiercard-enter">点击查看分类 →</div></div>';
     });
-    if (!anyCard) html = '<div class="pattern-empty">😕 没有匹配的花色，先到「花色素材」给花色填上抛型/系列/直径/价格档吧</div>';
+    html += '</div>';
+    if (!items.length) html = '<div class="pattern-empty">😕 没有匹配的花色，先到「花色素材」给花色填上抛型/系列/直径/价格档吧</div>';
+  } else if (!ppDimView.val) {
+    // ===== 第二层：该分类下的选项卡片（如各系列 / 各抛型 / 各价格档） =====
+    const def = PP_DIMS.find(d => d.dim === ppDimView.dim) || PP_DIMS[3];
+    const opt = ppDimOptions(def.dim, items);
+    html += '<button class="pp-back" onclick="ppBackToDims()">← 返回分类入口</button>';
+    html += '<div class="pp-group-title">' + def.icon + ' ' + def.title + '<span class="pp-count">' + items.length + ' 款</span></div>';
+    html += '<div class="pp-tiercards">';
+    opt.list.forEach(v => { html += dimCard(def, v, v, items.filter(p => opt.get(p) === v), false); });
+    html += dimCard(def, '__none__', opt.noneLabel, items.filter(p => !opt.get(p)), true);
+    html += '</div>';
   } else {
-    // ===== 第二层：某维度某选项下的花色明细 =====
+    // ===== 第三层：某分类某选项下的花色明细 =====
     const def = PP_DIMS.find(d => d.dim === ppDimView.dim) || PP_DIMS[3];
     const opt = ppDimOptions(def.dim, items);
     const isNone = ppDimView.val === '__none__';
     const detail = items.filter(p => isNone ? !opt.get(p) : opt.get(p) === ppDimView.val);
-    html += '<button class="pp-back" onclick="ppBackToDims()">← 返回全部分类</button>';
+    html += '<button class="pp-back" onclick="ppBackToDimOptions(\'' + escapeAttr(def.dim) + '\')">← 返回' + escapeHtml(def.title) + '</button>';
     html += '<div class="pp-group-title' + (isNone ? ' pp-warn' : '') + '">' + def.icon + ' ' + (isNone ? opt.noneLabel : escapeHtml(ppDimView.val)) + '<span class="pp-count">' + detail.length + ' 款</span></div>';
     // 明细分组：按直径进来的用价格档分组，其余维度都按直径分组
     const gd = def.dim === 'diam'
@@ -9790,8 +9807,9 @@ function renderPatternPricePage() {
   updatePpSelCount();
 }
 
-// 两级导航：第一层四维度卡片 → 维度明细
-function openPpDim(dim, val) { ppDimView = { dim: dim, val: val }; ppRenderLimit = PP_PAGE_SIZE; renderPatternPricePage(); window.scrollTo(0, 0); }
+// 三级导航：分类入口 → 选项卡片 → 花色明细
+function openPpDim(dim, val) { ppDimView = { dim: dim, val: val || null }; ppRenderLimit = PP_PAGE_SIZE; renderPatternPricePage(); window.scrollTo(0, 0); }
+function ppBackToDimOptions(dim) { ppDimView = { dim: dim, val: null }; ppSel.clear(); ppRenderLimit = PP_PAGE_SIZE; renderPatternPricePage(); window.scrollTo(0, 0); }
 function ppBackToDims() { ppDimView = null; ppSel.clear(); ppRenderLimit = PP_PAGE_SIZE; renderPatternPricePage(); window.scrollTo(0, 0); }
 
 // 搜索 / 显示已下架 / 加载更多（品牌由入口锁定，不再有页签切换）

@@ -73,41 +73,49 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     return { __skipMerge:true };
   });
 
-  // ===== 第一层：四维度分区（客服视角） =====
+  // ===== 第一层：四张分类大卡片（客服视角） =====
   await ev('csFirstLayer', ()=>{
     const o={};
     const content=()=>document.getElementById('pp-content').textContent;
     o.treeFieldsOk = Object.values(patternData.brands).every(b=>Object.values(b).every(arr=>arr.every(p=>'priceTier' in p && 'diamGroup' in p && '_type' in p && 'series' in p)));
-    o.dimTitleCount = document.querySelectorAll('#pp-content .pp-dim-title').length;   // 按抛型/按系列/按直径/按价格 = 4
-    o.tierCardCount = document.querySelectorAll('#pp-content .pp-tiercard').length;
-    // 弥生非下架 6 款：抛型2(日抛4/半年抛2) + 系列3(倾慕3/星眸1/未填2) + 直径3(小3/大1/待分组2) + 价格3(29.9:3/59.9:1/未标价1) = 11
+    o.l1Cards = document.querySelectorAll('#pp-content .pp-tiercard').length;   // 按抛型/按系列/按直径/按价格 = 4
+    o.l1Info = content().includes('按抛型') && content().includes('按系列') && content().includes('按直径') && content().includes('按价格')
+      && content().includes('类 · 6 款花色');
     o.noCardsLayer1 = document.querySelectorAll('#pp-content .pp-card').length===0;   // 第一层不出现花色卡片
     o.noCheckbox = document.querySelectorAll('#pp-content .pp-check').length===0;
     o.noQuick = document.querySelectorAll('#pp-content .pp-quick').length===0;
     o.noPatternNames = !content().includes('奶茶棕') && !content().includes('小鹿棕') && !content().includes('未标款');
-    o.no499 = !content().includes('49.9元/副');   // 极氧的花色不出现
-    o.no69 = !content().includes('69元/副');
-    o.discHidden = !content().includes('老款棕');
-    // 价格 29.9 卡：共 3 款 + 直径徽标（小直径 2 + 未分 1）
-    const card299 = [...document.querySelectorAll('#pp-content .pp-tiercard')].find(c=>c.querySelector('.pp-tiercard-price') && c.querySelector('.pp-tiercard-price').textContent==='29.9元/副');
-    o.priceCard299Info = !!card299 && card299.textContent.includes('共 3 款') && card299.textContent.includes('小直径 2') && card299.textContent.includes('未分 1');
-    // 抛型 日抛 卡：共 4 款
-    const cardRi = [...document.querySelectorAll('#pp-content .pp-tiercard')].find(c=>c.querySelector('.pp-tiercard-price') && c.querySelector('.pp-tiercard-price').textContent==='日抛');
-    o.typeCardInfo = !!cardRi && cardRi.textContent.includes('共 4 款');
-    // 系列 未填系列 卡：共 2 款
-    const cardNone = [...document.querySelectorAll('#pp-content .pp-tiercard')].find(c=>c.querySelector('.pp-tiercard-price') && c.querySelector('.pp-tiercard-price').textContent.includes('未填系列'));
-    o.seriesNoneInfo = !!cardNone && cardNone.textContent.includes('共 2 款');
+    o.no499 = !content().includes('49.9元/副') && !content().includes('倾慕系列') && !content().includes('日抛');   // 选项也不出现
     const bb = document.getElementById('pp-batch-bar');
     o.batchBarHiddenCs = !bb || bb.style.display==='none';
     return o;
   });
 
-  // ===== 明细层：按抛型 → 日抛（客服视角） =====
+  // ===== 第二层：按系列 → 选项卡片（客服视角） =====
+  await ev('csSeriesL2', ()=>{
+    const o={};
+    openPpDim('series');
+    const content=()=>document.getElementById('pp-content').textContent;
+    o.backBtn = !!document.querySelector('#pp-content .pp-back');
+    o.l2Title = content().includes('按系列') && content().includes('6 款');
+    o.seriesCards = document.querySelectorAll('#pp-content .pp-tiercard').length;   // 倾慕3 + 星眸1 + 未填2 = 3
+    o.seriesInfo = content().includes('倾慕系列') && content().includes('星眸系列') && content().includes('未填系列');
+    o.l2NoPatterns = !content().includes('奶茶棕') && !content().includes('加测甲');   // 选项卡面不出现花色名
+    o.l2NoCheckbox = document.querySelectorAll('#pp-content .pp-check').length===0;
+    const bb = document.getElementById('pp-batch-bar');
+    o.batchBarHiddenCsL2 = !bb || bb.style.display==='none';
+    ppBackToDims();
+    o.backOk = ppDimView===null && document.querySelectorAll('#pp-content .pp-tiercard').length===4;
+    return o;
+  });
+
+  // ===== 第三层：按抛型 → 日抛明细（客服视角） =====
   await ev('csTypeDetail', ()=>{
     const o={};
     openPpDim('type','日抛');
     const content=()=>document.getElementById('pp-content').textContent;
     o.backBtn = !!document.querySelector('#pp-content .pp-back');
+    o.backLabelOk = document.querySelector('#pp-content .pp-back').textContent.includes('返回按抛型');
     o.typeTitleOk = content().includes('日抛') && content().includes('4 款');
     o.typePatterns = content().includes('奶茶棕') && content().includes('加测甲') && content().includes('加测乙');
     o.typeGroupsOk = content().includes('小直径') && content().includes('待分组（未标直径）');
@@ -115,12 +123,14 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     o.typeCards = document.querySelectorAll('#pp-content .pp-card').length;   // 4
     const bb = document.getElementById('pp-batch-bar');
     o.batchBarHiddenCsTier = !bb || bb.style.display==='none';
+    ppBackToDimOptions('type');
+    o.typeOptionCards = document.querySelectorAll('#pp-content .pp-tiercard').length;   // 日抛4 + 半年抛2 = 2
+    o.backToL2Ok = ppDimView.val===null && o.typeOptionCards===2;
     ppBackToDims();
-    o.backOk = ppDimView===null && document.querySelectorAll('#pp-content .pp-tiercard').length===11;
     return o;
   });
 
-  // ===== 明细层：按直径 → 小直径（按价格档分组）+ 按价格 → 29.9（按直径分组） =====
+  // ===== 第三层：按直径/按价格（客服视角，交叉分组） =====
   await ev('csDimDetail', ()=>{
     const o={};
     openPpDim('diam','小直径');
@@ -136,23 +146,26 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     return o;
   });
 
-  // ===== 管理员：第一层批量条隐藏，明细内可见 + 已下架 =====
+  // ===== 管理员：批量条只在第三层显示 + 已下架 =====
   await ev('adminTier', ()=>{
     const o={};
     currentProfile = { role:'admin', name:'杨茹' };
     renderPatternPricePage();
     let bb = document.getElementById('pp-batch-bar');
-    o.batchBarHiddenL1 = !bb || bb.style.display==='none';   // 管理员在第一层也不显示批量条
+    o.batchBarHiddenL1 = !bb || bb.style.display==='none';   // 第一层隐藏
+    openPpDim('price');
+    bb = document.getElementById('pp-batch-bar');
+    o.batchBarHiddenL2 = !bb || bb.style.display==='none';   // 第二层也隐藏
     openPpDim('price','29.9元/副');
     bb = document.getElementById('pp-batch-bar');
     o.batchBarEl = !!bb;
-    o.batchBarVisibleTier = bb && bb.style.display==='flex';
+    o.batchBarVisibleTier = bb && bb.style.display==='flex';  // 第三层才显示
     o.adminChecks = document.querySelectorAll('#pp-content .pp-check').length;         // 3
     o.quickSelects = document.querySelectorAll('#pp-content .pp-quick select').length; // 6
-    // 已下架：开启后第一层出现 月抛 卡与 69 档卡
+    // 已下架：开启后第二层价格出现 69 卡
     document.getElementById('pp-show-disc').checked = true;
-    ppBackToDims();
-    o.tierCardCountDisc = document.querySelectorAll('#pp-content .pp-tiercard').length;  // 13
+    ppBackToDimOptions('price');
+    o.priceOptionCardsDisc = document.querySelectorAll('#pp-content .pp-tiercard').length;  // 29.9+59.9+69+未标价 = 4
     o.disc69Card = document.getElementById('pp-content').textContent.includes('69元/副');
     openPpDim('price','69元/副');
     o.discVisible = document.getElementById('pp-content').textContent.includes('老款棕');
@@ -183,18 +196,22 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     o.newNavCount = document.querySelectorAll('.nav-item[data-page="price-miyang"],.nav-item[data-page="price-jiyang"]').length;   // 2
     window.loadPatternCategories = async ()=>{};
     window.loadPatternsFromDB = async ()=>{ patternData = buildPatternTree(window.__rows || []); };
-    // 模拟正在明细里浏览时点击另一品牌入口 → 应回到第一层
+    // 模拟正在第三层明细里浏览时点击另一品牌入口 → 应回到第一层
     ppDimView = { dim:'type', val:'日抛' };
     switchPage('price-jiyang');
     const h1 = document.querySelector('#page-pattern-price h1').textContent;
     const cj = document.getElementById('pp-content').textContent;
     o.aliasReset = ppDimView===null && ppBrandFilter==='极氧' && h1.includes('极氧');
-    o.aliasJiyangOk = o.aliasReset && cj.includes('49.9元/副') && !cj.includes('29.9元/副') && !cj.includes('奶茶棕');
-    o.tierCardsJiyang = document.querySelectorAll('#pp-content .pp-tiercard').length;   // 极氧仅 a3：4 个维度各 1 张卡
+    o.aliasJiyangOk = o.aliasReset && cj.includes('按价格') && cj.includes('1 款花色') && !cj.includes('奶茶棕');
+    o.tierCardsJiyang = document.querySelectorAll('#pp-content .pp-tiercard').length;   // 4 张分类大卡
+    openPpDim('price');
+    o.jiyangPriceCards = document.querySelectorAll('#pp-content .pp-tiercard').length;  // 极氧价格层仅 49.9 一张
+    o.jiyang499Ok = document.getElementById('pp-content').textContent.includes('49.9元/副');
+    ppBackToDims();
     o.navActiveJiyang = !!document.querySelector('.nav-item[data-page="price-jiyang"].active');
     switchPage('price-miyang');
     const cm = document.getElementById('pp-content').textContent;
-    o.aliasMiyangOk = ppBrandFilter==='弥生' && cm.includes('29.9元/副') && !cm.includes('49.9元/副');
+    o.aliasMiyangOk = ppBrandFilter==='弥生' && cm.includes('按价格') && cm.includes('6 款花色');
     o.navActiveMiyang = !!document.querySelector('.nav-item[data-page="price-miyang"].active');
     // 回归：switchPage 内部 refreshAdminUI 会重设批量条 → 第一层必须仍隐藏
     const bbL1 = document.getElementById('pp-batch-bar');
@@ -266,13 +283,15 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     ];
     currentProfile = { role:'admin', name:'杨茹' };
     ppSel.clear(); ppDimView = null; ppRenderLimit = PP_PAGE_SIZE;
-    // 第一层搜索：命中的只有小鹿棕 → 四个分区各剩 1 张卡（共 4 张）
+    // 第一层搜索：4 张分类卡照常渲染；按价格第二层只剩 59.9 一张卡
     const sq=document.getElementById('pp-search'); sq.value='小鹿';
     renderPatternPricePage();
+    const l1ok = document.querySelectorAll('#pp-content .pp-tiercard').length===4;
+    openPpDim('price');
     const c2=document.getElementById('pp-content').textContent;
-    o.searchOk = c2.includes('59.9元/副') && !c2.includes('29.9元/副')
-      && document.querySelectorAll('#pp-content .pp-tiercard').length===4;
-    sq.value='';
+    o.searchOk = l1ok && c2.includes('59.9元/副') && !c2.includes('29.9元/副')
+      && document.querySelectorAll('#pp-content .pp-tiercard').length===1;
+    sq.value=''; ppBackToDims(); renderPatternPricePage();
     const pat = Object.values(patternData.brands).flatMap(b=>Object.values(b)).flat().find(p=>p.name==='小鹿棕');
     window._editPattern = Object.assign({}, pat, { isNew:false, sortOrder: pat.sortOrder || 0 });
     window._editImages = [];
@@ -292,14 +311,14 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
   out._errs = errs.slice(0,6);
   console.log(JSON.stringify(out,null,2));
   const numeric = {
-    dimTitleCount:4, tierCardCount:11,
+    l1Cards:4, seriesCards:3, typeOptionCards:2,
     typeCards:4, diamCards:3, priceCards:3,
-    tierCardCountDisc:13,
+    priceOptionCardsDisc:4, jiyangPriceCards:1,
     adminChecks:3, quickSelects:6,
     pagedCards:2, afterMoreCards:4,
     tierCardsJiyang:4
   };
-  const needed = ['treeFieldsOk','noCardsLayer1','noCheckbox','noQuick','noPatternNames','no499','no69','discHidden','priceCard299Info','typeCardInfo','seriesNoneInfo','batchBarHiddenCs','backBtn','typeTitleOk','typePatterns','typeGroupsOk','csTierNoCheckbox','batchBarHiddenCsTier','backOk','diamGroupsByPrice','priceGroupsByDiam','batchBarEl','batchBarHiddenL1','batchBarVisibleTier','disc69Card','discVisible','loadMoreOk','oldNavGone','aliasReset','aliasJiyangOk','navActiveJiyang','aliasMiyangOk','navActiveMiyang','aliasBarHiddenL1','quickOk','localSynced','movedOut','batchOk','selClearedAfter','searchOk','editorPriceExists','editorDgExists','editorOptions','filterFnOk'];
+  const needed = ['treeFieldsOk','l1Info','noCardsLayer1','noCheckbox','noQuick','noPatternNames','no499','batchBarHiddenCs','backBtn','l2Title','seriesInfo','l2NoPatterns','l2NoCheckbox','batchBarHiddenCsL2','backOk','backLabelOk','typeTitleOk','typePatterns','typeGroupsOk','csTierNoCheckbox','batchBarHiddenCsTier','backToL2Ok','diamGroupsByPrice','priceGroupsByDiam','batchBarEl','batchBarHiddenL1','batchBarHiddenL2','batchBarVisibleTier','disc69Card','discVisible','loadMoreOk','oldNavGone','aliasReset','aliasJiyangOk','navActiveJiyang','aliasMiyangOk','navActiveMiyang','aliasBarHiddenL1','quickOk','localSynced','movedOut','batchOk','selClearedAfter','searchOk','editorPriceExists','editorDgExists','editorOptions','filterFnOk'];
   const numericKeys = Object.keys(numeric);
   const missing = needed.concat(numericKeys).filter(k=>!(k in out));
   const ok = missing.length===0 && needed.every(k=>out[k]===true) && numericKeys.every(k=>out[k]>=numeric[k]);
