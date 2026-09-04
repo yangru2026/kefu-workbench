@@ -56,7 +56,7 @@ const BASE = 'http://127.0.0.1:8123/index.html';
     switchPage('price-miyang');
   });
   await new Promise(r=>setTimeout(r,600));
-  await page.screenshot({path:'outputs/pp-page-preview.png', fullPage:false});
+  await page.screenshot({path:'outputs/pp-page-preview.png', fullPage:true});
   // 第一层红卡 → 高价特殊品明细（验证警示横幅 + 卡片红色角标）
   await page.evaluate(()=>{
     const card = [...document.querySelectorAll('#pp-content .pp-tiercard.l1')].find(c=>c.textContent.includes('初音') && c.textContent.includes('禁止按普通款备注此系列'));
