@@ -125,7 +125,26 @@ table.grid tr:hover{background:#fafbf8}
 .img-preview-hint{position:absolute;top:14px;left:18px;color:#ccc;font-size:12px}
 .img-preview-toolbar{position:absolute;bottom:16px;display:flex;gap:8px;align-items:center;background:rgba(0,0,0,.5);padding:6px 12px;border-radius:20px}
 .img-preview-toolbar button{background:#fff;border:none;border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:15px}
+.img-preview-toolbar .ocr-run{width:auto;height:30px;padding:0 14px;border-radius:15px;background:#22c55e;color:#fff;font-size:13px;font-weight:600;white-space:nowrap}
+.img-preview-toolbar .ocr-run:hover{background:#16a34a}
+.img-preview-toolbar .ocr-run:disabled{opacity:.55;cursor:wait}
+.img-preview-toolbar .ocr-run:disabled:hover{background:#22c55e}
 .img-preview-name{position:absolute;bottom:60px;color:#eee;font-size:12px}
+/* lightbox OCR 面板 */
+.img-preview-ocr{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);width:min(640px,calc(100vw - 24px));max-height:42vh;display:none;flex-direction:column;background:rgba(255,255,255,.97);border-radius:12px;padding:10px 12px 12px;box-shadow:0 8px 30px rgba(0,0,0,.35);color:var(--text);z-index:82}
+.img-preview-ocr.open{display:flex}
+.ocr-head{display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px}
+.ocr-head b{color:var(--primary)}
+.ocr-mini{border:1px solid var(--border);background:#fff;color:var(--text);border-radius:12px;padding:3px 10px;font-size:12px;cursor:pointer}
+.ocr-mini:hover{background:#f0f3ee}
+.ocr-status{font-size:12px;color:var(--text2);margin-bottom:6px;display:flex;align-items:center;gap:8px;min-height:18px}
+.ocr-bar{flex:1;height:6px;border-radius:3px;background:#e8ece5;overflow:hidden;max-width:200px}
+.ocr-bar i{display:block;height:100%;width:0;background:var(--primary);transition:width .2s}
+.ocr-tokens{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;max-height:88px;overflow:auto;align-items:center}
+.ocr-token{font-size:12px;padding:2px 10px;border-radius:12px;background:#eef6ff;color:#1f6feb;border:1px solid #cfe4ff;cursor:pointer;font-family:Consolas,"Courier New",monospace;user-select:all}
+.ocr-token:hover{background:#dcebff}
+.ocr-text{width:100%;min-height:60px;max-height:110px;resize:none;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:13px;line-height:1.55;background:#fbfcfa;color:var(--text)}
+.ocr-empty{font-size:12px;color:#9aa69d}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#2a2a2a;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:90;opacity:0;transition:.25s;pointer-events:none;max-width:80vw}
 .toast.show{opacity:1}
 /* analysis */
@@ -290,7 +309,7 @@ table.grid tr:hover{background:#fafbf8}
 
 <!-- Image Preview -->
 <div class="img-preview-overlay" id="imgPreview" onclick="closeImgPreview()">
-<div class="img-preview-hint">点击图片放大 · 滚轮缩放 · 长图可上下滑动</div>
+<div class="img-preview-hint">点击图片放大 · 滚轮缩放 · 长图可上下滑动 · 可「提取文字」识别图中单号</div>
 <button class="img-preview-close" onclick="closeImgPreview()">×</button>
 <div id="imgPreviewWrapper" onmousedown="imgDragStart(event)">
 <img id="imgPreviewSrc" class="clickable" src="" alt="" onclick="event.stopPropagation();imgToggleZoom()">
@@ -301,6 +320,13 @@ table.grid tr:hover{background:#fafbf8}
 <span id="imgZoomLabel" onclick="imgResetZoom()">100%</span>
 <button title="放大" onclick="imgZoomStep(0.3)">＋</button>
 <button title="适应屏幕" onclick="imgFitScreen()">⤢</button>
+<button class="ocr-run" id="btnOcrRun" onclick="runImgOcr()" title="在本机识别图片中的文字/订单号（图片不上传；首次需下载约10MB中文识别包）">🔍 提取文字</button>
+</div>
+<div class="img-preview-ocr" id="imgPreviewOcr" onclick="event.stopPropagation()">
+<div class="ocr-head"><b>🔍 提取文字</b><span style="flex:1"></span><button class="ocr-mini" onclick="ocrCopyAll()">复制全部</button><button class="ocr-mini" onclick="closeOcrPanel()">收起</button></div>
+<div class="ocr-status"><span id="ocrStatusText"></span><span class="ocr-bar"><i id="ocrBarFill"></i></span></div>
+<div class="ocr-tokens" id="ocrTokens"></div>
+<textarea class="ocr-text" id="ocrText" readonly spellcheck="false" placeholder="识别出的文字显示在这里，可直接框选复制；如出现「疑似单号」可点一下即复制"></textarea>
 </div>
 </div>
 
@@ -596,13 +622,14 @@ async function getImageUrl(ref){
 let imgZoom=1, imgX=0, imgY=0, imgDrag=false, imgSX=0, imgSY=0;
 function previewImage(url,name){
   if(!url)return;
+  resetOcrUi();
   const img=document.getElementById('imgPreviewSrc'); const wrap=document.getElementById('imgPreviewWrapper');
   img.style.transform=''; imgZoom=1; imgX=0; imgY=0; wrap.scrollTop=0; wrap.scrollLeft=0;
   img.src=url; document.getElementById('imgPreviewName').textContent=name||'';
   document.getElementById('imgPreview').classList.add('active');
   img.onload=()=>{ imgFitWidth(); };
 }
-function closeImgPreview(){ document.getElementById('imgPreview').classList.remove('active'); }
+function closeImgPreview(){ resetOcrUi(); document.getElementById('imgPreview').classList.remove('active'); }
 function imgToggleZoom(){ imgZoom = imgZoom>1?1:2; applyZoom(); }
 function imgZoomStep(d){ imgZoom=Math.max(0.4,Math.min(4,imgZoom+d)); applyZoom(); }
 function imgResetZoom(){ imgZoom=1; applyZoom(); }
@@ -625,6 +652,119 @@ document.getElementById('imgPreviewWrapper').addEventListener('mousemove',e=>{ i
 document.getElementById('imgPreviewWrapper').addEventListener('mouseup',()=>{imgDrag=false;document.getElementById('imgPreviewWrapper').style.cursor='grab';});
 document.getElementById('imgPreviewWrapper').addEventListener('mouseleave',()=>{imgDrag=false;});
 document.getElementById('imgPreviewWrapper').addEventListener('wheel',e=>{ e.preventDefault(); imgZoomStep(e.deltaY<0?0.2:-0.2); },{passive:false});
+
+/* ==================== 灯箱 OCR（本地 tesseract.js，图片不外传） ==================== */
+const OCR_JS_URL='https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js';
+const OCR_LANG_PATH='https://tessdata.projectnaptha.com/4.0.0';
+const OCR_LANG_MIRROR='https://cdn.jsdelivr.net/gh/naptha/tessdata@gh-pages/4.0.0';
+let ocrBusy=false, ocrToken=0, ocrBlobUrl='', __ocrEnginePromise=null;
+function loadOcrEngine(){
+  if(window.Tesseract&&window.Tesseract.recognize)return Promise.resolve(window.Tesseract);
+  if(__ocrEnginePromise)return __ocrEnginePromise;
+  __ocrEnginePromise=new Promise((res,rej)=>{
+    const s=document.createElement('script');s.src=OCR_JS_URL;s.async=true;
+    s.onload=()=>{ if(window.Tesseract&&window.Tesseract.recognize)res(window.Tesseract); else{__ocrEnginePromise=null;rej(new Error('识别引擎加载异常，请刷新后重试'));} };
+    s.onerror=()=>{__ocrEnginePromise=null;rej(new Error('识别引擎下载失败，请检查网络后重试'));};
+    document.head.appendChild(s);
+  });
+  return __ocrEnginePromise;
+}
+function setOcrStatus(msg,pct){
+  const st=document.getElementById('ocrStatusText'); if(st)st.textContent=msg||'';
+  const b=document.getElementById('ocrBarFill'); if(b)b.style.width=(pct==null?0:Math.round(Math.min(1,Math.max(0,pct))*100))+'%';
+}
+function ocrShowBusy(b){
+  ocrBusy=b;
+  const btn=document.getElementById('btnOcrRun'); if(btn){btn.disabled=b;btn.textContent=b?'⏳ 识别中…':'🔍 提取文字';}
+}
+function resetOcrUi(){
+  ocrToken++; ocrBusy=false;
+  if(ocrBlobUrl){try{URL.revokeObjectURL(ocrBlobUrl);}catch(e){}ocrBlobUrl='';}
+  const p=document.getElementById('imgPreviewOcr'); if(p)p.classList.remove('open');
+  const btn=document.getElementById('btnOcrRun'); if(btn){btn.disabled=false;btn.textContent='🔍 提取文字';}
+}
+function closeOcrPanel(){
+  ocrToken++; ocrBusy=false;
+  if(ocrBlobUrl){try{URL.revokeObjectURL(ocrBlobUrl);}catch(e){}ocrBlobUrl='';}
+  const p=document.getElementById('imgPreviewOcr'); if(p)p.classList.remove('open');
+  const btn=document.getElementById('btnOcrRun'); if(btn){btn.disabled=false;btn.textContent='🔍 提取文字';}
+}
+function ocrFallbackCopy(t,ok){
+  try{const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();document.execCommand('copy');ta.remove();ok();}catch(e){showToast('复制失败，请手动框选复制',true);}
+}
+function ocrCopyText(t,msg){
+  const ok=()=>showToast(msg||'✅ 已复制');
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(ok).catch(()=>ocrFallbackCopy(t,ok));}
+  else ocrFallbackCopy(t,ok);
+}
+function ocrCopyAll(){ const v=document.getElementById('ocrText').value; if(!v){showToast('暂无可复制内容');return;} ocrCopyText(v,'✅ 已复制全部文字'); }
+/* 疑似单号：含少量字母前缀或较长的数字串（点一下即复制） */
+function ocrTokenChips(text){
+  const set=new Set(), re=/(?:[A-Za-z]{1,4})?\d{6,24}/g; let m;
+  while((m=re.exec(text))&&set.size<24){ const v=m[0].trim(); if(v&&/\d{6,}/.test(v)&&v.replace(/\d/g,'').length<=4)set.add(v); }
+  return [...set];
+}
+function renderOcrResult(text){
+  setOcrStatus('✅ 识别完成（图片在本机识别，未上传）');
+  const ta=document.getElementById('ocrText'); ta.value=text;
+  const box=document.getElementById('ocrTokens'); box.innerHTML='';
+  if(!text.replace(/\s/g,'')){ box.innerHTML='<span class="ocr-empty">未识别到文字：可放大图片后再试；或图片中确实没有文字。</span>'; return; }
+  const tokens=ocrTokenChips(text);
+  if(tokens.length){
+    box.innerHTML='<span class="ocr-empty" style="align-self:center">疑似单号/长数字（点一下复制）：</span>'+tokens.map(t=>'<span class="ocr-token">'+t+'</span>').join('');
+    box.querySelectorAll('.ocr-token').forEach(el=>{ const v=el.textContent; el.title='点击复制 '+v; el.onclick=()=>ocrCopyText(v,'✅ 已复制单号 '+v); });
+  }else box.innerHTML='<span class="ocr-empty">未发现明显单号，可复制下方全部文字自行筛选。</span>';
+}
+function ocrFriendlyError(err){
+  const m=String((err&&err.message)||err);
+  if(/taint|SecurityError|SECURITY_ERR|CORS|cross.?origin/i.test(m))return '图片跨域受限，无法在本机读取像素（可先把图保存到本地再试）';
+  return m;
+}
+async function runImgOcr(){
+  if(ocrBusy)return;
+  const img=document.getElementById('imgPreviewSrc');
+  const src=img?img.getAttribute('src'):''; if(!src){showToast('没有可识别的图片');return;}
+  const my=++ocrToken;
+  const panel=document.getElementById('imgPreviewOcr'); panel.classList.add('open');
+  document.getElementById('ocrTokens').innerHTML='';
+  document.getElementById('ocrText').value='';
+  ocrShowBusy(true); setOcrStatus('正在加载识别引擎…');
+  try{
+    const T=await loadOcrEngine(); if(my!==ocrToken)return;
+    // 尽量先抓成本地 Blob，避免跨域图片污染画布（始终只在浏览器本机处理）
+    let work=src;
+    if(!/^data:/i.test(src)){
+      try{ const r=await fetch(src,{mode:'cors'}); if(r.ok){ ocrBlobUrl=URL.createObjectURL(await r.blob()); work=ocrBlobUrl; } }catch(e){ console.warn('ocr fetch image',e); }
+      if(my!==ocrToken)return;
+    }
+    const run=(langPath)=>T.recognize(work,'chi_sim+eng',{
+      langPath:langPath,
+      logger:m=>{ if(my!==ocrToken)return;
+        if(m.status==='loading tesseract core')setOcrStatus('正在下载识别引擎核心…');
+        else if(m.status==='initializing tesseract')setOcrStatus('正在初始化引擎…');
+        else if(m.status==='loading language traineddata')setOcrStatus('正在下载中文/英文识别包（首次约10MB+，请耐心等待）…',m.progress||0);
+        else if(m.status==='initializing api')setOcrStatus('正在载入语言包…');
+        else if(m.status==='recognizing text')setOcrStatus('正在识别文字…',m.progress||0);
+      }
+    });
+    let res;
+    try{ res=await run(OCR_LANG_PATH); }
+    catch(err){
+      if(my===ocrToken&&/lang|traineddata|tessdata|download|加载|下载/i.test(String((err&&err.message)||err))){
+        setOcrStatus('默认源下载失败，正在切换备用源重试…');
+        res=await run(OCR_LANG_MIRROR);
+      }else throw err;
+    }
+    if(my!==ocrToken)return;
+    renderOcrResult((res&&res.data&&res.data.text)?res.data.text:'');
+  }catch(err){
+    console.error('ocr error',err);
+    if(my===ocrToken)setOcrStatus('⚠️ '+ocrFriendlyError(err));
+  }finally{
+    if(my===ocrToken)ocrShowBusy(false);
+    if(ocrBlobUrl){try{URL.revokeObjectURL(ocrBlobUrl);}catch(e){}ocrBlobUrl='';}
+  }
+}
 
 /* ==================== 数据加载 ==================== */
 async function loadRecords(showMsg){
