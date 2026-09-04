@@ -351,7 +351,7 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     o.spHeadOk = !!document.querySelector('#pp-content .pp-special-head')
       && c().includes('高价特殊品（初音 / 定轴）') && c().includes('价格更高');
     o.spL1Cards = document.querySelectorAll('#pp-content .pp-tiercard').length;   // 4 分类卡 + 2 红卡 = 6
-    o.spRedSubOk = c().includes('勿发普通花色备注');
+    o.spRedSubOk = c().includes('禁止按普通款备注此系列');
     // 机制直接印在首层红卡上（不用点进去）：日抛按盒 4 档 + 半年抛按副 4 档，两组分开
     o.spMechCardOk = c().includes('日抛 · 按「盒」') && c().includes('半年抛 · 按「副」')
       && c().includes('49.9') && c().includes('/1盒') && c().includes('赠明信片+佩戴棒') && c().includes('199.4')
@@ -362,7 +362,7 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     // 点初音红卡 → 直达明细（客服）：banner/机制条/标题/红色角标/按价格档分组
     openPpDim('special','chuyin');
     o.spDetailCards = document.querySelectorAll('#pp-content .pp-card').length;   // 初音粉 + 初音定轴 = 2
-    o.spBannerOk = c().includes('禁止发送普通花色备注');
+    o.spBannerOk = c().includes('此系列花色禁止按普通款发备注');
     o.spMechDetailOk = c().includes('初音日抛联名机制') && c().includes('初音半年抛联名机制') && c().includes('/2盒') && c().includes('/2副') && c().includes('镭射');   // 明细页两组机制条常驻
     o.spTitleOk = c().includes('初音') && c().includes('2 款');
     o.spBadgeCount = document.querySelectorAll('#pp-content .pp-special-badge').length;   // 2

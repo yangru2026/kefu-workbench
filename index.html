@@ -9806,7 +9806,7 @@ function renderPatternPricePage() {
     const n = items.filter(s.match).length;
     return '<div class="pp-tiercard l1" style="--c:' + s.color + '" onclick="openPpDim(\'special\',\'' + s.key + '\')">'
       + '<div class="pp-tiercard-price">⚠️ ' + s.label + '</div>'
-      + '<div class="pp-tiercard-sub">共 ' + n + ' 款 · 勿发普通花色备注</div>'
+      + '<div class="pp-tiercard-sub">共 ' + n + ' 款 · 禁止按普通款备注此系列</div>'
       + ppMechHtml(s)
       + '<div class="pp-tiercard-enter">点击查看专属明细 →</div></div>';
   };
@@ -9827,7 +9827,7 @@ function renderPatternPricePage() {
     // 高价特殊品专区（初音/定轴）：只要当前范围有匹配就单独红卡展示，防客服发错普通备注
     const spHits = PP_SPECIALS.filter(s => items.some(s.match));
     if (spHits.length) {
-      html += '<div class="pp-special-head">⚠️ 高价特殊品（' + spHits.map(s => s.label).join(' / ') + '）· 价格更高，发普通备注前务必先核对！</div><div class="pp-tiercards">' + spHits.map(spCard).join('') + '</div>';
+      html += '<div class="pp-special-head">⚠️ 高价特殊品（' + spHits.map(s => s.label).join(' / ') + '）· 价格更高，禁止按普通款发备注，发前务必核对价格！</div><div class="pp-tiercards">' + spHits.map(spCard).join('') + '</div>';
     }
     if (!items.length) html = '<div class="pattern-empty">😕 没有匹配的花色，先到「花色素材」给花色填上抛型/系列/直径/价格档吧</div>';
   } else if (!ppDimView.val) {
@@ -9865,7 +9865,7 @@ function renderPatternPricePage() {
     }
     html += '<button class="pp-back" onclick="ppBackToDimOptions(\'' + escapeAttr(def.dim) + '\')">← 返回' + escapeHtml(def.title) + '</button>';
     if (isSpecial) {
-      html += '<div class="pp-special-banner">⚠️ 高价特殊品：禁止发送普通花色备注！发备注前务必先核对本页价格</div>';
+      html += '<div class="pp-special-banner">⚠️ 此系列花色禁止按普通款发备注！发备注前务必先核对本页价格</div>';
       html += ppMechHtml(spDef, true);   // 联名机制常驻明细页，发备注前对照
     }
     html += '<div class="pp-group-title' + (isNone ? ' pp-warn' : '') + (isSpecial ? ' special' : '') + '">' + def.icon + ' ' + escapeHtml(titleVal) + '<span class="pp-count">' + detail.length + ' 款</span></div>';
