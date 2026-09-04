@@ -9823,6 +9823,12 @@ function ppTierLabel(p) {
   return t;
 }
 // 联名机制列表（红卡/明细页复用）：多组机制各自成块；full=明细页用完整标题，卡面用短标题
+// 选项卡点击守卫：目标（或其祖先）是提醒输入框时不进入明细（拖拽放大松手在卡内也不会误跳页）
+function ppCardClick(ev, dim, key) {
+  const t = ev && ev.target;
+  if (t && t.closest && t.closest('.pp-note-input')) return;
+  openPpDim(dim, key);
+}
 function ppMechHtml(sp, full) {
   if (!sp || !sp.mechs || !sp.mechs.length) return '';
   const note = sp.note ? '<div class="pp-mech-note">⚠️ ' + escapeHtml(sp.note) + '</div>' : '';
@@ -9878,7 +9884,8 @@ function renderPatternPricePage() {
     const unk = list.length - Object.values(counts).reduce((a, b) => a + b, 0);
     const badges = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 4)
       .map((b, i) => '<span class="pp-dtag ' + ['small','big','unk'][i % 3] + '">' + escapeHtml(b) + ' ' + counts[b] + '</span>').join('');
-    return '<div class="pp-tiercard' + (none ? ' none' : '') + '" onclick="openPpDim(\'' + escapeAttr(def.dim) + '\',\'' + escapeAttr(key) + '\')">'
+    // 卡片点击进明细；但点在提醒框上（含拖拽右下角放大时松手在卡片其他位置）不跳转
+    return '<div class="pp-tiercard' + (none ? ' none' : '') + '" onclick="ppCardClick(event,\'' + escapeAttr(def.dim) + '\',\'' + escapeAttr(key) + '\')">'
       + noteHtml
       + '<div class="pp-tiercard-price">' + escapeHtml(label) + '</div>'
       + '<div class="pp-tiercard-sub">共 ' + list.length + ' 款</div>'

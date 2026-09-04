@@ -472,6 +472,24 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     return o;
   });
 
+  // ===== 提醒框点击守卫：点/拖拽文本框不触发卡片跳页，点卡面正常进明细 =====
+  await ev('noteGuard', ()=>{
+    const o = {};
+    currentProfile = { id:'adm1', role:'admin', name:'杨茹', status:'active' };
+    ppBrandFilter = '弥生'; ppDimView = { dim:'price', val:null };
+    renderPatternPricePage();
+    const ta = document.querySelector('#pp-content .pp-tiercard .pp-note-input');
+    o.noteGuardTaExists = !!ta;
+    if (ta) {
+      ppDimView = null;
+      ppCardClick({ target: ta }, 'price', '29.9元/副');
+      o.noteGuardNoNav = ppDimView === null;   // 点在输入框上：不跳页
+      ppCardClick({ target: ta.parentNode }, 'price', '29.9元/副');
+      o.noteGuardNavOk = !!ppDimView && ppDimView.val === '29.9元/副';   // 点在卡面：正常进明细
+    }
+    return o;
+  });
+
   // 汇总
   out._errs = errs.slice(0,6);
   console.log(JSON.stringify(out,null,2));
@@ -486,7 +504,7 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     spL1Cards:6, spDetailCards:2, spBadgeCount:2, spL2Cards:2,
     spSearchOneCards:5, spAdminChecks:2, spQuickSelects:4, spMechRows:8, spTypeChips:2, spDzMechRows:17, spDzDetailCards:1, noteInputCount:3, spMechGridCols:2
   };
-  const needed = ['treeFieldsOk','l1Info','noCardsLayer1','noCheckbox','noQuick','noPatternNames','no499','batchBarHiddenCs','backBtn','l2Title','seriesInfo','l2NoPatterns','l2NoCheckbox','optGridOk','batchBarHiddenCsL2','backOk','backLabelOk','typeTitleOk','typePatterns','typeGroupsOk','csTierNoCheckbox','batchBarHiddenCsTier','backToL2Ok','diamGroupsByPrice','priceGroupsByDiam','batchBarEl','batchBarHiddenL1','batchBarHiddenL2','batchBarVisibleTier','disc69Card','discVisible','loadMoreOk','oldNavGone','aliasReset','aliasJiyangOk','navActiveJiyang','aliasMiyangOk','navActiveMiyang','aliasBarHiddenL1','quickOk','localSynced','movedOut','batchOk','selClearedAfter','searchOk','editorPriceExists','editorDgExists','editorOptions','filterFnOk','spHeadOk','spRedSubOk','spMechCardOk','spL1NoChecks','spL1NoQuick','spDzMechOk','spDzNoteOk','spBannerOk','spMechDetailOk','spTitleOk','spBadgeOk','spUnitBoxOk','spUnitPairOk','spTypeChipOk','spDzDetailOk','spDzOwnOk','noteEveryCardOk','noteLoadedOk','noteUpsertOk','noteCsViewOk','spBackLabelOk','spBatchHiddenCs','spL2CountOk','spBackToL1Ok','spZoneGoneOnSearch','spSearchOneOk','spAdminBarOk','spMechGridWrapOk','spMechGridOk','staffResetFnOk','staffResetBtnAdmin','staffResetBtnCs'];
+  const needed = ['treeFieldsOk','l1Info','noCardsLayer1','noCheckbox','noQuick','noPatternNames','no499','batchBarHiddenCs','backBtn','l2Title','seriesInfo','l2NoPatterns','l2NoCheckbox','optGridOk','batchBarHiddenCsL2','backOk','backLabelOk','typeTitleOk','typePatterns','typeGroupsOk','csTierNoCheckbox','batchBarHiddenCsTier','backToL2Ok','diamGroupsByPrice','priceGroupsByDiam','batchBarEl','batchBarHiddenL1','batchBarHiddenL2','batchBarVisibleTier','disc69Card','discVisible','loadMoreOk','oldNavGone','aliasReset','aliasJiyangOk','navActiveJiyang','aliasMiyangOk','navActiveMiyang','aliasBarHiddenL1','quickOk','localSynced','movedOut','batchOk','selClearedAfter','searchOk','editorPriceExists','editorDgExists','editorOptions','filterFnOk','spHeadOk','spRedSubOk','spMechCardOk','spL1NoChecks','spL1NoQuick','spDzMechOk','spDzNoteOk','spBannerOk','spMechDetailOk','spTitleOk','spBadgeOk','spUnitBoxOk','spUnitPairOk','spTypeChipOk','spDzDetailOk','spDzOwnOk','noteEveryCardOk','noteLoadedOk','noteUpsertOk','noteCsViewOk','spBackLabelOk','spBatchHiddenCs','spL2CountOk','spBackToL1Ok','spZoneGoneOnSearch','spSearchOneOk','spAdminBarOk','spMechGridWrapOk','spMechGridOk','noteGuardTaExists','noteGuardNoNav','noteGuardNavOk','staffResetFnOk','staffResetBtnAdmin','staffResetBtnCs'];
   const numericKeys = Object.keys(numeric);
   const missing = needed.concat(numericKeys).filter(k=>!(k in out));
   const ok = missing.length===0 && needed.every(k=>out[k]===true) && numericKeys.every(k=>out[k]>=numeric[k]);

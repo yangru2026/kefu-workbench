@@ -2864,7 +2864,12 @@ async function adminResetPwd(phone, nickname) {
     const { data, error } = await supabase.functions.invoke('reset-password', {
       body: { phone: phone, new_password: newPwd }
     });
-    if (error) { showToast('重置失败：' + (error.message || '网络异常')); return; }
+    if (error) {
+      const m = error.message || '';
+      if (/Failed to send/i.test(m)) showToast('云端重置函数未部署或名称不对：请到 Supabase 后台 Edge Functions 确认 reset-password 已 Deploy');
+      else showToast('重置失败：' + m);
+      return;
+    }
     if (!data || !data.ok) { showToast('重置失败：' + ((data && data.message) || '未知错误')); return; }
     prompt('✅ 已重置！选中并复制下面的临时密码，发给 ' + nickname + '：', newPwd);
     showToast('密码已重置');
