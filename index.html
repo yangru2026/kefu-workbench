@@ -747,9 +747,12 @@ body {
 .pp-loadmore-wrap{text-align:center;padding:16px 0 6px}
 /* 第一层：价格档大卡片（点进去才看花色） */
 .pp-dim-title{font-size:15px;font-weight:800;color:var(--text);margin:20px 2px 10px;padding-left:9px;border-left:4px solid var(--primary);line-height:1.3}
-.pp-tiercard.l1{padding:26px 22px 20px;min-height:132px}
-.pp-tiercard.l1 .pp-tiercard-price{font-size:20px}
-.pp-tiercard.l1 .pp-tiercard-sub{font-size:14px;margin:6px 0 14px}
+.pp-tiercard.l1{padding:26px 22px 20px;min-height:132px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;--c:var(--primary)}
+.pp-tiercard.l1::before{background:linear-gradient(180deg,var(--c),color-mix(in srgb,var(--c) 70%,#000))}
+.pp-tiercard.l1 .pp-tiercard-price{font-size:20px;color:var(--c)}
+.pp-tiercard.l1 .pp-tiercard-sub{font-size:14px;margin:10px 0 14px}
+.pp-tiercard.l1 .pp-tiercard-enter{color:var(--c)}
+.pp-tiercard.l1:hover{border-color:var(--c);box-shadow:0 8px 18px color-mix(in srgb,var(--c) 15%,transparent)}
 .pp-tiercards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
 .pp-tiercard{position:relative;background:#fff;border:1px solid var(--border-soft);border-radius:16px;padding:18px 16px 14px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow);overflow:hidden}
 .pp-tiercard:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:#f59e0b}
@@ -9690,12 +9693,12 @@ function ppDimOptions(dim, items) {
   const used = [...new Set(items.map(p => p[field] || '').filter(Boolean))].filter(n => !managed.includes(n));
   return { list: [...managed, ...used], get: p => p[field] || '', noneLabel: dim === 'type' ? '❓ 未分抛型' : '❓ 未填系列' };
 }
-// 四维度定义：key=取值函数；badgeOf=卡面上用哪个维度做分布徽标
+// 四维度定义：key=取值函数；badgeOf=卡面上用哪个维度做分布徽标；color=第一层卡片主题色
 const PP_DIMS = [
-  { dim: 'type',   icon: '⏱', title: '按抛型', key: p => p._type || '',    badgeOf: 'diam' },
-  { dim: 'series', icon: '🎨', title: '按系列', key: p => p.series || '',   badgeOf: 'type' },
-  { dim: 'diam',   icon: '⭕', title: '按直径', key: p => p.diamGroup || '', badgeOf: 'price' },
-  { dim: 'price',  icon: '💰', title: '按价格', key: p => p.priceTier || '', badgeOf: 'diam' },
+  { dim: 'type',   icon: '⏱', title: '按抛型', color: '#3b82f6', key: p => p._type || '',    badgeOf: 'diam' },
+  { dim: 'series', icon: '🎨', title: '按系列', color: '#8b5cf6', key: p => p.series || '',   badgeOf: 'type' },
+  { dim: 'diam',   icon: '⭕', title: '按直径', color: '#10b981', key: p => p.diamGroup || '', badgeOf: 'price' },
+  { dim: 'price',  icon: '💰', title: '按价格', color: '#f59e0b', key: p => p.priceTier || '', badgeOf: 'diam' },
 ];
 function renderPatternPricePage() {
   const canManage = canEdit('patterns');
@@ -9751,7 +9754,7 @@ function renderPatternPricePage() {
       const opt = ppDimOptions(def.dim, items);
       let opts = opt.list.filter(v => items.some(p => opt.get(p) === v)).length;
       if (items.some(p => !opt.get(p))) opts++;   // 未填类也算一类
-      html += '<div class="pp-tiercard l1" onclick="openPpDim(\'' + def.dim + '\')">'
+      html += '<div class="pp-tiercard l1" style="--c:' + def.color + '" onclick="openPpDim(\'' + def.dim + '\')">'
         + '<div class="pp-tiercard-price">' + def.icon + ' ' + def.title + '</div>'
         + '<div class="pp-tiercard-sub">共 ' + opts + ' 类 · ' + items.length + ' 款花色</div>'
         + '<div class="pp-tiercard-enter">点击查看分类 →</div></div>';
