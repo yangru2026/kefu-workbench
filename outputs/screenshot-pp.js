@@ -27,9 +27,11 @@ const BASE = 'http://127.0.0.1:8123/index.html';
       series: series[i%3], price_tier: i<26 ? tiers[i%4] : '', diam_group: i<26 ? groups[i%3] : '',
       diameter: groups[i%3]==='大直径' ? '14.5' : '14.2', disc: i===26
     }));
-    // 高价特殊品样例：初音（系列含「初音」，线上真实值如「初音-日抛」）+ 定轴（fixed_axis 有值）
+    // 高价特殊品样例：初音（系列含「初音」，线上真实值如「初音-日抛」/「初音未来」）+ 定轴（fixed_axis 有值）
     rows.push(mk('sp1','弥生','日抛','初音·心跳粉',{series:'初音-日抛',price_tier:'49.9元/副',diam_group:'小直径',created_at:now}));
     rows.push(mk('sp2','弥生','半年抛','定轴·星雾灰',{series:'星眸系列',price_tier:'99元/副',diam_group:'大直径',diameter:'14.5',fixed_axis:'90°',created_at:now}));
+    // 初音未来半年抛（对齐线上 9 款半年抛 69元/副）→ 明细页同时演示「日抛」「半年抛」两个大字标签
+    rows.push(mk('sp3','弥生','半年抛','初音·未来蓝',{series:'初音未来',price_tier:'69元/副',diam_group:'小直径',created_at:now}));
     window.__rows = rows;
     patternCategories = [
       {id:'p1',category_type:'price',name:'29.9元/副',sort_order:1},
@@ -57,11 +59,11 @@ const BASE = 'http://127.0.0.1:8123/index.html';
   await page.screenshot({path:'outputs/pp-page-preview.png', fullPage:false});
   // 第一层红卡 → 高价特殊品明细（验证警示横幅 + 卡片红色角标）
   await page.evaluate(()=>{
-    const card = [...document.querySelectorAll('#pp-content .pp-tiercard.l1')].find(c=>c.textContent.includes('初音') && c.textContent.includes('勿发普通花色备注'));
+    const card = [...document.querySelectorAll('#pp-content .pp-tiercard.l1')].find(c=>c.textContent.includes('初音') && c.textContent.includes('禁止按普通款备注此系列'));
     if (card) card.click(); else openPpDim('special','chuyin');
   });
   await new Promise(r=>setTimeout(r,600));
-  await page.screenshot({path:'outputs/pp-special-preview.png', fullPage:false});
+  await page.screenshot({path:'outputs/pp-special-preview.png', fullPage:true});
   // 回第一层 → 第二层：点「按系列」→ 该分类下的系列选项卡片
   await page.evaluate(()=>{ ppBackToDims(); });
   await new Promise(r=>setTimeout(r,300));
