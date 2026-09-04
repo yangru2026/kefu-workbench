@@ -727,6 +727,7 @@ body {
 .pp-group{margin-bottom:26px}
 .pp-group-title{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:800;color:var(--primary);padding:6px 2px;border-bottom:2px solid var(--primary);margin-bottom:14px}
 .pp-group-title.pp-warn{color:#b45309;border-color:#f59e0b}
+.pp-group-title.special{color:#be123c;border-color:#f43f5e}
 .pp-tier{margin-bottom:18px}
 .pp-tier-title{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#92400e;background:#fef3c7;border:1px solid #fde68a;padding:4px 13px;border-radius:16px;margin-bottom:9px}
 .pp-tier-title.pp-tier-warn{color:#9a3412;background:#ffedd5;border-color:#fed7aa}
@@ -777,6 +778,10 @@ body {
 .pp-back{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:#fff;border-radius:999px;padding:6px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--text-secondary);margin-bottom:12px;transition:all .2s}
 .pp-back:hover{border-color:var(--primary-light);color:var(--primary)}
 .pp-disc-badge{position:absolute;top:7px;left:7px;background:#d97706;color:#fff;font-size:11px;padding:1px 8px;border-radius:10px;z-index:2}
+/* 高价特殊品警示（初音/定轴）：价格更高，防止客服发错普通花色备注 */
+.pp-special-badge{position:absolute;bottom:7px;right:7px;background:linear-gradient(135deg,#e11d48,#be123c);color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:11px;z-index:2;box-shadow:0 1px 5px rgba(0,0,0,.3);white-space:nowrap;pointer-events:none}
+.pp-special-head{margin:24px 4px 12px;font-size:13px;font-weight:800;color:#be123c;padding:10px 14px;background:#fff1f2;border:1.5px solid #fecdd3;border-radius:12px}
+.pp-special-banner{margin:0 2px 12px;font-size:13px;font-weight:700;color:#9f1239;background:linear-gradient(90deg,#ffe4e6,#fff1f2);border:1px solid #fda4af;border-radius:12px;padding:9px 13px}
 .pp-check{position:absolute;top:6px;right:6px;z-index:3;background:rgba(255,255,255,.94);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .pp-check input{width:15px;height:15px;cursor:pointer;accent-color:var(--primary)}
 .pp-body{padding:8px 10px 10px}
@@ -9707,6 +9712,12 @@ const PP_DIMS = [
   { dim: 'diam',   icon: '⭕', title: '按直径', color: '#10b981', key: p => p.diamGroup || '', badgeOf: 'price' },
   { dim: 'price',  icon: '💰', title: '按价格', color: '#f59e0b', key: p => p.priceTier || '', badgeOf: 'diam' },
 ];
+// 高价特殊品：初音=系列名为「初音」；定轴=fixed_axis 填了值。均比普通花色贵，客服容易把普通备注错发到这些单
+const PP_SPECIALS = [
+  { key: 'chuyin',   label: '初音', color: '#e11d48', match: p => (p.series || '') === '初音' },
+  { key: 'dingzhou', label: '定轴', color: '#ea580c', match: p => !!(((p.fixedAxis || '') + '').trim()) },
+];
+function ppSpecialTags(p) { const a = []; PP_SPECIALS.forEach(s => { if (s.match(p)) a.push(s.label); }); return a; }
 function renderPatternPricePage() {
   const canManage = canEdit('patterns');
   // 批量打标下拉（管理员可见时才有意义）
@@ -9767,30 +9778,71 @@ function renderPatternPricePage() {
         + '<div class="pp-tiercard-enter">点击查看分类 →</div></div>';
     });
     html += '</div>';
+    // 高价特殊品专区（初音/定轴）：只要当前范围有匹配就单独红卡展示，防客服发错普通备注
+    const spHits = PP_SPECIALS.filter(s => items.some(s.match));
+    if (spHits.length) {
+      html += '<div class="pp-special-head">⚠️ 高价特殊品（' + spHits.map(s => s.label).join(' / ') + '）· 价格更高，发普通备注前务必先核对！</div><div class="pp-tiercards">';
+      spHits.forEach(s => {
+        const n = items.filter(s.match).length;
+        html += '<div class="pp-tiercard l1" style="--c:' + s.color + '" onclick="openPpDim(\'special\',\'' + s.key + '\')">'
+          + '<div class="pp-tiercard-price">⚠️ ' + s.label + '</div>'
+          + '<div class="pp-tiercard-sub">共 ' + n + ' 款 · 勿发普通花色备注</div>'
+          + '<div class="pp-tiercard-enter">点击查看专属明细 →</div></div>';
+      });
+      html += '</div>';
+    }
     if (!items.length) html = '<div class="pattern-empty">😕 没有匹配的花色，先到「花色素材」给花色填上抛型/系列/直径/价格档吧</div>';
   } else if (!ppDimView.val) {
     // ===== 第二层：该分类下的选项卡片（如各系列 / 各抛型 / 各价格档） =====
-    const def = PP_DIMS.find(d => d.dim === ppDimView.dim) || PP_DIMS[3];
-    const opt = ppDimOptions(def.dim, items);
     html += '<button class="pp-back" onclick="ppBackToDims()">← 返回分类入口</button>';
-    html += '<div class="pp-group-title">' + def.icon + ' ' + def.title + '<span class="pp-count">' + items.length + ' 款</span></div>';
-    html += '<div class="pp-tiercards pp-opt-grid">';
-    opt.list.forEach(v => { html += dimCard(def, v, v, items.filter(p => opt.get(p) === v), false); });
-    html += dimCard(def, '__none__', opt.noneLabel, items.filter(p => !opt.get(p)), true);
-    html += '</div>';
+    if (ppDimView.dim === 'special') {
+      const spHits = PP_SPECIALS.filter(s => items.some(s.match));
+      const spTotal = items.filter(p => ppSpecialTags(p).length > 0).length;
+      html += '<div class="pp-group-title special">⚠️ 高价特殊品<span class="pp-count">共 ' + spTotal + ' 款</span></div>';
+      html += '<div class="pp-tiercards">';
+      spHits.forEach(s => {
+        const n = items.filter(s.match).length;
+        html += '<div class="pp-tiercard l1" style="--c:' + s.color + '" onclick="openPpDim(\'special\',\'' + s.key + '\')">'
+          + '<div class="pp-tiercard-price">⚠️ ' + s.label + '</div>'
+          + '<div class="pp-tiercard-sub">共 ' + n + ' 款 · 勿发普通花色备注</div>'
+          + '<div class="pp-tiercard-enter">点击查看专属明细 →</div></div>';
+      });
+      html += '</div>';
+      if (!spTotal) html += '<div class="pattern-empty">😕 当前筛选下没有高价特殊品</div>';
+    } else {
+      const def = PP_DIMS.find(d => d.dim === ppDimView.dim) || PP_DIMS[3];
+      const opt = ppDimOptions(def.dim, items);
+      html += '<div class="pp-group-title">' + def.icon + ' ' + def.title + '<span class="pp-count">' + items.length + ' 款</span></div>';
+      html += '<div class="pp-tiercards pp-opt-grid">';
+      opt.list.forEach(v => { html += dimCard(def, v, v, items.filter(p => opt.get(p) === v), false); });
+      html += dimCard(def, '__none__', opt.noneLabel, items.filter(p => !opt.get(p)), true);
+      html += '</div>';
+    }
   } else {
-    // ===== 第三层：某分类某选项下的花色明细 =====
-    const def = PP_DIMS.find(d => d.dim === ppDimView.dim) || PP_DIMS[3];
-    const opt = ppDimOptions(def.dim, items);
-    const isNone = ppDimView.val === '__none__';
-    const detail = items.filter(p => isNone ? !opt.get(p) : opt.get(p) === ppDimView.val);
+    // ===== 第三层：花色明细 =====
+    const isSpecial = ppDimView.dim === 'special';
+    const def = isSpecial ? { dim: 'special', icon: '⚠️', title: '高价特殊品' } : (PP_DIMS.find(d => d.dim === ppDimView.dim) || PP_DIMS[3]);
+    let opt = null, isNone = false, detail = [], titleVal = ppDimView.val;
+    if (isSpecial) {
+      const sp = PP_SPECIALS.find(s => s.key === ppDimView.val) || null;
+      detail = sp ? items.filter(sp.match) : [];
+      titleVal = sp ? sp.label : '特殊品';
+    } else {
+      opt = ppDimOptions(def.dim, items);
+      isNone = ppDimView.val === '__none__';
+      detail = items.filter(p => isNone ? !opt.get(p) : opt.get(p) === ppDimView.val);
+      titleVal = isNone ? opt.noneLabel : ppDimView.val;
+    }
     html += '<button class="pp-back" onclick="ppBackToDimOptions(\'' + escapeAttr(def.dim) + '\')">← 返回' + escapeHtml(def.title) + '</button>';
-    html += '<div class="pp-group-title' + (isNone ? ' pp-warn' : '') + '">' + def.icon + ' ' + (isNone ? opt.noneLabel : escapeHtml(ppDimView.val)) + '<span class="pp-count">' + detail.length + ' 款</span></div>';
-    // 明细分组：按直径进来的用价格档分组，其余维度都按直径分组
-    const gd = def.dim === 'diam'
+    if (isSpecial) {
+      html += '<div class="pp-special-banner">⚠️ 高价特殊品：禁止发送普通花色备注！发备注前务必先核对本页价格</div>';
+    }
+    html += '<div class="pp-group-title' + (isNone ? ' pp-warn' : '') + (isSpecial ? ' special' : '') + '">' + def.icon + ' ' + escapeHtml(titleVal) + '<span class="pp-count">' + detail.length + ' 款</span></div>';
+    // 明细分组：特殊品/按直径进来 → 按价格档分组；其余维度按直径分组
+    const gd = (def.dim === 'diam' || isSpecial)
       ? { get: p => p.priceTier || '', noneLabel: '❓ 未标价' }
       : { get: p => p.diamGroup || '', noneLabel: '⏳ 待分组（未标直径）' };
-    const gList = def.dim === 'diam' ? ppDimOptions('price', items).list : ppDimOptions('diam', items).list;
+    const gList = (def.dim === 'diam' || isSpecial) ? ppTierList() : ppDimOptions('diam', items).list;
     const limit = Math.max(1, ppRenderLimit || PP_PAGE_SIZE);
     let shown = 0, truncated = false;
     for (const g of [...gList, '']) {
@@ -9848,6 +9900,8 @@ function ppCardHtml(p, canManage) {
     ? '<span class="pp-price-tag">' + escapeHtml(p.priceTier) + '</span>'
     : '<span class="pp-price-tag none">未标价</span>';
   const discBadge = p.isDiscontinued ? '<div class="pp-disc-badge">已下架</div>' : '';
+  const spTags = ppSpecialTags(p);
+  const spBadge = spTags.length ? '<div class="pp-special-badge">⚠️' + spTags.map(t => escapeHtml(t)).join(' · ') + '</div>' : '';
   const isNew = (() => { if (!p.createdAt) return false; const c = new Date(p.createdAt).getTime(); return !isNaN(c) && (Date.now() - c) < 30 * 86400000; })();
   const newInline = (!p.isDiscontinued && isNew) ? '<span class="pp-new-inline">🆕</span>' : '';
   const chk = canManage
@@ -9870,7 +9924,7 @@ function ppCardHtml(p, canManage) {
   const nameStyle = p.isDiscontinued ? ' style="text-decoration:line-through;opacity:.65;"' : '';
   const metaParts = [p._brand, p.series, p.diameter ? '直径' + p.diameter : ''].filter(Boolean);
   return '<div class="pp-card' + (p.isDiscontinued ? ' disc' : '') + (ppSel.has(p._id) ? ' sel' : '') + '"' + clickAttr + '>'
-    + '<div class="pp-img">' + discBadge + imgHtml + priceTag + chk + '</div>'
+    + '<div class="pp-img">' + discBadge + imgHtml + priceTag + spBadge + chk + '</div>'
     + '<div class="pp-body"><div class="pp-name"' + nameStyle + '>' + escapeHtml(p.name) + newInline + '</div>'
     + '<div class="pp-meta">' + escapeHtml(metaParts.join(' · ')) + '</div>' + quickBar + '</div>'
     + '</div>';
