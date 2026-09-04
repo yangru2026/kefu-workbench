@@ -381,7 +381,7 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     const c=()=>document.getElementById('pp-content').textContent;
     // 第一层（客服）：四分类卡下方出现红色特殊品专区（初音+定轴两张红卡）
     o.spHeadOk = !!document.querySelector('#pp-content .pp-special-head')
-      && c().includes('高价特殊品（初音 / 定轴）') && c().includes('价格更高');
+      && c().includes('高价特殊品（初音 / 少女漫定轴）') && c().includes('价格更高');
     o.spL1Cards = document.querySelectorAll('#pp-content .pp-tiercard').length;   // 4 分类卡 + 2 红卡 = 6
     o.spRedSubOk = c().includes('禁止按普通款备注此系列');
     // 机制直接印在首层红卡上（不用点进去）：日抛按盒 4 档 + 半年抛按副 4 档，两组分开
@@ -405,7 +405,7 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     o.spMechDetailOk = c().includes('初音日抛联名机制') && c().includes('初音半年抛联名机制') && c().includes('/2盒') && c().includes('/2副') && c().includes('镭射');   // 明细页两组机制条常驻
     o.spTitleOk = c().includes('初音') && c().includes('2 款');
     o.spBadgeCount = document.querySelectorAll('#pp-content .pp-special-badge').length;   // 2
-    o.spBadgeOk = o.spBadgeCount>=2 && c().includes('初音 · 定轴');               // s5 命中两条规则 → 双标签
+    o.spBadgeOk = o.spBadgeCount>=2 && c().includes('初音 · 少女漫定轴');          // s5 命中两条规则 → 双标签
     // 单位：初音日抛显示「/盒」，初音未来半年抛保持「/副」（客服视图无下拉，无干扰文本）
     o.spUnitBoxOk = c().includes('49.9元/盒') && !c().includes('49.9元/副');
     o.spUnitPairOk = c().includes('69元/副');
@@ -436,7 +436,7 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
       && !c().includes('高价特殊品') && !c().includes('初音粉');
     sq.value='初音粉'; renderPatternPricePage();   // 只命中单条规则（初音、非定轴）的 s2 → 只剩初音红卡
     o.spSearchOneCards = document.querySelectorAll('#pp-content .pp-tiercard').length;   // 4 + 1
-    o.spSearchOneOk = c().includes('高价特殊品（初音）') && !c().includes('高价特殊品（初音 / 定轴）') && !c().includes('定轴灰') && !c().includes('初音定轴');
+    o.spSearchOneOk = c().includes('高价特殊品（初音）') && !c().includes('高价特殊品（初音 / 少女漫定轴）') && !c().includes('定轴灰') && !c().includes('初音定轴');
     sq.value=''; renderPatternPricePage();
     // 管理员：特殊品明细内批量条显示 + 勾选框/快捷下拉齐全
     currentProfile={role:'admin',name:'杨茹'};
