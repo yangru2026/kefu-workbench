@@ -9720,14 +9720,22 @@ const PP_DIMS = [
   { dim: 'price',  icon: '💰', title: '按价格', color: '#f59e0b', key: p => p.priceTier || '', badgeOf: 'diam' },
 ];
 // 高价特殊品：初音=系列名含「初音」（线上实际值：初音-日抛 / 初音未来）；定轴=fixed_axis 填了值。均比普通花色贵，客服容易把普通备注错发到这些单
-// mech=联名多盒价格机制（初音日抛按「盒」计价，半年抛按「副」），要改机制内容直接改这里
+// mechs=联名多盒价格机制，日抛/半年抛分开写：日抛按「盒」，半年抛按「副」。要改机制内容直接改这里
 const PP_SPECIALS = [
   { key: 'chuyin',   label: '初音', color: '#e11d48', match: p => (p.series || '').includes('初音'),
-    mech: [
-      { price: '49.9',  boxes: '1盒', gift: '赠明信片+佩戴棒' },
-      { price: '89.8',  boxes: '2盒', gift: '赠明信片+佩戴棒+随机徽章' },
-      { price: '149.7', boxes: '4盒', gift: '赠明信片+随机徽章*2+佩戴棒' },
-      { price: '199.4', boxes: '6盒', gift: '赠明信片+徽章端盒+佩戴棒' },
+    mechs: [
+      { short: '日抛 · 按「盒」', title: '初音日抛联名机制（多盒更划算，按「盒」计价）', rows: [
+        { price: '49.9',  boxes: '1盒', gift: '赠明信片+佩戴棒' },
+        { price: '89.8',  boxes: '2盒', gift: '赠明信片+佩戴棒+随机徽章' },
+        { price: '149.7', boxes: '4盒', gift: '赠明信片+随机徽章*2+佩戴棒' },
+        { price: '199.4', boxes: '6盒', gift: '赠明信片+徽章端盒+佩戴棒' },
+      ] },
+      { short: '半年抛 · 按「副」', title: '初音半年抛联名机制（按「副」计价）', rows: [
+        { price: '69',    boxes: '1副', gift: '小卡+护理液+伴侣盒' },
+        { price: '99.8',  boxes: '2副', gift: '小卡+镭射+护理液+伴侣盒*2' },
+        { price: '139.8', boxes: '3副', gift: '镭射+徽章+护理液+6联盒' },
+        { price: '232.5', boxes: '5副', gift: '小卡+镭射+徽章+护理液+六联盒+立牌+亚克力手持镜' },
+      ] },
     ] },
   { key: 'dingzhou', label: '定轴', color: '#ea580c', match: p => !!(((p.fixedAxis || '') + '').trim()) },
 ];
@@ -9738,13 +9746,13 @@ function ppTierLabel(p) {
   if (t && (p.series || '').includes('初音') && p._type === '日抛' && /\/副$/.test(t)) return t.slice(0, -2) + '/盒';
   return t;
 }
-// 联名机制列表（红卡/明细页复用）；withTitle=明细页加标题行
-function ppMechHtml(sp, withTitle) {
-  if (!sp || !sp.mech || !sp.mech.length) return '';
-  return '<div class="pp-mech">'
-    + (withTitle ? '<div class="pp-mech-title">📋 ' + escapeHtml(sp.label) + '日抛联名机制（多盒更划算，按「盒」计价）</div>' : '')
-    + sp.mech.map(m => '<div class="pp-mech-row"><b>' + escapeHtml(m.price) + '</b><span class="pp-mech-box">/' + escapeHtml(m.boxes) + '</span><span class="pp-mech-gift">' + escapeHtml(m.gift) + '</span></div>').join('')
-    + '</div>';
+// 联名机制列表（红卡/明细页复用）：多组机制各自成块；full=明细页用完整标题，卡面用短标题
+function ppMechHtml(sp, full) {
+  if (!sp || !sp.mechs || !sp.mechs.length) return '';
+  return sp.mechs.map(m => '<div class="pp-mech">'
+    + '<div class="pp-mech-title">📋 ' + escapeHtml(full ? m.title : m.short) + '</div>'
+    + m.rows.map(r => '<div class="pp-mech-row"><b>' + escapeHtml(r.price) + '</b><span class="pp-mech-box">/' + escapeHtml(r.boxes) + '</span><span class="pp-mech-gift">' + escapeHtml(r.gift) + '</span></div>').join('')
+    + '</div>').join('');
 }
 function renderPatternPricePage() {
   const canManage = canEdit('patterns');
