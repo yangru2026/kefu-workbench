@@ -745,6 +745,23 @@ body {
 .pp-quick select{flex:1;min-width:0;border:1px solid var(--border);border-radius:8px;padding:4px 4px;font-size:12px;font-family:inherit;background:var(--bg-warm);color:var(--text-primary);cursor:pointer}
 .pp-quick select:focus{outline:none;border-color:var(--primary-light)}
 .pp-loadmore-wrap{text-align:center;padding:16px 0 6px}
+/* 第一层：价格档大卡片（点进去才看花色） */
+.pp-tiercards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.pp-tiercard{position:relative;background:#fff;border:1px solid var(--border-soft);border-radius:16px;padding:18px 16px 14px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow);overflow:hidden}
+.pp-tiercard:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:#f59e0b}
+.pp-tiercard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#f59e0b,#d97706)}
+.pp-tiercard.none::before{background:linear-gradient(180deg,#9ca3af,#6b7280)}
+.pp-tiercard-price{font-size:22px;font-weight:800;color:#b45309;margin-bottom:2px}
+.pp-tiercard.none .pp-tiercard-price{color:#6b7280}
+.pp-tiercard-sub{font-size:13px;color:var(--text-secondary);margin-bottom:10px}
+.pp-tiercard-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;min-height:24px}
+.pp-dtag{font-size:12px;font-weight:600;padding:3px 10px;border-radius:12px}
+.pp-dtag.small{background:#e6efdf;color:#3f6b3f}
+.pp-dtag.big{background:#e3edfa;color:#2f5a94}
+.pp-dtag.unk{background:#fdeeda;color:#9a5b0b}
+.pp-tiercard-enter{font-size:12px;color:#d97706;font-weight:600}
+.pp-back{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:#fff;border-radius:999px;padding:6px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--text-secondary);margin-bottom:12px;transition:all .2s}
+.pp-back:hover{border-color:var(--primary-light);color:var(--primary)}
 .pp-disc-badge{position:absolute;top:7px;left:7px;background:#d97706;color:#fff;font-size:11px;padding:1px 8px;border-radius:10px;z-index:2}
 .pp-check{position:absolute;top:6px;right:6px;z-index:3;background:rgba(255,255,255,.94);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .pp-check input{width:15px;height:15px;cursor:pointer;accent-color:var(--primary)}
@@ -3299,7 +3316,7 @@ function refreshAdminUI() {
   if (collabPatternsBtn) collabPatternsBtn.style.display = isAdmin ? '' : 'none';
   // 花色价格速查「批量打标」栏（管理员/协作者可见）
   const ppBatchBar = document.getElementById('pp-batch-bar');
-  if (ppBatchBar) ppBatchBar.style.display = canEditPatterns ? 'flex' : 'none';
+  if (ppBatchBar) ppBatchBar.style.display = (canEditPatterns && ppTierView) ? 'flex' : 'none';   // 只在进入价格档后显示
   // 培训资料「新增」按钮
   const trainBtn = document.getElementById('train-add-btn');
   if (trainBtn) trainBtn.style.display = canEditTraining ? '' : 'none';
@@ -7791,6 +7808,7 @@ function switchPage(page) {
   const PP_ALIAS = { 'price-miyang': '弥生', 'price-jiyang': '极氧' };
   if (PP_ALIAS[page]) {
     ppBrandFilter = PP_ALIAS[page];
+    ppTierView = null; ppRenderLimit = PP_PAGE_SIZE;   // 切换品牌入口回到第一层价格档卡片
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -9639,6 +9657,7 @@ let ppSel = new Set();      // 批量打标选中的花色 id
 let _ppLbIdx = 0;
 let ppBrandFilter = '全部'; // 品牌页签
 let ppRenderLimit = 20;     // 分页渲染上限（防几百张图同时加载）
+let ppTierView = null;      // null=价格档卡片层；字符串=档内花色层；'__none__'=未标价
 const PP_PAGE_SIZE = 20;
 
 function ppManagedNames(type) {
@@ -9665,8 +9684,12 @@ function renderPatternPricePage() {
   const bd = document.getElementById('pp-batch-diam');
   if (bd) bd.innerHTML = '<option value="">（不修改直径分组）</option>' + ppGroupList().map(t => '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + '</option>').join('') + '<option value="__clear__">✕ 清空直径分组</option>';
 
-  // 品牌由入口（switchPage 别名）锁定，页面内不再显示品牌页签
+  // 品牌由入口（switchPage 别名）锁定；未标价档用 '__none__' 表示
   if (!ppBrandFilter || ppBrandFilter === '全部') ppBrandFilter = (getMergedCats('brand', getPatternBrands()).map(b => b.name)[0]) || '弥生';
+
+  // 批量条只在进入某个价格档后显示
+  const bb = document.getElementById('pp-batch-bar');
+  if (bb) bb.style.display = (canManage && ppTierView) ? 'flex' : 'none';
 
   const search = (document.getElementById('pp-search')?.value || '').toLowerCase().trim();
   const showDisc = !!document.getElementById('pp-show-disc')?.checked;
@@ -9682,42 +9705,65 @@ function renderPatternPricePage() {
     stats.innerHTML = '共 <b>' + items.length + '</b> 款 · <span style="color:var(--danger,#d9483b)">未打标 ' + noTag + ' 款</span>';
   }
   const content = document.getElementById('pp-content');
-  // 分页渲染：每页 PP_PAGE_SIZE 款，避免几百张图片同时加载拖慢首屏
-  const limit = Math.max(1, ppRenderLimit || PP_PAGE_SIZE);
-  let shown = 0, truncated = false;
-  const groups = [...ppGroupList(), ''];
-  const tiers = [...ppTierList(), ''];
+  const groups = ppGroupList().filter(Boolean);
   let html = '';
-  for (const g of groups) {
-    if (truncated) break;
-    const gItems = items.filter(p => (p.diamGroup || '') === g);
-    if (gItems.length === 0) continue;
-    let gHtml = '<div class="pp-group"><div class="pp-group-title' + (g === '' ? ' pp-warn' : '') + '">' + (g === '' ? '⏳ 待分组（未标直径）' : escapeHtml(g)) + '<span class="pp-count">' + gItems.length + '</span></div>';
-    let gShown = 0;
-    for (const t of tiers) {
+
+  if (!ppTierView) {
+    // ===== 第一层：价格档大卡片（外观只展示档位信息，点进去才看花色） =====
+    const tierCard = (key, label, list, none) => {
+      if (!list.length) return '';
+      const tags = groups.map((g, gi) => {
+        const c = list.filter(p => p.diamGroup === g).length;
+        return c ? '<span class="pp-dtag ' + ['small','big','unk'][gi % 3] + '">' + escapeHtml(g) + ' ' + c + '</span>' : '';
+      }).join('');
+      const unk = list.filter(p => !p.diamGroup).length;
+      return '<div class="pp-tiercard' + (none ? ' none' : '') + '" onclick="openPpTier(\'' + escapeAttr(key) + '\')">'
+        + '<div class="pp-tiercard-price">' + (none ? '❓ 未标价' : escapeHtml(label)) + '</div>'
+        + '<div class="pp-tiercard-sub">共 ' + list.length + ' 款</div>'
+        + '<div class="pp-tiercard-tags">' + tags + (unk ? '<span class="pp-dtag unk">未分直径 ' + unk + '</span>' : '') + '</div>'
+        + '<div class="pp-tiercard-enter">点击查看全部花色 →</div></div>';
+    };
+    html = '<div class="pp-tiercards">';
+    ppTierList().forEach(t => { html += tierCard(t, t, items.filter(p => (p.priceTier || '') === t), false); });
+    html += tierCard('__none__', '', items.filter(p => !p.priceTier), true);
+    html += '</div>';
+    if (html === '<div class="pp-tiercards"></div>') html = '<div class="pattern-empty">😕 没有匹配的花色，先到「花色素材」给花色打上价格档吧</div>';
+  } else {
+    // ===== 第二层：该价格档下的花色，按直径分组 =====
+    const isNone = ppTierView === '__none__';
+    const tierItems = items.filter(p => isNone ? !p.priceTier : ((p.priceTier || '') === ppTierView));
+    html += '<button class="pp-back" onclick="ppBackToTiers()">← 返回价格档</button>';
+    html += '<div class="pp-group-title' + (isNone ? ' pp-warn' : '') + '">' + (isNone ? '❓ 未标价' : escapeHtml(ppTierView)) + '<span class="pp-count">' + tierItems.length + ' 款</span></div>';
+    // 分页渲染：每页 PP_PAGE_SIZE 款，避免几百张图片同时加载拖慢首屏
+    const limit = Math.max(1, ppRenderLimit || PP_PAGE_SIZE);
+    let shown = 0, truncated = false;
+    for (const g of [...ppGroupList(), '']) {
       if (truncated) break;
-      const tItems = gItems.filter(p => (p.priceTier || '') === t)
-        .sort((a, b) => (b.sortOrder || 0) - (a.sortOrder || 0) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-      if (tItems.length === 0) continue;
-      let tHtml = '<div class="pp-tier"><div class="pp-tier-title' + (t === '' ? ' pp-tier-warn' : '') + '">' + (t === '' ? '❓ 未标价格' : escapeHtml(t)) + '<span class="pp-count">' + tItems.length + '</span></div><div class="pp-grid">';
-      let tAdded = 0;
-      for (const p of tItems) {
+      const gItems = tierItems.filter(p => (p.diamGroup || '') === g);
+      if (gItems.length === 0) continue;
+      let gHtml = '<div class="pp-group"><div class="pp-group-title' + (g === '' ? ' pp-warn' : '') + '">' + (g === '' ? '⏳ 待分组（未标直径）' : escapeHtml(g)) + '<span class="pp-count">' + gItems.length + '</span></div>';
+      let gShown = 0;
+      let tHtml = '<div class="pp-grid">';
+      for (const p of gItems) {
         if (shown >= limit) { truncated = true; break; }
         tHtml += ppCardHtml(p, canManage);
-        shown++; tAdded++; gShown++;
+        shown++; gShown++;
       }
-      if (tAdded > 0) { gHtml += tHtml + '</div></div>'; }
+      tHtml += '</div></div>';
+      if (gShown > 0) { html += gHtml + tHtml; }
     }
-    gHtml += '</div>';
-    if (gShown > 0) html += gHtml;
+    if (truncated) {
+      html += '<div class="pp-loadmore-wrap"><button class="pattern-loadmore" id="pp-loadmore-btn" onclick="ppLoadMore()">加载更多 ↓（还有 ' + (tierItems.length - shown) + ' 款）</button></div>';
+    }
+    if (tierItems.length === 0) html += '<div class="pattern-empty">😕 这个价格档下暂无花色</div>';
   }
-  if (truncated) {
-    html += '<div class="pp-loadmore-wrap"><button class="pattern-loadmore" id="pp-loadmore-btn" onclick="ppLoadMore()">加载更多 ↓（还有 ' + (items.length - shown) + ' 款）</button></div>';
-  }
-  if (!html) html = '<div class="pattern-empty">😕 没有匹配的花色，先到「花色素材」给花色打上价格档和直径分组吧</div>';
   content.innerHTML = html;
   updatePpSelCount();
 }
+
+// 两级导航：价格档卡片 → 档内花色
+function openPpTier(t) { ppTierView = t; ppRenderLimit = PP_PAGE_SIZE; renderPatternPricePage(); window.scrollTo(0, 0); }
+function ppBackToTiers() { ppTierView = null; ppSel.clear(); ppRenderLimit = PP_PAGE_SIZE; renderPatternPricePage(); window.scrollTo(0, 0); }
 
 // 搜索 / 显示已下架 / 加载更多（品牌由入口锁定，不再有页签切换）
 function onPpShowDisc() { ppRenderLimit = PP_PAGE_SIZE; renderPatternPricePage(); }
