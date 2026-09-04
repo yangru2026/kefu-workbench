@@ -322,17 +322,17 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     });
     const rows=[
       mk('s1','弥生','日抛','奶茶棕',{series:'倾慕系列',price_tier:'29.9元/副',diam_group:'小直径'}),
-      mk('s2','弥生','月抛','初音粉',{series:'初音',price_tier:'139元/副',diam_group:'小直径'}),
+      mk('s2','弥生','日抛','初音粉',{series:'初音-日抛',price_tier:'49.9元/副',diam_group:'小直径'}),      // 线上真实系列名：初音-日抛
       mk('s3','弥生','半年抛','定轴灰',{series:'星眸系列',fixed_axis:'90°',price_tier:'99元/副',diam_group:'大直径',diameter:'14.5'}),
       mk('s4','弥生','日抛','普通灰',{series:'倾慕系列',price_tier:'29.9元/副',diam_group:'小直径'}),
-      mk('s5','弥生','月抛','初音定轴',{series:'初音',fixed_axis:'90°',price_tier:'199元/副',diam_group:'大直径',diameter:'14.5'}),
+      mk('s5','弥生','半年抛','初音定轴',{series:'初音未来',fixed_axis:'90°',price_tier:'59.9元/副',diam_group:'大直径',diameter:'14.5'}),  // 线上真实系列名：初音未来（半年抛按副）
     ];
     patternData=buildPatternTree(rows);
     patternCategories=[
       {id:'p1',category_type:'price',name:'29.9元/副',sort_order:1},
-      {id:'p2',category_type:'price',name:'99元/副',sort_order:2},
-      {id:'p3',category_type:'price',name:'139元/副',sort_order:3},
-      {id:'p4',category_type:'price',name:'199元/副',sort_order:4},
+      {id:'p2',category_type:'price',name:'49.9元/副',sort_order:2},
+      {id:'p3',category_type:'price',name:'59.9元/副',sort_order:3},
+      {id:'p4',category_type:'price',name:'99元/副',sort_order:4},
       {id:'g1',category_type:'diam_group',name:'小直径',sort_order:1},
       {id:'g2',category_type:'diam_group',name:'大直径',sort_order:2},
       {id:'t1',category_type:'type',name:'日抛',sort_order:1},
@@ -351,16 +351,23 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
       && c().includes('高价特殊品（初音 / 定轴）') && c().includes('价格更高');
     o.spL1Cards = document.querySelectorAll('#pp-content .pp-tiercard').length;   // 4 分类卡 + 2 红卡 = 6
     o.spRedSubOk = c().includes('勿发普通花色备注');
+    // 机制直接印在首层红卡上（不用点进去）：4 档价格 + 盒数 + 赠品
+    o.spMechCardOk = c().includes('49.9') && c().includes('/1盒') && c().includes('赠明信片+佩戴棒')
+      && c().includes('89.8') && c().includes('149.7') && c().includes('199.4') && c().includes('/6盒') && c().includes('徽章端盒');
+    o.spMechRows = document.querySelectorAll('#pp-content .pp-mech-row').length;  // 4 档
     o.spL1NoChecks = document.querySelectorAll('#pp-content .pp-check').length===0;
     o.spL1NoQuick = document.querySelectorAll('#pp-content .pp-quick').length===0;
-    // 点初音红卡 → 直达明细（客服）：banner/标题/红色角标/按价格档分组
+    // 点初音红卡 → 直达明细（客服）：banner/机制条/标题/红色角标/按价格档分组
     openPpDim('special','chuyin');
     o.spDetailCards = document.querySelectorAll('#pp-content .pp-card').length;   // 初音粉 + 初音定轴 = 2
     o.spBannerOk = c().includes('禁止发送普通花色备注');
+    o.spMechDetailOk = c().includes('联名机制') && c().includes('/2盒') && c().includes('随机徽章');   // 明细页机制条常驻
     o.spTitleOk = c().includes('初音') && c().includes('2 款');
     o.spBadgeCount = document.querySelectorAll('#pp-content .pp-special-badge').length;   // 2
     o.spBadgeOk = o.spBadgeCount>=2 && c().includes('初音 · 定轴');               // s5 命中两条规则 → 双标签
-    o.spGroupByPriceOk = c().includes('139元/副') && c().includes('199元/副');
+    // 单位：初音日抛显示「/盒」，初音未来半年抛保持「/副」（客服视图无下拉，无干扰文本）
+    o.spUnitBoxOk = c().includes('49.9元/盒') && !c().includes('49.9元/副');
+    o.spUnitPairOk = c().includes('59.9元/副');
     o.spBackLabelOk = (document.querySelector('#pp-content .pp-back')||{textContent:''}).textContent.includes('返回高价特殊品');
     const bbC=document.getElementById('pp-batch-bar');
     o.spBatchHiddenCs = !bbC || bbC.style.display==='none';
@@ -401,9 +408,9 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     optGridCols:3,
     tierCardsJiyang:4,
     spL1Cards:6, spDetailCards:2, spBadgeCount:2, spL2Cards:2,
-    spSearchOneCards:5, spAdminChecks:2, spQuickSelects:4
+    spSearchOneCards:5, spAdminChecks:2, spQuickSelects:4, spMechRows:4
   };
-  const needed = ['treeFieldsOk','l1Info','noCardsLayer1','noCheckbox','noQuick','noPatternNames','no499','batchBarHiddenCs','backBtn','l2Title','seriesInfo','l2NoPatterns','l2NoCheckbox','optGridOk','batchBarHiddenCsL2','backOk','backLabelOk','typeTitleOk','typePatterns','typeGroupsOk','csTierNoCheckbox','batchBarHiddenCsTier','backToL2Ok','diamGroupsByPrice','priceGroupsByDiam','batchBarEl','batchBarHiddenL1','batchBarHiddenL2','batchBarVisibleTier','disc69Card','discVisible','loadMoreOk','oldNavGone','aliasReset','aliasJiyangOk','navActiveJiyang','aliasMiyangOk','navActiveMiyang','aliasBarHiddenL1','quickOk','localSynced','movedOut','batchOk','selClearedAfter','searchOk','editorPriceExists','editorDgExists','editorOptions','filterFnOk','spHeadOk','spRedSubOk','spL1NoChecks','spL1NoQuick','spBannerOk','spTitleOk','spBadgeOk','spGroupByPriceOk','spBackLabelOk','spBatchHiddenCs','spL2CountOk','spBackToL1Ok','spZoneGoneOnSearch','spSearchOneOk','spAdminBarOk'];
+  const needed = ['treeFieldsOk','l1Info','noCardsLayer1','noCheckbox','noQuick','noPatternNames','no499','batchBarHiddenCs','backBtn','l2Title','seriesInfo','l2NoPatterns','l2NoCheckbox','optGridOk','batchBarHiddenCsL2','backOk','backLabelOk','typeTitleOk','typePatterns','typeGroupsOk','csTierNoCheckbox','batchBarHiddenCsTier','backToL2Ok','diamGroupsByPrice','priceGroupsByDiam','batchBarEl','batchBarHiddenL1','batchBarHiddenL2','batchBarVisibleTier','disc69Card','discVisible','loadMoreOk','oldNavGone','aliasReset','aliasJiyangOk','navActiveJiyang','aliasMiyangOk','navActiveMiyang','aliasBarHiddenL1','quickOk','localSynced','movedOut','batchOk','selClearedAfter','searchOk','editorPriceExists','editorDgExists','editorOptions','filterFnOk','spHeadOk','spRedSubOk','spMechCardOk','spL1NoChecks','spL1NoQuick','spBannerOk','spMechDetailOk','spTitleOk','spBadgeOk','spUnitBoxOk','spUnitPairOk','spBackLabelOk','spBatchHiddenCs','spL2CountOk','spBackToL1Ok','spZoneGoneOnSearch','spSearchOneOk','spAdminBarOk'];
   const numericKeys = Object.keys(numeric);
   const missing = needed.concat(numericKeys).filter(k=>!(k in out));
   const ok = missing.length===0 && needed.every(k=>out[k]===true) && numericKeys.every(k=>out[k]>=numeric[k]);

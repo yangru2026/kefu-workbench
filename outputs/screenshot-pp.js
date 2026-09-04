@@ -27,8 +27,8 @@ const BASE = 'http://127.0.0.1:8123/index.html';
       series: series[i%3], price_tier: i<26 ? tiers[i%4] : '', diam_group: i<26 ? groups[i%3] : '',
       diameter: groups[i%3]==='大直径' ? '14.5' : '14.2', disc: i===26
     }));
-    // 高价特殊品样例：初音（系列=初音）+ 定轴（fixed_axis 有值）
-    rows.push(mk('sp1','弥生','日抛','初音·心跳粉',{series:'初音',price_tier:'139元/副',diam_group:'小直径',created_at:now}));
+    // 高价特殊品样例：初音（系列含「初音」，线上真实值如「初音-日抛」）+ 定轴（fixed_axis 有值）
+    rows.push(mk('sp1','弥生','日抛','初音·心跳粉',{series:'初音-日抛',price_tier:'49.9元/副',diam_group:'小直径',created_at:now}));
     rows.push(mk('sp2','弥生','半年抛','定轴·星雾灰',{series:'星眸系列',price_tier:'99元/副',diam_group:'大直径',diameter:'14.5',fixed_axis:'90°',created_at:now}));
     window.__rows = rows;
     patternCategories = [

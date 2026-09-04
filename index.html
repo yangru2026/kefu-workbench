@@ -782,6 +782,13 @@ body {
 .pp-special-badge{position:absolute;bottom:7px;right:7px;background:linear-gradient(135deg,#e11d48,#be123c);color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:11px;z-index:2;box-shadow:0 1px 5px rgba(0,0,0,.3);white-space:nowrap;pointer-events:none}
 .pp-special-head{margin:24px 4px 12px;font-size:13px;font-weight:800;color:#be123c;padding:10px 14px;background:#fff1f2;border:1.5px solid #fecdd3;border-radius:12px}
 .pp-special-banner{margin:0 2px 12px;font-size:13px;font-weight:700;color:#9f1239;background:linear-gradient(90deg,#ffe4e6,#fff1f2);border:1px solid #fda4af;border-radius:12px;padding:9px 13px}
+/* 初音联名多盒机制（红卡/明细页复用） */
+.pp-mech{width:100%;box-sizing:border-box;text-align:left;background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:8px 11px;margin:2px 0 10px;display:flex;flex-direction:column;gap:5px}
+.pp-mech-title{font-size:12px;font-weight:800;color:#e11d48}
+.pp-mech-row{display:flex;align-items:baseline;gap:3px;font-size:12.5px;color:#9f1239;flex-wrap:wrap}
+.pp-mech-row b{font-size:17px;color:#e11d48;line-height:1.1}
+.pp-mech-box{font-weight:700}
+.pp-mech-gift{color:#be123c;opacity:.85;font-size:11.5px}
 .pp-check{position:absolute;top:6px;right:6px;z-index:3;background:rgba(255,255,255,.94);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .pp-check input{width:15px;height:15px;cursor:pointer;accent-color:var(--primary)}
 .pp-body{padding:8px 10px 10px}
@@ -9712,12 +9719,33 @@ const PP_DIMS = [
   { dim: 'diam',   icon: '⭕', title: '按直径', color: '#10b981', key: p => p.diamGroup || '', badgeOf: 'price' },
   { dim: 'price',  icon: '💰', title: '按价格', color: '#f59e0b', key: p => p.priceTier || '', badgeOf: 'diam' },
 ];
-// 高价特殊品：初音=系列名为「初音」；定轴=fixed_axis 填了值。均比普通花色贵，客服容易把普通备注错发到这些单
+// 高价特殊品：初音=系列名含「初音」（线上实际值：初音-日抛 / 初音未来）；定轴=fixed_axis 填了值。均比普通花色贵，客服容易把普通备注错发到这些单
+// mech=联名多盒价格机制（初音日抛按「盒」计价，半年抛按「副」），要改机制内容直接改这里
 const PP_SPECIALS = [
-  { key: 'chuyin',   label: '初音', color: '#e11d48', match: p => (p.series || '') === '初音' },
+  { key: 'chuyin',   label: '初音', color: '#e11d48', match: p => (p.series || '').includes('初音'),
+    mech: [
+      { price: '49.9',  boxes: '1盒', gift: '赠明信片+佩戴棒' },
+      { price: '89.8',  boxes: '2盒', gift: '赠明信片+佩戴棒+随机徽章' },
+      { price: '149.7', boxes: '4盒', gift: '赠明信片+随机徽章*2+佩戴棒' },
+      { price: '199.4', boxes: '6盒', gift: '赠明信片+徽章端盒+佩戴棒' },
+    ] },
   { key: 'dingzhou', label: '定轴', color: '#ea580c', match: p => !!(((p.fixedAxis || '') + '').trim()) },
 ];
 function ppSpecialTags(p) { const a = []; PP_SPECIALS.forEach(s => { if (s.match(p)) a.push(s.label); }); return a; }
+// 价格显示单位：初音日抛按「盒」，其余（含半年抛）按「副」。只改显示，不动库里的档位名
+function ppTierLabel(p) {
+  const t = p.priceTier || '';
+  if (t && (p.series || '').includes('初音') && p._type === '日抛' && /\/副$/.test(t)) return t.slice(0, -2) + '/盒';
+  return t;
+}
+// 联名机制列表（红卡/明细页复用）；withTitle=明细页加标题行
+function ppMechHtml(sp, withTitle) {
+  if (!sp || !sp.mech || !sp.mech.length) return '';
+  return '<div class="pp-mech">'
+    + (withTitle ? '<div class="pp-mech-title">📋 ' + escapeHtml(sp.label) + '日抛联名机制（多盒更划算，按「盒」计价）</div>' : '')
+    + sp.mech.map(m => '<div class="pp-mech-row"><b>' + escapeHtml(m.price) + '</b><span class="pp-mech-box">/' + escapeHtml(m.boxes) + '</span><span class="pp-mech-gift">' + escapeHtml(m.gift) + '</span></div>').join('')
+    + '</div>';
+}
 function renderPatternPricePage() {
   const canManage = canEdit('patterns');
   // 批量打标下拉（管理员可见时才有意义）
@@ -9765,6 +9793,16 @@ function renderPatternPricePage() {
       + '<div class="pp-tiercard-enter">点击查看全部花色 →</div></div>';
   };
 
+  // 高价特殊品红卡（首层/汇总层复用）：联名机制直接印在卡面上，不点进去就能看全
+  const spCard = s => {
+    const n = items.filter(s.match).length;
+    return '<div class="pp-tiercard l1" style="--c:' + s.color + '" onclick="openPpDim(\'special\',\'' + s.key + '\')">'
+      + '<div class="pp-tiercard-price">⚠️ ' + s.label + '</div>'
+      + '<div class="pp-tiercard-sub">共 ' + n + ' 款 · 勿发普通花色备注</div>'
+      + ppMechHtml(s)
+      + '<div class="pp-tiercard-enter">点击查看专属明细 →</div></div>';
+  };
+
   if (!ppDimView) {
     // ===== 第一层：四张「按XX分类」大卡片，第一视觉只看分类入口 =====
     html = '<div class="pp-tiercards">';
@@ -9781,15 +9819,7 @@ function renderPatternPricePage() {
     // 高价特殊品专区（初音/定轴）：只要当前范围有匹配就单独红卡展示，防客服发错普通备注
     const spHits = PP_SPECIALS.filter(s => items.some(s.match));
     if (spHits.length) {
-      html += '<div class="pp-special-head">⚠️ 高价特殊品（' + spHits.map(s => s.label).join(' / ') + '）· 价格更高，发普通备注前务必先核对！</div><div class="pp-tiercards">';
-      spHits.forEach(s => {
-        const n = items.filter(s.match).length;
-        html += '<div class="pp-tiercard l1" style="--c:' + s.color + '" onclick="openPpDim(\'special\',\'' + s.key + '\')">'
-          + '<div class="pp-tiercard-price">⚠️ ' + s.label + '</div>'
-          + '<div class="pp-tiercard-sub">共 ' + n + ' 款 · 勿发普通花色备注</div>'
-          + '<div class="pp-tiercard-enter">点击查看专属明细 →</div></div>';
-      });
-      html += '</div>';
+      html += '<div class="pp-special-head">⚠️ 高价特殊品（' + spHits.map(s => s.label).join(' / ') + '）· 价格更高，发普通备注前务必先核对！</div><div class="pp-tiercards">' + spHits.map(spCard).join('') + '</div>';
     }
     if (!items.length) html = '<div class="pattern-empty">😕 没有匹配的花色，先到「花色素材」给花色填上抛型/系列/直径/价格档吧</div>';
   } else if (!ppDimView.val) {
@@ -9799,15 +9829,7 @@ function renderPatternPricePage() {
       const spHits = PP_SPECIALS.filter(s => items.some(s.match));
       const spTotal = items.filter(p => ppSpecialTags(p).length > 0).length;
       html += '<div class="pp-group-title special">⚠️ 高价特殊品<span class="pp-count">共 ' + spTotal + ' 款</span></div>';
-      html += '<div class="pp-tiercards">';
-      spHits.forEach(s => {
-        const n = items.filter(s.match).length;
-        html += '<div class="pp-tiercard l1" style="--c:' + s.color + '" onclick="openPpDim(\'special\',\'' + s.key + '\')">'
-          + '<div class="pp-tiercard-price">⚠️ ' + s.label + '</div>'
-          + '<div class="pp-tiercard-sub">共 ' + n + ' 款 · 勿发普通花色备注</div>'
-          + '<div class="pp-tiercard-enter">点击查看专属明细 →</div></div>';
-      });
-      html += '</div>';
+      html += '<div class="pp-tiercards">' + spHits.map(spCard).join('') + '</div>';
       if (!spTotal) html += '<div class="pattern-empty">😕 当前筛选下没有高价特殊品</div>';
     } else {
       const def = PP_DIMS.find(d => d.dim === ppDimView.dim) || PP_DIMS[3];
@@ -9822,11 +9844,11 @@ function renderPatternPricePage() {
     // ===== 第三层：花色明细 =====
     const isSpecial = ppDimView.dim === 'special';
     const def = isSpecial ? { dim: 'special', icon: '⚠️', title: '高价特殊品' } : (PP_DIMS.find(d => d.dim === ppDimView.dim) || PP_DIMS[3]);
-    let opt = null, isNone = false, detail = [], titleVal = ppDimView.val;
+    let opt = null, isNone = false, detail = [], titleVal = ppDimView.val, spDef = null;
     if (isSpecial) {
-      const sp = PP_SPECIALS.find(s => s.key === ppDimView.val) || null;
-      detail = sp ? items.filter(sp.match) : [];
-      titleVal = sp ? sp.label : '特殊品';
+      spDef = PP_SPECIALS.find(s => s.key === ppDimView.val) || null;
+      detail = spDef ? items.filter(spDef.match) : [];
+      titleVal = spDef ? spDef.label : '特殊品';
     } else {
       opt = ppDimOptions(def.dim, items);
       isNone = ppDimView.val === '__none__';
@@ -9836,6 +9858,7 @@ function renderPatternPricePage() {
     html += '<button class="pp-back" onclick="ppBackToDimOptions(\'' + escapeAttr(def.dim) + '\')">← 返回' + escapeHtml(def.title) + '</button>';
     if (isSpecial) {
       html += '<div class="pp-special-banner">⚠️ 高价特殊品：禁止发送普通花色备注！发备注前务必先核对本页价格</div>';
+      html += ppMechHtml(spDef, true);   // 联名机制常驻明细页，发备注前对照
     }
     html += '<div class="pp-group-title' + (isNone ? ' pp-warn' : '') + (isSpecial ? ' special' : '') + '">' + def.icon + ' ' + escapeHtml(titleVal) + '<span class="pp-count">' + detail.length + ' 款</span></div>';
     // 明细分组：特殊品/按直径进来 → 按价格档分组；其余维度按直径分组
@@ -9849,7 +9872,10 @@ function renderPatternPricePage() {
       if (truncated) break;
       const gItems = detail.filter(p => (gd.get(p) || '') === g);
       if (gItems.length === 0) continue;
-      let gHtml = '<div class="pp-group"><div class="pp-group-title' + (g === '' ? ' pp-warn' : '') + '">' + (g === '' ? gd.noneLabel : escapeHtml(g)) + '<span class="pp-count">' + gItems.length + '</span></div>';
+      // 组标题单位：组内全是初音日抛 → 「/盒」，其余（含半年抛）保持「/副」
+      let gLabel = g;
+      if (g !== '' && gItems.every(p => (p.series || '').includes('初音') && p._type === '日抛')) gLabel = String(g).replace(/\/副$/, '/盒');
+      let gHtml = '<div class="pp-group"><div class="pp-group-title' + (g === '' ? ' pp-warn' : '') + '">' + (g === '' ? gd.noneLabel : escapeHtml(gLabel)) + '<span class="pp-count">' + gItems.length + '</span></div>';
       let gShown = 0;
       let tHtml = '<div class="pp-grid">';
       for (const p of gItems) {
@@ -9896,8 +9922,9 @@ function ppCardHtml(p, canManage) {
   const imgHtml = rawSrc
     ? '<img src="' + escapeHtml(addCacheBuster(toCdnUrl(rawSrc))) + '" loading="lazy" decoding="async" alt="' + escapeHtml(p.name) + '">'
     : '<div class="img-placeholder"><span>👁️</span>暂无图片</div>';
-  const priceTag = p.priceTier
-    ? '<span class="pp-price-tag">' + escapeHtml(p.priceTier) + '</span>'
+  const tierLabel = ppTierLabel(p);
+  const priceTag = tierLabel
+    ? '<span class="pp-price-tag">' + escapeHtml(tierLabel) + '</span>'
     : '<span class="pp-price-tag none">未标价</span>';
   const discBadge = p.isDiscontinued ? '<div class="pp-disc-badge">已下架</div>' : '';
   const spTags = ppSpecialTags(p);
