@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>质检记录修复 SQL - 一键复制</title>
+<style>
+  body{font-family:system-ui,'Microsoft YaHei',sans-serif;max-width:860px;margin:40px auto;padding:0 20px;background:#f6f7f4;color:#2C3328}
+  h1{font-size:20px}
+  .tip{background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:12px 16px;font-size:14px;line-height:1.7}
+  button{background:#7B9B6A;color:#fff;border:none;border-radius:10px;padding:14px 28px;font-size:16px;font-weight:700;cursor:pointer;margin:16px 0}
+  button:active{transform:scale(.98)}
+  pre{background:#2C3328;color:#d7e4cd;border-radius:10px;padding:16px;font-size:12px;overflow:auto;max-height:300px;line-height:1.5}
+  .ok{color:#1d7a3e;font-weight:700}
+</style>
+</head>
+<body>
+<h1>🔧 质检记录保存失败修复 SQL</h1>
+<div class="tip">
+  1️⃣ 点击下方绿色按钮复制 SQL（提示「已复制」）<br>
+  2️⃣ 打开 Supabase → SQL Editor → 粘贴 → <b>Run</b><br>
+  3️⃣ Results <b>没有红色报错</b>就是成功（最后两段验证会自动回滚，不留数据）<br>
+  4️⃣ 回到质检页面按 <b>Ctrl+Shift+R</b> 强刷，重新保存
+</div>
+<button onclick="copySql()">📋 一键复制 SQL</button>
+<span class="ok" id="msg" style="display:none">✅ 已复制，去 SQL Editor 粘贴吧</span>
+<pre id="preview"></pre>
+
+<script type="text/plain" id="sqltext">-- 质检 id 修复 V3：显式序列默认值 + 触发器兜底（可重复执行）
+ALTER TABLE qc_records ALTER COLUMN id DROP IDENTITY IF EXISTS;
+
+CREATE SEQUENCE IF NOT EXISTS qc_records_id_fallback_seq;
+SELECT setval('qc_records_id_fallback_seq',
+  GREATEST(
+    (SELECT COALESCE(MAX(id),0)+1 FROM qc_records),
+    (SELECT COALESCE(last_value,0)+1 FROM qc_records_id_fallback_seq)
+  ), false);
+GRANT USAGE, SELECT ON SEQUENCE qc_records_id_fallback_seq TO anon, authenticated, service_role;
+
+ALTER TABLE qc_records ALTER COLUMN id SET DEFAULT nextval('qc_records_id_fallback_seq');
+
+CREATE OR REPLACE FUNCTION qc_records_fix_id()
+RETURNS trigger LANGUAGE plpgsql AS $f$
+BEGIN
+  IF NEW.id IS NULL THEN
+    NEW.id := nextval('qc_records_id_fallback_seq');
+  END IF;
+  RETURN NEW;
+END $f$;
+
+DROP TRIGGER IF EXISTS trg_qc_records_fix_id ON qc_records;
+CREATE TRIGGER trg_qc_records_fix_id
+BEFORE INSERT ON qc_records
+FOR EACH ROW EXECUTE FUNCTION qc_records_fix_id();
+
+NOTIFY pgrst, 'reload schema';
+
+-- check A: insert with explicit NULL id (old cached page behavior)
+BEGIN;
+INSERT INTO qc_records (id, staff, shop, date, problem)
+VALUES (NULL, '__diag__', '__diag__', '2026-09-05', 'null id test, rollback now');
+ROLLBACK;
+
+-- check B: insert without id (new page behavior)
+BEGIN;
+INSERT INTO qc_records (staff, shop, date, problem)
+VALUES ('__diag__', '__diag__', '2026-09-05', 'auto id test, rollback now');
+ROLLBACK;
+</script>
+
+<script>
+document.getElementById('preview').textContent = document.getElementById('sqltext').textContent.trim();
+function copySql(){
+  const t = document.getElementById('sqltext').textContent.trim();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(t).then(()=>show(), ()=>fallback(t));
+  } else fallback(t);
+}
+function fallback(t){
+  const ta=document.createElement('textarea');
+  ta.value=t; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); show(); }catch(e){ alert('复制失败，请手动全选下方代码复制'); }
+  document.body.removeChild(ta);
+}
+function show(){ const m=document.getElementById('msg'); m.style.display='inline'; }
+</script>
+</body>
+</html>
