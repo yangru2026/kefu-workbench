@@ -982,7 +982,7 @@ function openEditModal(id){
   // 1) 截图放在第一步
   const sceneLabel='客户问题截图', knowledgeLabel='知识点配图';
   h+='<div class="fld"><label>'+sceneLabel+'（可多张，支持 Ctrl+V 粘贴）</label>'
-    +'<div class="paste-zone" onpaste="handlePaste(event,\'scene\')" tabindex="0">'
+    +'<div class="paste-zone" data-kind="scene" onpaste="handlePaste(event,\'scene\')" tabindex="0">'
     +'<div class="paste-hint">📎 点击选择图片，或在此按 Ctrl+V 粘贴截图</div>'
     +'<input type="file" accept="image/*" multiple onchange="onPickFiles(\'scene\',this)">'
     +'</div>'
@@ -1000,7 +1000,7 @@ function openEditModal(id){
   if(r){ h+='<div class="fld"><label>状态</label>'+statusPillsHtml(r.status)+'</div>'; }
   // 知识点配图保留
   h+='<div class="fld"><label>'+knowledgeLabel+'（可多张，支持 Ctrl+V 粘贴）</label>'
-    +'<div class="paste-zone" onpaste="handlePaste(event,\'knowledge\')" tabindex="0">'
+    +'<div class="paste-zone" data-kind="knowledge" onpaste="handlePaste(event,\'knowledge\')" tabindex="0">'
     +'<div class="paste-hint">📎 点击选择图片，或在此按 Ctrl+V 粘贴截图</div>'
     +'<input type="file" accept="image/*" multiple onchange="onPickFiles(\'knowledge\',this)">'
     +'</div>'
@@ -1034,6 +1034,20 @@ function handlePaste(e,kind){
   }
   showToast('📎 已粘贴图片');
 }
+// 弹窗内任意位置 Ctrl+V 都能粘贴（不用先点虚线框，解决焦点丢失贴不上）；
+// 捕获阶段处理并拦截，避免与 paste-zone 自身 onpaste 重复添加
+document.addEventListener('paste', function(e){
+  const modal=document.getElementById('editModal');
+  if(!modal || !modal.classList.contains('active')) return;
+  const dt=e.clipboardData; if(!dt) return;
+  const hasImg = (dt.files && dt.files.length && [...dt.files].some(f=>f.type.startsWith('image/')))
+    || (dt.items && [...dt.items].some(it=>it.kind==='file' && it.type.startsWith('image/')));
+  if(!hasImg) return;
+  let kind='scene';
+  const z = e.target && e.target.closest && e.target.closest('.paste-zone');
+  if(z && z.dataset.kind) kind=z.dataset.kind;
+  handlePaste(e,kind);
+}, true);
 function addPreview(kind,src,isNew,file=null){
   pendingUploads[kind].push({src,file,isNew:!!isNew});
   renderPreview(kind);
