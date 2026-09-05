@@ -481,7 +481,6 @@ async function syncRecord(record) {
     record.knowledgeImages = [].concat(record.keepKnowledgeImages || [], await uploadPendingImages('knowledge'));
 
     const r = {
-      id: record.id,
       staff: record.staff,
       customer_id: record.customerId || '',
       shop: record.shop,
@@ -503,9 +502,12 @@ async function syncRecord(record) {
       penalty_amount: record.penaltyAmount || record.penalty_amount || 0,
       created_by: currentAuthUser?.phone || ''
     };
+    if (record.id != null) r.id = record.id;   // 新增时不带 id，交给数据库自增（显式传 null 会报 not-null constraint）
 
     // Check if record exists (for update)
-    const { data: existing } = await supabase.from('qc_records').select('id').eq('id', record.id).single();
+    const { data: existing } = record.id != null
+      ? await supabase.from('qc_records').select('id').eq('id', record.id).maybeSingle()
+      : { data: null };
 
     if (existing) {
       r.updated_at = new Date().toISOString();
