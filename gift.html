@@ -137,7 +137,7 @@
     <div class="form-item">
       <label>产品图</label>
       <div class="img-pick" id="imgPick">
-        <div class="hint" id="imgHint">📷 点击选择图片（可选）</div>
+        <div class="hint" id="imgHint">📷 点击选择 或 Ctrl+V 粘贴图片（可选）</div>
         <img id="imgPreview" style="display:none;">
       </div>
       <input type="file" id="fImage" accept="image/*" style="display:none;">
@@ -298,13 +298,33 @@ $('btnCancel').addEventListener('click', closeModal);
 $('modalMask').addEventListener('click', e => { if(e.target === $('modalMask')) closeModal(); });
 
 $('imgPick').addEventListener('click', () => $('fImage').click());
-$('fImage').addEventListener('change', e => {
-  const f = e.target.files && e.target.files[0]; if(!f) return;
+function setPendingImage(f){
   pendingImageFile = f; removeImage = false;
   const rd = new FileReader();
   rd.onload = ev => { $('imgPreview').src = ev.target.result; $('imgPreview').style.display = ''; $('imgHint').style.display = 'none'; };
   rd.readAsDataURL(f);
   $('btnClearImg').style.display = '';
+}
+$('fImage').addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  setPendingImage(f);
+});
+/* 弹窗打开时，任意位置 Ctrl+V 直接粘贴图片（含截图） */
+document.addEventListener('paste', e => {
+  if(!$('modalMask').classList.contains('active')) return;
+  const items = e.clipboardData && e.clipboardData.items;
+  if(!items) return;
+  for(const it of items){
+    if(it.type && it.type.startsWith('image/')){
+      const f = it.getAsFile();
+      if(f){
+        setPendingImage(f);
+        toast('🖼️ 已粘贴图片，保存后生效');
+        e.preventDefault();
+      }
+      return;
+    }
+  }
 });
 $('btnClearImg').addEventListener('click', () => {
   pendingImageFile = null; removeImage = true;
