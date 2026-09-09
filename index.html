@@ -1589,6 +1589,7 @@ body {
     <div class="nav-item" data-page="converter" title="度数换算"><span class="icon">🔢</span><span>度数换算</span></div>
     <div class="nav-item" data-page="patterns" title="花色素材"><span class="icon">🎨</span><span>花色素材</span></div>
     <div class="nav-item" data-page="tools" title="快捷工具"><span class="icon">🛠</span><span>快捷工具</span></div>
+    <div class="nav-item" data-page="gift" title="赠品编码查询"><span class="icon">🎁</span><span>赠品编码</span></div>
     <div class="nav-item" data-page="cross-sales" title="连带成交"><span class="icon">🛒</span><span>连带成交</span></div>
     <div class="nav-item" data-page="voc" title="客户之声"><span class="icon">📣</span><span>客户之声</span><span class="badge" id="voc-todo-badge" style="display:none;"></span></div>
     <div class="nav-item" data-page="daily" title="汇报"><span class="icon">🌙</span><span>汇报</span></div>
@@ -2969,6 +2970,11 @@ body {
       <span class="qc-topbar-user" id="qc-user-badge">管理员模式下可增删改</span>
     </div>
     <iframe id="qc-iframe" src="about:blank" data-src="qc-v2.html?v=20260905f" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write"></iframe>
+  </div>
+
+  <!-- ===== 赠品编码查询 ===== -->
+  <div class="page" id="page-gift" style="padding:0;overflow:hidden;flex-direction:column;">
+    <iframe id="gift-iframe" src="about:blank" data-src="gift.html?v=20260909a" style="flex:1;border:none;width:100%;"></iframe>
   </div>
 
   <style>
@@ -7990,6 +7996,14 @@ function switchPage(page) {
   if (page === 'presale' && presaleActiveTab === 'monthly') { loadPresaleMonthly(); subscribePresaleMonthly(); renderPresaleMonthly(); }
   if (page === 'staff-info') loadStaffInfo();
   if (page === 'members') { loadMembers(); loadInvites(); }
+  if (page === 'gift') {
+    // 赠品编码查询：延迟加载 iframe（首次点击才加载）
+    const gifIframe = document.getElementById('gift-iframe');
+    if (gifIframe && gifIframe.getAttribute('data-src') && gifIframe.src !== gifIframe.getAttribute('data-src')) {
+      gifIframe.src = gifIframe.getAttribute('data-src');
+      gifIframe.removeAttribute('data-src');
+    }
+  }
   if (page === 'qc') {
     const iframe = document.getElementById('qc-iframe');
     // 延迟加载：首次点击时才加载 iframe 内容

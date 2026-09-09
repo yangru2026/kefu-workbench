@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>赠品编码查询</title>
+<style>
+  :root{ --primary:#7b9b6a; --primary-dark:#5f7d50; --primary-light:rgba(123,155,106,.1);
+         --danger:#e05252; --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f6f8f5; }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+       background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+  /* ===== 顶栏 ===== */
+  .topbar{display:flex;align-items:center;gap:12px;padding:14px 20px;background:#fff;
+          border-bottom:1px solid var(--border);flex-wrap:wrap;position:sticky;top:0;z-index:10;}
+  .topbar h1{font-size:18px;font-weight:800;letter-spacing:.5px;}
+  .badge{font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;white-space:nowrap;}
+  .badge.admin{background:rgba(224,82,82,.1);color:var(--danger);}
+  .badge.readonly{background:#f1f5f9;color:var(--muted);}
+  .search-wrap{flex:1;min-width:200px;max-width:420px;position:relative;}
+  .search-wrap input{width:100%;padding:9px 14px 9px 36px;border:1.5px solid var(--border);
+          border-radius:22px;font-size:14px;outline:none;transition:border-color .15s;background:#fff;}
+  .search-wrap input:focus{border-color:var(--primary);}
+  .search-wrap .icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.45;}
+  .btn{padding:8px 18px;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;
+       font-family:inherit;transition:all .15s;white-space:nowrap;}
+  .btn-primary{background:var(--primary);color:#fff;}
+  .btn-primary:hover{background:var(--primary-dark);}
+  .btn-ghost{background:#fff;color:var(--primary);border:1.5px solid var(--primary);}
+  .btn-ghost:hover{background:var(--primary-light);}
+  .btn[disabled]{opacity:.5;cursor:not-allowed;}
+  /* ===== 卡片网格 ===== */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px;
+        padding:18px 20px;width:100%;max-width:1200px;margin:0 auto;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;
+        display:flex;flex-direction:column;transition:box-shadow .15s,transform .15s;position:relative;}
+  .card:hover{box-shadow:0 4px 16px rgba(30,41,59,.1);transform:translateY(-2px);}
+  .card-img{width:100%;aspect-ratio:1/1;background:#f8fafc;display:flex;align-items:center;
+            justify-content:center;cursor:zoom-in;overflow:hidden;}
+  .card-img img{width:100%;height:100%;object-fit:cover;}
+  .card-img .placeholder{font-size:40px;opacity:.3;}
+  .card-body{padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px;flex:1;}
+  .card-name{font-size:15px;font-weight:700;}
+  .card-cost{display:inline-block;align-self:flex-start;font-size:12px;font-weight:700;
+             background:rgba(230,145,56,.12);color:#c2660a;padding:2px 10px;border-radius:12px;}
+  .card-code{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);
+             cursor:pointer;padding:4px 8px;margin:-4px -8px;border-radius:8px;transition:background .15s;}
+  .card-code:hover{background:var(--primary-light);color:var(--primary-dark);}
+  .card-code .copy-icon{font-size:11px;opacity:.6;flex-shrink:0;}
+  .card-code .code-text{word-break:break-all;}
+  .card-actions{display:none;gap:6px;padding:0 12px 12px;}
+  .card.admin .card-actions{display:flex;}
+  .card-actions .btn{flex:1;padding:5px 0;font-size:12px;}
+  .btn-edit{background:var(--primary-light);color:var(--primary-dark);}
+  .btn-del{background:rgba(224,82,82,.1);color:var(--danger);}
+  .empty{grid-column:1/-1;text-align:center;padding:60px 0;color:var(--muted);font-size:14px;}
+  .empty .big{font-size:44px;display:block;margin-bottom:10px;opacity:.4;}
+  /* ===== 弹窗 ===== */
+  .modal-mask{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:100;
+              align-items:center;justify-content:center;padding:20px;}
+  .modal-mask.active{display:flex;}
+  .modal{background:#fff;border-radius:16px;width:100%;max-width:400px;max-height:92vh;
+         overflow-y:auto;padding:22px;}
+  .modal h2{font-size:17px;font-weight:800;margin-bottom:18px;}
+  .form-item{margin-bottom:14px;}
+  .form-item label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;}
+  .form-item input[type=text]{width:100%;padding:9px 12px;border:1.5px solid var(--border);
+         border-radius:10px;font-size:14px;outline:none;font-family:inherit;transition:border-color .15s;}
+  .form-item input[type=text]:focus{border-color:var(--primary);}
+  .img-pick{border:1.5px dashed var(--border);border-radius:12px;padding:14px;text-align:center;
+            cursor:pointer;transition:all .15s;background:#fafcfa;}
+  .img-pick:hover{border-color:var(--primary);background:var(--primary-light);}
+  .img-pick .hint{font-size:13px;color:var(--muted);}
+  .img-pick img{max-width:100%;max-height:180px;border-radius:8px;display:block;margin:0 auto;}
+  .modal-actions{display:flex;gap:10px;margin-top:20px;}
+  .modal-actions .btn{flex:1;padding:10px 0;font-size:14px;}
+  .btn-cancel{background:#f1f5f9;color:var(--muted);}
+  .btn-del-big{background:rgba(224,82,82,.1);color:var(--danger);}
+  /* ===== 灯箱 ===== */
+  .lightbox{display:none;position:fixed;inset:0;background:rgba(15,23,42,.85);z-index:200;
+            align-items:center;justify-content:center;cursor:zoom-out;}
+  .lightbox.active{display:flex;}
+  .lightbox img{max-width:92vw;max-height:92vh;border-radius:8px;}
+  /* ===== toast ===== */
+  .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);
+         background:rgba(30,41,59,.9);color:#fff;font-size:13px;padding:9px 20px;border-radius:22px;
+         opacity:0;pointer-events:none;transition:all .25s;z-index:300;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  /* ===== 未登录遮罩 ===== */
+  .auth-mask{display:none;position:fixed;inset:0;background:var(--bg);z-index:50;
+             align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--muted);}
+  .auth-mask.active{display:flex;}
+  .auth-mask .big{font-size:44px;}
+  @media (max-width:600px){
+    .grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;padding:12px;}
+    .topbar{padding:10px 12px;gap:8px;}
+    .topbar h1{font-size:16px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🎁 赠品编码查询</h1>
+  <span class="badge readonly" id="roleBadge">加载中…</span>
+  <div class="search-wrap">
+    <span class="icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="搜简称 / 商家编码…" autocomplete="off">
+  </div>
+  <button class="btn btn-ghost" id="btnRefresh" title="重新加载">🔄</button>
+  <button class="btn btn-primary" id="btnAdd" style="display:none;">＋ 新增赠品</button>
+</div>
+
+<div class="grid" id="grid"><div class="empty"><span class="big">⏳</span>正在加载赠品数据…</div></div>
+
+<div class="auth-mask" id="authMask">
+  <span class="big">🔐</span>
+  <div>请先在<strong>工作台登录</strong>，然后刷新本页</div>
+</div>
+
+<!-- 新增/编辑弹窗 -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal">
+    <h2 id="modalTitle">新增赠品</h2>
+    <div class="form-item">
+      <label>简称 *</label>
+      <input type="text" id="fName" placeholder="如：透明伴侣盒">
+    </div>
+    <div class="form-item">
+      <label>商家编码</label>
+      <input type="text" id="fCode" placeholder="如：弥生伴侣盒A">
+    </div>
+    <div class="form-item">
+      <label>成本</label>
+      <input type="text" id="fCost" placeholder="如：2.5 或 2.5/片">
+    </div>
+    <div class="form-item">
+      <label>产品图</label>
+      <div class="img-pick" id="imgPick">
+        <div class="hint" id="imgHint">📷 点击选择图片（可选）</div>
+        <img id="imgPreview" style="display:none;">
+      </div>
+      <input type="file" id="fImage" accept="image/*" style="display:none;">
+      <button class="btn btn-del-big" id="btnClearImg" style="display:none;margin-top:8px;padding:5px 14px;">移除图片</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" id="btnCancel">取消</button>
+      <button class="btn btn-primary" id="btnSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 图片灯箱 -->
+<div class="lightbox" id="lightbox"><img id="lightboxImg" src=""></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+'use strict';
+/* ==================== 配置 ==================== */
+const SUPABASE_URL = 'https://ienmejlxukhrxjjxvfqf.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imllbm1lamx4dWtocnhqanh2ZnFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMTgyMjgsImV4cCI6MjEwMDc5NDIyOH0.Z6n6eMSgTVSFeXg1y8Inzh5LQenSgonNWE2plZM29co';
+const BUCKET = 'gift-images';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ==================== 状态 ==================== */
+let gifts = [];          // 全量数据
+let isAdmin = false;     // admin 可写；leader/客服只读
+let editingId = null;    // 编辑中的记录 id
+let pendingImageFile = null;  // 待上传的新图片
+let removeImage = false;      // 编辑时是否移除图片
+
+const $ = id => document.getElementById(id);
+
+/* ==================== 工具 ==================== */
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer); t._timer = setTimeout(()=>t.classList.remove('show'), 1600);
+}
+function imgUrl(path){
+  if(!path) return '';
+  return SUPABASE_URL + '/storage/v1/object/public/' + String(path).replace(/^\/+/,'');
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function copyText(text){
+  try{ await navigator.clipboard.writeText(text); toast('已复制：' + text); }
+  catch(e){
+    const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
+    ta.select(); try{ document.execCommand('copy'); toast('已复制：' + text); }catch(_){ toast('复制失败，请手动复制'); }
+    document.body.removeChild(ta);
+  }
+}
+
+/* ==================== 初始化 ==================== */
+(async function init(){
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    const user = session && session.user;
+    if(!user){
+      const b = $('roleBadge'); b.className = 'badge readonly'; b.textContent = '🔒 未登录';
+      $('authMask').classList.add('active'); render(); return;
+    }
+    let role = user.app_metadata && user.app_metadata.role;
+    try{
+      const { data:p } = await sb.from('profiles').select('role,name,real_name').eq('id', user.id).single();
+      if(p){ role = p.role; }
+    }catch(e){ console.warn('profiles load', e); }
+    isAdmin = (role === 'admin');
+    const badge = $('roleBadge');
+    if(isAdmin){ badge.className = 'badge admin'; badge.textContent = '👑 管理员 · 可维护'; $('btnAdd').style.display = ''; }
+    else { badge.className = 'badge readonly'; badge.textContent = '📖 只读查询'; }
+    await loadGifts();
+  }catch(e){
+    console.error(e);
+    $('grid').innerHTML = '<div class="empty"><span class="big">⚠️</span>初始化失败：' + esc(e.message) + '</div>';
+  }
+})();
+
+async function loadGifts(){
+  $('grid').innerHTML = '<div class="empty"><span class="big">⏳</span>正在加载赠品数据…</div>';
+  const { data, error } = await sb.from('gift_codes')
+    .select('id,name,merchant_code,cost,image_path,sort_order')
+    .order('sort_order', { ascending:true })
+    .order('created_at', { ascending:true });
+  if(error){ $('grid').innerHTML = '<div class="empty"><span class="big">⚠️</span>' + esc(error.message) + '<br><br>若提示表不存在，请先在 Supabase 执行 create_gift_codes.sql</div>'; return; }
+  gifts = data || [];
+  render();
+}
+
+/* ==================== 渲染（卡片视图） ==================== */
+function render(){
+  const kw = ($('searchInput').value || '').trim().toLowerCase();
+  const list = kw ? gifts.filter(g =>
+      (g.name||'').toLowerCase().includes(kw) || (g.merchant_code||'').toLowerCase().includes(kw)
+    ) : gifts;
+  if(!list.length){
+    $('grid').innerHTML = '<div class="empty"><span class="big">🎁</span>' +
+      (kw ? '没有匹配「' + esc(kw) + '」的赠品' : '还没有赠品数据' + (isAdmin ? '，点右上角「＋ 新增赠品」添加' : '')) + '</div>';
+    return;
+  }
+  $('grid').innerHTML = list.map(g => `
+    <div class="card${isAdmin?' admin':''}" data-id="${g.id}">
+      <div class="card-img" data-act="img">
+        ${g.image_path ? `<img src="${esc(imgUrl(g.image_path))}" loading="lazy" alt="${esc(g.name)}">`
+                       : '<span class="placeholder">🎁</span>'}
+      </div>
+      <div class="card-body">
+        <div class="card-name">${esc(g.name)}</div>
+        ${g.cost ? `<span class="card-cost">¥ ${esc(g.cost)}</span>` : ''}
+        ${g.merchant_code ? `<div class="card-code" data-act="copy" title="点击复制商家编码">
+            <span class="code-text">${esc(g.merchant_code)}</span><span class="copy-icon">📋</span></div>` : ''}
+      </div>
+      <div class="card-actions">
+        <button class="btn btn-edit" data-act="edit">✏️ 编辑</button>
+        <button class="btn btn-del" data-act="del">🗑 删除</button>
+      </div>
+    </div>`).join('');
+}
+
+/* 卡片事件（事件委托） */
+$('grid').addEventListener('click', e => {
+  const card = e.target.closest('.card'); if(!card) return;
+  const actEl = e.target.closest('[data-act]'); if(!actEl) return;
+  const act = actEl.dataset.act;
+  const g = gifts.find(x => x.id === card.dataset.id); if(!g) return;
+  if(act === 'copy') copyText(g.merchant_code);
+  else if(act === 'img' && g.image_path){ $('lightboxImg').src = imgUrl(g.image_path); $('lightbox').classList.add('active'); }
+  else if(act === 'edit') openModal(g);
+  else if(act === 'del') delGift(g);
+});
+$('searchInput').addEventListener('input', render);
+$('btnRefresh').addEventListener('click', () => { toast('刷新中…'); loadGifts(); });
+$('lightbox').addEventListener('click', () => $('lightbox').classList.remove('active'));
+
+/* ==================== 新增 / 编辑 ==================== */
+function openModal(g){
+  editingId = g ? g.id : null;
+  pendingImageFile = null; removeImage = false;
+  $('modalTitle').textContent = g ? '编辑赠品' : '新增赠品';
+  $('fName').value = g ? (g.name||'') : '';
+  $('fCode').value = g ? (g.merchant_code||'') : '';
+  $('fCost').value = g ? (g.cost||'') : '';
+  $('imgPreview').style.display = 'none'; $('imgPreview').removeAttribute('src');
+  $('imgHint').style.display = ''; $('btnClearImg').style.display = 'none';
+  $('fImage').value = '';
+  if(g && g.image_path){
+    $('imgPreview').src = imgUrl(g.image_path); $('imgPreview').style.display = '';
+    $('imgHint').style.display = 'none'; $('btnClearImg').style.display = '';
+  }
+  $('modalMask').classList.add('active');
+  setTimeout(()=> $('fName').focus(), 50);
+}
+function closeModal(){ $('modalMask').classList.remove('active'); editingId = null; pendingImageFile = null; removeImage = false; }
+
+$('btnAdd').addEventListener('click', () => openModal(null));
+$('btnCancel').addEventListener('click', closeModal);
+$('modalMask').addEventListener('click', e => { if(e.target === $('modalMask')) closeModal(); });
+
+$('imgPick').addEventListener('click', () => $('fImage').click());
+$('fImage').addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  pendingImageFile = f; removeImage = false;
+  const rd = new FileReader();
+  rd.onload = ev => { $('imgPreview').src = ev.target.result; $('imgPreview').style.display = ''; $('imgHint').style.display = 'none'; };
+  rd.readAsDataURL(f);
+  $('btnClearImg').style.display = '';
+});
+$('btnClearImg').addEventListener('click', () => {
+  pendingImageFile = null; removeImage = true;
+  $('fImage').value = ''; $('imgPreview').style.display = 'none'; $('imgPreview').removeAttribute('src');
+  $('imgHint').style.display = ''; $('btnClearImg').style.display = 'none';
+});
+
+$('btnSave').addEventListener('click', async () => {
+  const name = $('fName').value.trim();
+  if(!name){ toast('请填写简称'); $('fName').focus(); return; }
+  const btn = $('btnSave'); btn.disabled = true; btn.textContent = '保存中…';
+  try{
+    let image_path;
+    if(editingId){
+      const old = gifts.find(x => x.id === editingId);
+      image_path = old ? (old.image_path||null) : null;
+    }
+    // 上传新图片
+    if(pendingImageFile){
+      const ext = (pendingImageFile.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = 'gifts/' + Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.' + ext;
+      const { error:upErr } = await sb.storage.from(BUCKET).upload(path, pendingImageFile, { contentType: pendingImageFile.type || 'image/jpeg', upsert:true });
+      if(upErr) throw new Error('图片上传失败：' + upErr.message);
+      image_path = path;
+    } else if(removeImage){
+      image_path = null;
+    }
+    const row = { name, merchant_code: $('fCode').value.trim() || null, cost: $('fCost').value.trim() || null };
+    if(editingId){
+      if(image_path !== undefined) row.image_path = image_path;
+      const { error } = await sb.from('gift_codes').update(row).eq('id', editingId);
+      if(error) throw error;
+      // 旧图清理（换图/移图时，尽力而为）
+      const old = gifts.find(x => x.id === editingId);
+      if(old && old.image_path && image_path !== old.image_path){
+        try{ await sb.storage.from(BUCKET).remove([old.image_path]); }catch(e){}
+      }
+      toast('✅ 已保存');
+    }else{
+      row.image_path = image_path || null;
+      const maxSort = gifts.reduce((m,g)=>Math.max(m, g.sort_order||0), 0);
+      row.sort_order = maxSort + 1;
+      const { error } = await sb.from('gift_codes').insert(row);
+      if(error) throw error;
+      toast('✅ 已添加');
+    }
+    closeModal();
+    await loadGifts();
+  }catch(e){
+    console.error(e);
+    toast('❌ ' + (e.message || '保存失败'));
+  }finally{
+    btn.disabled = false; btn.textContent = '保存';
+  }
+});
+
+/* ==================== 删除 ==================== */
+async function delGift(g){
+  if(!confirm('确定删除赠品「' + (g.name||'') + '」？此操作不可恢复。')) return;
+  try{
+    const { error } = await sb.from('gift_codes').delete().eq('id', g.id);
+    if(error) throw error;
+    if(g.image_path){ try{ await sb.storage.from(BUCKET).remove([g.image_path]); }catch(e){} }
+    toast('已删除');
+    await loadGifts();
+  }catch(e){
+    console.error(e);
+    toast('❌ ' + (e.message || '删除失败'));
+  }
+}
+</script>
+</body>
+</html>
