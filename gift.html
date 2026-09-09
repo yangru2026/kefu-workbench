@@ -217,14 +217,25 @@ async function copyText(text){
   }
 })();
 
+var GIFT_CACHE_VER = 'v1';
+function giftCacheGet(){ try{ var r=localStorage.getItem('kefu_cache_gift_codes'); if(!r) return null; var o=JSON.parse(r); if(!o||o.ver!==GIFT_CACHE_VER) return null; return o.data; }catch(e){return null;} }
+function giftCacheSet(d){ try{ localStorage.setItem('kefu_cache_gift_codes', JSON.stringify({ver:GIFT_CACHE_VER,ts:Date.now(),data:d})); }catch(e){} }
+
 async function loadGifts(){
-  $('grid').innerHTML = '<div class="empty"><span class="big">⏳</span>正在加载赠品数据…</div>';
+  // 秒显缓存：有缓存先立即渲染，避免白等 supabase.co 往返
+  var cached = giftCacheGet();
+  if (cached && cached.length){ gifts = cached; render(); }
+  else { $('grid').innerHTML = '<div class="empty"><span class="big">⏳</span>正在加载赠品数据…</div>'; }
   const { data, error } = await sb.from('gift_codes')
     .select('id,name,merchant_code,cost,image_path,sort_order')
     .order('sort_order', { ascending:true })
     .order('created_at', { ascending:true });
-  if(error){ $('grid').innerHTML = '<div class="empty"><span class="big">⚠️</span>' + esc(error.message) + '<br><br>若提示表不存在，请先在 Supabase 执行 create_gift_codes.sql</div>'; return; }
+  if(error){
+    if(!cached||!cached.length){ $('grid').innerHTML = '<div class="empty"><span class="big">⚠️</span>' + esc(error.message) + '<br><br>若提示表不存在，请先在 Supabase 执行 create_gift_codes.sql</div>'; }
+    return;
+  }
   gifts = data || [];
+  giftCacheSet(gifts);
   render();
 }
 
