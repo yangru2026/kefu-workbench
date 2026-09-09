@@ -2761,7 +2761,15 @@ body {
       </div>
     </div>
     <div class="brand-tabs" id="pattern-brand-tabs"></div>
-    <div class="pattern-filters-card">
+    <div class="pf-chips" id="pattern-chips"></div>
+    <div class="pf-toolbar">
+      <button class="pf-adv-toggle" id="pf-adv-toggle" onclick="togglePatternAdvFilters()">⚙️ 更多筛选<span class="pf-adv-badge" id="pf-adv-badge" style="display:none;">0</span><span class="pf-adv-arrow">▾</span></button>
+      <div class="pattern-search-row">
+        <input type="text" id="pattern-search" placeholder="🔍 搜索花色名称..." oninput="onPatternSearch()">
+        <span class="pattern-stats" id="pattern-stats"></span>
+      </div>
+    </div>
+    <div class="pattern-filters-card" id="pattern-adv-filters" style="display:none;">
       <div class="filter-row" id="pattern-filter-type"></div>
       <div class="filter-row" id="pattern-filter-fixedaxis"></div>
       <div class="filter-row" id="pattern-filter-diameter"></div>
@@ -2771,13 +2779,57 @@ body {
       <div class="filter-row" id="pattern-filter-color"></div>
       <div class="filter-row" id="pattern-filter-price"></div>
       <div class="filter-row" id="pattern-filter-status"></div>
-      <div class="pattern-search-row">
-        <input type="text" id="pattern-search" placeholder="🔍 搜索花色名称..." oninput="onPatternSearch()">
-        <span class="pattern-stats" id="pattern-stats"></span>
-      </div>
     </div>
     <div class="pattern-grid" id="pattern-grid"></div>
   </div>
+
+  <style>
+    /* ===== 花色素材库 · 信息流改版 ===== */
+    .pf-chips { display:flex; gap:8px; overflow-x:auto; padding:10px 2px 6px; scrollbar-width:none; }
+    .pf-chips::-webkit-scrollbar { display:none; }
+    .pf-chip { flex:none; padding:7px 16px; border-radius:20px; border:1.5px solid var(--border,#e2e8f0); background:#fff; color:#334155; font-size:13px; cursor:pointer; font-family:inherit; transition:all .15s; }
+    .pf-chip:hover { border-color:var(--primary); color:var(--primary); }
+    .pf-chip.active { background:var(--primary,#7b9b6a); border-color:var(--primary,#7b9b6a); color:#fff; font-weight:600; }
+    .pf-toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:2px 0 10px; }
+    .pf-adv-toggle { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:20px; border:1.5px solid var(--border,#e2e8f0); background:#fff; color:#334155; font-size:13px; cursor:pointer; font-family:inherit; white-space:nowrap; }
+    .pf-adv-toggle:hover { border-color:var(--primary); }
+    .pf-adv-toggle .pf-adv-badge { background:#e05252; color:#fff; font-size:11px; border-radius:10px; padding:0 6px; font-weight:700; }
+    .pf-adv-arrow { display:inline-block; transition:transform .2s; font-size:11px; }
+    .pf-adv-toggle.open .pf-adv-arrow { transform:rotate(180deg); }
+    .pf-toolbar .pattern-search-row { flex:1; min-width:200px; margin:0; }
+    /* 信息流卡片 */
+    #page-patterns .pattern-grid { display:flex; flex-direction:column; gap:14px; max-width:860px; }
+    .pfeed-card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:14px 16px; }
+    .pfeed-head { display:flex; align-items:center; gap:10px; }
+    .pfeed-avatar { width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,#7b9b6a,#5f7d50); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex:none; letter-spacing:-1px; }
+    .pfeed-headinfo { flex:1; min-width:0; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .pfeed-title { font-size:16px; font-weight:800; color:#1e293b; }
+    .pfeed-series { font-size:12px; color:#5f7d50; background:rgba(123,155,106,.1); padding:1px 8px; border-radius:10px; }
+    .pfeed-time { margin-left:auto; font-size:12px; color:#94a3b8; flex:none; }
+    .pfeed-desc { font-size:13.5px; color:#334155; line-height:1.65; margin-top:8px; white-space:pre-wrap; word-break:break-word; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .pfeed-desc.expanded { -webkit-line-clamp:unset; display:block; }
+    .pfeed-desc-toggle { border:none; background:none; color:#5f7d50; font-size:12.5px; cursor:pointer; padding:2px 0; font-family:inherit; font-weight:600; }
+    .pfeed-imgs { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:10px; }
+    .pfeed-img { position:relative; aspect-ratio:1/1; border-radius:10px; overflow:hidden; background:#f1f5f9; cursor:zoom-in; }
+    .pfeed-img img { width:100%; height:100%; object-fit:cover; display:block; }
+    .pfeed-img .more-mask { position:absolute; inset:0; background:rgba(0,0,0,.45); color:#fff; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; }
+    .pfeed-empty-img { aspect-ratio:3/1; border-radius:10px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:13px; width:100%; }
+    .pfeed-tags { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; align-items:center; }
+    .pfeed-tags span { font-size:11.5px; color:#64748b; background:#f1f5f9; padding:2px 9px; border-radius:10px; }
+    .pfeed-tags .pcard-meta-row { display:contents; margin:0; }
+    .pfeed-actions { display:flex; align-items:center; gap:8px; margin-top:12px; padding-top:10px; border-top:1px dashed #e2e8f0; }
+    .pfeed-btn { display:inline-flex; align-items:center; gap:5px; padding:6px 16px; border-radius:18px; border:1.5px solid #e2e8f0; background:#fff; color:#334155; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; transition:all .15s; }
+    .pfeed-btn:hover { border-color:#7b9b6a; color:#5f7d50; background:rgba(123,155,106,.06); }
+    .pfeed-btn.primary { background:#7b9b6a; border-color:#7b9b6a; color:#fff; }
+    .pfeed-btn.primary:hover { background:#5f7d50; color:#fff; }
+    .pfeed-actions .pcard-mgmt { position:static; margin-left:auto; }
+    .pfeed-spacer { flex:1; }
+    @media (max-width:600px) {
+      .pfeed-card { padding:12px; }
+      .pfeed-imgs { gap:4px; }
+      .pfeed-title { font-size:15px; }
+    }
+  </style>
 
   <!-- ===== 花色价格速查（由「常用资料 → 弥生/极氧价格速查」两个入口共用，品牌在 switchPage 别名中锁定） ===== -->
   <div class="page" id="page-pattern-price">
@@ -8519,6 +8571,7 @@ let patternFixedAxis = '全部'; // '全部' | '定轴' | '非定轴'
 let patternStatusFilter = '全部'; // '全部' | '在售' | '下架'
 let patternPriceFilter = '全部';  // 价格档筛选（值=档位名 或 '全部'）
 let patternDiamGroupFilter = '全部'; // 直径分组筛选（小直径/大直径 或 '全部'）
+let patternLatestFilter = false; // 顶部 chips「🆕 最新」：仅显示 30 天内上新
 let patternCategories = []; // [{id, category_type:'brand'|'type'|'diameter'|'series'|'color'|'price'|'diam_group', name, sort_order}]
 
 function setPatternStatus(status) {
@@ -8884,6 +8937,56 @@ function renderPatternFilters() {
     fixedAxisRow.innerHTML = '';
     fixedAxisRow.style.display = 'none';
   }
+
+  renderPatternChips();
+  updatePatternAdvBadge();
+}
+
+/* ===== 顶部横滑分类 chips（信息流改版）===== */
+function renderPatternChips() {
+  const el = document.getElementById('pattern-chips');
+  if (!el) return;
+  const colorData = getMergedCats('color', getPatternColors(patternBrand, patternType, patternSeries, patternDiameter));
+  let html = `<button class="pf-chip${patternLatestFilter ? ' active' : ''}" onclick="setPatternLatest()">🆕 最新</button>`;
+  html += `<button class="pf-chip${(!patternLatestFilter && patternColor === '全部') ? ' active' : ''}" onclick="setPatternChip('全部')">全部</button>`;
+  colorData.forEach(c => {
+    html += `<button class="pf-chip${(!patternLatestFilter && patternColor === c.name) ? ' active' : ''}" onclick="setPatternChip('${escapeAttr(c.name)}')">${escapeHtml(c.name)}</button>`;
+  });
+  el.innerHTML = html;
+}
+
+function setPatternLatest() {
+  patternLatestFilter = true;
+  patternColor = '全部';
+  patternPage = 1;
+  renderPatternChips();
+  renderPatternFilters();
+  renderPatterns();
+}
+
+function setPatternChip(name) {
+  patternLatestFilter = false;
+  patternColor = name;
+  patternPage = 1;
+  renderPatternChips();
+  renderPatternFilters();
+  renderPatterns();
+}
+
+function togglePatternAdvFilters() {
+  const card = document.getElementById('pattern-adv-filters');
+  const btn = document.getElementById('pf-adv-toggle');
+  if (!card || !btn) return;
+  const open = card.style.display === 'none';
+  card.style.display = open ? 'block' : 'none';
+  btn.classList.toggle('open', open);
+}
+
+function updatePatternAdvBadge() {
+  const n = [patternType, patternDiameter, patternBaseCurve, patternSeries, patternFixedAxis, patternStatusFilter, patternPriceFilter, patternDiamGroupFilter]
+    .filter(v => v && v !== '全部').length + (patternColor !== '全部' ? 1 : 0);
+  const b = document.getElementById('pf-adv-badge');
+  if (b) { b.style.display = n > 0 ? '' : 'none'; b.textContent = n; }
 }
 
 function switchPatternBrand(b) {
@@ -8897,6 +9000,7 @@ function switchPatternBrand(b) {
   patternStatusFilter = '全部';
   patternPriceFilter = '全部';
   patternDiamGroupFilter = '全部';
+  patternLatestFilter = false;
   patternPage = 1;
   renderPatternFilters();
   renderPatterns();
@@ -9247,6 +9351,11 @@ function renderPatterns() {
     items = items.filter(p => p.isDiscontinued);
   }
 
+  // 最新筛选（顶部 chips）：仅显示 30 天内上新
+  if (patternLatestFilter) {
+    items = items.filter(p => p.createdAt && (Date.now() - new Date(p.createdAt).getTime()) < 30 * 24 * 60 * 60 * 1000);
+  }
+
   // 搜索
   const search = (document.getElementById('pattern-search')?.value || '').toLowerCase();
   if (search) {
@@ -9415,28 +9524,47 @@ function renderPatterns() {
     const discBadge = p.isDiscontinued ? `<div style="position:absolute;top:8px;left:8px;background:#d97706;color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;z-index:2;">已下架</div>` : '';
     const nameStyle = p.isDiscontinued ? ' style="text-decoration:line-through;opacity:.65;"' : '';
 
-    return `<div class="pattern-card"${p.isDiscontinued ? ' style="opacity:.7;"' : ''}>
-      <div class="pcard-img"${images.length ? ` onclick="openLightbox(window._lbImages['${lbKey}'])" style="cursor:pointer"` : ''}>
-        ${discBadge}
-        ${newBadge}
-        ${multiImgBadge}
-        ${imgHtml}
-        <div class="pcard-brand-tag">${escapeHtml(p._brand || patternBrand)}</div>
+    // ===== 信息流卡片：头像+标题+时间+描述+多图宫格+操作行 =====
+    const brandName = p._brand || patternBrand;
+    const timeText = (() => {
+      if (!p.createdAt) return '';
+      const d = new Date(p.createdAt);
+      if (isNaN(d)) return '';
+      return (d.getMonth() + 1) + '-' + d.getDate();
+    })();
+    const desc = p.description || p.script || '';
+    const descId = 'pfdesc' + idx;
+    const descHtml = desc
+      ? `<div class="pfeed-desc" id="${descId}">${escapeHtml(desc)}</div>` +
+        (desc.length > 70 ? `<button class="pfeed-desc-toggle" onclick="togglePatternDesc('${descId}', this)">全文</button>` : '')
+      : `<div class="pfeed-desc" style="color:#94a3b8;">暂无推荐话术</div>`;
+    const MAX_IMGS = 6;
+    const shownImgs = images.slice(0, MAX_IMGS);
+    const imgsHtml = images.length
+      ? `<div class="pfeed-imgs">` + shownImgs.map((im, i) =>
+          `<div class="pfeed-img" onclick="openLightbox(window._lbImages['${lbKey}'])">` +
+          `<img src="${escapeHtml(im.thumb)}" loading="lazy" decoding="async" alt="${escapeHtml(p.name)}"${fpAttr}>` +
+          (i === MAX_IMGS - 1 && images.length > MAX_IMGS ? `<div class="more-mask">+${images.length - MAX_IMGS}</div>` : '') +
+          `</div>`).join('') + `</div>`
+      : `<div class="pfeed-imgs"><div class="pfeed-empty-img">暂无图片</div></div>`;
+    const tagsHtml = `<div class="pfeed-tags">${metaTagsHtml}${specsHtml || ''}</div>`;
+
+    return `<div class="pfeed-card"${p.isDiscontinued ? ' style="opacity:.7;"' : ''}>
+      <div class="pfeed-head">
+        <div class="pfeed-avatar">${escapeHtml(brandName.slice(0, 2))}</div>
+        <div class="pfeed-headinfo">
+          <span class="pfeed-title"${nameStyle}>${escapeHtml(p.name)}</span>
+          ${p.series ? `<span class="pfeed-series">${escapeHtml(p.series)}</span>` : ''}
+          <span class="pfeed-time">${timeText}</span>
+        </div>
       </div>
-      ${mgmtBtns}
-      <div class="pcard-body">
-        <div class="pcard-title-row">
-          <span class="pcard-name"${nameStyle}>${escapeHtml(p.name)}</span>
-          <span class="pcard-series">${escapeHtml(p.series || '')}</span>
-        </div>
-        <div class="pcard-meta-row">
-          ${metaTagsHtml}
-        </div>
-        ${specsHtml}
-        <div class="pcard-script">
-          ${escapeHtml(p.description || p.script || '暂无话术')}
-          <button class="pcard-copy" onclick="copyPatternScript(this, '${escapeAttr(p.description || p.script || '')}')">📋 复制</button>
-        </div>
+      ${descHtml}
+      ${imgsHtml}
+      ${tagsHtml}
+      <div class="pfeed-actions">
+        <button class="pfeed-btn" onclick="downloadPatternImages('${escapeAttr(p.name)}', '${lbKey}')">⬇️ 下载图片${images.length ? ' (' + images.length + ')' : ''}</button>
+        <button class="pfeed-btn primary" onclick="copyPatternScript(this, '${escapeAttr(desc)}')">📋 复制话术</button>
+        ${mgmtBtns}
       </div>
     </div>`;
   }).join('') + (hasMore ? `<div class="pattern-loadmore-wrap" id="pattern-loadmore-wrap">
@@ -9463,6 +9591,43 @@ function bindLazyLens() {
     };
     parent.addEventListener('mouseenter', loadLens, { once: true });
   });
+}
+
+/* ===== 信息流卡片：描述全文/收起 ===== */
+function togglePatternDesc(id, btn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const expanded = el.classList.toggle('expanded');
+  btn.textContent = expanded ? '收起' : '全文';
+}
+
+/* ===== 信息流卡片：批量下载该花色全部图片 ===== */
+async function downloadPatternImages(name, lbKey) {
+  const imgs = (window._lbImages || {})[lbKey] || [];
+  if (!imgs.length) { showToast('该花色暂无图片'); return; }
+  showToast('⬇️ 开始下载 ' + imgs.length + ' 张图片…');
+  let done = 0;
+  for (const im of imgs) {
+    const url = im.hd || im.large || im.thumb;
+    try {
+      const res = await fetch(url, { mode: 'cors' });
+      if (!res.ok) throw new Error('http ' + res.status);
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      const ext = ((blob.type.split('/')[1] || 'jpg').split('+')[0]).replace('jpeg', 'jpg');
+      a.download = name + '-' + (im.hint || (done + 1)) + '.' + ext;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+      done++;
+    } catch (e) {
+      // 跨域下载失败时退化为新窗口打开，由用户手动保存
+      window.open(url, '_blank');
+    }
+  }
+  showToast('✅ 图片处理完成（' + done + ' 张直接下载）');
 }
 
 function loadMorePatterns() {
@@ -9528,11 +9693,12 @@ function addCacheBuster(url) {
 }
 
 function copyPatternScript(btn, text) {
+  btn.dataset.origLabel = btn.dataset.origLabel || btn.textContent;
   navigator.clipboard.writeText(text).then(() => {
     btn.textContent = '✅ 已复制';
     btn.classList.add('copied');
     showToast('话术已复制，可直接粘贴发送给客户');
-    setTimeout(() => { btn.textContent = '📋 复制'; btn.classList.remove('copied'); }, 2000);
+    setTimeout(() => { btn.textContent = btn.dataset.origLabel; btn.classList.remove('copied'); }, 2000);
   }).catch(() => {
     showToast('复制失败，请手动选中文字复制');
   });
