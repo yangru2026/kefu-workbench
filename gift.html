@@ -57,10 +57,10 @@
   .empty .big{font-size:44px;display:block;margin-bottom:10px;opacity:.4;}
   /* ===== 弹窗 ===== */
   .modal-mask{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:100;
-              align-items:center;justify-content:center;padding:20px;}
-  .modal-mask.active{display:flex;}
-  .modal{background:#fff;border-radius:16px;width:100%;max-width:400px;max-height:92vh;
-         overflow-y:auto;padding:22px;}
+              overflow-y:auto;padding:20px;}
+  .modal-mask.active{display:block;}
+  .modal{background:#fff;border-radius:16px;width:100%;max-width:400px;max-height:90vh;
+         overflow-y:auto;padding:22px;margin:5vh auto;position:relative;}
   .modal h2{font-size:17px;font-weight:800;margin-bottom:18px;}
   .form-item{margin-bottom:14px;}
   .form-item label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;}
@@ -144,15 +144,15 @@
     <h2 id="modalTitle">新增赠品</h2>
     <div class="form-item">
       <label>简称 *</label>
-      <input type="text" id="fName" placeholder="如：透明伴侣盒">
+      <input type="text" id="fName" placeholder="如：透明伴侣盒" autocomplete="off" autocorrect="off" autocapitalize="off">
     </div>
     <div class="form-item">
       <label>商家编码</label>
-      <input type="text" id="fCode" placeholder="如：弥生伴侣盒A">
+      <input type="text" id="fCode" placeholder="如：弥生伴侣盒A" autocomplete="off" autocorrect="off" autocapitalize="off">
     </div>
     <div class="form-item">
       <label>成本</label>
-      <input type="text" id="fCost" placeholder="如：2.5 或 2.5/片">
+      <input type="text" id="fCost" placeholder="如：2.5 或 2.5/片" autocomplete="off" autocorrect="off" autocapitalize="off">
     </div>
     <div class="form-item">
       <label>产品图（可多张）</label>
