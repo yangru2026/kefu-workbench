@@ -76,6 +76,26 @@
   .modal-actions .btn{flex:1;padding:10px 0;font-size:14px;}
   .btn-cancel{background:#f1f5f9;color:var(--muted);}
   .btn-del-big{background:rgba(224,82,82,.1);color:var(--danger);}
+  /* 多图管理 */
+  .img-grid{display:flex;flex-wrap:wrap;gap:10px;}
+  .img-cell{position:relative;width:84px;height:84px;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#f8fafc;}
+  .img-cell img{width:100%;height:100%;object-fit:cover;display:block;}
+  .img-remove{position:absolute;top:2px;right:2px;width:20px;height:20px;border:none;border-radius:50%;
+              background:rgba(15,23,42,.6);color:#fff;font-size:13px;line-height:20px;cursor:pointer;padding:0;z-index:2;}
+  .img-move{position:absolute;bottom:2px;width:22px;height:18px;border:none;background:rgba(123,155,106,.85);
+            color:#fff;font-size:10px;cursor:pointer;padding:0;z-index:2;}
+  .img-move.left{left:2px;border-radius:0 0 0 6px;}
+  .img-move.right{right:2px;border-radius:0 0 6px 0;}
+  .img-empty-tip{font-size:12.5px;color:var(--muted);margin:6px 0;line-height:1.5;}
+  .img-tools{margin-top:8px;}
+  .img-tools .btn{font-size:13px;padding:7px 16px;}
+  /* 灯箱左右切换 */
+  .gal-nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border:none;border-radius:50%;
+           background:rgba(255,255,255,.85);color:#1e293b;font-size:26px;cursor:pointer;z-index:2;line-height:46px;}
+  .gal-prev{left:24px;}
+  .gal-next{right:24px;}
+  .gal-count{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);color:#fff;font-size:14px;
+             background:rgba(15,23,42,.6);padding:4px 14px;border-radius:16px;}
   /* ===== 灯箱 ===== */
   .lightbox{display:none;position:fixed;inset:0;background:rgba(15,23,42,.85);z-index:200;
             align-items:center;justify-content:center;cursor:zoom-out;}
@@ -135,13 +155,13 @@
       <input type="text" id="fCost" placeholder="如：2.5 或 2.5/片">
     </div>
     <div class="form-item">
-      <label>产品图</label>
-      <div class="img-pick" id="imgPick">
-        <div class="hint" id="imgHint">📷 点击选择 或 Ctrl+V 粘贴图片（可选）</div>
-        <img id="imgPreview" style="display:none;">
+      <label>产品图（可多张）</label>
+      <div class="img-grid" id="imgGrid"></div>
+      <div class="img-empty-tip" id="imgEmptyTip">还没有图片，点下面按钮添加（可多选 / Ctrl+V 粘贴截图）</div>
+      <div class="img-tools">
+        <button type="button" class="btn btn-ghost" id="btnAddImg">＋ 添加图片</button>
       </div>
-      <input type="file" id="fImage" accept="image/*" style="display:none;">
-      <button class="btn btn-del-big" id="btnClearImg" style="display:none;margin-top:8px;padding:5px 14px;">移除图片</button>
+      <input type="file" id="fImages" accept="image/*" multiple style="display:none;">
     </div>
     <div class="modal-actions">
       <button class="btn btn-cancel" id="btnCancel">取消</button>
@@ -151,7 +171,12 @@
 </div>
 
 <!-- 图片灯箱 -->
-<div class="lightbox" id="lightbox"><img id="lightboxImg" src=""></div>
+<div class="lightbox" id="lightbox">
+  <button type="button" class="gal-nav gal-prev" id="galPrev">‹</button>
+  <img id="lightboxImg" src="">
+  <button type="button" class="gal-nav gal-next" id="galNext">›</button>
+  <div class="gal-count" id="galCount"></div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -167,8 +192,8 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let gifts = [];          // 全量数据
 let isAdmin = false;     // admin 可写；leader/客服只读
 let editingId = null;    // 编辑中的记录 id
-let pendingImageFile = null;  // 待上传的新图片
-let removeImage = false;      // 编辑时是否移除图片
+let editImages = [];     // 编辑中保留的已有图片路径数组
+let editNewFiles = [];   // 编辑中待上传的新图片 File 对象（含 _url 预览）
 
 const $ = id => document.getElementById(id);
 
@@ -182,6 +207,11 @@ function imgUrl(path){
   return SUPABASE_URL + '/storage/v1/object/public/' + BUCKET + '/' + String(path).replace(/^\/+/,'');
 }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function giftImgs(g){
+  if(g.image_paths && g.image_paths.length) return g.image_paths;
+  if(g.image_path) return [g.image_path];
+  return [];
+}
 
 async function copyText(text){
   try{ await navigator.clipboard.writeText(text); toast('已复制：' + text); }
@@ -227,7 +257,7 @@ async function loadGifts(){
   if (cached && cached.length){ gifts = cached; render(); }
   else { $('grid').innerHTML = '<div class="empty"><span class="big">⏳</span>正在加载赠品数据…</div>'; }
   const { data, error } = await sb.from('gift_codes')
-    .select('id,name,merchant_code,cost,image_path,sort_order')
+    .select('id,name,merchant_code,cost,image_path,image_paths,sort_order')
     .order('sort_order', { ascending:true })
     .order('created_at', { ascending:true });
   if(error){
@@ -253,8 +283,8 @@ function render(){
   $('grid').innerHTML = list.map(g => `
     <div class="card${isAdmin?' admin':''}" data-id="${g.id}">
       <div class="card-img" data-act="img">
-        ${g.image_path ? `<img src="${esc(imgUrl(g.image_path))}" loading="lazy" alt="${esc(g.name)}">`
-                       : '<span class="placeholder">🎁</span>'}
+        ${giftImgs(g).length ? `<img src="${esc(imgUrl(giftImgs(g)[0]))}" loading="lazy" alt="${esc(g.name)}">`
+                              : '<span class="placeholder">🎁</span>'}
       </div>
       <div class="card-body">
         <div class="card-name">${esc(g.name)}</div>
@@ -276,71 +306,103 @@ $('grid').addEventListener('click', e => {
   const act = actEl.dataset.act;
   const g = gifts.find(x => x.id === card.dataset.id); if(!g) return;
   if(act === 'copy') copyText(g.merchant_code);
-  else if(act === 'img' && g.image_path){ $('lightboxImg').src = imgUrl(g.image_path); $('lightbox').classList.add('active'); }
+  else if(act === 'img'){ const imgs = giftImgs(g); if(imgs.length) openGallery(imgs, 0); }
   else if(act === 'edit') openModal(g);
   else if(act === 'del') delGift(g);
 });
 $('searchInput').addEventListener('input', render);
 $('btnRefresh').addEventListener('click', () => { toast('刷新中…'); loadGifts(); });
-$('lightbox').addEventListener('click', () => $('lightbox').classList.remove('active'));
+$('lightbox').addEventListener('click', e => { if(e.target === $('lightbox')) $('lightbox').classList.remove('active'); });
+$('galPrev').addEventListener('click', e => { e.stopPropagation(); galIdx--; updateGallery(); });
+$('galNext').addEventListener('click', e => { e.stopPropagation(); galIdx++; updateGallery(); });
+let galImgs = [], galIdx = 0;
+function openGallery(imgs, idx){ galImgs = imgs || []; galIdx = Math.max(0, idx|0); updateGallery(); $('lightbox').classList.add('active'); }
+function updateGallery(){
+  if(!galImgs.length){ $('lightboxImg').src=''; $('galCount').textContent=''; return; }
+  galIdx = (galIdx + galImgs.length) % galImgs.length;
+  $('lightboxImg').src = imgUrl(galImgs[galIdx]);
+  $('galCount').textContent = (galIdx+1) + ' / ' + galImgs.length;
+  const multi = galImgs.length > 1;
+  $('galPrev').style.visibility = multi ? 'visible' : 'hidden';
+  $('galNext').style.visibility = multi ? 'visible' : 'hidden';
+}
 
 /* ==================== 新增 / 编辑 ==================== */
 function openModal(g){
   editingId = g ? g.id : null;
-  pendingImageFile = null; removeImage = false;
+  editImages = g ? (g.image_paths ? g.image_paths.slice() : (g.image_path ? [g.image_path] : [])) : [];
+  editNewFiles = [];
   $('modalTitle').textContent = g ? '编辑赠品' : '新增赠品';
   $('fName').value = g ? (g.name||'') : '';
   $('fCode').value = g ? (g.merchant_code||'') : '';
   $('fCost').value = g ? (g.cost||'') : '';
-  $('imgPreview').style.display = 'none'; $('imgPreview').removeAttribute('src');
-  $('imgHint').style.display = ''; $('btnClearImg').style.display = 'none';
-  $('fImage').value = '';
-  if(g && g.image_path){
-    $('imgPreview').src = imgUrl(g.image_path); $('imgPreview').style.display = '';
-    $('imgHint').style.display = 'none'; $('btnClearImg').style.display = '';
-  }
+  renderImgGrid();
   $('modalMask').classList.add('active');
   setTimeout(()=> $('fName').focus(), 50);
 }
-function closeModal(){ $('modalMask').classList.remove('active'); editingId = null; pendingImageFile = null; removeImage = false; }
+function closeModal(){ $('modalMask').classList.remove('active'); editingId = null; editImages = []; editNewFiles = []; }
 
 $('btnAdd').addEventListener('click', () => openModal(null));
 $('btnCancel').addEventListener('click', closeModal);
 $('modalMask').addEventListener('click', e => { if(e.target === $('modalMask')) closeModal(); });
 
-$('imgPick').addEventListener('click', () => $('fImage').click());
-function setPendingImage(f){
-  pendingImageFile = f; removeImage = false;
-  const rd = new FileReader();
-  rd.onload = ev => { $('imgPreview').src = ev.target.result; $('imgPreview').style.display = ''; $('imgHint').style.display = 'none'; };
-  rd.readAsDataURL(f);
-  $('btnClearImg').style.display = '';
+/* ===== 多图管理 ===== */
+function renderImgGrid(){
+  const grid = $('imgGrid');
+  let html = '';
+  editImages.forEach((p, i) => {
+    html += `<div class="img-cell"><img src="${esc(imgUrl(p))}">
+      <button type="button" class="img-move left" data-kind="old" data-i="${i}" title="前移">◀</button>
+      <button type="button" class="img-move right" data-kind="old" data-i="${i}" title="后移">▶</button>
+      <button type="button" class="img-remove" data-kind="old" data-i="${i}">×</button></div>`;
+  });
+  editNewFiles.forEach((f, i) => {
+    html += `<div class="img-cell"><img src="${esc(f._url)}">
+      <button type="button" class="img-move left" data-kind="new" data-i="${i}" title="前移">◀</button>
+      <button type="button" class="img-move right" data-kind="new" data-i="${i}" title="后移">▶</button>
+      <button type="button" class="img-remove" data-kind="new" data-i="${i}">×</button></div>`;
+  });
+  grid.innerHTML = html;
+  $('imgEmptyTip').style.display = (editImages.length || editNewFiles.length) ? 'none' : '';
 }
-$('fImage').addEventListener('change', e => {
-  const f = e.target.files && e.target.files[0]; if(!f) return;
-  setPendingImage(f);
+$('imgGrid').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if(!btn) return;
+  const kind = btn.dataset.kind, i = parseInt(btn.dataset.i, 10);
+  const arr = kind === 'old' ? editImages : editNewFiles;
+  if(btn.classList.contains('img-remove')){
+    if(kind === 'new'){ URL.revokeObjectURL(editNewFiles[i]._url); }
+    arr.splice(i, 1);
+    renderImgGrid();
+  } else if(btn.classList.contains('img-move')){
+    const dir = btn.classList.contains('left') ? -1 : 1;
+    const j = i + dir;
+    if(j >= 0 && j < arr.length){ const t = arr[i]; arr[i] = arr[j]; arr[j] = t; renderImgGrid(); }
+  }
 });
-/* 弹窗打开时，任意位置 Ctrl+V 直接粘贴图片（含截图） */
+function addPendingFiles(files){
+  if(!files || !files.length) return;
+  Array.from(files).forEach(f => {
+    if(!f.type || !f.type.startsWith('image/')) return;
+    editNewFiles.push({ file:f, _url: URL.createObjectURL(f) });
+  });
+  renderImgGrid();
+}
+$('btnAddImg').addEventListener('click', () => $('fImages').click());
+$('fImages').addEventListener('change', e => { addPendingFiles(e.target.files); e.target.value = ''; });
+/* 弹窗打开时 Ctrl+V 粘贴图片（含截图）；纯文本粘贴不拦截，避免改文字时闪退 */
 document.addEventListener('paste', e => {
   if(!$('modalMask').classList.contains('active')) return;
   const items = e.clipboardData && e.clipboardData.items;
   if(!items) return;
+  let imageFile = null;
   for(const it of items){
-    if(it.type && it.type.startsWith('image/')){
-      const f = it.getAsFile();
-      if(f){
-        setPendingImage(f);
-        toast('🖼️ 已粘贴图片，保存后生效');
-        e.preventDefault();
-      }
-      return;
-    }
+    if(it.type && it.type.startsWith('image/')){ imageFile = it.getAsFile(); if(imageFile) break; }
   }
-});
-$('btnClearImg').addEventListener('click', () => {
-  pendingImageFile = null; removeImage = true;
-  $('fImage').value = ''; $('imgPreview').style.display = 'none'; $('imgPreview').removeAttribute('src');
-  $('imgHint').style.display = ''; $('btnClearImg').style.display = 'none';
+  if(imageFile){
+    addPendingFiles([imageFile]);
+    toast('🖼️ 已添加图片，保存后生效');
+    e.preventDefault();
+  }
 });
 
 $('btnSave').addEventListener('click', async () => {
@@ -348,34 +410,36 @@ $('btnSave').addEventListener('click', async () => {
   if(!name){ toast('请填写简称'); $('fName').focus(); return; }
   const btn = $('btnSave'); btn.disabled = true; btn.textContent = '保存中…';
   try{
-    let image_path;
+    // 上传所有新图片
+    let uploaded = [];
+    for(const obj of editNewFiles){
+      const f = obj.file;
+      const ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = 'gifts/' + Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.' + ext;
+      const { error:upErr } = await sb.storage.from(BUCKET).upload(path, f, { contentType: f.type || 'image/jpeg', upsert:true });
+      if(upErr) throw new Error('图片上传失败：' + upErr.message);
+      uploaded.push(path);
+    }
+    const finalPaths = editImages.concat(uploaded);  // 保留顺序
+    const row = {
+      name,
+      merchant_code: $('fCode').value.trim() || null,
+      cost: $('fCost').value.trim() || null,
+      image_paths: finalPaths.length ? finalPaths : null,
+      image_path: finalPaths.length ? finalPaths[0] : null   // 兼容旧字段
+    };
     if(editingId){
       const old = gifts.find(x => x.id === editingId);
-      image_path = old ? (old.image_path||null) : null;
-    }
-    // 上传新图片
-    if(pendingImageFile){
-      const ext = (pendingImageFile.name.split('.').pop() || 'jpg').toLowerCase();
-      const path = 'gifts/' + Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.' + ext;
-      const { error:upErr } = await sb.storage.from(BUCKET).upload(path, pendingImageFile, { contentType: pendingImageFile.type || 'image/jpeg', upsert:true });
-      if(upErr) throw new Error('图片上传失败：' + upErr.message);
-      image_path = path;
-    } else if(removeImage){
-      image_path = null;
-    }
-    const row = { name, merchant_code: $('fCode').value.trim() || null, cost: $('fCost').value.trim() || null };
-    if(editingId){
-      if(image_path !== undefined) row.image_path = image_path;
       const { error } = await sb.from('gift_codes').update(row).eq('id', editingId);
       if(error) throw error;
-      // 旧图清理（换图/移图时，尽力而为）
-      const old = gifts.find(x => x.id === editingId);
-      if(old && old.image_path && image_path !== old.image_path){
-        try{ await sb.storage.from(BUCKET).remove([old.image_path]); }catch(e){}
+      // 清理被移除的旧图（尽力而为）
+      if(old){
+        const oldImgs = old.image_paths ? old.image_paths : (old.image_path ? [old.image_path] : []);
+        const removed = oldImgs.filter(p => !finalPaths.includes(p));
+        for(const p of removed){ try{ await sb.storage.from(BUCKET).remove([p]); }catch(e){} }
       }
       toast('✅ 已保存');
     }else{
-      row.image_path = image_path || null;
       const maxSort = gifts.reduce((m,g)=>Math.max(m, g.sort_order||0), 0);
       row.sort_order = maxSort + 1;
       const { error } = await sb.from('gift_codes').insert(row);
@@ -398,7 +462,8 @@ async function delGift(g){
   try{
     const { error } = await sb.from('gift_codes').delete().eq('id', g.id);
     if(error) throw error;
-    if(g.image_path){ try{ await sb.storage.from(BUCKET).remove([g.image_path]); }catch(e){} }
+    const imgs = giftImgs(g);
+    for(const p of imgs){ try{ await sb.storage.from(BUCKET).remove([p]); }catch(e){} }
     toast('已删除');
     await loadGifts();
   }catch(e){

@@ -10,7 +10,8 @@ create table if not exists public.gift_codes (
   name text not null,                -- 简称（如：透明伴侣盒）
   merchant_code text,                -- 商家编码（如：弥生伴侣盒A）
   cost text,                         -- 成本（文本，支持 "2.5/片" 这类写法）
-  image_path text,                   -- gift-images bucket 内路径
+  image_path text,                   -- gift-images bucket 内路径（兼容旧数据，取 image_paths[0]）
+  image_paths text[],                -- 多图：gift-images bucket 内路径数组
   sort_order int default 0,          -- 排序（小的在前）
   created_at timestamptz default now()
 );
