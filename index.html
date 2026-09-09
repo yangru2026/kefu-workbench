@@ -16,28 +16,37 @@
 // ==================== 库加载器（本地优先，CDN 兜底） ====================
 // 避免 CDN 不稳定导致 supabase/xlsx 加载失败 → 页面所有数据“消失”
 (function () {
-  function loadScript(src, cb) {
+  function loadScript(src, cb, timeout) {
     var s = document.createElement('script');
+    var done = false;
+    function finish(err) { if (done) return; done = true; clearTimeout(timer); cb(err); }
     s.src = src;
     s.async = true;
-    s.onload = function () { cb(null); };
-    s.onerror = function () { cb(new Error('fail:' + src)); };
+    s.onload = function () { finish(null); };
+    s.onerror = function () { finish(new Error('fail:' + src)); };
+    var timer = setTimeout(function () { finish(new Error('timeout:' + src)); }, timeout || 7000);
     document.head.appendChild(s);
   }
-  // supabase-js：本地 vendor / 国内镜像 / 多个 CDN 兜底加载（已移除内联副本，缩小首页体积）
+  // supabase-js：本地 vendor / jsdelivr / 国内镜像 / 多个 CDN 兜底加载（已移除内联副本，缩小首页体积）
   (function loadSupabase(i) {
     var urls = [
       'vendor/supabase.min.js?v=2',
-      'https://registry.npmmirror.com/@supabase/supabase-js/2.112.3/files/dist/umd/supabase.min.js',
-      'https://fastly.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js',
       'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js',
-      'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js'
+      'https://fastly.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js',
+      'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js',
+      'https://registry.npmmirror.com/@supabase/supabase-js/2.112.3/files/dist/umd/supabase.min.js'
     ];
     // 若已就绪，直接跳过后续加载
     if (window.supabase && window.supabase.createClient) { window.__SUPABASE_LIB_OK = true; return; }
     if (window.__SUPABASE_LIB_OK) return;
     if (i >= urls.length) {
       window.__SUPABASE_LIB_FAILED = true;
+      // 暴露重试入口：网络恢复后由自动恢复机制重启加载器
+      window.__retrySupabaseLoad = function () {
+        if (window.supabase && window.supabase.createClient) { window.__SUPABASE_LIB_OK = true; return; }
+        window.__SUPABASE_LIB_FAILED = false;
+        loadSupabase(0);
+      };
       if (document.readyState !== 'loading') window.__supabaseLibFail && window.__supabaseLibFail();
       return;
     }
@@ -46,9 +55,9 @@
         window.__SUPABASE_LIB_OK = true;
         return;
       }
-      console.warn('supabase-js 加载失败，尝试下一个源:', urls[i]);
-      setTimeout(function () { loadSupabase(i + 1); }, 500);
-    });
+      console.warn('supabase-js 加载失败，尝试下一个源:', urls[i], err && err.message);
+      setTimeout(function () { loadSupabase(i + 1); }, 300);
+    }, 6000);
   })(0);
   // xlsx：本地 vendor → 国内镜像(npmmirror) → fastly/jsdelivr → unpkg
   (function loadXlsx(i) {
@@ -61,7 +70,10 @@
     ];
     if (window.XLSX) return;
     if (i >= urls.length) return;
-    loadScript(urls[i], function () { setTimeout(function () { loadXlsx(i + 1); }, 500); });
+    loadScript(urls[i], function (err) {
+      if (err) console.warn('xlsx 加载失败，尝试下一个源:', urls[i], err.message);
+      setTimeout(function () { loadXlsx(i + 1); }, 300);
+    }, 6000);
   })(0);
 })();
 </script>
@@ -3258,11 +3270,37 @@ function showLibErrorBanner(msg) {
     if (!el) {
       el = document.createElement('div');
       el.id = 'lib-error-banner';
-      el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#c0392b;color:#fff;padding:10px 16px;font-size:14px;text-align:center;font-weight:600;';
+      el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#f59e0b;color:#fff;padding:10px 16px;font-size:14px;text-align:center;font-weight:600;';
       document.body.appendChild(el);
     }
     el.innerHTML = '⚠️ ' + (msg || '数据服务加载失败') + '，请检查网络后 <a href="javascript:location.reload()" style="color:#fff;text-decoration:underline;font-weight:800;">刷新重试</a>';
   } catch(e) { console.error(e); }
+}
+function hideLibErrorBanner() {
+  try {
+    const el = document.getElementById('lib-error-banner');
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  } catch(e) {}
+}
+
+// 库加载失败后的自动恢复：每 3 秒重试加载器 + 重新初始化，网络恢复后自动撤掉红条（无需手动刷新）
+var _sbRecoverTimer = null;
+function scheduleSupabaseRecover() {
+  if (_sbRecoverTimer) return;
+  _sbRecoverTimer = setInterval(function () {
+    try {
+      if (supabase && typeof supabase.from === 'function') { clearInterval(_sbRecoverTimer); _sbRecoverTimer = null; return; }
+      if (!(window.supabase && window.supabase.createClient)) {
+        // 库还没到位：若加载器已全部失败，重启一轮加载
+        if (window.__SUPABASE_LIB_FAILED && typeof window.__retrySupabaseLoad === 'function') window.__retrySupabaseLoad();
+        return;
+      }
+      // 库已就绪 → 自动重新初始化
+      clearInterval(_sbRecoverTimer); _sbRecoverTimer = null;
+      hideLibErrorBanner();
+      initSupabase();
+    } catch (e) {}
+  }, 3000);
 }
 
 // 带超时的 Promise 包装（防止网络卡住导致页面无限加载中）
@@ -3310,8 +3348,9 @@ async function initSupabase() {
     if (supabase && typeof supabase.from === 'function') return;
     const lib = await waitForSupabaseLib();
     if (!lib || !lib.createClient) {
-      console.error('Supabase 库加载失败（本地及 CDN 均不可用）');
-      showLibErrorBanner('数据服务组件加载失败');
+      console.error('Supabase 库加载失败（本地及 CDN 均不可用），已进入自动重试，网络恢复后无需刷新');
+      showLibErrorBanner('数据服务组件加载失败，正在自动重试');
+      scheduleSupabaseRecover();
       return;
     }
     supabase = lib.createClient(SUPABASE_URL, SUPABASE_KEY);
