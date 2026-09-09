@@ -247,7 +247,7 @@ function render(){
       </div>
       <div class="card-body">
         <div class="card-name">${esc(g.name)}</div>
-        ${g.cost ? `<span class="card-cost">¥ ${esc(g.cost)}</span>` : ''}
+        ${g.cost ? `<span class="card-cost">成本价 ¥ ${esc(g.cost)}</span>` : ''}
         ${g.merchant_code ? `<div class="card-code" data-act="copy" title="点击复制商家编码">
             <span class="code-text">${esc(g.merchant_code)}</span><span class="copy-icon">📋</span></div>` : ''}
       </div>
