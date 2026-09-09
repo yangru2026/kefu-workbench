@@ -32,7 +32,7 @@ const rows = [
     headless: 'new', args: ['--no-sandbox', '--disable-gpu']
   });
   const page = await browser.newPage();
-  await page.setViewport({ width: 1400, height: 900 });
+  await page.setViewport({ width: 1920, height: 900 });
   const errs = [];
   page.on('pageerror', e => errs.push('PAGEERROR:' + e.message));
   await page.setRequestInterception(true);
