@@ -85,8 +85,12 @@
   .rec-head .h-time{min-width:110px;flex-shrink:0;}
   .rec-head .h-cs{min-width:64px;flex-shrink:0;}
   .rec-head .h-info{flex:1;min-width:150px;}
+  .rec-head .h-shop{min-width:80px;flex-shrink:0;}
+  .rec-head .h-nick{min-width:70px;flex-shrink:0;}
   .rec-head .h-reason{min-width:86px;flex-shrink:0;}
   .rec-head .h-shots{min-width:52px;flex-shrink:0;}
+  .rec-shop{font-size:12.5px;min-width:80px;flex-shrink:0;}
+  .rec-nick{font-size:12.5px;color:var(--muted);min-width:70px;flex-shrink:0;}
   /* ===== 灯箱 ===== */
   .lightbox{display:none;position:fixed;inset:0;background:rgba(15,23,42,.85);z-index:200;
             align-items:center;justify-content:center;cursor:zoom-out;}
@@ -146,6 +150,32 @@
       <div class="reason-tags" id="reasonTags">
         <span class="reason-tag" data-reason="舆情问透氧">💧 舆情问透氧</span>
         <span class="reason-tag" data-reason="跨店问正品">🏪 跨店问正品</span>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-item">
+        <label>接待店铺 *</label>
+        <input type="text" id="fShop" list="shopList" placeholder="选/输接待店铺" autocomplete="off" autocorrect="off" autocapitalize="off">
+        <datalist id="shopList">
+          <option value="抖音1店"></option>
+          <option value="天猫弥生"></option>
+          <option value="京东弥生"></option>
+          <option value="天猫极氧"></option>
+          <option value="抖音极氧"></option>
+          <option value="抖音YH"></option>
+          <option value="拼多多YH"></option>
+          <option value="快手弥生"></option>
+          <option value="小红书YH"></option>
+        </datalist>
+      </div>
+      <div class="form-item">
+        <label>分流号昵称 *</label>
+        <select id="fNick" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none;font-family:inherit;background:#fff;transition:border-color .15s;">
+          <option value="">请选择分流号</option>
+          <option value="可可">可可</option>
+          <option value="莓莓">莓莓</option>
+          <option value="睛彩顾问">睛彩顾问</option>
+        </select>
       </div>
     </div>
     <div class="form-item">
@@ -257,7 +287,7 @@ async function loadRecords(){
   var cached = divCacheGet();
   if (cached && cached.length){ records = cached; renderList(); }
   const { data, error } = await sb.from('diversion_transfers')
-    .select('id,cs_name,customer_info,reason,screenshots,created_at')
+    .select('id,cs_name,customer_info,reason,shop,diversion_nick,screenshots,created_at')
     .order('created_at', { ascending:false })
     .limit(500);
   if(error){
@@ -278,7 +308,9 @@ function renderList(){
   const list = kw ? records.filter(r =>
       (r.cs_name||'').toLowerCase().includes(kw) ||
       (r.customer_info||'').toLowerCase().includes(kw) ||
-      (r.reason||'').toLowerCase().includes(kw)
+      (r.reason||'').toLowerCase().includes(kw) ||
+      (r.shop||'').toLowerCase().includes(kw) ||
+      (r.diversion_nick||'').toLowerCase().includes(kw)
     ) : records;
   $('recCnt').textContent = list.length ? ('共 ' + list.length + ' 条') : '';
   if(!list.length){
@@ -290,6 +322,8 @@ function renderList(){
     '<span class="h-time">时间</span>' +
     '<span class="h-cs">客服</span>' +
     '<span class="h-info">客户昵称 / 订单号</span>' +
+    '<span class="h-shop">接待店铺</span>' +
+    '<span class="h-nick">分流号</span>' +
     '<span class="h-reason">转接原因</span>' +
     '<span class="h-shots">截图</span>' +
     (isAdmin ? '<span>操作</span>' : '') +
@@ -300,6 +334,8 @@ function renderList(){
       <span class="rec-time">🕒 ${esc(fmtTime(r.created_at))}</span>
       <span class="rec-cs">${esc(r.cs_name)}</span>
       <span class="rec-info">${esc(r.customer_info)}</span>
+      <span class="rec-shop">${esc(r.shop||'')}</span>
+      <span class="rec-nick">${esc(r.diversion_nick||'')}</span>
       <span class="rec-reason ${reasonCls(r.reason)}">${esc(r.reason)}</span>
       <span class="rec-shots">${shots.map((p,i)=>`<img src="${esc(imgUrl(p))}" loading="lazy" data-act="shot" data-i="${i}" title="点击放大">`).join('')}</span>
       ${isAdmin ? '<button class="rec-del" data-act="del">🗑 删除</button>' : ''}
@@ -395,9 +431,13 @@ document.addEventListener('paste', e => {
 $('btnSave').addEventListener('click', async () => {
   const csName = $('fCs').value.trim();
   const info = $('fInfo').value.trim();
+  const shop = $('fShop').value.trim();
+  const nick = $('fNick').value;
   if(!csName){ toast('请填写客服名字'); $('fCs').focus(); return; }
   if(!info){ toast('请填客户昵称或订单号'); $('fInfo').focus(); return; }
   if(!selReason){ toast('请选择转接原因'); return; }
+  if(!shop){ toast('请选择接待店铺'); $('fShop').focus(); return; }
+  if(!nick){ toast('请选择分流号昵称'); $('fNick').focus(); return; }
   if(!newShots.length){ toast('请上传聊天截图证明'); return; }
   const btn = $('btnSave'); btn.disabled = true; btn.textContent = '提交中…';
   try{
@@ -415,6 +455,8 @@ $('btnSave').addEventListener('click', async () => {
       cs_name: csName,
       customer_info: info,
       reason: selReason,
+      shop: shop,
+      diversion_nick: nick,
       screenshots: paths
     });
     if(error) throw error;
@@ -423,6 +465,8 @@ $('btnSave').addEventListener('click', async () => {
     selReason = ''; newShots = [];
     document.querySelectorAll('.reason-tag').forEach(t => t.classList.remove('on'));
     $('fInfo').value = '';
+    $('fShop').value = '';
+    $('fNick').value = '';
     renderShots();
     await loadRecords();
   }catch(e){
