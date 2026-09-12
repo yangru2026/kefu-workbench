@@ -214,7 +214,7 @@ body {
 
 .page { display: none; padding: 32px 40px; }
 .page.active { display: block; }
-#page-qc.active, #page-gift.active { display: flex; height: 100vh; overflow: hidden; }
+#page-qc.active, #page-gift.active, #page-diversion.active { display: flex; height: 100vh; overflow: hidden; }
 
 /* Header */
 .page-header { margin-bottom: 28px; }
@@ -1602,7 +1602,7 @@ body {
     <div class="nav-item" data-page="patterns" title="花色素材"><span class="icon">🎨</span><span>花色素材</span></div>
     <div class="nav-item" data-page="tools" title="快捷工具"><span class="icon">🛠</span><span>快捷工具</span></div>
     <div class="nav-item" data-page="gift" title="赠品编码查询"><span class="icon">🎁</span><span>赠品编码</span></div>
-    <div class="nav-item" data-page="cross-sales" title="连带成交"><span class="icon">🛒</span><span>连带成交</span></div>
+    <div class="nav-item" data-page="diversion" title="舆情转接登记"><span class="icon">🔄</span><span>舆情转接</span></div>
     <div class="nav-item" data-page="voc" title="客户之声"><span class="icon">📣</span><span>客户之声</span><span class="badge" id="voc-todo-badge" style="display:none;"></span></div>
     <div class="nav-item" data-page="daily" title="汇报"><span class="icon">🌙</span><span>汇报</span></div>
     <div class="nav-section">常用资料</div>
@@ -3058,6 +3058,11 @@ body {
   <!-- ===== 赠品编码查询 ===== -->
   <div class="page" id="page-gift" style="padding:0;overflow:hidden;flex-direction:column;">
     <iframe id="gift-iframe" src="about:blank" data-src="gift.html?v=20260909k" style="flex:1;border:none;width:100%;"></iframe>
+  </div>
+
+  <!-- ===== 舆情转接登记 ===== -->
+  <div class="page" id="page-diversion" style="padding:0;overflow:hidden;flex-direction:column;">
+    <iframe id="diversion-iframe" src="about:blank" data-src="diversion.html?v=20260912a" style="flex:1;border:none;width:100%;"></iframe>
   </div>
 
   <style>
@@ -8180,6 +8185,14 @@ function switchPage(page) {
     if (gifIframe && gifIframe.getAttribute('data-src') && gifIframe.src !== gifIframe.getAttribute('data-src')) {
       gifIframe.src = gifIframe.getAttribute('data-src');
       gifIframe.removeAttribute('data-src');
+    }
+  }
+  if (page === 'diversion') {
+    // 舆情转接登记：延迟加载 iframe（首次点击才加载）
+    const divIframe = document.getElementById('diversion-iframe');
+    if (divIframe && divIframe.getAttribute('data-src') && divIframe.src !== divIframe.getAttribute('data-src')) {
+      divIframe.src = divIframe.getAttribute('data-src');
+      divIframe.removeAttribute('data-src');
     }
   }
   if (page === 'qc') {

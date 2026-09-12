@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>舆情转接登记</title>
+<style>
+  :root{ --primary:#10b981; --primary-dark:#059669; --primary-light:rgba(16,185,129,.1);
+         --danger:#e05252; --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f7f9f8;
+         --orange:#c2660a; --orange-bg:rgba(230,145,56,.12); }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+       background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+  /* ===== 顶栏 ===== */
+  .topbar{display:flex;align-items:center;gap:12px;padding:14px 20px;background:#fff;
+          border-bottom:1px solid var(--border);flex-wrap:wrap;position:sticky;top:0;z-index:10;}
+  .topbar h1{font-size:18px;font-weight:800;letter-spacing:.5px;}
+  .badge{font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;white-space:nowrap;}
+  .badge.admin{background:rgba(224,82,82,.1);color:var(--danger);}
+  .badge.readonly{background:#f1f5f9;color:var(--muted);}
+  .search-wrap{flex:1;min-width:200px;max-width:420px;position:relative;}
+  .search-wrap input{width:100%;padding:9px 14px 9px 36px;border:1.5px solid var(--border);
+          border-radius:22px;font-size:14px;outline:none;transition:border-color .15s;background:#fff;}
+  .search-wrap input:focus{border-color:var(--primary);}
+  .search-wrap .icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.45;}
+  .btn{padding:8px 18px;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;
+       font-family:inherit;transition:all .15s;white-space:nowrap;}
+  .btn-primary{background:var(--primary);color:#fff;}
+  .btn-primary:hover{background:var(--primary-dark);}
+  .btn-primary[disabled]{opacity:.5;cursor:not-allowed;}
+  .btn-ghost{background:#fff;color:var(--primary);border:1.5px solid var(--primary);}
+  .btn-ghost:hover{background:var(--primary-light);}
+  .wrap{width:100%;max-width:860px;margin:0 auto;padding:16px 20px 60px;}
+  /* ===== 登记卡 ===== */
+  .reg-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:18px;
+            box-shadow:0 2px 12px rgba(31,41,55,.05);}
+  .reg-card h2{font-size:15px;font-weight:800;margin-bottom:12px;}
+  .form-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+  .form-item{flex:1;min-width:220px;}
+  .form-item label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:5px;}
+  .form-item input[type=text]{width:100%;padding:9px 12px;border:1.5px solid var(--border);
+         border-radius:10px;font-size:14px;outline:none;font-family:inherit;transition:border-color .15s;}
+  .form-item input[type=text]:focus{border-color:var(--primary);}
+  /* 原因标签 */
+  .reason-tags{display:flex;gap:10px;flex-wrap:wrap;}
+  .reason-tag{padding:8px 18px;border-radius:20px;border:1.5px solid var(--border);background:#fff;
+              font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;user-select:none;}
+  .reason-tag:hover{border-color:var(--primary);color:var(--primary-dark);}
+  .reason-tag.on{background:var(--primary);border-color:var(--primary);color:#fff;}
+  /* 截图上传 */
+  .shot-area{display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+  .shot-cell{position:relative;width:74px;height:74px;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#f8fafc;}
+  .shot-cell img{width:100%;height:100%;object-fit:cover;display:block;}
+  .shot-remove{position:absolute;top:2px;right:2px;width:20px;height:20px;border:none;border-radius:50%;
+              background:rgba(15,23,42,.6);color:#fff;font-size:13px;line-height:20px;cursor:pointer;padding:0;z-index:2;}
+  .shot-add{width:74px;height:74px;border:1.5px dashed var(--border);border-radius:10px;background:#fafcfa;
+            display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+            color:var(--muted);font-size:11px;cursor:pointer;transition:all .15s;}
+  .shot-add:hover{border-color:var(--primary);color:var(--primary-dark);background:var(--primary-light);}
+  .shot-add .plus{font-size:22px;line-height:1;}
+  .shot-tip{font-size:12px;color:var(--muted);margin-top:6px;}
+  .reg-actions{margin-top:12px;display:flex;gap:10px;align-items:center;}
+  .reg-actions .btn{padding:9px 26px;font-size:14px;}
+  /* ===== 列表 ===== */
+  .list-head{display:flex;align-items:center;gap:10px;margin:4px 0 10px;}
+  .list-head h2{font-size:15px;font-weight:800;}
+  .list-head .cnt{font-size:12px;color:var(--muted);}
+  .rec{background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:10px;
+       display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+  .rec-time{font-size:12px;color:var(--muted);min-width:110px;flex-shrink:0;}
+  .rec-cs{font-size:13.5px;font-weight:700;min-width:64px;flex-shrink:0;}
+  .rec-info{flex:1;min-width:150px;font-size:13px;word-break:break-all;}
+  .rec-reason{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:12px;flex-shrink:0;}
+  .rec-reason.r1{background:var(--primary-light);color:var(--primary-dark);}
+  .rec-reason.r2{background:var(--orange-bg);color:var(--orange);}
+  .rec-shots{display:flex;gap:6px;flex-shrink:0;}
+  .rec-shots img{width:46px;height:46px;border-radius:8px;object-fit:cover;border:1px solid var(--border);cursor:zoom-in;}
+  .rec-del{background:rgba(224,82,82,.1);color:var(--danger);border:none;border-radius:16px;
+           font-size:12px;font-weight:600;padding:5px 12px;cursor:pointer;flex-shrink:0;font-family:inherit;}
+  .empty{text-align:center;padding:50px 0;color:var(--muted);font-size:14px;}
+  .empty .big{font-size:42px;display:block;margin-bottom:10px;opacity:.4;}
+  /* ===== 灯箱 ===== */
+  .lightbox{display:none;position:fixed;inset:0;background:rgba(15,23,42,.85);z-index:200;
+            align-items:center;justify-content:center;cursor:zoom-out;}
+  .lightbox.active{display:flex;}
+  .lightbox img{max-width:92vw;max-height:92vh;border-radius:8px;}
+  .gal-nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border:none;border-radius:50%;
+           background:rgba(255,255,255,.85);color:#1e293b;font-size:26px;cursor:pointer;z-index:2;line-height:46px;}
+  .gal-prev{left:24px;}
+  .gal-next{right:24px;}
+  .gal-count{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);color:#fff;font-size:14px;
+             background:rgba(15,23,42,.6);padding:4px 14px;border-radius:16px;}
+  /* ===== toast / 未登录 ===== */
+  .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);
+         background:rgba(30,41,59,.9);color:#fff;font-size:13px;padding:9px 20px;border-radius:22px;
+         opacity:0;pointer-events:none;transition:all .25s;z-index:300;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .auth-mask{display:none;position:fixed;inset:0;background:var(--bg);z-index:50;
+             align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--muted);}
+  .auth-mask.active{display:flex;}
+  .auth-mask .big{font-size:44px;}
+  @media (max-width:600px){
+    .wrap{padding:12px 12px 50px;}
+    .form-item{min-width:100%;}
+    .rec-time{min-width:100%;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🔄 舆情转接登记</h1>
+  <span class="badge readonly" id="roleBadge">加载中…</span>
+  <div class="search-wrap">
+    <span class="icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="搜客服 / 昵称 / 订单号…" autocomplete="off">
+  </div>
+  <button class="btn btn-ghost" id="btnRefresh" title="重新加载">🔄</button>
+</div>
+
+<div class="wrap">
+  <!-- 登记卡 -->
+  <div class="reg-card" id="regCard" style="display:none;">
+    <h2>✏️ 转接登记</h2>
+    <div class="form-row">
+      <div class="form-item">
+        <label>客服名字 *</label>
+        <input type="text" id="fCs" placeholder="你的名字" autocomplete="off" autocorrect="off" autocapitalize="off">
+      </div>
+      <div class="form-item">
+        <label>客户昵称 / 订单号 *</label>
+        <input type="text" id="fInfo" placeholder="昵称或订单号" autocomplete="off" autocorrect="off" autocapitalize="off">
+      </div>
+    </div>
+    <div class="form-item" style="margin-bottom:12px;">
+      <label>转接原因 *（分流号仅限这两种场景，虚假登记会被追责）</label>
+      <div class="reason-tags" id="reasonTags">
+        <span class="reason-tag" data-reason="舆情问透氧">💧 舆情问透氧</span>
+        <span class="reason-tag" data-reason="跨店问正品">🏪 跨店问正品</span>
+      </div>
+    </div>
+    <div class="form-item">
+      <label>聊天截图证明 *（至少 1 张，可多选 / Ctrl+V 粘贴）</label>
+      <div class="shot-area" id="shotArea"></div>
+      <div class="shot-tip">📸 上传顾客咨询分流号的聊天记录截图</div>
+      <input type="file" id="fShots" accept="image/*" multiple style="display:none;">
+    </div>
+    <div class="reg-actions">
+      <button class="btn btn-primary" id="btnSave">💾 提交登记</button>
+    </div>
+  </div>
+
+  <!-- 列表 -->
+  <div class="list-head">
+    <h2>📋 登记记录</h2>
+    <span class="cnt" id="recCnt"></span>
+  </div>
+  <div id="list"><div class="empty"><span class="big">⏳</span>正在加载数据…</div></div>
+</div>
+
+<div class="auth-mask" id="authMask">
+  <span class="big">🔐</span>
+  <div>请先在<strong>工作台登录</strong>，然后刷新本页</div>
+</div>
+
+<!-- 灯箱 -->
+<div class="lightbox" id="lightbox">
+  <button type="button" class="gal-nav gal-prev" id="galPrev">‹</button>
+  <img id="lightboxImg" src="">
+  <button type="button" class="gal-nav gal-next" id="galNext">›</button>
+  <div class="gal-count" id="galCount"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+'use strict';
+/* ==================== 配置 ==================== */
+const SUPABASE_URL = 'https://ienmejlxukhrxjjxvfqf.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imllbm1lamx4dWtocnhqanh2ZnFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMTgyMjgsImV4cCI6MjEwMDc5NDIyOH0.Z6n6eMSgTVSFeXg1y8Inzh5LQenSgonNWE2plZM29co';
+const BUCKET = 'diversion-images';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ==================== 状态 ==================== */
+let records = [];        // 全量记录
+let isAdmin = false;
+let myName = '';         // 当前登录人默认名
+let selReason = '';      // 选中的转接原因
+let newShots = [];       // 待上传截图 [{file,_url}]
+let editingId = null;
+
+const $ = id => document.getElementById(id);
+
+/* ==================== 工具 ==================== */
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer); t._timer = setTimeout(()=>t.classList.remove('show'), 1800);
+}
+function imgUrl(path){
+  if(!path) return '';
+  return SUPABASE_URL + '/storage/v1/object/public/' + BUCKET + '/' + String(path).replace(/^\/+/,'');
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtTime(ts){
+  if(!ts) return '';
+  const d = new Date(ts);
+  const p = n => String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
+function reasonCls(r){ return r==='跨店问正品' ? 'r2' : 'r1'; }
+
+/* ==================== 初始化 ==================== */
+(async function init(){
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    const user = session && session.user;
+    if(!user){
+      const b = $('roleBadge'); b.className='badge readonly'; b.textContent='🔒 未登录';
+      $('authMask').classList.add('active'); renderList(); return;
+    }
+    let role = user.app_metadata && user.app_metadata.role;
+    let name = '';
+    try{
+      const { data:p } = await sb.from('profiles').select('role,name,real_name').eq('id', user.id).single();
+      if(p){ role = p.role; name = p.real_name || p.name || ''; }
+    }catch(e){ console.warn('profiles load', e); }
+    isAdmin = (role === 'admin');
+    if(!name) name = (user.email||'').split('@')[0];
+    myName = name;
+    const badge = $('roleBadge');
+    badge.className = isAdmin ? 'badge admin' : 'badge readonly';
+    badge.textContent = isAdmin ? '👑 管理员 · 可删记录' : '📖 登记模式';
+    $('fCs').value = myName;
+    $('regCard').style.display = '';
+    await loadRecords();
+  }catch(e){
+    console.error(e);
+    $('list').innerHTML = '<div class="empty"><span class="big">⚠️</span>初始化失败：' + esc(e.message) + '</div>';
+  }
+})();
+
+/* ==================== 缓存 & 加载 ==================== */
+var DIV_CACHE_VER = 'v1';
+function divCacheGet(){ try{ var r=localStorage.getItem('kefu_cache_diversion'); if(!r) return null; var o=JSON.parse(r); if(!o||o.ver!==DIV_CACHE_VER) return null; return o.data; }catch(e){return null;} }
+function divCacheSet(d){ try{ localStorage.setItem('kefu_cache_diversion', JSON.stringify({ver:DIV_CACHE_VER,ts:Date.now(),data:d})); }catch(e){} }
+
+async function loadRecords(){
+  var cached = divCacheGet();
+  if (cached && cached.length){ records = cached; renderList(); }
+  const { data, error } = await sb.from('diversion_transfers')
+    .select('id,cs_name,customer_info,reason,screenshots,created_at')
+    .order('created_at', { ascending:false })
+    .limit(500);
+  if(error){
+    if(!cached||!cached.length){
+      $('list').innerHTML = '<div class="empty"><span class="big">⚠️</span>' + esc(error.message) +
+        '<br><br>若提示表不存在，请先在 Supabase 执行 create_diversion_transfers.sql</div>';
+    }
+    return;
+  }
+  records = data || [];
+  divCacheSet(records);
+  renderList();
+}
+
+/* ==================== 渲染列表 ==================== */
+function renderList(){
+  const kw = ($('searchInput').value || '').trim().toLowerCase();
+  const list = kw ? records.filter(r =>
+      (r.cs_name||'').toLowerCase().includes(kw) ||
+      (r.customer_info||'').toLowerCase().includes(kw) ||
+      (r.reason||'').toLowerCase().includes(kw)
+    ) : records;
+  $('recCnt').textContent = list.length ? ('共 ' + list.length + ' 条') : '';
+  if(!list.length){
+    $('list').innerHTML = '<div class="empty"><span class="big">📋</span>' +
+      (kw ? '没有匹配「' + esc(kw) + '」的记录' : '还没有登记记录，从上方提交第一条') + '</div>';
+    return;
+  }
+  $('list').innerHTML = list.map(r => {
+    const shots = r.screenshots || [];
+    return `<div class="rec" data-id="${r.id}">
+      <span class="rec-time">🕒 ${esc(fmtTime(r.created_at))}</span>
+      <span class="rec-cs">${esc(r.cs_name)}</span>
+      <span class="rec-info">${esc(r.customer_info)}</span>
+      <span class="rec-reason ${reasonCls(r.reason)}">${esc(r.reason)}</span>
+      <span class="rec-shots">${shots.map((p,i)=>`<img src="${esc(imgUrl(p))}" loading="lazy" data-act="shot" data-i="${i}" title="点击放大">`).join('')}</span>
+      ${isAdmin ? '<button class="rec-del" data-act="del">🗑 删除</button>' : ''}
+    </div>`;
+  }).join('');
+}
+
+/* 列表事件（委托） */
+$('list').addEventListener('click', e => {
+  const rec = e.target.closest('.rec'); if(!rec) return;
+  const actEl = e.target.closest('[data-act]'); if(!actEl) return;
+  const r = records.find(x => x.id === rec.dataset.id); if(!r) return;
+  if(actEl.dataset.act === 'shot'){
+    const shots = r.screenshots || [];
+    openGallery(shots, parseInt(actEl.dataset.i,10)||0);
+  } else if(actEl.dataset.act === 'del'){
+    delRecord(r);
+  }
+});
+$('searchInput').addEventListener('input', renderList);
+$('btnRefresh').addEventListener('click', () => { toast('刷新中…'); loadRecords(); });
+
+/* ==================== 灯箱 ==================== */
+let galImgs = [], galIdx = 0;
+function openGallery(imgs, idx){
+  galImgs = imgs || []; galIdx = Math.max(0, idx|0); updateGallery();
+  $('lightbox').classList.add('active');
+}
+function updateGallery(){
+  if(!galImgs.length) return;
+  galIdx = (galIdx + galImgs.length) % galImgs.length;
+  $('lightboxImg').src = imgUrl(galImgs[galIdx]);
+  $('galCount').textContent = (galIdx+1) + ' / ' + galImgs.length;
+  const multi = galImgs.length > 1;
+  $('galPrev').style.visibility = multi ? 'visible' : 'hidden';
+  $('galNext').style.visibility = multi ? 'visible' : 'hidden';
+}
+$('lightbox').addEventListener('click', e => { if(e.target === $('lightbox')) $('lightbox').classList.remove('active'); });
+$('galPrev').addEventListener('click', e => { e.stopPropagation(); galIdx--; updateGallery(); });
+$('galNext').addEventListener('click', e => { e.stopPropagation(); galIdx++; updateGallery(); });
+
+/* ==================== 登记表单 ==================== */
+$('reasonTags').addEventListener('click', e => {
+  const tag = e.target.closest('.reason-tag'); if(!tag) return;
+  selReason = (selReason === tag.dataset.reason) ? '' : tag.dataset.reason;
+  document.querySelectorAll('.reason-tag').forEach(t => t.classList.toggle('on', t.dataset.reason === selReason));
+});
+
+function renderShots(){
+  let html = '';
+  newShots.forEach((o,i) => {
+    html += `<div class="shot-cell"><img src="${esc(o._url)}"><button type="button" class="shot-remove" data-i="${i}">×</button></div>`;
+  });
+  html += `<div class="shot-add" id="shotAdd"><span class="plus">＋</span>添加截图</div>`;
+  $('shotArea').innerHTML = html;
+}
+$('shotArea').addEventListener('click', e => {
+  const rm = e.target.closest('.shot-remove');
+  if(rm){
+    const i = parseInt(rm.dataset.i,10);
+    URL.revokeObjectURL(newShots[i]._url);
+    newShots.splice(i,1);
+    renderShots();
+    return;
+  }
+  if(e.target.closest('.shot-add')) $('fShots').click();
+});
+$('fShots').addEventListener('change', e => { addShots(e.target.files); e.target.value=''; });
+function addShots(files){
+  if(!files || !files.length) return;
+  Array.from(files).forEach(f => {
+    if(!f.type || !f.type.startsWith('image/')) return;
+    newShots.push({ file:f, _url: URL.createObjectURL(f) });
+  });
+  renderShots();
+}
+/* Ctrl+V 粘贴截图：仅拦截图片，不影响文字输入 */
+document.addEventListener('paste', e => {
+  if($('regCard').style.display === 'none') return;
+  const items = e.clipboardData && e.clipboardData.items;
+  if(!items) return;
+  let imageFile = null;
+  for(const it of items){
+    if(it.type && it.type.startsWith('image/')){ imageFile = it.getAsFile(); if(imageFile) break; }
+  }
+  if(imageFile){
+    addShots([imageFile]);
+    toast('🖼️ 已添加截图');
+    e.preventDefault();
+  }
+});
+
+$('btnSave').addEventListener('click', async () => {
+  const csName = $('fCs').value.trim();
+  const info = $('fInfo').value.trim();
+  if(!csName){ toast('请填写客服名字'); $('fCs').focus(); return; }
+  if(!info){ toast('请填客户昵称或订单号'); $('fInfo').focus(); return; }
+  if(!selReason){ toast('请选择转接原因'); return; }
+  if(!newShots.length){ toast('请上传聊天截图证明'); return; }
+  const btn = $('btnSave'); btn.disabled = true; btn.textContent = '提交中…';
+  try{
+    // 上传截图
+    const paths = [];
+    for(const o of newShots){
+      const f = o.file;
+      const ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = 'shots/' + Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.' + ext;
+      const { error:upErr } = await sb.storage.from(BUCKET).upload(path, f, { contentType: f.type || 'image/jpeg', upsert:true });
+      if(upErr) throw new Error('截图上传失败：' + upErr.message);
+      paths.push(path);
+    }
+    const { error } = await sb.from('diversion_transfers').insert({
+      cs_name: csName,
+      customer_info: info,
+      reason: selReason,
+      screenshots: paths
+    });
+    if(error) throw error;
+    toast('✅ 已登记');
+    // 重置表单（保留客服名）
+    selReason = ''; newShots = [];
+    document.querySelectorAll('.reason-tag').forEach(t => t.classList.remove('on'));
+    $('fInfo').value = '';
+    renderShots();
+    await loadRecords();
+  }catch(e){
+    console.error(e);
+    toast('❌ ' + (e.message || '登记失败'));
+  }finally{
+    btn.disabled = false; btn.textContent = '💾 提交登记';
+  }
+});
+
+/* ==================== 删除（仅管理员） ==================== */
+async function delRecord(r){
+  if(!confirm('确定删除这条登记（' + (r.cs_name||'') + ' / ' + (r.customer_info||'') + '）？')) return;
+  try{
+    const { error } = await sb.from('diversion_transfers').delete().eq('id', r.id);
+    if(error) throw error;
+    const shots = r.screenshots || [];
+    for(const p of shots){ try{ await sb.storage.from(BUCKET).remove([p]); }catch(e){} }
+    toast('已删除');
+    await loadRecords();
+  }catch(e){
+    console.error(e);
+    toast('❌ ' + (e.message || '删除失败'));
+  }
+}
+</script>
+</body>
+</html>
