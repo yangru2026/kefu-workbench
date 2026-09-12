@@ -9,13 +9,13 @@ window.supabase={createClient:function(){return {
   from:function(t){return makeChain(t);},
   storage:{from:function(b){return {upload:async()=>({error:null}),remove:async()=>({error:null})};}}
 };}};
-window.__INSERTS__=[];window.__DELETES__=[];
+window.__INSERTS__=[];window.__DELETES__=[];window.__UPDATES__=[];
 function makeChain(t){
   var data = t==='profiles'?{role:'admin'}:(t==='platform_rules'?window.__SAMPLE__:[]);
   var o={}; o.then=function(res){return res({data:data,error:null});};
   ['select','order','eq','single','limit'].forEach(function(k){o[k]=function(){return makeChain(t);};});
   o.insert=function(row){window.__INSERTS__.push({table:t,row:row});return makeChain(t);};
-  o.update=function(row){window.__UPD__=row;return makeChain(t);};
+  o.update=function(row){window.__UPDATES__.push({table:t,row:row});return makeChain(t);};
   o.delete=function(){window.__DELETES__.push(t);return makeChain(t);};
   return o;
 }`;
@@ -48,12 +48,15 @@ const SAMPLE=[
   for(let i=0;i<60;i++){const s=await evalT(page,()=>({chips:document.querySelectorAll('#pfChips .chip').length, cards:document.querySelectorAll('#list .rule').length, on:document.querySelector('#pfChips .chip.on')?document.querySelector('#pfChips .chip.on').dataset.pf:''}),1000);if(s.ok&&s.v.cards>=2){ready=true;break;}await new Promise(r=>setTimeout(r,250));}
   const badge=await evalT(page,()=>document.getElementById('roleBadge').textContent,2000);
   log('ready=',ready,' badge=',JSON.stringify(badge));
-  // T1 默认平台=通用，高压线排在最前
+  // T1 默认平台=通用，高压线排在最前；网格布局 + 统计条
   const t1=await evalT(page,()=>({
     cards:document.querySelectorAll('#list .rule').length,
     firstLv:document.querySelector('#list .rule')?document.querySelector('#list .rule').className:'',
     firstTitle:document.querySelector('#list .rule .rule-title')?document.querySelector('#list .rule .rule-title').textContent:'',
-    editBtns:document.querySelectorAll('#list [data-act="edit"]').length
+    editBtns:document.querySelectorAll('#list [data-act="edit"]').length,
+    grid:getComputedStyle(document.getElementById('list')).display,
+    statsN:document.querySelectorAll('#stats .stat').length,
+    statsAll:document.querySelector('#stats .s-all')?document.querySelector('#stats .s-all').textContent:''
   }),4000);
   log('T1 list=',JSON.stringify(t1));
   // T2 切换平台 chip → 抖音
@@ -94,6 +97,22 @@ const SAMPLE=[
   // T7 缓存写入
   const t7=await evalT(page,()=>{const c=localStorage.getItem('kefu_cache_platform_rules');if(!c)return 'no-cache';const o=JSON.parse(c);return {ver:o.ver,n:(o.data||[]).length};},4000);
   log('T7 cache=',JSON.stringify(t7));
+  // T9 置顶：先切回通用（T2 后停在抖音，只有 1 条），再点第一张卡的置顶按钮 → update {pinned:true}
+  const t9p=await evalT(page,()=>{const c=document.querySelector('#pfChips .chip[data-pf="通用"]');if(!c)return 'no-chip';c.click();return document.querySelectorAll('#list .rule').length;},4000);
+  await new Promise(r=>setTimeout(r,400));
+  const t9=await evalT(page,()=>{const b=document.querySelector('#list [data-act="pin"]');if(!b)return 'no-pin-btn';b.click();return 'clicked';},4000);
+  await new Promise(r=>setTimeout(r,800));
+  const t9b=await evalT(page,()=>({pins:(window.__UPDATES__||[]).filter(u=>u.row&&typeof u.row.pinned==='boolean').map(u=>u.row.pinned)}),4000);
+  log('T9 pin=',JSON.stringify(t9),JSON.stringify(t9b));
+  // T10 上移：点第一张卡的上移 → toast 已在最前（不产生 update）
+  const t10=await evalT(page,()=>{const b=document.querySelector('#list [data-act="up"]');if(!b)return 'no-up-btn';b.click();return 'clicked';},4000);
+  await new Promise(r=>setTimeout(r,600));
+  const t10toast=await evalT(page,()=>document.getElementById('toast').textContent,2000);
+  // T10b 下移：第一张卡下移 → 两条 sort_order update
+  const t10b=await evalT(page,()=>{const b=document.querySelector('#list [data-act="down"]');if(!b)return 'no-down-btn';b.click();return 'clicked';},4000);
+  await new Promise(r=>setTimeout(r,800));
+  const t10c=await evalT(page,()=>({moves:(window.__UPDATES__||[]).filter(u=>u.row&&typeof u.row.sort_order==='number').map(u=>u.row.sort_order)}),4000);
+  log('T10 up=',JSON.stringify(t10),JSON.stringify(t10toast),' down=',JSON.stringify(t10b),JSON.stringify(t10c));
   // T8 遮罩误关保护：输入框按下拖到遮罩松手不关闭；真点遮罩空白才关闭
   const t8=await evalT(page,()=>{
     const mask=document.getElementById('modalMask');
@@ -116,14 +135,18 @@ const SAMPLE=[
   log('PAGE ERRORS:',errs.length?JSON.stringify(errs):'none');
   log('REAL ERRORS:',realErrs.length?JSON.stringify(realErrs):'none');
   const pass = ready && t1.ok && t1.v.cards===2 && t1.v.firstLv.includes('lv-高压线') && t1.v.firstTitle==='严禁引导站外交易' && t1.v.editBtns===2
+    && t1.v.grid==='grid' && t1.v.statsN===4 && t1.v.statsAll.includes('2')
     && t2.ok && t2.v && !t2.v.err && t2.v.cards===1 && t2.v.title==='严禁站外导流'
     && t3.ok && t3.v.visible===1 && t3.v.title==='规范使用话术模板'
     && t3b.ok && t3b.v===1 /* T2 后仍在抖音平台，重置后显示抖音的 1 条 */
     && t4.ok && t4.v.modalOpen && t4.v.toast.includes('标题')
     && t5b.ok && t5b.v.inserts.length===1 && t5b.v.inserts[0].table==='platform_rules' && t5b.v.inserts[0].pf==='快手' && t5b.v.inserts[0].lv==='高压线' && t5b.v.inserts[0].title==='严禁私下交易' && typeof t5b.v.inserts[0].sort==='number' && t5b.v.modalClosed
     && t6.ok && t6.v==='clicked' && t6b.ok && t6b.v.deletes===1
-    && t7.ok && t7.v && t7.v.ver==='v1'
+    && t7.ok && t7.v && t7.v.ver==='v2'
     && t8.ok && t8.v.afterDrag===true && t8.v.afterRealClick===false
+    && t9.ok && t9.v==='clicked' && t9p.ok && t9p.v===2 && t9b.ok && t9b.v.pins.length===1 && t9b.v.pins[0]===true
+    && t10.ok && t10.v==='clicked' && t10toast.ok && t10toast.v.includes('最前')
+    && t10b.ok && t10b.v==='clicked' && t10c.ok && t10c.v.moves.length===2
     && realErrs.length===0;
   log('\n==== '+(pass?'PASS ✅':'FAIL ❌')+' ====');
   await browser.close();server.close();process.exit(pass?0:1);

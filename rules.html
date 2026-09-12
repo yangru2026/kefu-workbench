@@ -30,34 +30,53 @@
   .btn-primary[disabled]{opacity:.5;cursor:not-allowed;}
   .btn-ghost{background:#fff;color:var(--primary);border:1.5px solid var(--primary);}
   .btn-ghost:hover{background:var(--primary-light);}
-  .wrap{width:100%;max-width:860px;margin:0 auto;padding:16px 20px 60px;}
+  .wrap{width:100%;max-width:1080px;margin:0 auto;padding:16px 20px 60px;}
   /* 平台筛选 chips */
   .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
   .chip{padding:6px 16px;border-radius:18px;border:1.5px solid var(--border);background:#fff;
         font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;user-select:none;}
   .chip:hover{border-color:var(--primary);color:var(--primary-dark);}
   .chip.on{background:var(--primary);border-color:var(--primary);color:#fff;}
-  /* 规则卡 */
-  .rule{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:10px;
-        display:flex;gap:12px;align-items:flex-start;}
-  .rule高压{border-left:4px solid var(--danger);}
-  .rule.lv-高压线{border-left:4px solid var(--danger);}
-  .rule.lv-重要{border-left:4px solid #e69138;}
-  .rule.lv-提醒{border-left:4px solid #60a5fa;}
-  .rule-main{flex:1;min-width:0;}
-  .rule-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;}
+  /* 规则统计条 */
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  .stat{background:#fff;border:1px solid var(--border);border-radius:12px;padding:8px 16px;
+        font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:8px;font-weight:600;}
+  .stat b{font-size:17px;font-weight:800;}
+  .stat.s-hv b{color:var(--danger);} .stat.s-imp b{color:var(--warn);} .stat.s-tip b{color:var(--info);} .stat.s-all b{color:var(--primary-dark);}
+  /* 规则卡（网格布局） */
+  #list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
+  .rule{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;
+        display:flex;flex-direction:column;position:relative;transition:box-shadow .15s,transform .15s;}
+  .rule:hover{box-shadow:0 6px 20px rgba(15,23,42,.09);transform:translateY(-2px);}
+  .rule::before{content:'';display:block;height:4px;flex-shrink:0;}
+  .rule.lv-高压线::before{background:linear-gradient(90deg,#ef4444,#fb7185);}
+  .rule.lv-重要::before{background:linear-gradient(90deg,#f59e0b,#fbbf24);}
+  .rule.lv-提醒::before{background:linear-gradient(90deg,#3b82f6,#60a5fa);}
+  .rule.lv-高压线{background:linear-gradient(180deg,#fff5f5,#ffffff 46px);}
+  .rule.pinned{border-color:#f59e0b;box-shadow:inset 0 0 0 1px #f59e0b;}
+  .rule-body{padding:14px 16px 12px;flex:1;display:flex;flex-direction:column;gap:8px;min-width:0;}
+  .rule-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
   .lv-tag{font-size:11px;font-weight:800;padding:2px 10px;border-radius:10px;flex-shrink:0;}
   .lv-tag.高压线{background:var(--danger-bg);color:var(--danger);}
   .lv-tag.重要{background:var(--warn-bg);color:var(--warn);}
   .lv-tag.提醒{background:var(--info-bg);color:var(--info);}
   .pf-tag{font-size:11px;font-weight:600;padding:2px 10px;border-radius:10px;background:#f1f5f9;color:var(--muted);flex-shrink:0;}
-  .rule-title{font-size:14.5px;font-weight:700;}
-  .rule-content{font-size:13px;color:var(--text-secondary);line-height:1.7;white-space:pre-wrap;word-break:break-all;}
-  .rule-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0;}
-  .rule-actions .btn{padding:4px 12px;font-size:12px;}
-  .btn-edit{background:var(--primary-light);color:var(--primary-dark);}
-  .btn-del{background:var(--danger-bg);color:var(--danger);}
-  .empty{text-align:center;padding:50px 0;color:var(--muted);font-size:14px;}
+  .pin-flag{font-size:13px;margin-left:auto;}
+  .rule-title{font-size:15px;font-weight:800;line-height:1.45;}
+  .rule-content{font-size:13px;color:var(--muted);line-height:1.75;white-space:pre-wrap;word-break:break-word;flex:1;}
+  /* 卡片底部操作条（admin） */
+  .rule-foot{display:flex;gap:6px;padding:9px 12px;border-top:1px dashed var(--border);background:#fafcfa;}
+  .rule-foot .fb{flex:1;padding:5px 0;font-size:12px;font-weight:600;border:none;border-radius:8px;
+                 cursor:pointer;font-family:inherit;background:#f1f5f9;color:var(--muted);transition:all .15s;white-space:nowrap;}
+  .rule-foot .fb:hover{background:#e2e8f0;}
+  .rule-foot .fb-pin{background:var(--warn-bg);color:var(--warn);}
+  .rule-foot .fb-pin:hover{background:#fde8cd;}
+  .rule-foot .fb-nav{flex:0 0 34px;}
+  .rule-foot .fb-edit{background:var(--primary-light);color:var(--primary-dark);}
+  .rule-foot .fb-edit:hover{background:rgba(16,185,129,.18);}
+  .rule-foot .fb-del{background:var(--danger-bg);color:var(--danger);}
+  .rule-foot .fb-del:hover{background:rgba(224,82,82,.16);}
+  .empty{text-align:center;padding:50px 0;color:var(--muted);font-size:14px;grid-column:1/-1;}
   .empty .big{font-size:42px;display:block;margin-bottom:10px;opacity:.4;}
   /* 弹窗 */
   .modal-mask{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:100;overflow:hidden;padding:20px;}
@@ -100,6 +119,7 @@
 
 <div class="wrap">
   <div class="chips" id="pfChips"></div>
+  <div class="stats" id="stats"></div>
   <div id="list"><div class="empty"><span class="big">⏳</span>正在加载平台规则…</div></div>
 </div>
 
@@ -202,7 +222,7 @@ function lvWeight(l){ return LEVELS.indexOf(l) === -1 ? 9 : LEVELS.indexOf(l); }
 })();
 
 /* ==================== 缓存 & 加载 ==================== */
-var RULES_CACHE_VER = 'v1';
+var RULES_CACHE_VER = 'v2';
 function rulesCacheGet(){ try{ var r=localStorage.getItem('kefu_cache_platform_rules'); if(!r) return null; var o=JSON.parse(r); if(!o||o.ver!==RULES_CACHE_VER) return null; return o.data; }catch(e){return null;} }
 function rulesCacheSet(d){ try{ localStorage.setItem('kefu_cache_platform_rules', JSON.stringify({ver:RULES_CACHE_VER,ts:Date.now(),data:d})); }catch(e){} }
 
@@ -210,7 +230,7 @@ async function loadRules(){
   var cached = rulesCacheGet();
   if (cached && cached.length){ rules = cached; renderChips(); renderList(); }
   const { data, error } = await sb.from('platform_rules')
-    .select('id,platform,level,title,content,sort_order,created_at')
+    .select('id,platform,level,title,content,sort_order,pinned,created_at')
     .order('sort_order', { ascending:true })
     .order('created_at', { ascending:true });
   if(error){
@@ -240,6 +260,8 @@ $('pfChips').addEventListener('click', e => {
   renderChips(); renderList();
 });
 
+let _curList = [];   // 当前渲染的规则列表（供上移/下移定位）
+
 function renderList(){
   const kw = ($('searchInput').value || '').trim().toLowerCase();
   let list = rules.filter(r => r.platform === curPlatform);
@@ -248,28 +270,42 @@ function renderList(){
       (r.content||'').toLowerCase().includes(kw) ||
       (r.platform||'').toLowerCase().includes(kw));
   list = list.slice().sort((a,b) =>
+    (b.pinned?1:0)-(a.pinned?1:0) ||
     (a.platform===curPlatform?0:1)-(b.platform===curPlatform?0:1) ||
     lvWeight(a.level)-lvWeight(b.level) ||
     (a.sort_order||0)-(b.sort_order||0) ||
     new Date(a.created_at)-new Date(b.created_at));
+  _curList = list;
+  // 统计条（按当前平台全部规则统计，不受搜索影响）
+  const pfRules = rules.filter(r => r.platform === curPlatform);
+  const cnt = lv => pfRules.filter(r => (r.level||'提醒') === lv).length;
+  $('stats').innerHTML = pfRules.length ? `
+    <span class="stat s-all">📋 全部 <b>${pfRules.length}</b></span>
+    <span class="stat s-hv">🔴 高压线 <b>${cnt('高压线')}</b></span>
+    <span class="stat s-imp">🟠 重要 <b>${cnt('重要')}</b></span>
+    <span class="stat s-tip">🔵 提醒 <b>${cnt('提醒')}</b></span>` : '';
   if(!list.length){
     $('list').innerHTML = '<div class="empty"><span class="big">📏</span>' +
       (kw ? '没有匹配「' + esc(kw) + '」的规则' : '该平台暂无规则' + (isAdmin ? '，点右上角「＋ 新增规则」添加' : '')) + '</div>';
     return;
   }
   $('list').innerHTML = list.map(r => `
-    <div class="rule lv-${esc(r.level||'提醒')}" data-id="${r.id}">
-      <div class="rule-main">
+    <div class="rule lv-${esc(r.level||'提醒')}${r.pinned?' pinned':''}" data-id="${r.id}">
+      <div class="rule-body">
         <div class="rule-title-row">
           <span class="lv-tag ${esc(r.level||'提醒')}">${r.level==='高压线'?'🔴':(r.level==='重要'?'🟠':'🔵')} ${esc(r.level||'提醒')}</span>
           <span class="pf-tag">${esc(r.platform)}</span>
-          <span class="rule-title">${esc(r.title)}</span>
+          ${r.pinned?'<span class="pin-flag" title="已置顶">📌</span>':''}
         </div>
+        <div class="rule-title">${esc(r.title)}</div>
         ${r.content ? `<div class="rule-content">${esc(r.content)}</div>` : ''}
       </div>
-      ${isAdmin ? `<div class="rule-actions">
-        <button class="btn btn-edit" data-act="edit">✏️ 编辑</button>
-        <button class="btn btn-del" data-act="del">🗑 删除</button>
+      ${isAdmin ? `<div class="rule-foot">
+        <button class="fb fb-pin" data-act="pin">${r.pinned?'📌 取消置顶':'📌 置顶'}</button>
+        <button class="fb fb-nav" data-act="up" title="上移">↑</button>
+        <button class="fb fb-nav" data-act="down" title="下移">↓</button>
+        <button class="fb fb-edit" data-act="edit" title="编辑">✏️</button>
+        <button class="fb fb-del" data-act="del" title="删除">🗑</button>
       </div>` : ''}
     </div>`).join('');
 }
@@ -278,8 +314,12 @@ $('list').addEventListener('click', e => {
   const card = e.target.closest('.rule'); if(!card) return;
   const actEl = e.target.closest('[data-act]'); if(!actEl) return;
   const r = rules.find(x => x.id === card.dataset.id); if(!r) return;
-  if(actEl.dataset.act === 'edit') openModal(r);
-  else if(actEl.dataset.act === 'del') delRule(r);
+  const act = actEl.dataset.act;
+  if(act === 'edit') openModal(r);
+  else if(act === 'del') delRule(r);
+  else if(act === 'pin') pinRule(r);
+  else if(act === 'up') moveRule(r, -1);
+  else if(act === 'down') moveRule(r, 1);
 });
 $('searchInput').addEventListener('input', renderList);
 $('btnRefresh').addEventListener('click', () => { toast('刷新中…'); loadRules(); });
@@ -337,6 +377,39 @@ $('btnSave').addEventListener('click', async () => {
     btn.disabled = false; btn.textContent = '保存';
   }
 });
+
+/* 置顶 / 上移 / 下移 */
+async function pinRule(r){
+  try{
+    const { error } = await sb.from('platform_rules').update({ pinned: !r.pinned }).eq('id', r.id);
+    if(error) throw error;
+    toast(r.pinned ? '已取消置顶' : '📌 已置顶');
+    await loadRules();
+  }catch(e){
+    console.error(e);
+    toast('❌ ' + (e.message || '操作失败'));
+  }
+}
+
+async function moveRule(r, dir){
+  const idx = _curList.findIndex(x => x.id === r.id);
+  const t = _curList[idx + dir];
+  if(!t){ toast(dir < 0 ? '已经在最前面了' : '已经在最后面了'); return; }
+  const sa = r.sort_order || 0, sb2 = t.sort_order || 0;
+  const na = sb2;
+  const nb = (sa === sb2) ? sb2 + (dir < 0 ? -1 : 1) : sa;
+  try{
+    const { error: e1 } = await sb.from('platform_rules').update({ sort_order: na }).eq('id', r.id);
+    if(e1) throw e1;
+    const { error: e2 } = await sb.from('platform_rules').update({ sort_order: nb }).eq('id', t.id);
+    if(e2) throw e2;
+    toast('✅ 已调整顺序');
+    await loadRules();
+  }catch(e){
+    console.error(e);
+    toast('❌ ' + (e.message || '操作失败'));
+  }
+}
 
 async function delRule(r){
   if(!confirm('确定删除规则「' + (r.title||'') + '」？')) return;
