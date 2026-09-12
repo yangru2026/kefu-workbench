@@ -10797,7 +10797,8 @@ function setTrainingModule(module) {
   if (module === '话术') {
     trainingGroup = SCRIPT_GROUP;
   } else {
-    trainingGroup = '全部';
+    // 资料模块：不提供「全部」，默认选第一个大类
+    trainingGroup = (trainingGroups().map(c => c.name).filter(n => n !== SCRIPT_GROUP)[0]) || '全部';
   }
   renderTraining();
 }
@@ -10842,8 +10843,10 @@ function renderTrainingGroupTabs() {
       return '<button class="training-cat-tab sg-' + g + (isActive ? ' active' : '') + '" onclick="setTrainingScriptGroup(\'' + g + '\')">' + g + '</button>';
     }).join('');
   } else {
-    // 资料模块：第二行显示培训资料大类（不含「售前话术」）
-    const groups = ['全部', ...trainingGroups().map(c => c.name).filter(n => n !== SCRIPT_GROUP)];
+    // 资料模块：第二行显示培训资料大类（不含「售前话术」）；不提供「全部」，始终落在具体大类
+    const names = trainingGroups().map(c => c.name).filter(n => n !== SCRIPT_GROUP);
+    if (!names.includes(trainingGroup)) trainingGroup = names[0] || '全部';
+    const groups = names;
     html = groups.map((c, idx) => {
       const isActive = trainingGroup === c;
       const colorCls = ' tg-color-' + (idx % 7);
