@@ -41,12 +41,17 @@
   .form-item input[type=text]{width:100%;padding:9px 12px;border:1.5px solid var(--border);
          border-radius:10px;font-size:14px;outline:none;font-family:inherit;transition:border-color .15s;}
   .form-item input[type=text]:focus{border-color:var(--primary);}
-  /* 原因标签 */
+  /* 原因标签（两行：标题 + 注释） */
   .reason-tags{display:flex;gap:10px;flex-wrap:wrap;}
-  .reason-tag{padding:8px 18px;border-radius:20px;border:1.5px solid var(--border);background:#fff;
-              font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;user-select:none;}
-  .reason-tag:hover{border-color:var(--primary);color:var(--primary-dark);}
-  .reason-tag.on{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .reason-tag{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 18px;border-radius:14px;
+              border:1.5px solid var(--border);background:#fff;cursor:pointer;transition:all .15s;user-select:none;}
+  .reason-tag b{font-size:13.5px;font-weight:700;color:var(--muted);}
+  .reason-tag small{font-size:11px;font-weight:500;color:#94a3b8;line-height:1.3;}
+  .reason-tag:hover{border-color:var(--primary);}
+  .reason-tag:hover b{color:var(--primary-dark);}
+  .reason-tag.on{background:var(--primary);border-color:var(--primary);}
+  .reason-tag.on b{color:#fff;}
+  .reason-tag.on small{color:rgba(255,255,255,.85);}
   /* 截图上传 */
   .shot-area{display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
   .shot-cell{position:relative;width:74px;height:74px;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#f8fafc;}
@@ -149,9 +154,9 @@
     <div class="form-item" style="margin-bottom:12px;">
       <label>转接原因 *（分流号仅限以下场景，虚假登记会被追责）</label>
       <div class="reason-tags" id="reasonTags">
-        <span class="reason-tag" data-reason="舆情问透氧">💧 舆情问透氧</span>
-        <span class="reason-tag" data-reason="跨店问正品">🏪 跨店问正品</span>
-        <span class="reason-tag" data-reason="反馈建议类">📝 反馈建议类</span>
+        <span class="reason-tag" data-reason="舆情问透氧"><b>💧 舆情问透氧</b><small>进线首句咨询透氧量</small></span>
+        <span class="reason-tag" data-reason="跨店问正品"><b>🏪 跨店问正品</b><small>跨店 / 跨品牌</small></span>
+        <span class="reason-tag" data-reason="反馈建议类"><b>📝 反馈建议类</b><small>客户提建议</small></span>
       </div>
     </div>
     <div class="form-row">
