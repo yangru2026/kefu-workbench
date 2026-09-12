@@ -79,6 +79,14 @@
            font-size:12px;font-weight:600;padding:5px 12px;cursor:pointer;flex-shrink:0;font-family:inherit;}
   .empty{text-align:center;padding:50px 0;color:var(--muted);font-size:14px;}
   .empty .big{font-size:42px;display:block;margin-bottom:10px;opacity:.4;}
+  /* ===== 列表表头 ===== */
+  .rec-head{display:flex;gap:12px;align-items:center;padding:6px 14px 8px;font-size:12px;font-weight:700;
+            color:var(--muted);border-bottom:1px solid var(--border);margin-bottom:8px;}
+  .rec-head .h-time{min-width:110px;flex-shrink:0;}
+  .rec-head .h-cs{min-width:64px;flex-shrink:0;}
+  .rec-head .h-info{flex:1;min-width:150px;}
+  .rec-head .h-reason{min-width:86px;flex-shrink:0;}
+  .rec-head .h-shots{min-width:52px;flex-shrink:0;}
   /* ===== 灯箱 ===== */
   .lightbox{display:none;position:fixed;inset:0;background:rgba(15,23,42,.85);z-index:200;
             align-items:center;justify-content:center;cursor:zoom-out;}
@@ -103,6 +111,7 @@
     .wrap{padding:12px 12px 50px;}
     .form-item{min-width:100%;}
     .rec-time{min-width:100%;}
+    .rec-head{display:none;}
   }
 </style>
 </head>
@@ -277,7 +286,15 @@ function renderList(){
       (kw ? '没有匹配「' + esc(kw) + '」的记录' : '还没有登记记录，从上方提交第一条') + '</div>';
     return;
   }
-  $('list').innerHTML = list.map(r => {
+  const head = '<div class="rec-head">' +
+    '<span class="h-time">时间</span>' +
+    '<span class="h-cs">客服</span>' +
+    '<span class="h-info">客户昵称 / 订单号</span>' +
+    '<span class="h-reason">转接原因</span>' +
+    '<span class="h-shots">截图</span>' +
+    (isAdmin ? '<span>操作</span>' : '') +
+    '</div>';
+  $('list').innerHTML = head + list.map(r => {
     const shots = r.screenshots || [];
     return `<div class="rec" data-id="${r.id}">
       <span class="rec-time">🕒 ${esc(fmtTime(r.created_at))}</span>
