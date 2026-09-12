@@ -73,6 +73,7 @@
   .rec-reason{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:12px;flex-shrink:0;}
   .rec-reason.r1{background:var(--primary-light);color:var(--primary-dark);}
   .rec-reason.r2{background:var(--orange-bg);color:var(--orange);}
+  .rec-reason.r3{background:#eef2ff;color:#4f46e5;}
   .rec-shots{display:flex;gap:6px;flex-shrink:0;}
   .rec-shots img{width:46px;height:46px;border-radius:8px;object-fit:cover;border:1px solid var(--border);cursor:zoom-in;}
   .rec-del{background:rgba(224,82,82,.1);color:var(--danger);border:none;border-radius:16px;
@@ -146,10 +147,11 @@
       </div>
     </div>
     <div class="form-item" style="margin-bottom:12px;">
-      <label>转接原因 *（分流号仅限这两种场景，虚假登记会被追责）</label>
+      <label>转接原因 *（分流号仅限以下场景，虚假登记会被追责）</label>
       <div class="reason-tags" id="reasonTags">
         <span class="reason-tag" data-reason="舆情问透氧">💧 舆情问透氧</span>
         <span class="reason-tag" data-reason="跨店问正品">🏪 跨店问正品</span>
+        <span class="reason-tag" data-reason="反馈建议类">📝 反馈建议类</span>
       </div>
     </div>
     <div class="form-row">
@@ -248,7 +250,7 @@ function fmtTime(ts){
   const p = n => String(n).padStart(2,'0');
   return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
 }
-function reasonCls(r){ return r==='跨店问正品' ? 'r2' : 'r1'; }
+function reasonCls(r){ return r==='跨店问正品' ? 'r2' : (r==='反馈建议类' ? 'r3' : 'r1'); }
 
 /* ==================== 初始化 ==================== */
 (async function init(){
