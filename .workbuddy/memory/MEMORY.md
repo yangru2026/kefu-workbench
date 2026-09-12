@@ -1,5 +1,10 @@
 # 尤赫客服工作台 - 项目记忆
 
+## 主题配色（2026-09-09 换版）
+- 全站主题：**翡翠绿 #10B981 主色 + 白底浅色侧边栏 + 冷白背景 #F7F9F8**（旧版灰调草木绿+深橄榄侧边栏已废弃）；全部集中在 index.html `:root` CSS 变量。
+- 换侧边栏底色的坑：先 `grep var(--sidebar-bg)`，凡配 `color:#fff` 的组件（排班表头、qc-topbar 等）必须同步改，否则白底白字。
+- qc.html / qc-v2 / cs-qc 等独立质检页仍是旧绿主题，未同步。
+
 ## 已完成功能摘要
 - **客服信息管理**：Supabase 表 `cs_info` + 加班/调休小时累计（`overtime_records`/`compensatory_leave_records`）。
 - **培训资料 & 花色素材**：迁移到 Supabase（`training_materials`/`pattern_assets`/`training_categories`/`pattern_categories`），管理员页面直接维护，全员实时同步。
@@ -8,7 +13,9 @@
 - **花色素材同步**：飞书附件自动下载上传到 Supabase Storage（`pattern-images` bucket）；新增 `base_curve`/`fixed_axis`、`is_discontinued`、新款🆕标签。
 - **飞书多表同步**：排班表/客服排名/售前月度/连带成交均接入 Supabase，支持 Excel 导入。
 - **客服申请审批**：`cs_requests` 表，审批通过后自动联动排班/加班/调休。
-- **连带成交**：`cross_sales` 表，按店铺/产品分组管理，支持页面协作权限。
+- **连带成交**（已下线，2026-09-12）：`cross_sales` 表数据保留；导航入口已被「舆情转接」替代，页面 DOM/JS 仍在 index.html 未删，需要恢复随时可改回。
+- **舆情转接登记**（2026-09-12，commit 72f3c8a）：`diversion.html`（iframe 接入，菜单 🔄 舆情转接）规范分流号使用——仅「舆情问透氧/跨店问正品」可转，登记客服/客户昵称或订单号/原因标签/聊天截图（必传≥1，支持粘贴）；表 `diversion_transfers`（screenshots text[]）+ bucket `diversion-images`，SQL `create_diversion_transfers.sql`（茹姐需 SQL Editor 跑一次）；登录可查可登记、删除仅 admin。
+- **赠品编码查询**（2026-09-09）：`gift.html`（iframe 接入，菜单 🎁 赠品编码）卡片视图 + 搜索 + 点编码复制；表 `gift_codes`（`image_paths text[]` 多图数组 + 兼容旧 `image_path`）、图片 bucket `gift-images`，建表 SQL `create_gift_codes.sql` + 存量迁移 `add_gift_image_paths.sql`（茹姐需在 Supabase SQL Editor 各跑一次）；编辑弹窗支持多图（多选/粘贴/删除/排序）、卡片点开为带左右切换的灯箱；**改文字闪退已修**：第一轮 paste 监听仅拦截图片、文字粘贴放行，第二轮弹窗布局由 flex 居中改为顶部留白，避免输入法/焦点变化导致 iframe 内重排闪烁；仅 admin 可写（要开放 leader 改 `isAdmin = (role === 'admin')`）。
 
 ## 待开发功能清单
 1. **周报** - 每周数据汇总报告
@@ -41,6 +48,15 @@
 - 本地：`fitness-miniapp/`
 - AppID：`wx4d7fb2ba6a586905`
 - 状态：主体认证已完成（30元），ICP 备案待推进。
+
+## iframe 型子页面的高度坑（2026-09-09，commit 0f1f0c4）
+- index.html 的 `.page.active{display:block}`，容器上的 inline `flex-direction:column` 无效，iframe `flex:1` 不生效 → iframe 塌陷成默认 150px，页面只显示顶部一条。
+- **每新增 iframe 型子页，必须在 CSS 里加 `#page-xxx.active{display:flex;height:100vh;overflow:hidden;}`（qc/gift 都有），并把 iframe data-src 缓存参数升版。**
+- 截图诊断：PIL 按已知颜色（#f8fafc 卡片图区、#e2e8f0 边框、#f6f8f5 页面底色）做像素扫描，可精确还原用户看到的渲染结果。
+
+## 独立 supabase 页面命名坑（2026-09-09）
+- UMD SDK 已占用全局 `supabase`，脚本里禁止 `const supabase = window.supabase.createClient(...)`（报 "Identifier 'supabase' has already been declared"，整段脚本不执行），统一用 `const sb = ...`。
+- 冒烟脚本模板：`outputs/smoke-gift.js`（本地 http 服务 + Edge headless + pageerror 捕获 + 看门狗）。
 
 ## 前端改动验证方法（本沙箱可复用）
 - **语法检查**：`node -e "..."` 提取 inline `<script>` 逐段 `new Function(m[1])` 校验。

@@ -214,7 +214,7 @@ body {
 
 .page { display: none; padding: 32px 40px; }
 .page.active { display: block; }
-#page-qc.active, #page-gift.active, #page-diversion.active { display: flex; height: 100vh; overflow: hidden; }
+#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active { display: flex; height: 100vh; overflow: hidden; }
 
 /* Header */
 .page-header { margin-bottom: 28px; }
@@ -1609,6 +1609,7 @@ body {
     <div class="nav-item" data-page="price-miyang" title="弥生价格速查"><span class="icon">💰</span><span>弥生价</span></div>
     <div class="nav-item" data-page="price-jiyang" title="极氧价格速查"><span class="icon">💰</span><span>极氧价</span></div>
     <div class="nav-item" data-page="training" title="培训资料"><span class="icon">📚</span><span>培训资料</span></div>
+    <div class="nav-item" data-page="rules" title="平台规则"><span class="icon">📏</span><span>平台规则</span></div>
     <div class="nav-item" data-page="licenses" title="查验证明"><span class="icon">📜</span><span>查验证明</span></div>
     <div class="nav-item" data-page="sop" title="新人SOP"><span class="icon">📄</span><span>新人SOP</span></div>
     <div class="nav-item" data-page="quiz" title="知识测验"><span class="icon">⭐</span><span>知识测验</span></div>
@@ -3063,6 +3064,11 @@ body {
   <!-- ===== 舆情转接登记 ===== -->
   <div class="page" id="page-diversion" style="padding:0;overflow:hidden;flex-direction:column;">
     <iframe id="diversion-iframe" src="about:blank" data-src="diversion.html?v=20260912d" style="flex:1;border:none;width:100%;"></iframe>
+  </div>
+
+  <!-- ===== 平台规则 ===== -->
+  <div class="page" id="page-rules" style="padding:0;overflow:hidden;flex-direction:column;">
+    <iframe id="rules-iframe" src="about:blank" data-src="rules.html?v=20260912a" style="flex:1;border:none;width:100%;"></iframe>
   </div>
 
   <style>
@@ -8193,6 +8199,14 @@ function switchPage(page) {
     if (divIframe && divIframe.getAttribute('data-src') && divIframe.src !== divIframe.getAttribute('data-src')) {
       divIframe.src = divIframe.getAttribute('data-src');
       divIframe.removeAttribute('data-src');
+    }
+  }
+  if (page === 'rules') {
+    // 平台规则：延迟加载 iframe（首次点击才加载）
+    const rulesIframe = document.getElementById('rules-iframe');
+    if (rulesIframe && rulesIframe.getAttribute('data-src') && rulesIframe.src !== rulesIframe.getAttribute('data-src')) {
+      rulesIframe.src = rulesIframe.getAttribute('data-src');
+      rulesIframe.removeAttribute('data-src');
     }
   }
   if (page === 'qc') {
