@@ -293,12 +293,20 @@ function openModal(r){
   $('fTitle').value = r ? (r.title||'') : '';
   $('fContent').value = r ? (r.content||'') : '';
   $('modalMask').classList.add('active');
-  setTimeout(()=> $('fTitle').focus(), 50);
+  setTimeout(()=> $('fTitle').focus({preventScroll:true}), 50);
 }
 function closeModal(){ $('modalMask').classList.remove('active'); editingId = null; }
 $('btnAdd').addEventListener('click', () => openModal(null));
 $('btnCancel').addEventListener('click', closeModal);
-$('modalMask').addEventListener('click', e => { if(e.target === $('modalMask')) closeModal(); });
+/* 点遮罩空白关闭：但拖动选择文字时鼠标拖出弹窗松手也会在遮罩上触发 click，
+   须记录按下位置，按下点在遮罩上且未移动才算真点空白，否则误关弹窗（闪退） */
+var _maskDown = null;
+$('modalMask').addEventListener('mousedown', e => { _maskDown = { x:e.clientX, y:e.clientY, onMask: e.target === $('modalMask') }; });
+$('modalMask').addEventListener('click', e => {
+  if(e.target !== $('modalMask') || !_maskDown || !_maskDown.onMask) return;
+  if(Math.hypot(e.clientX - _maskDown.x, e.clientY - _maskDown.y) > 6) return;
+  closeModal();
+});
 
 $('btnSave').addEventListener('click', async () => {
   const platform = $('fPlatform').value;
