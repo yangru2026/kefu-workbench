@@ -10901,15 +10901,21 @@ function renderTrainingSubcatTabs() {
     return;
   }
 
-  // 资料模块：按当前大类显示小类 Tab
+  // 资料模块：按当前大类显示小类 Tab（不提供「全部」，默认第一个小类；无小类的大类整行隐藏）
   if (trainingGroup === '全部') { el.innerHTML = ''; el.style.display = 'none'; return; }
   el.style.display = 'flex';
   const canManage = canEdit('training');
   // 「操作类」为话术大类：不显示二级 Tab（小类在脚本数据里自由维护）
   if (trainingGroup === '操作类') { el.innerHTML = ''; el.style.display = 'none'; return; }
   const subs = trainingSubcats().filter(c => c.parent_id === trainingGroup);
-  let subNames = subs.map(c => c.name);
-  const cats = ['全部', ...subNames];
+  const subNames = subs.map(c => c.name);
+  if (!subNames.length) {
+    // 该大类没有小类：整行隐藏，内容按「该大类全部」展示
+    trainingSubcatFilter = '全部';
+    el.innerHTML = ''; el.style.display = 'none'; return;
+  }
+  if (!subNames.includes(trainingSubcatFilter)) trainingSubcatFilter = subNames[0];
+  const cats = subNames;
   let html = cats.map(c => {
     const isActive = trainingSubcatFilter === c;
     // Inline editing mode
