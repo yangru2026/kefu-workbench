@@ -196,7 +196,12 @@ body {
 }
 .sidebar-user:hover { color: var(--primary-dark); }
 .sidebar-user .user-dot { width: 6px; height: 6px; border-radius: 50%; background: #00b894; flex-shrink: 0; }
-.sidebar-user .user-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-user .user-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.sidebar-user .user-quit {
+  flex-shrink: 0; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 12px;
+  background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; transition: all 0.15s;
+}
+.sidebar-user .user-quit:hover { background: #DC2626; color: #fff; border-color: #DC2626; }
 
 .visitor-stats { padding: 12px 20px; border-top: 1px solid var(--border-soft); }
 .vs-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #6B7280; margin-bottom: 6px; }
@@ -1625,10 +1630,12 @@ body {
     <div class="nav-item admin-only-nav" data-page="staff-info" title="客服信息" style="display:none;"><span class="icon">👥</span><span>客服信息</span></div>
     <div class="nav-item admin-only-nav" data-page="templates" title="模板管理" style="display:none;"><span class="icon">⚙️</span><span>模板管理</span></div>
     <div class="nav-item" id="nav-login" data-page="login" title="登录/注册"><span class="icon">🔐</span><span>登录注册</span></div>
+    <div class="nav-item" id="nav-logout" data-page="logout" title="退出登录" style="display:none;"><span class="icon">🚪</span><span>退出登录</span></div>
   </nav>
-  <div class="sidebar-user" id="sidebar-user" onclick="if(!currentUser)switchPage('login')">
+  <div class="sidebar-user" id="sidebar-user" onclick="onUserPillClick()">
     <span class="user-dot"></span>
     <span class="user-label" id="visitor-name">访客</span>
+    <span class="user-quit" id="user-quit" title="退出登录" style="display:none;">退出</span>
   </div>
   <div class="visitor-stats" id="visitor-stats">
     <div class="vs-row"><span class="vs-icon">👁</span><span class="vs-label">总访问</span><span class="vs-num" id="vs-total">-</span></div>
@@ -3476,12 +3483,16 @@ function updateAuthUI() {
   const userEl = document.getElementById('sidebar-user');
   const nameEl = document.getElementById('visitor-name');
   const loginNav = document.getElementById('nav-login');
+  const logoutNav = document.getElementById('nav-logout');
+  const quitBtn = document.getElementById('user-quit');
   const isAdmin = isFullAdmin();
   const isQc = isQcRole();
   if (currentUser && currentProfile) {
     nameEl.textContent = currentProfile.name || '用户';
-    userEl.style.cursor = 'default';
+    userEl.style.cursor = 'pointer';
     if (loginNav) loginNav.style.display = 'none';
+    if (logoutNav) logoutNav.style.display = '';
+    if (quitBtn) quitBtn.style.display = '';
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
     document.querySelectorAll('.admin-only-nav').forEach(el => el.style.display = isAdmin ? '' : 'none');
     document.querySelectorAll('.qc-admin-nav').forEach(el => el.style.display = isQc ? '' : 'none');
@@ -3492,6 +3503,8 @@ function updateAuthUI() {
     nameEl.textContent = '未登录';
     userEl.style.cursor = 'pointer';
     if (loginNav) loginNav.style.display = '';
+    if (logoutNav) logoutNav.style.display = 'none';
+    if (quitBtn) quitBtn.style.display = 'none';
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.admin-only-nav').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.qc-admin-nav').forEach(el => el.style.display = 'none');
@@ -3663,8 +3676,24 @@ async function signIn(phone, password) {
 }
 
 async function signOut() {
-  await supabase.auth.signOut();
+  const who = (currentProfile && (currentProfile.name || currentProfile.real_name)) || (currentUser && currentUser.email) || '当前账号';
+  if (!confirm('确定要退出登录吗？\n\n账号：' + who)) return;
+  try {
+    if (supabase) await supabase.auth.signOut();
+  } catch (e) {
+    console.warn('[signOut] 退出失败', e);
+  }
+  currentUser = null;
+  currentProfile = null;
+  updateAuthUI();
+  switchPage('login');
   showToast('已退出登录');
+}
+
+/* 侧边栏用户名区域：未登录→去登录页；已登录→确认退出 */
+function onUserPillClick() {
+  if (currentUser) signOut();
+  else switchPage('login');
 }
 
 // ==================== DYNAMIC CONFIG LOADING ====================
@@ -8105,6 +8134,8 @@ function exportQcReportExcel() {
 }
 
 function switchPage(page) {
+  // 退出登录：不是真实页面，直接走退出流程
+  if (page === 'logout') { signOut(); return; }
   // 品牌价格速查别名：price-miyang / price-jiyang → 共用价格速查页，锁定各自品牌
   const PP_ALIAS = { 'price-miyang': '弥生', 'price-jiyang': '极氧' };
   if (PP_ALIAS[page]) {
