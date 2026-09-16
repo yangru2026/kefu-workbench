@@ -3395,6 +3395,23 @@ async function getRemainHours() {
   return Math.max(0, totalOT - totalLV);
 }
 
+// 调休申请每月次数上限（按调休日期所在自然月，pending+approved 计数，rejected 不占）
+const LEAVE_MONTH_LIMIT = 2;
+async function getMonthLeaveCount() {
+  if (!currentProfile || !supabase) return 0;
+  const now = new Date();
+  const startStr = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const endStr = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString().split('T')[0];
+  const { data } = await supabase.from('cs_requests')
+    .select('id')
+    .eq('type', 'compensatory_leave')
+    .eq('requester_id', currentProfile.id)
+    .in('status', ['pending', 'approved'])
+    .gte('target_date', startStr)
+    .lt('target_date', endStr);
+  return (data || []).length;
+}
+
 async function showReqRemainHours() {
   if (!currentProfile || !supabase) return;
   try {
@@ -3403,6 +3420,7 @@ async function showReqRemainHours() {
     const totalOT = (otData || []).reduce((s, r) => s + (Number(r.hours) || 0), 0);
     const totalLV = (lvData || []).reduce((s, r) => s + (Number(r.hours) || 0), 0);
     const remain = Math.max(0, totalOT - totalLV);
+    const used = await getMonthLeaveCount();
     const hint = document.getElementById('req-remain-hint');
     const hoursInput = document.getElementById('req-hours');
     const submitBtn = document.getElementById('req-submit-btn-leave');
@@ -3410,8 +3428,12 @@ async function showReqRemainHours() {
       if (hint) { hint.textContent = '⚠️ 无可调休时长'; hint.style.color = '#e74c3c'; }
       if (hoursInput) hoursInput.disabled = true;
       if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '⚠️ 暂无可调休时长'; submitBtn.style.opacity = '0.5'; submitBtn.style.cursor = 'not-allowed'; }
+    } else if (used >= LEAVE_MONTH_LIMIT) {
+      if (hint) { hint.textContent = '⚠️ 本月调休申请已满 ' + LEAVE_MONTH_LIMIT + ' 次（' + used + '/' + LEAVE_MONTH_LIMIT + '）'; hint.style.color = '#e74c3c'; }
+      if (hoursInput) hoursInput.disabled = true;
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '⚠️ 本月调休次数已用完'; submitBtn.style.opacity = '0.5'; submitBtn.style.cursor = 'not-allowed'; }
     } else {
-      if (hint) { hint.textContent = '(当前可调休: ' + roundH(remain) + 'h，最多可申请这么多)'; hint.style.color = ''; }
+      if (hint) { hint.textContent = '(当前可调休: ' + roundH(remain) + 'h ｜ 本月已申请 ' + used + '/' + LEAVE_MONTH_LIMIT + ' 次)'; hint.style.color = ''; }
       if (hoursInput) { hoursInput.disabled = false; hoursInput.max = remain; }
       if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '提交申请'; submitBtn.style.opacity = ''; submitBtn.style.cursor = ''; }
     }
@@ -3526,6 +3548,8 @@ async function submitRequest() {
     if (reqCurrentType === 'compensatory_leave') {
       const otRemain = await getRemainHours();
       if (hours > otRemain) { showToast('调休时长(' + hours + 'h)超过可调余额(' + roundH(otRemain) + 'h)'); return; }
+      const used = await getMonthLeaveCount();
+      if (used >= LEAVE_MONTH_LIMIT) { showToast('本月调休申请已达上限（' + LEAVE_MONTH_LIMIT + ' 次），请下个月再申请'); return; }
     }
     row.hours = hours;
   }
