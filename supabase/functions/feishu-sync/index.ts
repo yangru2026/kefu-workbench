@@ -304,9 +304,11 @@ function mapPatternRecord(record: Record<string, unknown>) {
 
   // name 和 brand 是 upsert 冲突键，必须包含
   // is_discontinued 有 NOT NULL 约束，新记录默认 false
+  // type 有 NOT NULL 约束：飞书没填抛型时给空串，避免整批插入失败
   const row: Record<string, unknown> = {
     name: fieldValue(f["花色名称"]),
     brand: fieldValue(f["品牌"]),
+    type: fieldValue(f["抛型"]) || "",
     feishu_record_id: String(record.record_id || ""),
     is_discontinued: false,
   };
