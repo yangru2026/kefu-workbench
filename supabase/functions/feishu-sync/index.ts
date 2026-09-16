@@ -541,8 +541,10 @@ async function markStalePatternsDiscontinued(
   return staleIds.length;
 }
 
-// 对已有花色补录空字段（不覆盖任何已有数据）
-// 只在 insertOnly 模式下使用：新记录插入完成后，已有记录中原本为空的字段可以用飞书值填充
+// 对已有花色同步飞书内容（飞书是数据源，以飞书为准覆盖）
+// - 规格字段（抛型/系列/色系/直径/基弧/定轴/着色直径/材质/氧透率/含水量/规格/推荐话术）：飞书有值 → 覆盖；飞书为空 → 保留本地
+// - 图片数组：始终以飞书为准
+// - 本地专属字段（价格档/直径组/排序/下架标记等）不动
 async function fillEmptyPatternFields(
   supabaseUrl: string,
   serviceKey: string,
@@ -551,12 +553,9 @@ async function fillEmptyPatternFields(
 ): Promise<{ checked: number; filled: number; fields: number }> {
   if (mappedRows.length === 0) return { checked: 0, filled: 0, fields: 0 };
 
-  // 用于补录的字段（原始图片URL、下架标记、创建时间永远不碰）
-  // lens_imgs/eye_imgs 可补录：已有花色首次同步时没多图，后续补充后可补上
   const fillableDbFields = [
     "type", "series", "color", "diameter", "base_curve", "fixed_axis",
     "color_diameter", "material", "oxygen", "water", "spec", "description",
-    "lens_imgs", "eye_imgs",
   ];
 
   // 按 (name, brand) 查询已存在的记录
@@ -592,11 +591,10 @@ async function fillEmptyPatternFields(
     for (const field of fillableDbFields) {
       const dbVal = existing[field];
       const fsVal = mapped[field];
-      const isDbEmpty = dbVal === null || dbVal === undefined || dbVal === "" ||
-        (Array.isArray(dbVal) && dbVal.length === 0);
       const isFsValue = fsVal !== null && fsVal !== undefined && fsVal !== "" &&
         !(Array.isArray(fsVal) && fsVal.length === 0);
-      if (isDbEmpty && isFsValue) {
+      // 飞书有值且与本地不同 → 以飞书为准覆盖（含原本为空的补录）
+      if (isFsValue && JSON.stringify(fsVal) !== JSON.stringify(dbVal)) {
         updates[field] = fsVal;
         fieldCount++;
       }
@@ -620,9 +618,9 @@ async function fillEmptyPatternFields(
     );
     if (patchResp.ok) {
       filledCount++;
-      console.log(`补录 ${name} 字段:`, Object.keys(updates).join(","));
+      console.log(`同步 ${name} 字段变更:`, Object.keys(updates).join(","));
     } else {
-      console.error(`补录 ${name} 失败:`, await patchResp.text());
+      console.error(`同步 ${name} 失败:`, await patchResp.text());
     }
   }
 

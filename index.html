@@ -4180,7 +4180,7 @@ async function syncFromFeishu() {
     showToast('⚠️ 请先配置飞书同步参数（联系管理员在代码中设置 SYNC_AUTH_TOKEN）');
     return;
   }
-  if (!confirm('确定从飞书多维表格同步花色素材？\n\n同步规则：\n• 飞书中新款花色会新增到工作台\n• 花色图/上眼图支持附件上传，自动下载存储\n• 已有花色完全不动（图片、下架标记等全部保留）\n• 新款花色自动排在最前面（带 🆕 标签）\n• 同步完成后自动刷新')) return;
+  if (!confirm('确定从飞书多维表格同步花色素材？\n\n同步规则（飞书为数据源）：\n• 飞书新款花色会新增到工作台（带 🆕 标签排最前）\n• 已有花色的规格内容（抛型/系列/定轴/材质等）以飞书为准更新\n• 飞书里清空的字段不会删掉本地已有内容\n• 花色图/上眼图以飞书为准覆盖，自动下载存储\n• 价格档/直径分组等工作台自维护内容不受影响')) return;
 
   btn.disabled = true;
   btn.classList.add('syncing');
@@ -4206,7 +4206,8 @@ async function syncFromFeishu() {
         msg += `，新增 ${syncedCount} 条`;
         if (skippedCount > 0) msg += `，跳过 ${skippedCount} 条已有`;
         const filled = r.filled || {};
-        if (filled.fields > 0) msg += `，补录 ${filled.fields} 个空字段`;
+        if (filled.filled > 0) msg += `，更新 ${filled.filled} 条已有花色内容`;
+        else if (filled.checked > 0) msg += `，已有花色无变化`;
       } else {
         msg += `，写入 ${syncedCount} 条`;
       }
