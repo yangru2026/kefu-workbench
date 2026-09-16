@@ -97,27 +97,31 @@ const log=(...a)=>process.stdout.write(a.join(' ')+'\n');
     return {btnText:btn?btn.textContent:'',btnDisabled:btn?btn.disabled:null,hint:hint?hint.textContent:''};
   },6000);
   log('T2 仅1次=',JSON.stringify(t2),JSON.stringify(t2b));
-  // T3 强制走 submitRequest 校验（清空计数为 2 → 应被 toast 拦截，无 insert）
+  // T3 满额仍可提交（confirm 自动接受）→ insert 带「超额申请」标记
   const t3=await evalT(page,()=>{
     window.__REQ_COUNT__=2;
     document.getElementById('req-hours').value='2';
     document.getElementById('req-reason').value='测试';
-    return submitRequest().then(()=>({inserts:(window.__INSERTS__||[]).length,toast:document.getElementById('toast').textContent}));
+    return submitRequest().then(()=>({inserts:(window.__INSERTS__||[]).length,last:(window.__INSERTS__||[])[(window.__INSERTS__||[]).length-1],toast:document.getElementById('toast').textContent}));
   },8000);
-  log('T3 提交拦截=',JSON.stringify(t3));
-  // T4 计数清 0 → 提交放行（有 insert）
+  log('T3 超额提交=',JSON.stringify(t3));
+  // T4 计数清 0 → 正常提交（无超额标记）
   const t4=await evalT(page,()=>{
     window.__REQ_COUNT__=0;
-    return submitRequest().then(()=>({inserts:(window.__INSERTS__||[]).length,toast:document.getElementById('toast').textContent}));
+    document.getElementById('req-hours').value='2';
+    document.getElementById('req-reason').value='正常申请';
+    return submitRequest().then(()=>({inserts:(window.__INSERTS__||[]).length,last:(window.__INSERTS__||[])[(window.__INSERTS__||[]).length-1],toast:document.getElementById('toast').textContent}));
   },8000);
   log('T4 提交放行=',JSON.stringify(t4));
   const realErrs=errs.filter(e=>!/Failed to load resource/.test(e)&&!/net::ERR_NAME_NOT_RESOLVED/.test(e));
   log('REAL ERRORS:',realErrs.length?JSON.stringify(realErrs.slice(0,4)):'none');
+  log('dialogs=',JSON.stringify(dialogs));
   const pass = ready
-    && t1.ok && t1b.ok && t1b.v.btnDisabled===true && t1b.v.btnText.includes('已用完') && t1b.v.hint.includes('2/2') && t1b.v.hoursDisabled===true
+    && t1.ok && t1b.ok && t1b.v.btnDisabled===false && t1b.v.btnText.includes('超额') && t1b.v.hint.includes('2/2') && t1b.v.hoursDisabled===false
     && t2b.ok && t2b.v.btnDisabled===false && t2b.v.btnText.includes('提交') && t2b.v.hint.includes('1/2')
-    && t3.ok && t3.v && t3.v.inserts===0 && t3.v.toast.includes('上限')
-    && t4.ok && t4.v && t4.v.inserts===1
+    && t3.ok && t3.v && t3.v.inserts===1 && t3.v.last && t3.v.last.reason && t3.v.last.reason.indexOf('【超额申请】')===0 && t3.v.last.reason.includes('测试')
+    && t4.ok && t4.v && t4.v.inserts===2 && t4.v.last && t4.v.last.reason==='正常申请'
+    && dialogs.some(d=>d.includes('超额申请'))
     && realErrs.length===0;
   log('\n==== '+(pass?'PASS ✅':'FAIL ❌')+' ====');
   await browser.close();server.close();process.exit(pass?0:1);

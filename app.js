@@ -3435,9 +3435,10 @@ async function showReqRemainHours() {
       if (hoursInput) hoursInput.disabled = true;
       if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '⚠️ 暂无可调休时长'; submitBtn.style.opacity = '0.5'; submitBtn.style.cursor = 'not-allowed'; }
     } else if (used >= LEAVE_MONTH_LIMIT) {
-      if (hint) { hint.textContent = '⚠️ 本月调休申请已满 ' + LEAVE_MONTH_LIMIT + ' 次（' + used + '/' + LEAVE_MONTH_LIMIT + '）'; hint.style.color = '#e74c3c'; }
-      if (hoursInput) hoursInput.disabled = true;
-      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '⚠️ 本月调休次数已用完'; submitBtn.style.opacity = '0.5'; submitBtn.style.cursor = 'not-allowed'; }
+      // 满 2 次不堵死：仍可提交，标记超额由管理员审批决定
+      if (hint) { hint.textContent = '⚠️ 本月已申请满 ' + LEAVE_MONTH_LIMIT + ' 次（' + used + '/' + LEAVE_MONTH_LIMIT + '），仍可提交，将标记为「超额申请」由管理员审批'; hint.style.color = '#e74c3c'; }
+      if (hoursInput) { hoursInput.disabled = false; hoursInput.max = remain; }
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '提交超额申请'; submitBtn.style.opacity = ''; submitBtn.style.cursor = ''; }
     } else {
       if (hint) { hint.textContent = '(当前可调休: ' + roundH(remain) + 'h ｜ 本月已申请 ' + used + '/' + LEAVE_MONTH_LIMIT + ' 次)'; hint.style.color = ''; }
       if (hoursInput) { hoursInput.disabled = false; hoursInput.max = remain; }
@@ -3555,9 +3556,20 @@ async function submitRequest() {
       const otRemain = await getRemainHours();
       if (hours > otRemain) { showToast('调休时长(' + hours + 'h)超过可调余额(' + roundH(otRemain) + 'h)'); return; }
       const used = await getMonthLeaveCount();
-      if (used >= LEAVE_MONTH_LIMIT) { showToast('本月调休申请已达上限（' + LEAVE_MONTH_LIMIT + ' 次），请下个月再申请'); return; }
+      if (used >= LEAVE_MONTH_LIMIT) {
+        // 超额申请：确认后放行，reason 打标记供管理员识别与通融
+        const ok = confirm('本月调休申请已达 ' + LEAVE_MONTH_LIMIT + ' 次上限。\n\n仍要提交将标记为「超额申请」，由管理员审批决定是否通融。继续吗？');
+        if (!ok) return;
+        row._overLimit = true;
+      }
     }
     row.hours = hours;
+  }
+
+  // 超额申请打标记（写进 reason，管理员在审批列表一眼识别，可通融批准）
+  if (row._overLimit) {
+    delete row._overLimit;
+    row.reason = '【超额申请】' + (row.reason || '请管理员酌情审批');
   }
 
   const { error } = await supabase.from('cs_requests').insert(row);
