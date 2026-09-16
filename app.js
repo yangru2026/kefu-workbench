@@ -3380,7 +3380,7 @@ function renderReqForm() {
       <div class="req-form-row">
         <label>原因</label>
         <textarea id="req-reason" placeholder="请填写调休原因"></textarea>
-        <button class="req-submit-btn" id="req-submit-btn-leave" onclick="submitRequest()" disabled>暂不可申请</button>
+        <button class="req-submit-btn" id="req-submit-btn-leave" onclick="submitRequest()" disabled>检查中…</button>
       </div>`;
     setTimeout(() => showReqRemainHours(), 100);
   }
@@ -3399,17 +3399,23 @@ async function getRemainHours() {
 const LEAVE_MONTH_LIMIT = 2;
 async function getMonthLeaveCount() {
   if (!currentProfile || !supabase) return 0;
-  const now = new Date();
-  const startStr = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-  const endStr = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString().split('T')[0];
-  const { data } = await supabase.from('cs_requests')
-    .select('id')
-    .eq('type', 'compensatory_leave')
-    .eq('requester_id', currentProfile.id)
-    .in('status', ['pending', 'approved'])
-    .gte('target_date', startStr)
-    .lt('target_date', endStr);
-  return (data || []).length;
+  try {
+    const now = new Date();
+    const startStr = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const endStr = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString().split('T')[0];
+    const { data, error } = await supabase.from('cs_requests')
+      .select('id')
+      .eq('type', 'compensatory_leave')
+      .eq('requester_id', currentProfile.id)
+      .in('status', ['pending', 'approved'])
+      .gte('target_date', startStr)
+      .lt('target_date', endStr);
+    if (error) { console.warn('[调休限次] 次数查询失败，放行由审批把关:', error.message); return 0; }
+    return (data || []).length;
+  } catch (e) {
+    console.warn('[调休限次] 次数查询异常，放行由审批把关:', e);
+    return 0;
+  }
 }
 
 async function showReqRemainHours() {
