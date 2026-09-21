@@ -771,12 +771,13 @@ async function loadRecords(showMsg){
   if(DEMO){ records=JSON.parse(JSON.stringify(DEMO_RECORDS)); afterLoad(showMsg); return; }
   try{
     const {data,error}=await supabase.from('qc_records').select('*').order('created_at',{ascending:false});
-    if(error){ console.warn(error); records=[]; }
+    if(error){ console.warn(error); records=[]; if(!bootFailed) showBootError('记录读取失败：'+(error.message||'')+'，点下方按钮重试'); }
     else{
+      bootFailed=null;
       records=(data||[]).map(r=>({...r, scene_images:r.scene_images||[], reply_images:r.reply_images||[], knowledge_images:r.knowledge_images||[]}));
       await loadQcImagesInto(records);
     }
-  }catch(e){ console.error(e); records=[]; }
+  }catch(e){ console.error(e); records=[]; if(!bootFailed) showBootError('记录加载失败：'+(e.message||'网络异常')+'，点下方按钮重试'); }
   afterLoad(showMsg);
 }
 async function loadQcImagesInto(list){
@@ -904,6 +905,7 @@ function allImgs(r){ return [...(r.scene_images||[]),...(r.reply_images||[]),...
 function renderRecords(){
   updateTodoReminder();
   const list=getFiltered(); const el=document.getElementById('recordList');
+  if(bootFailed){ el.innerHTML='<div class="empty" style="color:#c0392b">⚠️ '+escapeHtml(bootFailed)+'<br><button class="btn btn-primary" style="margin-top:12px" onclick="location.reload()">🔄 重新加载</button></div>'; return; }
   if(!list.length){ el.innerHTML='<div class="empty">📋 暂无质检记录</div>'; return; }
   if(qcViewMode==='table'){ renderTable(el,list); } else { renderCards(el,list); }
 }
@@ -1363,11 +1365,28 @@ function downloadXLSXWithImages(filename,rows,media){
 }
 
 /* ==================== 启动 ==================== */
+// 启动失败提示（网络卡住时不再永远空白，而是给出原因 + 一键重试）
+let bootFailed=null;
+function showBootError(msg){
+  bootFailed=msg; try{ renderRecords(); }catch(e){ console.warn(e); }
+}
+// 给任意 Promise 加超时，防止网络挂起导致页面永远"加载中"
+function withTimeout(p,ms,label){
+  return Promise.race([
+    Promise.resolve(p),
+    new Promise((_,rej)=>setTimeout(()=>rej(new Error((label||'请求')+'超时（'+Math.round(ms/1000)+'秒无响应），请检查网络后重试')),ms))
+  ]);
+}
 function init(){
   if(DEMO){ records=JSON.parse(JSON.stringify(DEMO_RECORDS)); updateAdminUI(); isAdmin=true; updateAdminUI(); afterLoad(false); showToast('📋 演示模式：脱敏示例'); return; }
   (async()=>{
-    if(!initSupabaseClient()){ try{ await loadSupabaseScript(); }catch(e){ showToast('Supabase 初始化失败：'+e.message); return; } }
-    checkAuth().then(async ()=>{ await loadMetaOptionsFromDB(); loadRecords(); });
+    if(!initSupabaseClient()){ try{ await loadSupabaseScript(); }catch(e){ showBootError('Supabase 初始化失败：'+(e.message||'')); return; } }
+    // 鉴权与筛选配置并行、带超时；失败不阻塞主记录加载
+    try{ await withTimeout(Promise.all([checkAuth(),loadMetaOptionsFromDB()]),15000,'初始化'); }
+    catch(e){ console.warn('初始化步骤超时/失败：',e.message); }
+    try{
+      await withTimeout(loadRecords(),20000,'质检记录');
+    }catch(e){ showBootError('质检记录加载失败：'+(e.message||'网络异常')); }
   })();
 }
 document.addEventListener('click',e=>{ if(!e.target.closest('.color-select')) document.querySelectorAll('.cs-menu.open').forEach(m=>m.classList.remove('open')); });
