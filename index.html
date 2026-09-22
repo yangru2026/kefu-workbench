@@ -16,6 +16,9 @@
 // ==================== 库加载器（本地优先，CDN 兜底） ====================
 // 避免 CDN 不稳定导致 supabase/xlsx 加载失败 → 页面所有数据“消失”
 (function () {
+  // 库加载统一超时：GitHub Pages 在境外，国内加载 212KB/881KB 常在 6s 内完不成，
+  // 原 6s 超时会把"还在下载"误判为"失败"，是「加载异常」的根因。
+  var LIB_TIMEOUT = 20000;
   function loadScript(src, cb, timeout) {
     var s = document.createElement('script');
     var done = false;
@@ -24,8 +27,25 @@
     s.async = true;
     s.onload = function () { finish(null); };
     s.onerror = function () { finish(new Error('fail:' + src)); };
-    var timer = setTimeout(function () { finish(new Error('timeout:' + src)); }, timeout || 7000);
+    var timer = setTimeout(function () { finish(new Error('timeout:' + src)); }, timeout || LIB_TIMEOUT);
     document.head.appendChild(s);
+  }
+  // 自动恢复：库全部源失败后，指数退避自动重试（用户无需手动刷新）
+  function autoRecover(name, retryFn, checkFn) {
+    if (window['__AR_' + name]) return;
+    window['__AR_' + name] = true;
+    var n = 0;
+    (function tick() {
+      if (checkFn()) { window['__AR_' + name] = false; return; }
+      n++;
+      var wait = Math.min(3000 * n, 20000);
+      setTimeout(function () {
+        if (checkFn()) { window['__AR_' + name] = false; return; }
+        console.warn('[自动恢复] 重新加载 ' + name + ' (第 ' + n + ' 次)');
+        retryFn();
+        tick();
+      }, wait);
+    })();
   }
   // supabase-js：本地 vendor / jsdelivr / 国内镜像 / 多个 CDN 兜底加载（已移除内联副本，缩小首页体积）
   (function loadSupabase(i) {
@@ -48,6 +68,9 @@
         loadSupabase(0);
       };
       if (document.readyState !== 'loading') window.__supabaseLibFail && window.__supabaseLibFail();
+      // 关键新增：所有源都失败后自动退避重试，不必等用户手动刷新
+      autoRecover('supabase', function () { window.__retrySupabaseLoad(); },
+        function () { return !!(window.supabase && window.supabase.createClient); });
       return;
     }
     loadScript(urls[i], function (err) {
@@ -57,7 +80,7 @@
       }
       console.warn('supabase-js 加载失败，尝试下一个源:', urls[i], err && err.message);
       setTimeout(function () { loadSupabase(i + 1); }, 300);
-    }, 6000);
+    }, LIB_TIMEOUT);
   })(0);
   // xlsx：本地 vendor → 国内镜像(npmmirror) → fastly/jsdelivr → unpkg
   (function loadXlsx(i) {
@@ -69,11 +92,15 @@
       'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'
     ];
     if (window.XLSX) return;
-    if (i >= urls.length) return;
+    if (i >= urls.length) {
+      // xlsx 失败同样自动退避重试（导出 CSV/Excel 依赖它）
+      autoRecover('xlsx', function () { loadXlsx(0); }, function () { return !!window.XLSX; });
+      return;
+    }
     loadScript(urls[i], function (err) {
       if (err) console.warn('xlsx 加载失败，尝试下一个源:', urls[i], err.message);
       setTimeout(function () { loadXlsx(i + 1); }, 300);
-    }, 6000);
+    }, LIB_TIMEOUT);
   })(0);
 })();
 </script>
@@ -104,6 +131,13 @@
   --shadow-md: 0 6px 24px rgba(31,41,55,0.08);
   --gradient-card: linear-gradient(155deg, #FFFFFF 0%, #F3F7F5 100%);
 }
+.sd-spin {
+  display: inline-block; width: 13px; height: 13px; margin-right: 6px;
+  border: 2px solid var(--border); border-top-color: var(--primary);
+  border-radius: 50%; vertical-align: -2px;
+  animation: sdspin .7s linear infinite;
+}
+@keyframes sdspin { to { transform: rotate(360deg); } }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
@@ -3395,18 +3429,40 @@ async function loadStaffInfo() {
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">加载中...</td></tr>';
 
+  // 先给出"加载中"反馈，而不是一上来就显示"加载异常"
+  if (tbody) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">'
+      + '<span class="sd-spin"></span>正在加载客服信息…</td></tr>';
+  }
   try {
-    if (!supabase || typeof supabase.from !== 'function') {
-      throw new Error('数据服务未就绪，请稍后重试');
+    // 关键加固：等 supabase 库就绪（最多 30 秒）。首次进入页面时库可能还在下载，
+    // 原先直接抛「数据服务未就绪」是「加载异常」的直接触发点。
+    if (!(window.supabase && typeof window.supabase.from === 'function')) {
+      await waitForLib(30000);
     }
-    const { data, error } = await withTimeout(
-      supabase.from('profiles')
-        .select('id,name,real_name,phone,hire_date,position,group_name,overtime,compensatory_leave,status,left_at,role')
-        .order('group_name', { ascending: true })
-        .order('name', { ascending: true }),
-      15000, '客服信息'
-    );
+    if (!(window.supabase && typeof window.supabase.from === 'function')) {
+      throw new Error('数据服务未就绪（库未加载完成）');
+    }
+    const query = () => supabase.from('profiles')
+      .select('id,name,real_name,phone,hire_date,position,group_name,overtime,compensatory_leave,status,left_at,role')
+      .order('group_name', { ascending: true })
+      .order('name', { ascending: true });
+
+    // 查询失败自动重试一次（网络抖动）
+    let data, error, lastErr;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const r = await withTimeout(query(), 25000, '客服信息');
+        data = r.data; error = r.error;
+        if (!error) break;
+        lastErr = error;
+      } catch (e) {
+        lastErr = e;
+      }
+      if (attempt === 1) await new Promise(res => setTimeout(res, 1200));
+    }
     if (error) throw error;
+    if (lastErr && !data) throw lastErr;
 
     // 只显示"在职"：有 left_at 或 status=disabled 的视为已离职，不显示
     staffInfoData = (data || []).filter(p => p.status !== 'disabled' && !p.left_at);
@@ -3418,7 +3474,33 @@ async function loadStaffInfo() {
       + escHtml(e.message || '未知错误')
       + ' <a href="javascript:loadStaffInfo()" style="color:var(--primary);text-decoration:underline;">重试</a></td></tr>';
     if (countEl) countEl.textContent = '';
+    // 自动恢复：3 秒后自动重试一次，网络恢复即自愈
+    if (!window.__staffAutoRetry) {
+      window.__staffAutoRetry = true;
+      setTimeout(function () {
+        window.__staffAutoRetry = false;
+        var el = document.getElementById('staff-tbody');
+        if (el && /加载异常/.test(el.innerText)) { console.warn('[自动恢复] 重新加载客服信息'); loadStaffInfo(); }
+      }, 3000);
+    }
   }
+}
+
+// 等待 supabase 库就绪（含短暂轮询），库加载器失败时会触发自动恢复
+function waitForLib(ms) {
+  return new Promise(function (resolve) {
+    var t0 = Date.now();
+    (function poll() {
+      if (window.supabase && typeof window.supabase.from === 'function') return resolve(true);
+      if (Date.now() - t0 >= ms) return resolve(false);
+      // 若加载器已判定失败，主动触发一次重试
+      if (window.__SUPABASE_LIB_FAILED && window.__retrySupabaseLoad) {
+        window.__SUPABASE_LIB_FAILED = false;
+        try { window.__retrySupabaseLoad(); } catch (e) {}
+      }
+      setTimeout(poll, 400);
+    })();
+  });
 }
 
 // 渲染表格
