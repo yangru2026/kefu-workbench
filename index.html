@@ -3366,6 +3366,474 @@ function kefuCacheSet(table, data) {
   try { localStorage.setItem('kefu_cache_' + table, JSON.stringify({ ver: KEFU_CACHE_VER, ts: Date.now(), data: data })); } catch (e) {}
 }
 
+
+// ==================== 客服信息管理（2026-09-22 重建） ====================
+var staffInfoData = [];          // 当前加载到的客服列表
+var staffInfoFiltered = [];      // 搜索过滤后的列表
+var currentOTStaff = null;       // 抽屉当前操作的客服
+var currentOTRecords = [];       // 抽屉当前客服的加班/调休记录
+
+// 剩余可调休小时 = 累计加班 - 已调休
+function calcOTRemain(s) {
+  var ot = parseFloat(s.overtime) || 0;
+  var lv = parseFloat(s.compensatory_leave) || 0;
+  return Math.round((ot - lv) * 10) / 10;
+}
+function fmtH(v) {
+  var n = parseFloat(v) || 0;
+  return (Math.round(n * 10) / 10).toString();
+}
+function escHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// 加载客服列表（只取在职：status != disabled 且未离职）
+async function loadStaffInfo() {
+  const tbody = document.getElementById('staff-tbody');
+  const countEl = document.getElementById('staff-count');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">加载中...</td></tr>';
+
+  try {
+    if (!supabase || typeof supabase.from !== 'function') {
+      throw new Error('数据服务未就绪，请稍后重试');
+    }
+    const { data, error } = await withTimeout(
+      supabase.from('profiles')
+        .select('id,name,real_name,phone,hire_date,position,group_name,overtime,compensatory_leave,status,left_at,role')
+        .order('group_name', { ascending: true })
+        .order('name', { ascending: true }),
+      15000, '客服信息'
+    );
+    if (error) throw error;
+
+    // 只显示"在职"：有 left_at 或 status=disabled 的视为已离职，不显示
+    staffInfoData = (data || []).filter(p => p.status !== 'disabled' && !p.left_at);
+    staffInfoFiltered = staffInfoData.slice();
+    renderStaffTable();
+  } catch (e) {
+    console.error('客服信息加载失败:', e);
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--danger);">加载异常：'
+      + escHtml(e.message || '未知错误')
+      + ' <a href="javascript:loadStaffInfo()" style="color:var(--primary);text-decoration:underline;">重试</a></td></tr>';
+    if (countEl) countEl.textContent = '';
+  }
+}
+
+// 渲染表格
+function renderStaffTable() {
+  const tbody = document.getElementById('staff-tbody');
+  const countEl = document.getElementById('staff-count');
+  if (!tbody) return;
+  const editable = canEdit('staff-info');
+
+  if (!staffInfoFiltered.length) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">'
+      + (staffInfoData.length ? '没有匹配的客服' : '暂无数据') + '</td></tr>';
+    if (countEl) countEl.textContent = staffInfoData.length ? ('匹配 ' + staffInfoFiltered.length + ' 人') : '';
+    return;
+  }
+
+  const groupOrder = { 'A组': 1, 'B组': 2, 'C组': 3 };
+  const rows = staffInfoFiltered.map(s => {
+    const remain = calcOTRemain(s);
+    const remainColor = remain > 0 ? 'var(--primary)' : 'var(--text-muted)';
+    const nameHtml = (s.name || '-') + (s.role === 'admin'
+      ? ' <span style="font-size:11px;color:#fff;background:#6C5CE7;border-radius:4px;padding:1px 5px;vertical-align:middle;">管理员</span>' : '')
+      + (s.role === 'leader'
+      ? ' <span style="font-size:11px;color:#fff;background:#F59E0B;border-radius:4px;padding:1px 5px;vertical-align:middle;">组长</span>' : '');
+    return '<tr>'
+      + '<td style="font-weight:600;">' + nameHtml + '</td>'
+      + '<td>' + (escHtml(s.real_name) || '<span style="color:var(--text-muted);">-</span>') + '</td>'
+      + '<td style="font-family:monospace;">' + (escHtml(s.phone) || '-') + '</td>'
+      + '<td>' + (escHtml(s.hire_date) || '<span style="color:var(--text-muted);">-</span>') + '</td>'
+      + '<td>' + (escHtml(s.position) || '-') + '</td>'
+      + '<td>' + (escHtml(s.group_name) || '-') + '</td>'
+      + '<td style="text-align:center;">' + fmtH(s.overtime) + '</td>'
+      + '<td style="text-align:center;">' + fmtH(s.compensatory_leave) + '</td>'
+      + '<td style="text-align:center;font-weight:700;color:' + remainColor + ';">' + fmtH(remain) + '</td>'
+      + '<td style="white-space:nowrap;">'
+      +   '<button class="btn-sm outline" onclick="openOTDrawer(\'' + s.id + '\')" title="加班调休明细">📋 明细</button>'
+      +   (editable ? ' <button class="btn-sm outline" onclick="openStaffDetail(\'' + s.id + '\')" title="编辑资料">✏️ 编辑</button>' : '')
+      + '</td>'
+      + '</tr>';
+  }).join('');
+
+  tbody.innerHTML = rows;
+  if (countEl) countEl.textContent = '共 ' + staffInfoData.length + ' 人在职'
+    + (staffInfoFiltered.length !== staffInfoData.length ? '，匹配 ' + staffInfoFiltered.length + ' 人' : '');
+}
+
+// 搜索过滤
+function filterStaff() {
+  const kw = (document.getElementById('staff-search').value || '').trim().toLowerCase();
+  if (!kw) {
+    staffInfoFiltered = staffInfoData.slice();
+  } else {
+    staffInfoFiltered = staffInfoData.filter(s =>
+      (s.name || '').toLowerCase().includes(kw)
+      || (s.real_name || '').toLowerCase().includes(kw)
+      || (s.phone || '').toLowerCase().includes(kw)
+    );
+  }
+  renderStaffTable();
+}
+
+// 复制全部（制表符分隔，方便粘进 Excel）
+function copyAllStaff() {
+  if (!staffInfoFiltered.length) { showToast('没有可复制的数据'); return; }
+  const header = ['花名', '真实姓名', '手机号', '入职日期', '岗位', '组别', '累计加班(h)', '已调休(h)', '剩余可调(h)'];
+  const lines = [header.join('\t')];
+  staffInfoFiltered.forEach(s => {
+    lines.push([s.name || '', s.real_name || '', s.phone || '', s.hire_date || '',
+      s.position || '', s.group_name || '', fmtH(s.overtime), fmtH(s.compensatory_leave), fmtH(calcOTRemain(s))].join('\t'));
+  });
+  const text = lines.join('\n');
+  const done = () => showToast('✅ 已复制 ' + staffInfoFiltered.length + ' 条记录');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+function fallbackCopy(text, cb) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    cb && cb();
+  } catch (e) { showToast('复制失败，请手动选择'); }
+}
+
+// 导出 CSV
+function exportStaffCSV() {
+  if (!staffInfoFiltered.length) { showToast('没有可导出的数据'); return; }
+  const header = ['花名', '真实姓名', '手机号', '入职日期', '岗位', '组别', '累计加班(h)', '已调休(h)', '剩余可调(h)'];
+  const esc = v => {
+    const s = (v === null || v === undefined) ? '' : String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const lines = [header.map(esc).join(',')];
+  staffInfoFiltered.forEach(s => {
+    lines.push([s.name, s.real_name, s.phone, s.hire_date, s.position, s.group_name,
+      fmtH(s.overtime), fmtH(s.compensatory_leave), fmtH(calcOTRemain(s))].map(esc).join(','));
+  });
+  const csv = '\ufeff' + lines.join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const d = new Date();
+  const stamp = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+  a.href = url;
+  a.download = '客服信息_' + stamp + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✅ 已导出 CSV');
+}
+
+// ===== 编辑客服资料 =====
+function openStaffDetail(id) {
+  const s = staffInfoData.find(x => x.id === id);
+  if (!s) { showToast('未找到该客服'); return; }
+  const val = (v) => (v === null || v === undefined) ? '' : String(v);
+  const html = ''
+    + '<div class="form-row"><label>花名</label><input type="text" id="sd-name" value="' + escHtml(val(s.name)) + '"></div>'
+    + '<div class="form-row"><label>真实姓名</label><input type="text" id="sd-real" value="' + escHtml(val(s.real_name)) + '" placeholder="选填"></div>'
+    + '<div class="form-row"><label>手机号</label><input type="tel" id="sd-phone" value="' + escHtml(val(s.phone)) + '" maxlength="11"></div>'
+    + '<div class="form-row"><label>入职日期</label><input type="date" id="sd-hire" value="' + escHtml(val(s.hire_date)) + '"></div>'
+    + '<div class="form-row"><label>岗位</label><input type="text" id="sd-position" value="' + escHtml(val(s.position)) + '" placeholder="如：售前客服"></div>'
+    + '<div class="form-row"><label>组别</label><input type="text" id="sd-group" value="' + escHtml(val(s.group_name)) + '" placeholder="如：A组"></div>'
+    + '<div class="form-row"><label>累计加班(h)</label><input type="number" id="sd-ot" value="' + escHtml(fmtH(s.overtime)) + '" step="0.5" min="0"></div>'
+    + '<div class="form-row"><label>已调休(h)</label><input type="number" id="sd-lv" value="' + escHtml(fmtH(s.compensatory_leave)) + '" step="0.5" min="0"></div>';
+  showStaffEditModal('编辑客服资料 - ' + (s.name || ''), html, async () => {
+    const patch = {
+      name: document.getElementById('sd-name').value.trim(),
+      real_name: document.getElementById('sd-real').value.trim() || null,
+      phone: document.getElementById('sd-phone').value.trim(),
+      hire_date: document.getElementById('sd-hire').value || null,
+      position: document.getElementById('sd-position').value.trim() || null,
+      group_name: document.getElementById('sd-group').value.trim() || null,
+      overtime: parseFloat(document.getElementById('sd-ot').value) || 0,
+      compensatory_leave: parseFloat(document.getElementById('sd-lv').value) || 0,
+      updated_at: new Date().toISOString()
+    };
+    if (!patch.name) { showToast('花名不能为空'); return false; }
+    try {
+      const { error } = await supabase.from('profiles').update(patch).eq('id', id);
+      if (error) throw error;
+      showToast('✅ 已保存');
+      await loadStaffInfo();
+      return true;
+    } catch (e) {
+      console.error(e);
+      showToast('保存失败：' + e.message);
+      return false;
+    }
+  });
+}
+function closeStaffDetail() { closeStaffEditModal(); }
+
+// 兼容旧调用名：保存客服资料（按 id 更新）
+async function saveStaffInfo(id, patch) {
+  try {
+    if (!supabase || typeof supabase.from !== 'function') throw new Error('数据服务未就绪');
+    if (!id) throw new Error('缺少客服 id');
+    const payload = Object.assign({}, patch, { updated_at: new Date().toISOString() });
+    const { error } = await supabase.from('profiles').update(payload).eq('id', id);
+    if (error) throw error;
+    const idx = staffInfoData.findIndex(x => x.id === id);
+    if (idx >= 0) Object.assign(staffInfoData[idx], payload);
+    renderStaffTable();
+    return true;
+  } catch (e) {
+    console.error('保存客服资料失败:', e);
+    showToast('保存失败：' + (e.message || '未知错误'));
+    return false;
+  }
+}
+
+// 通用编辑弹窗（复用 accts-modal 的样式类）
+function showStaffEditModal(title, bodyHtml, onSave) {
+  let ov = document.getElementById('sd-modal-overlay');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'sd-modal-overlay';
+    ov.className = 'accts-overlay';
+    ov.onclick = closeStaffEditModal;
+    document.body.appendChild(ov);
+  }
+  let box = document.getElementById('sd-modal');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'sd-modal';
+    box.className = 'accts-modal';
+    box.onclick = function (e) { e.stopPropagation(); };
+    document.body.appendChild(box);
+  }
+  box.style.maxWidth = '420px';
+  box.innerHTML = '<div class="accts-header"><h3>' + escHtml(title) + '</h3>'
+    + '<button class="accts-close" onclick="closeStaffEditModal()">✕</button></div>'
+    + '<div style="padding:6px 0;max-height:64vh;overflow-y:auto;">' + bodyHtml + '</div>'
+    + '<div class="accts-footer"><button class="btn-sm" id="sd-save-btn">💾 保存</button>'
+    + '<button class="btn-sm outline" onclick="closeStaffEditModal()">取消</button></div>';
+  document.getElementById('sd-save-btn').onclick = async function () {
+    const btn = this;
+    btn.disabled = true; btn.textContent = '保存中...';
+    const ok = await onSave();
+    btn.disabled = false; btn.textContent = '💾 保存';
+    if (ok) closeStaffEditModal();
+  };
+  ov.classList.add('show');
+  box.classList.add('show');
+}
+function closeStaffEditModal() {
+  const ov = document.getElementById('sd-modal-overlay');
+  const box = document.getElementById('sd-modal');
+  if (ov) ov.classList.remove('show');
+  if (box) box.classList.remove('show');
+}
+
+// ===== 加班调休抽屉 =====
+async function openOTDrawer(staffId) {
+  const s = staffInfoData.find(x => x.id === staffId);
+  if (!s) { showToast('未找到该客服'); return; }
+  currentOTStaff = s;
+  document.getElementById('ot-drawer-name').textContent = (s.name || '') + ' · 加班调休';
+  document.getElementById('ot-drawer-overlay').classList.add('show');
+  document.getElementById('ot-drawer').classList.add('show');
+  renderOTSummary();
+  await loadOTRecords(s.id);
+}
+
+function closeOTDrawer() {
+  document.getElementById('ot-drawer-overlay').classList.remove('show');
+  document.getElementById('ot-drawer').classList.remove('show');
+  hideOTAddForm('overtime');
+  hideOTAddForm('leave');
+  currentOTStaff = null;
+  currentOTRecords = [];
+}
+
+function renderOTSummary() {
+  const el = document.getElementById('ot-drawer-summary');
+  if (!el || !currentOTStaff) return;
+  const s = currentOTStaff;
+  const ot = parseFloat(s.overtime) || 0;
+  const lv = parseFloat(s.compensatory_leave) || 0;
+  const remain = calcOTRemain(s);
+  el.innerHTML = '<div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center;">'
+    + '<div style="text-align:center;"><div style="font-size:12px;color:#9CA3AF;">累计加班</div><div style="font-size:20px;font-weight:700;">' + fmtH(ot) + ' h</div></div>'
+    + '<div style="text-align:center;"><div style="font-size:12px;color:#9CA3AF;">已调休</div><div style="font-size:20px;font-weight:700;">' + fmtH(lv) + ' h</div></div>'
+    + '<div style="text-align:center;"><div style="font-size:12px;color:#9CA3AF;">剩余可调</div><div style="font-size:20px;font-weight:700;color:#10B981;">' + fmtH(remain) + ' h</div></div>'
+    + '</div>';
+}
+
+// 加载该客服的加班/调休记录
+async function loadOTRecords(staffId) {
+  try {
+    if (!supabase || typeof supabase.from !== 'function') throw new Error('数据服务未就绪');
+    const { data, error } = await withTimeout(
+      supabase.from('overtime_records')
+        .select('*')
+        .eq('staff_id', staffId)
+        .order('record_date', { ascending: false }),
+      12000, '加班调休记录'
+    );
+    if (error) throw error;
+    currentOTRecords = data || [];
+  } catch (e) {
+    console.warn('加班调休记录加载失败（可能表不存在）:', e.message);
+    currentOTRecords = [];
+  }
+  renderOTList('overtime');
+  renderOTList('leave');
+}
+
+function renderOTList(type) {
+  const el = document.getElementById(type === 'overtime' ? 'ot-overtime-list' : 'ot-leave-list');
+  if (!el) return;
+  const editable = canEdit('staff-info');
+  const list = currentOTRecords.filter(r => (r.record_type || 'overtime') === type);
+  if (!list.length) {
+    el.innerHTML = '<div style="padding:14px;text-align:center;color:var(--text-muted);font-size:13px;">暂无记录</div>';
+    return;
+  }
+  el.innerHTML = list.map(r => {
+    const d = r.record_date || (r.created_at ? String(r.created_at).slice(0, 10) : '');
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border-soft);font-size:13px;">'
+      + '<span style="color:var(--text-secondary);min-width:88px;">' + escHtml(d) + '</span>'
+      + '<span style="font-weight:600;min-width:52px;">' + fmtH(r.hours) + ' h</span>'
+      + '<span style="flex:1;color:var(--text-secondary);">' + escHtml(r.note || '') + '</span>'
+      + (editable ? '<button class="btn-sm outline" onclick="deleteOTRecord(\'' + r.id + '\',\'' + type + '\')">删除</button>' : '')
+      + '</div>';
+  }).join('');
+}
+
+// 显示新增表单
+function showOTAddForm(type) {
+  const form = document.getElementById(type === 'overtime' ? 'ot-overtime-form' : 'ot-leave-form');
+  if (form) form.style.display = 'flex';
+  const d = document.getElementById(type === 'overtime' ? 'ot-ov-date' : 'ot-lv-date');
+  if (d && !d.value) d.value = new Date().toISOString().slice(0, 10);
+}
+function hideOTAddForm(type) {
+  const form = document.getElementById(type === 'overtime' ? 'ot-overtime-form' : 'ot-leave-form');
+  if (form) form.style.display = 'none';
+}
+
+// 保存一条加班/调休记录（同时累加到 profiles 的合计字段）
+async function saveOTRecord(type) {
+  if (!currentOTStaff) { showToast('请先选择客服'); return; }
+  const isOT = type === 'overtime';
+  const dateEl = document.getElementById(isOT ? 'ot-ov-date' : 'ot-lv-date');
+  const hourEl = document.getElementById(isOT ? 'ot-ov-hours' : 'ot-lv-hours');
+  const noteEl = document.getElementById(isOT ? 'ot-ov-note' : 'ot-lv-note');
+  const date = dateEl.value;
+  const hours = parseFloat(hourEl.value);
+  const note = (noteEl.value || '').trim();
+
+  if (!date) { showToast('请选择日期'); return; }
+  if (!hours || hours <= 0) { showToast('请输入有效小时数'); return; }
+
+  try {
+    if (!supabase || typeof supabase.from !== 'function') throw new Error('数据服务未就绪');
+
+    // 调休不能超过剩余可调
+    if (!isOT) {
+      const remain = calcOTRemain(currentOTStaff);
+      if (hours > remain) {
+        showToast('调休超出剩余可调时长（剩余 ' + fmtH(remain) + ' h）');
+        return;
+      }
+    }
+
+    // 1. 写明细
+    const rec = {
+      staff_id: currentOTStaff.id,
+      staff_name: currentOTStaff.name || '',
+      record_type: type,
+      record_date: date,
+      hours: hours,
+      note: note || null,
+      created_at: new Date().toISOString()
+    };
+    const { error: e1 } = await supabase.from('overtime_records').insert([rec]);
+    if (e1) throw e1;
+
+    // 2. 累加到 profiles 合计
+    const otOld = parseFloat(currentOTStaff.overtime) || 0;
+    const lvOld = parseFloat(currentOTStaff.compensatory_leave) || 0;
+    const patch = {
+      overtime: isOT ? Math.round((otOld + hours) * 10) / 10 : otOld,
+      compensatory_leave: isOT ? lvOld : Math.round((lvOld + hours) * 10) / 10,
+      updated_at: new Date().toISOString()
+    };
+    const { error: e2 } = await supabase.from('profiles').update(patch).eq('id', currentOTStaff.id);
+    if (e2) throw e2;
+
+    // 3. 本地同步
+    currentOTStaff.overtime = patch.overtime;
+    currentOTStaff.compensatory_leave = patch.compensatory_leave;
+    const idx = staffInfoData.findIndex(x => x.id === currentOTStaff.id);
+    if (idx >= 0) { staffInfoData[idx].overtime = patch.overtime; staffInfoData[idx].compensatory_leave = patch.compensatory_leave; }
+
+    dateEl.value = ''; hourEl.value = ''; noteEl.value = '';
+    hideOTAddForm(type);
+    renderOTSummary();
+    await loadOTRecords(currentOTStaff.id);
+    renderStaffTable();
+    showToast('✅ 已保存 ' + fmtH(hours) + ' 小时');
+  } catch (e) {
+    console.error(e);
+    showToast('保存失败：' + (e.message || '未知错误'));
+  }
+}
+
+// 删除一条记录（同时从 profiles 合计里扣回）
+async function deleteOTRecord(recId, type) {
+  const r = currentOTRecords.find(x => String(x.id) === String(recId));
+  if (!r) { showToast('未找到记录'); return; }
+  if (!confirm('确定删除这条 ' + fmtH(r.hours) + ' 小时记录吗？合计将同步扣减。')) return;
+  try {
+    if (!supabase || typeof supabase.from !== 'function') throw new Error('数据服务未就绪');
+    const isOT = type === 'overtime';
+    const hours = parseFloat(r.hours) || 0;
+
+    const { error: e1 } = await supabase.from('overtime_records').delete().eq('id', recId);
+    if (e1) throw e1;
+
+    const otOld = parseFloat(currentOTStaff.overtime) || 0;
+    const lvOld = parseFloat(currentOTStaff.compensatory_leave) || 0;
+    const patch = {
+      overtime: isOT ? Math.max(0, Math.round((otOld - hours) * 10) / 10) : otOld,
+      compensatory_leave: isOT ? lvOld : Math.max(0, Math.round((lvOld - hours) * 10) / 10),
+      updated_at: new Date().toISOString()
+    };
+    const { error: e2 } = await supabase.from('profiles').update(patch).eq('id', currentOTStaff.id);
+    if (e2) throw e2;
+
+    currentOTStaff.overtime = patch.overtime;
+    currentOTStaff.compensatory_leave = patch.compensatory_leave;
+    const idx = staffInfoData.findIndex(x => x.id === currentOTStaff.id);
+    if (idx >= 0) { staffInfoData[idx].overtime = patch.overtime; staffInfoData[idx].compensatory_leave = patch.compensatory_leave; }
+
+    renderOTSummary();
+    await loadOTRecords(currentOTStaff.id);
+    renderStaffTable();
+    showToast('✅ 已删除');
+  } catch (e) {
+    console.error(e);
+    showToast('删除失败：' + (e.message || '未知错误'));
+  }
+}
+// ==================== 客服信息管理 END ====================
+
+
 // ==================== AUTH ====================
 async function initSupabase() {
   try {
