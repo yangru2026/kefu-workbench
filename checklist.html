@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>售前工作清单</title>
+<style>
+  :root{
+    --primary:#10B981; --primary-dark:#059669; --primary-light:#d1fae5;
+    --bg:#F7F9F8; --card:#ffffff; --text:#1e293b; --text2:#64748b;
+    --border:#e2e8f0; --danger:#c0392b; --warn:#b45309; --warn-bg:#fef3c7;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;background:var(--bg);color:var(--text);padding:16px 18px 30px;}
+  .topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+  .topbar h1{font-size:20px;font-weight:800;letter-spacing:.5px;}
+  .badge{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--primary-light);color:var(--primary-dark);font-weight:600;}
+  .badge.locked{background:#fee2e2;color:var(--danger);}
+  .progress-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 16px;margin-bottom:14px;display:flex;gap:18px;flex-wrap:wrap;align-items:center;}
+  .prog{flex:1;min-width:180px;}
+  .prog .lab{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:4px;}
+  .prog .lab b{color:var(--text);font-size:13px;}
+  .bar{height:8px;border-radius:99px;background:#eef2f0;overflow:hidden;}
+  .bar i{display:block;height:100%;border-radius:99px;background:var(--primary);transition:width .3s;}
+  .tabs{display:flex;gap:8px;margin-bottom:14px;}
+  .tab{padding:8px 20px;border-radius:999px;border:1px solid var(--border);background:#fff;color:var(--text2);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
+  .tab.active{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .hint{font-size:12px;color:var(--text2);margin:-6px 0 12px 2px;line-height:1.7;}
+  .hint b{color:var(--warn);}
+  .list{display:flex;flex-direction:column;gap:10px;max-width:860px;}
+  .item{display:flex;align-items:flex-start;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;cursor:pointer;transition:all .15s;position:relative;}
+  .item:hover{border-color:var(--primary);box-shadow:0 2px 10px rgba(16,185,129,.10);}
+  .item.due{border-left:4px solid var(--primary);}
+  .item.overdue{border-left:4px solid var(--danger);}
+  .item.done{opacity:.62;border-left:4px solid var(--border);}
+  .chk{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid #cbd5e1;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;background:#fff;transition:all .15s;}
+  .item.done .chk{background:var(--primary);border-color:var(--primary);}
+  .body{flex:1;min-width:0;}
+  .title{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .title small{font-size:12px;color:var(--text2);font-weight:500;}
+  .desc{font-size:12.5px;color:var(--text2);margin-top:3px;line-height:1.6;}
+  .tag{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600;flex:none;}
+  .tag.today{background:var(--primary-light);color:var(--primary-dark);}
+  .tag.todo{background:var(--warn-bg);color:var(--warn);}
+  .tag.flex{background:#e0e7ff;color:#4338ca;}
+  .tag.ok{background:#f1f5f9;color:var(--text2);}
+  .doneat{font-size:11px;color:var(--primary-dark);flex:none;margin-top:4px;}
+  .empty{padding:40px;text-align:center;color:var(--text2);font-size:14px;}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#1e293b;color:#fff;padding:9px 18px;border-radius:99px;font-size:13px;opacity:0;pointer-events:none;transition:all .25s;z-index:99;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>✅ 售前工作清单</h1>
+    <span class="badge" id="dateBadge">加载中…</span>
+    <span class="badge" id="roleBadge">…</span>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="prog"><div class="lab"><b>今日</b><span id="pDaily">0/8</span></div><div class="bar"><i id="bDaily" style="width:0%"></i></div></div>
+    <div class="prog"><div class="lab"><b>本周</b><span id="pWeek">0/9</span></div><div class="bar"><i id="bWeek" style="width:0%"></i></div></div>
+    <div class="prog"><div class="lab"><b>本月</b><span id="pMonth">0/11</span></div><div class="bar"><i id="bMonth" style="width:0%"></i></div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="daily" onclick="setTab('daily')">今日</button>
+    <button class="tab" data-tab="weekly" onclick="setTab('weekly')">本周</button>
+    <button class="tab" data-tab="monthly" onclick="setTab('monthly')">本月</button>
+  </div>
+  <div class="hint">点卡片打卡 / 再点取消；<b>绿边 = 今天该做</b>，<b>红边 = 已到期还没做</b>，勾选 = 已完成</div>
+
+  <div class="list" id="list"></div>
+  <div class="toast" id="toast"></div>
+
+<script src="vendor/supabase.min.js?v=2"></script>
+<script>
+/* ==================== 配置 ==================== */
+const SUPABASE_URL = 'https://ienmejlxukhrxjjxvfqf.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imllbm1lamx4dWtocnhqanh2ZnFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMTgyMjgsImV4cCI6MjEwMDc5NDIyOH0.Z6n6eMSgTVSFeXg1y8Inzh5LQenSgonNWE2plZM29co';
+let sb = null;
+
+/* ==================== 清单定义（来自《客服管理固定工作清单》售前管理页） ==================== */
+const DAILY = [
+  { k:'d-data',       t:'昨日核心数据监控', d:'接待量、转化率、销售额、响应时长、满意度，异常及时预警', time:'30分钟' },
+  { k:'d-sync',       t:'群内同步',         d:'同步昨日数据、今日重点事项、表扬/提醒', time:'30分钟' },
+  { k:'d-qc',         t:'质检抽查',         d:'各店铺随机抽客服聊天记录，看话术规范；通过排查旺店通有备注订单，提前洞察异常和客户需求', time:'60分钟' },
+  { k:'d-badreview',  t:'差评跟进',         d:'前一天的差评、不满意，看客服存在的问题，以及有没有升级风险', time:'60分钟' },
+  { k:'d-diversion',  t:'分流情况监控',     d:'查看各店铺夜间期间的进线客户有没有回复和异常', time:'30分钟' },
+  { k:'d-exception',  t:'异常情况处理',     d:'客服请假、流量暴增、突发客诉、优化机器人回复错误、系统问题等', flex:true },
+  { k:'d-bot-mkt',    t:'按需机器人营销设置', d:'运营有新活动/新机制时，及时更新机器人自动回复内容（活动介绍、优惠券、催付话术等）', flex:true },
+  { k:'d-bot-stock',  t:'缺货花色机器人引导', d:'缺货花色设置机器人自动回复补货时间+引导预定，到货后及时通知并关闭对应话术', flex:true },
+];
+const WEEKLY = [
+  { k:'w-rank',        t:'客服排名公示',        d:'每周发一次个人排名，带色块对比，激励后进', wd:1 },
+  { k:'w-align',       t:'跨部门对齐',          d:'和运营对活动机制、和售后对客诉情况', wd:1 },
+  { k:'w-qcsum',       t:'质检结果汇总',        d:'本周质检发现的共性问题，提炼成SOP或提醒', wd:2 },
+  { k:'w-penalty',     t:'扣罚明细同步+问题培训', d:'汇总本周质检扣罚明细，同步给对应客服，高频问题组织培训', wd:2 },
+  { k:'w-1on1',        t:'1对1沟通',            d:'每周至少找1-2个客服聊，特别是数据下滑或新人', wd:3 },
+  { k:'w-newpattern',  t:'上新花色整理',        d:'整理当周新上的花色，同步给客服：话术图片素材/新花色卖点', wd:4 },
+  { k:'w-scripts',     t:'话术更新',            d:'根据本周高频问题、活动变化，更新话术库', wd:4 },
+  { k:'w-review',      t:'周度数据复盘',        d:'3个组的接待量/转化率/销售额/连带率对比，找异常', wd:5 },
+  { k:'w-nextplan',    t:'下周工作安排',        d:'下周各项工作的安排与时间节点（根据排班变动调整）', wd:5 },
+];
+const MONTHLY = [
+  { k:'m-attend',   t:'客服出勤核算',       d:'各店铺客服出勤天数核算', md:2 },
+  { k:'m-outpay',   t:'外包扣罚清单核对',   d:'每月初整理上月完整扣罚清单，和外包方核对', md:2 },
+  { k:'m-ppt',      t:'月度复盘PPT',        d:'店铺转化、客服排名、销售额、客户之声、下月计划', md:5 },
+  { k:'m-train1',   t:'培训计划①',          d:'针对上月共性问题，组织1-2次培训（新人/全员）', md:10 },
+  { k:'m-optimize', t:'流程/工具优化',      d:'售前工作台功能迭代、话术库更新、规则调整', md:15 },
+  { k:'m-target',   t:'下月目标拆解',       d:'把公司目标拆解到组、到个人，对齐到每个客服', md:20 },
+  { k:'m-sched',    t:'客服下月排班',       d:'收集所有客服下月排班需求，制定排班表', md:25 },
+  { k:'m-train2',   t:'培训计划②',          d:'针对上月共性问题，组织1-2次培训（新人/全员）', md:25 },
+  { k:'m-perf',     t:'绩效核算',           d:'按去退销售额、转化率、满意度算绩效，核对无误后发', md:28 },
+  { k:'m-inventory',t:'人员盘点',           d:'谁需要淘汰、谁需要培养、谁需要补位，向外包提用人需求', md:28 },
+  { k:'m-outsrc',   t:'外包管理',           d:'外包人数、质量、成本核对，和外包对接人沟通', md:28 },
+];
+const WD = ['周日','周一','周二','周三','周四','周五','周六'];
+
+/* ==================== 状态 ==================== */
+let tab='daily', doneMap={}, currentUser=null, isAdmin=false, busy=false;
+
+/* ==================== 工具 ==================== */
+const $ = (id)=>document.getElementById(id);
+function pad(n){ return String(n).padStart(2,'0'); }
+function dstr(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),1800); }
+function esc(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtTime(ts){ try{ const d=new Date(ts); return pad(d.getHours())+':'+pad(d.getMinutes()); }catch(e){ return ''; } }
+
+/* 周期 key：日=D+日期 / 周=W+周一日期 / 月=M+年月 */
+function mondayOf(d){ const m=new Date(d); const w=(m.getDay()+6)%7; m.setDate(m.getDate()-w); return m; }
+function periodKeys(){
+  const now=new Date();
+  return { d:'D'+dstr(now), w:'W'+dstr(mondayOf(now)), m:'M'+dstr(now).slice(0,7) };
+}
+
+/* ==================== 初始化 ==================== */
+async function init(){
+  $('dateBadge').textContent = (new Date().getMonth()+1)+'月'+new Date().getDate()+'日 · '+WD[new Date().getDay()];
+  try{ sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); }catch(e){}
+  if(!sb){ renderMsg('组件加载失败，请刷新重试'); return; }
+  const { data:{session} } = await sb.auth.getSession();
+  currentUser = session && session.user;
+  if(!currentUser){ $('roleBadge').className='badge locked'; $('roleBadge').textContent='未登录'; renderMsg('🔒 请先登录工作台后再使用本页'); return; }
+  let role = currentUser.app_metadata && currentUser.app_metadata.role;
+  try{ const { data:p } = await sb.from('profiles').select('role').eq('id', currentUser.id).single(); if(p) role=p.role; }catch(e){}
+  isAdmin = (role==='admin');
+  if(!isAdmin){ $('roleBadge').className='badge locked'; $('roleBadge').textContent='🔒 仅管理员可见'; renderMsg('🔒 本页面仅管理员（杨茹）可见'); return; }
+  $('roleBadge').textContent='👑 管理员';
+  await loadDone();
+  render();
+}
+function renderMsg(msg){ $('list').innerHTML='<div class="empty">'+esc(msg)+'</div>'; }
+
+async function loadDone(){
+  const k = periodKeys();
+  try{
+    const { data, error } = await sb.from('checkin_records')
+      .select('item_key,period_key,done_at')
+      .in('period_key',[k.d,k.w,k.m]);
+    if(error) throw error;
+    doneMap={};
+    (data||[]).forEach(r=>{ doneMap[r.item_key+'|'+r.period_key]=r.done_at; });
+  }catch(e){ renderMsg('记录加载失败：'+(e.message||'网络异常')+'，请刷新重试'); }
+}
+
+/* ==================== 渲染 ==================== */
+function setTab(t){ tab=t; document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===t)); render(); }
+
+function stateOf(item, kind){
+  const k=periodKeys();
+  const pk = kind==='daily'?k.d : kind==='weekly'?k.w : k.m;
+  const key=item.k+'|'+pk;
+  const doneAt=doneMap[key];
+  // 到期判断
+  const now=new Date(); let due='future', anchorTxt='';
+  if(kind==='daily'){ due='today'; anchorTxt=item.time?('预计 '+item.time):''; if(item.flex) anchorTxt='随时'; }
+  if(kind==='weekly'){
+    anchorTxt=WD[item.wd];
+    const diff=now.getDay()-item.wd;
+    due = diff===0?'today' : diff>0?'overdue':'future';
+  }
+  if(kind==='monthly'){
+    anchorTxt=item.md+'号';
+    const diff=now.getDate()-item.md;
+    due = diff===0?'today' : diff>0?'overdue':'future';
+  }
+  if(item.flex && kind==='daily'){ due='today'; }
+  return { pk, doneAt, due, anchorTxt };
+}
+
+function render(){
+  const src = tab==='daily'?DAILY : tab==='weekly'?WEEKLY : MONTHLY;
+  const kind = tab;
+  let html='', done=0;
+  src.forEach(item=>{
+    const st=stateOf(item,kind);
+    if(st.doneAt) done++;
+    const cls = st.doneAt?'done' : st.due==='today'?'due' : st.due==='overdue'?'overdue':'';
+    let tag='';
+    if(st.doneAt) tag='<span class="tag ok">已完成</span>';
+    else if(st.due==='today') tag='<span class="tag today">今天该做</span>';
+    else if(st.due==='overdue') tag='<span class="tag todo">待办</span>';
+    if(item.flex && kind==='daily') tag+='<span class="tag flex">随时</span>';
+    html+='<div class="item '+cls+'" onclick="toggle(\''+item.k+'\')">'
+      +'<div class="chk">'+(st.doneAt?'✓':'')+'</div>'
+      +'<div class="body"><div class="title">'+esc(item.t)+' <small>'+(st.anchorTxt?esc(st.anchorTxt):'')+'</small></div>'
+      +'<div class="desc">'+esc(item.d)+'</div></div>'
+      +tag+(st.doneAt?'<span class="doneat">'+fmtTime(st.doneAt)+'</span>':'')
+      +'</div>';
+  });
+  $('list').innerHTML = html||'<div class="empty">没有内容</div>';
+  updateProgress(done, src.length);
+}
+
+function updateProgress(done,total){
+  const map={ daily:['pDaily','bDaily'], weekly:['pWeek','bWeek'], monthly:['pMonth','bMonth'] };
+  const [p,b]=map[tab];
+  $(p).textContent=done+'/'+total;
+  $(b).style.width=Math.round(done/total*100)+'%';
+}
+
+/* ==================== 打卡 / 取消 ==================== */
+async function toggle(itemKey){
+  if(busy||!isAdmin) return;
+  const src = tab==='daily'?DAILY : tab==='weekly'?WEEKLY : MONTHLY;
+  const item = src.find(x=>x.k===itemKey); if(!item) return;
+  const k=periodKeys();
+  const pk = tab==='daily'?k.d : tab==='weekly'?k.w : k.m;
+  const key=itemKey+'|'+pk;
+  busy=true;
+  try{
+    if(doneMap[key]){
+      if(!confirm('取消「'+item.t+'」的打卡？')) { busy=false; return; }
+      await sb.from('checkin_records').delete()
+        .eq('item_key',itemKey).eq('period_key',pk).eq('user_id',currentUser.id);
+      delete doneMap[key];
+      toast('已取消');
+    }else{
+      const { error } = await sb.from('checkin_records')
+        .insert({ item_key:itemKey, period_key:pk, user_id:currentUser.id });
+      if(error) throw error;
+      doneMap[key]=new Date().toISOString();
+      toast('✅ 已打卡「'+item.t+'」');
+    }
+    render();
+  }catch(e){ toast('操作失败：'+(e.message||'网络异常')); }
+  busy=false;
+}
+window.toggle=toggle; window.setTab=setTab;
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+</script>
+</body>
+</html>
