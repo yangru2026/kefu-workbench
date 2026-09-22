@@ -19,6 +19,18 @@
   // 库加载统一超时：GitHub Pages 在境外，国内加载 212KB/881KB 常在 6s 内完不成，
   // 原 6s 超时会把"还在下载"误判为"失败"，是「加载异常」的根因。
   var LIB_TIMEOUT = 20000;
+
+  // ── Service Worker：把 vendor 库缓存到本地，后续打开不再依赖境外网络
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js', { scope: './' }).then(function (reg) {
+        // 有新版本时静默更新，下次打开生效
+        if (reg && reg.update) { try { reg.update(); } catch (e) {} }
+      }).catch(function (e) {
+        console.warn('Service Worker 注册失败（不影响使用）:', e && e.message);
+      });
+    });
+  }
   function loadScript(src, cb, timeout) {
     var s = document.createElement('script');
     var done = false;
@@ -31,18 +43,22 @@
     document.head.appendChild(s);
   }
   // 自动恢复：库全部源失败后，指数退避自动重试（用户无需手动刷新）
-  function autoRecover(name, retryFn, checkFn) {
+  // 关键：重试时只打「本地 vendor」——那 4 个公共 CDN 在国内基本不通，
+  //       反复重试它们纯属浪费时间，会拖长自愈时间。
+  function autoRecover(name, retryFn, checkFn, localOnlyFn) {
     if (window['__AR_' + name]) return;
     window['__AR_' + name] = true;
     var n = 0;
     (function tick() {
       if (checkFn()) { window['__AR_' + name] = false; return; }
       n++;
-      var wait = Math.min(3000 * n, 20000);
+      if (n > 12) { window['__AR_' + name] = false; return; }  // 上限，避免无限循环
+      var wait = Math.min(2500 * n, 15000);
       setTimeout(function () {
         if (checkFn()) { window['__AR_' + name] = false; return; }
         console.warn('[自动恢复] 重新加载 ' + name + ' (第 ' + n + ' 次)');
-        retryFn();
+        if (localOnlyFn) { try { localOnlyFn(); } catch (e) { retryFn(); } }
+        else { retryFn(); }
         tick();
       }, wait);
     })();
@@ -68,9 +84,11 @@
         loadSupabase(0);
       };
       if (document.readyState !== 'loading') window.__supabaseLibFail && window.__supabaseLibFail();
-      // 关键新增：所有源都失败后自动退避重试，不必等用户手动刷新
+      // 关键新增：所有源都失败后自动退避重试，不必等用户手动刷新。
+      // 重试时只打本地 vendor（公共 CDN 在国内基本不通，重试它们只会拖慢自愈）。
       autoRecover('supabase', function () { window.__retrySupabaseLoad(); },
-        function () { return !!(window.supabase && window.supabase.createClient); });
+        function () { return !!(window.supabase && window.supabase.createClient); },
+        function () { loadSupabaseLocal(); });
       return;
     }
     loadScript(urls[i], function (err) {
@@ -82,6 +100,17 @@
       setTimeout(function () { loadSupabase(i + 1); }, 300);
     }, LIB_TIMEOUT);
   })(0);
+  // 只加载本地 vendor 源（用于网络恢复后的快速重试）
+  function loadSupabaseLocal() {
+    if (window.supabase && window.supabase.createClient) return;
+    loadScript('vendor/supabase.min.js?v=2&r=' + Date.now(), function (err) {
+      if (!err && window.supabase && window.supabase.createClient) {
+        window.__SUPABASE_LIB_OK = true;
+        window.__SUPABASE_LIB_FAILED = false;
+      }
+    }, LIB_TIMEOUT);
+  }
+
   // xlsx：本地 vendor → 国内镜像(npmmirror) → fastly/jsdelivr → unpkg
   (function loadXlsx(i) {
     var urls = [
@@ -93,8 +122,9 @@
     ];
     if (window.XLSX) return;
     if (i >= urls.length) {
-      // xlsx 失败同样自动退避重试（导出 CSV/Excel 依赖它）
-      autoRecover('xlsx', function () { loadXlsx(0); }, function () { return !!window.XLSX; });
+      // xlsx 失败同样自动退避重试（导出 CSV/Excel 依赖它），同样只打本地源
+      autoRecover('xlsx', function () { loadXlsx(0); }, function () { return !!window.XLSX; },
+        function () { loadXlsxLocal(); });
       return;
     }
     loadScript(urls[i], function (err) {
@@ -102,6 +132,10 @@
       setTimeout(function () { loadXlsx(i + 1); }, 300);
     }, LIB_TIMEOUT);
   })(0);
+  function loadXlsxLocal() {
+    if (window.XLSX) return;
+    loadScript('vendor/xlsx.full.min.js?v=2&r=' + Date.now(), function () {}, LIB_TIMEOUT);
+  }
 })();
 </script>
 <style>
