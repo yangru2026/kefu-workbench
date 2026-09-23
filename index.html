@@ -1702,6 +1702,9 @@ body {
   font-size:13px; text-align:left !important; padding-left:28px !important; }
 .rk-table tr.rk-group-l2 .rk-sub { color:var(--text-secondary); font-weight:400; font-size:12px; }
 .rk-table tr.rk-shop-row td { font-size:13.5px; padding-top:10px; padding-bottom:10px; }
+/* 按人看：缺店标红提示（该店按 0 计入合计，但值得留意） */
+.rk-table .rk-cover-warn { color:#d97706; font-style:normal; font-weight:600; }
+.rk-table tr.rk-group-row .rk-sub { font-weight:400; }
 /* 按店看时隐藏「店铺」列（已写在分组标题里） */
 .rk-table.rk-hide-shop th.rk-c-shop,
 .rk-table.rk-hide-shop td.rk-c-shop { display:none; }
@@ -5015,6 +5018,14 @@ async function saveScheduleCellToDB(staffName, monthKey, schedule) {
 // ranking_daily 由桌面看板「每日明细 · 客服每日明细·按分组」同步而来
 // 唯一键：(work_date, group_name, staff_name, shop_name)
 const RK_GROUP_LABEL = { '售前1组': 'A组', '售前2组': 'B组', '售前3组': 'C组' };
+// ★ 各组负责的标准店铺（2026-09-21 确认）——「按人看」时用它统一分母：
+//   同一组里每个人的合计范围都是「本组全部标准店」，某人某店没数据按 0 计，
+//   这样不会出现「A 合计 5 个店、B 合计 6 个店」导致排名不公平。
+const RK_GROUP_SHOPS = {
+  '售前1组': ['京东弥生', '天猫弥生', '天猫极氧', '快手弥生', '抖音1店', '抖音YH', '抖音极氧', '拼多多YH'],
+  '售前2组': ['小红书弥生', '抖音3店', '拼多多1店', '拼多多2店', '拼多多3店', '拼多多4店', '拼多多5店', '拼多多7店'],
+  '售前3组': ['抖音2店', '抖音4店']
+};
 const RK_METRICS = [
   { key: 'conversion',   label: '转化率', fmt: 'pct',   better: 'high' },
   { key: 'sales',        label: '销售额', fmt: 'money', better: 'high' },
@@ -5168,7 +5179,8 @@ function rkSortBy(key) {
 
 // 把明细行聚合成「一条 = 一个客服（可选：再按店铺拆）」
 // 口径：询单/付款/销售额 **求和**；转化率 = 付款/询单；满意度/响应 **按询单人数加权**
-function rkAgg(rows, byShop) {
+// ★ 按人看时：改由 rkAggPerson() 走「本组标准店铺」口径，保证同组内每人分母一致
+function rkAggByShop(rows, byShop) {
   const map = new Map();
   rows.forEach(r => {
     const k = byShop ? (r.group_name + '||' + r.staff_name + '||' + r.shop_name)
@@ -5188,13 +5200,14 @@ function rkAgg(rows, byShop) {
     o.payment += pay;
     o.sales += Number(r.sales) || 0;
     if (r.shop_name) o.shops.add(r.shop_name);
-    const sat = Number(r.satisfaction);
-    if (isFinite(sat) && inq > 0) { o.satW += sat * inq; o.satN += inq; }
-    const resp = Number(r.response_time);
-    if (isFinite(resp) && resp > 0 && inq > 0) { o.respW += resp * inq; o.respN += inq; }
-    // 没有询单人数时退化为算术平均，保证有值可看
-    if (isFinite(sat) && inq <= 0) { o.satW += sat; o.satN += 1; }
-    if (isFinite(resp) && resp > 0 && inq <= 0) { o.respW += resp; o.respN += 1; }
+    // ★ 同 rkAggPerson：询单为 0 的店（没接待）不参与满意度/响应合计，
+    //   否则看板里写死的 satisfaction=0 会污染整组合计值。
+    if (inq > 0) {
+      const sat = Number(r.satisfaction);
+      if (isFinite(sat)) { o.satW += sat * inq; o.satN += inq; }
+      const resp = Number(r.response_time);
+      if (isFinite(resp) && resp > 0) { o.respW += resp * inq; o.respN += inq; }
+    }
   });
   return Array.from(map.values()).map(o => ({
     group: o.group, name: o.name, shop: o.shop,
@@ -5204,6 +5217,77 @@ function rkAgg(rows, byShop) {
     satisfaction: o.satN > 0 ? o.satW / o.satN : null,
     response: o.respN > 0 ? o.respW / o.respN : null
   }));
+}
+
+// 把明细行聚合成「一条 = 一个客服」，且**按本组标准店铺**合计。
+// 关键：分母固定 = 本组标准店铺数（A/B 组 8 个、C 组 2 个），
+//       某人某店当天没数据 → 该店按 0 计入分母，不影响别人、也不虚高。
+function rkAggPerson(rows) {
+  const map = new Map();
+  rows.forEach(r => {
+    const k = r.group_name + '||' + r.staff_name;
+    if (!map.has(k)) {
+      map.set(k, {
+        group: r.group_name, name: r.staff_name,
+        shops: new Set(), miss: [],
+        inquiry: 0, payment: 0, sales: 0,
+        satW: 0, satN: 0, respW: 0, respN: 0
+      });
+    }
+    const o = map.get(k);
+    const inq = Number(r.inquiry) || 0;
+    o.inquiry += inq;
+    o.payment += Number(r.payment) || 0;
+    o.sales += Number(r.sales) || 0;
+    if (r.shop_name) o.shops.add(r.shop_name);
+    // ★ 满意度/响应只在「当天该店有接待（询单>0）」时才参与合计。
+    //   看板里没接待的店会写 satisfaction=0 / response=null，若把 0 也算进去
+    //   会把没干活的人拉成 0%，也会把正常人的满意度拉低。→ 询单为 0 一律不计。
+    if (inq > 0) {
+      const sat = Number(r.satisfaction);
+      if (isFinite(sat)) { o.satW += sat * inq; o.satN += inq; }
+      const resp = Number(r.response_time);
+      if (isFinite(resp) && resp > 0) { o.respW += resp * inq; o.respN += inq; }
+    }
+  });
+  const out = Array.from(map.values()).map(o => {
+    const std = RK_GROUP_SHOPS[o.group] || [];
+    const has = Array.from(o.shops);
+    // 标准店里当天没有数据记录的（含完全缺失 / 休息）
+    const miss = std.filter(sh => has.indexOf(sh) < 0);
+    // 该客服名下有数据、但不属于本组标准店的店（数据异常/跨组支援，单独提示）
+    const extra = has.filter(sh => std.length && std.indexOf(sh) < 0);
+    return {
+      group: o.group, name: o.name, shop: '',
+      shops: has, miss: miss, extra: extra,
+      stdCount: std.length, cover: std.length ? (std.length - miss.length) : has.length,
+      inquiry: o.inquiry, payment: o.payment, sales: o.sales,
+      conversion: o.inquiry > 0 ? o.payment / o.inquiry : null,
+      satisfaction: o.satN > 0 ? o.satW / o.satN : null,
+      response: o.respN > 0 ? o.respW / o.respN : null
+    };
+  });
+  // ★ 补足：本组有标准店清单、但该客服一条数据都没有 → 补一条全 0 的占位，
+  //   保证「本组应统计的每个人都出现在榜上」，不会因为没数据而消失。
+  const seenGroups = new Set(out.map(r => r.group));
+  seenGroups.forEach(g => {
+    const std = RK_GROUP_SHOPS[g] || [];
+    if (!std.length) return;
+    const have = new Set(out.filter(r => r.group === g).map(r => r.name));
+    rows.forEach(r => {
+      if (r.group_name !== g) return;
+      if (have.has(r.staff_name)) return;
+      have.add(r.staff_name);
+      out.push({
+        group: g, name: r.staff_name, shop: '',
+        shops: [], miss: std.slice(), extra: [],
+        stdCount: std.length, cover: 0,
+        inquiry: 0, payment: 0, sales: 0,
+        conversion: null, satisfaction: null, response: null
+      });
+    });
+  });
+  return out;
 }
 
 // 当前视图的行
@@ -5218,6 +5302,15 @@ function rkCurrentRows() {
     rows = rkAllRows.filter(r => String(r.work_date).slice(0, 7) === mono);
   }
   if (rkGroup !== 'ALL') rows = rows.filter(r => r.group_name === rkGroup);
+  // ★ 按人看时：把范围收窄到「本组负责的标准店铺」，保证同组内每人分母一致
+  //   （某人的某个标准店没数据 → 该店视为 0，不参与加权，但分母照算）
+  if (rkGroupBy === 'person') {
+    rows = rows.filter(r => {
+      const std = RK_GROUP_SHOPS[r.group_name];
+      if (!std) return true;                       // 未登记标准店的组：原样保留
+      return std.indexOf(r.shop_name) >= 0;
+    });
+  }
   // 只看某一家店
   if (rkShopFocus) rows = rows.filter(r => r.shop_name === rkShopFocus);
   return rows;
@@ -5228,7 +5321,9 @@ function rkRender() {
   const raw = rkCurrentRows();
   // 按店看时强制拆店；按人看时才受复选框控制
   if (rkGroupBy === 'shop') rkByShop = true;
-  const rows = rkAgg(raw, rkByShop);
+  const rows = (rkGroupBy === 'person')
+    ? rkAggPerson(raw)                 // ★ 按人看：本组标准店铺统一分母
+    : rkAggByShop(raw, rkByShop);      // 按店看：原逻辑（一人 × 一店一行）
 
   // 排序
   const M = RK_METRICS.find(m => m.key === rkSortKey) || RK_METRICS[0];
@@ -5287,11 +5382,26 @@ function rkRender() {
       return up ? va - vb : vb - va;
     });
   } else {
-    // ===== 按客服分组：A→B→C 组顺序，组内保持排序 =====
-    rows.sort((a, b) => (a.group || '').localeCompare(b.group || ''));
+    // ===== 按客服分组：A→B→C 组顺序，组内按指标排序（每组各自排名） =====
+    if (!rkByShop) {
+      // 一人一行（合计口径）：先按组序，再按指标排
+      const G_SEQ = { '售前1组': 0, '售前2组': 1, '售前3组': 2 };
+      const up = M.better === 'low';
+      rows.sort((a, b) => {
+        const ga = G_SEQ[a.group] === undefined ? 9 : G_SEQ[a.group];
+        const gb = G_SEQ[b.group] === undefined ? 9 : G_SEQ[b.group];
+        if (ga !== gb) return ga - gb;
+        const va = a[rkSortKey], vb = b[rkSortKey];
+        const na = (va === null || va === undefined), nb = (vb === null || vb === undefined);
+        if (na && nb) return (a.name || '').localeCompare(b.name || '');
+        if (na) return 1;
+        if (nb) return -1;
+        return up ? va - vb : vb - va;
+      });
+    } else {
+      rows.sort((a, b) => (a.group || '').localeCompare(b.group || ''));
 
-    // 按店拆分时：让同一个客服名下的店铺聚在一起
-    if (rkByShop) {
+      // 按店拆分时：让同一个客服名下的店铺聚在一起
       const keyed = {};
       rows.forEach(r => { keyed[r.name] = r[rkSortKey]; });
       const val = name => {
@@ -5467,7 +5577,7 @@ function rkRenderTable(rows, M) {
     if (a) a.textContent = on ? (rkSortAsc ? '▲' : '▼') : '';
   });
 
-  // 名次：按店看时「每个店内单独排名」，按人看时全局排名
+  // 名次：按店看时「每个店内单独排名」；按人看一人一行时「每个组内单独排名」
   const rankOf = [];
   if (rkGroupBy === 'shop') {
     let curKey = null, cnt = 0, lastV = null, lastRank = 0;
@@ -5478,6 +5588,20 @@ function rkRenderTable(rows, M) {
       cnt++;
       if (lastV !== null && v !== null && v !== undefined && Math.abs(v - lastV) < 1e-9) {
         rankOf.push(lastRank);          // 与上一位同分 → 并列
+      } else {
+        lastRank = cnt; rankOf.push(cnt); lastV = v;
+      }
+    });
+  } else if (!rkByShop) {
+    // ★ 按人看一人一行 → 每个组内从 1 开始排名
+    let curKey = null, cnt = 0, lastV = null, lastRank = 0;
+    rows.forEach(r => {
+      const k = r.group || '';
+      const v = r[rkSortKey];
+      if (k !== curKey) { curKey = k; cnt = 0; lastV = null; lastRank = 0; }
+      cnt++;
+      if (lastV !== null && v !== null && v !== undefined && Math.abs(v - lastV) < 1e-9) {
+        rankOf.push(lastRank);
       } else {
         lastRank = cnt; rankOf.push(cnt); lastV = v;
       }
@@ -5521,15 +5645,30 @@ function rkRenderTable(rows, M) {
       if (r.group !== curGroupKey) {
         curGroupKey = r.group;
         const n = rows.filter(x => x.group === curGroupKey).length;
-        html += '<tr class="rk-group-row"><td colspan="' + CSPAN + '">' + rkEsc(GFULL[curGroupKey] || curGroupKey) + ' · ' + n + ' 人</td></tr>';
+        const std = RK_GROUP_SHOPS[curGroupKey] || [];
+        const scope = std.length
+          ? '　<span class="rk-sub">本组合计口径 = 全部 ' + std.length + ' 个店（' + std.map(rkEsc).join('、') + '）</span>'
+          : '';
+        html += '<tr class="rk-group-row"><td colspan="' + CSPAN + '">' + rkEsc(GFULL[curGroupKey] || curGroupKey) + ' · ' + n + ' 人' + scope + '</td></tr>';
       }
     }
     const rk = rankOf[i];
     const badge = (rk === 1) ? 'rk-badge b1' : (rk === 2) ? 'rk-badge b2' : (rk === 3) ? 'rk-badge b3' : 'rk-badge';
+    // 店铺列：按店看 → 店名；按人看 → 「n/m 店合计」+ 缺店提示
+    let shopCell;
+    if (r.shop) {
+      shopCell = rkEsc(r.shop);
+    } else if (r.stdCount !== undefined && r.stdCount > 0) {
+      const full = r.cover >= r.stdCount;
+      const tip = full ? '' : '　<span class="rk-sub" title="没有数据记录的店（按 0 计入合计）">缺 ' + rkEsc(r.miss.join('、')) + '</span>';
+      shopCell = '<i class="' + (full ? '' : 'rk-cover-warn') + '">' + r.cover + '/' + r.stdCount + ' 店合计</i>' + tip;
+    } else {
+      shopCell = '<i>' + r.shops.length + ' 店合计</i>';
+    }
     html += '<tr' + (rkGroupBy === 'shop' ? ' class="rk-shop-row"' : '') + '>' +
       '<td class="rk-c-rank"><span class="' + badge + '">' + rk + '</span></td>' +
       '<td class="rk-c-name">' + rkEsc(r.name) + '</td>' +
-      '<td class="rk-c-shop">' + (r.shop ? rkEsc(r.shop) : '<i>' + r.shops.length + ' 店合计</i>') + '</td>' +
+      '<td class="rk-c-shop">' + shopCell + '</td>' +
       '<td class="' + (rkSortKey === 'conversion' ? 'rk-hl ' : '') + 'rk-good">' + rkFmt(r.conversion, 'pct') + '</td>' +
       '<td class="' + (rkSortKey === 'sales' ? 'rk-hl ' : '') + '">' + rkFmt(r.sales, 'money') + '</td>' +
       '<td class="' + (rkSortKey === 'satisfaction' ? 'rk-hl ' : '') + '">' + rkFmt(r.satisfaction, 'pct') + '</td>' +
