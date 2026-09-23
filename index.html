@@ -5043,7 +5043,19 @@ function rkWeekday(d) {
 
 // 拉取所有明细行（ranking_daily 是手工同步的小表，一次全取）
 async function rkLoadRows() {
-  if (!supabase) throw new Error('数据库未连接');
+  // ★ 关键加固：页面首次打开时 supabase 库可能还在下载，
+  //   直接调 supabase.from 会抛 "supabase.from is not a function"。
+  //   这里和「客服信息」页一样，先等库就绪（最多 30 秒）。
+  if (!(window.supabase && typeof window.supabase.from === 'function')) {
+    await waitForLib(30000);
+  }
+  // 库对象已下载但客户端还没 createClient → 主动初始化一次
+  if ((!supabase || typeof supabase.from !== 'function') && typeof initSupabase === 'function') {
+    try { await initSupabase(); } catch (e) {}
+  }
+  if (!supabase || typeof supabase.from !== 'function') {
+    throw new Error('数据服务未就绪，请等几秒后点「↻ 刷新」');
+  }
   const all = [];
   const PAGE = 1000;
   for (let from = 0; ; from += PAGE) {
@@ -5062,7 +5074,6 @@ async function rkLoadRows() {
 }
 
 function rkReload(manual) {
-  if (!supabase) { rkEmpty('⚠️ 数据库未连接'); return; }
   const btn = document.querySelector('.rk-refresh');
   if (btn) { btn.disabled = true; btn.textContent = '↻ 加载中…'; }
   rkLoadRows().then(rows => {
@@ -5074,7 +5085,8 @@ function rkReload(manual) {
   }).catch(e => {
     console.warn('排名数据加载失败:', e && e.message);
     rkEmpty('加载失败：' + (e && e.message ? e.message : '未知错误') +
-            '<br><span style="font-size:12px;color:var(--text-secondary);">表 ranking_daily 可能还没建，或同步脚本还没跑。</span>');
+            '<br><span style="font-size:12px;color:var(--text-secondary);">表 ranking_daily 可能还没建，或同步脚本还没跑。' +
+            '<br>可点上方「↻ 刷新」重试。</span>');
   }).finally(() => {
     const b = document.querySelector('.rk-refresh');
     if (b) { b.disabled = false; b.textContent = '↻ 刷新'; }
@@ -5549,7 +5561,8 @@ function rkBindOnce() {
 }
 
 function subscribeRanking() {
-  if (!supabase || rkSub) return;
+  // 库未就绪时不要订阅（会报 channel is not a function）
+  if (!supabase || typeof supabase.channel !== 'function' || rkSub) return;
   try {
     rkSub = supabase.channel('ranking-daily-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ranking_daily' }, () => {
