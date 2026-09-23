@@ -5488,9 +5488,9 @@ function rkRenderFilterBar() {
   const gs = document.getElementById('rk-group-seg');
   if (gs) {
     gs.querySelectorAll('.rk-seg-btn').forEach(b => b.classList.toggle('active', b.dataset.group === rkGroup));
-    // 按店看时，A/B/C 组筛选不生效（会误导），置灰
-    gs.style.opacity = (rkGroupBy === 'shop') ? '.45' : '';
-    gs.style.pointerEvents = (rkGroupBy === 'shop') ? 'none' : '';
+    // ★ 「按店看 / 按人看」都能切换 A/B/C 组，所以不再置灰
+    gs.style.opacity = '';
+    gs.style.pointerEvents = '';
   }
   const gb = document.getElementById('rk-groupby-seg');
   if (gb) gb.querySelectorAll('.rk-seg-btn').forEach(b =>
@@ -5569,8 +5569,8 @@ function rkRenderMeta(raw, rows) {
     : '<span class="rk-chip rk-chip-ok">✅ ' + (st ? st.shops : 0) + ' 家店数据已回齐</span>';
   el.innerHTML = '<span class="rk-chip">' + (rkView === 'day' ? '📅 日排名' : '📈 月累计') + '</span>' +
     '<span class="rk-chip">' + rkEsc(range) + '</span>' +
-    '<span class="rk-chip">' + (rkGroupBy === 'shop' ? '🏪 按店铺分组 · 店内排名'
-                                : '👥 ' + rkEsc(rkGroup)) + '</span>' +
+    '<span class="rk-chip">' + (rkGroupBy === 'shop' ? '🏪 按店铺分组 · 店内排名' : '👥 按人看') + '</span>' +
+    '<span class="rk-chip">' + rkEsc(rkGroup) + '</span>' +
     '<span class="rk-chip">' + people + ' 人 · ' + shops.size + ' 店 · ' + raw.length + ' 条明细</span>' +
     warn +
     '<span class="rk-chip rk-chip-tip">口径：转化率=付款/询单 · 满意度=好评数/评价总数 · 响应按询单加权</span>';
