@@ -1275,9 +1275,6 @@ body {
 .cs-filter-btn { cursor:pointer; font-size:11px; margin-left:2px; opacity:0.4; transition:opacity .15s; }
 .cs-filter-btn:hover { opacity:1; }
 .ranking-groups { display:none; }
-.rank-export-area { margin-top:20px; padding:20px; background:#fff; border-radius:14px; border:1px solid var(--border); }
-.rank-export-title { font-size:14px; font-weight:600; color:var(--text); margin-bottom:10px; }
-.rank-export-text { width:100%; min-height:120px; padding:12px; border:1.5px solid var(--border); border-radius:10px; font-size:12px; font-family:monospace; background:#faf8ff; resize:vertical; margin-bottom:10px; }
 @media (max-width:640px) {
   .ranking-toolbar { flex-direction:column; align-items:flex-start; }
   .ranking-table { font-size:13px; }
@@ -1635,6 +1632,85 @@ body {
 .collab-close { position:absolute; top:12px; right:16px; background:none; border:none; font-size:20px; cursor:pointer; color:var(--text-secondary); }
 .collab-btn { display:inline-flex; align-items:center; gap:4px; padding:6px 12px; border:1px solid var(--primary,#7ba7a6); background:transparent; color:var(--primary,#7ba7a6); border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit; font-weight:500; }
 .collab-btn:hover { background:var(--primary,#7ba7a6); color:#fff; }
+
+/* ==================== 客服排名（新版 2026-09-23） ==================== */
+.rk-filter { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+.rk-seg { display:inline-flex; background:#f2f0f7; border-radius:10px; padding:3px; gap:2px; }
+.rk-seg-btn { border:none; background:transparent; color:#6b6880; font-size:13px; font-family:inherit;
+  padding:6px 16px; border-radius:8px; cursor:pointer; transition:all .15s; white-space:nowrap; }
+.rk-seg-btn:hover { color:var(--primary); }
+.rk-seg-btn.active { background:#fff; color:var(--primary); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+.rk-datenav { display:inline-flex; align-items:center; gap:6px; background:#fff; border:1px solid var(--border);
+  border-radius:10px; padding:3px 6px; }
+.rk-datenav.hide { display:none; }
+.rk-nav-btn { border:none; background:transparent; color:#6b6880; font-size:13px; cursor:pointer;
+  padding:4px 8px; border-radius:6px; font-family:inherit; }
+.rk-nav-btn:hover { background:#f2f0f7; color:var(--primary); }
+#rk-date-select { border:none; background:transparent; font-size:13px; font-family:inherit; color:var(--text);
+  cursor:pointer; padding:4px 2px; outline:none; }
+.rk-split { display:inline-flex; align-items:center; gap:5px; font-size:12px; color:#6b6880;
+  background:#fff; border:1px solid var(--border); border-radius:10px; padding:6px 11px; cursor:pointer; user-select:none; }
+.rk-split:hover { border-color:var(--primary); color:var(--primary); }
+.rk-split input { accent-color:var(--primary); margin:0; cursor:pointer; }
+.rk-spacer { flex:1; }
+.rk-refresh { border:1px solid var(--border); background:#fff; color:#6b6880; font-size:13px;
+  font-family:inherit; padding:6px 14px; border-radius:10px; cursor:pointer; transition:all .15s; }
+.rk-refresh:hover { border-color:var(--primary); color:var(--primary); }
+.rk-meta { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:14px; }
+.rk-chip { display:inline-block; font-size:12px; color:var(--text-secondary); background:#f5f3fb;
+  border-radius:20px; padding:4px 11px; white-space:nowrap; }
+.rk-chip-tip { background:transparent; border:1px dashed var(--border); color:#a8a5b8; }
+.rk-chip-ok { background:#eafaf3; color:#1d9e75; }
+.rk-chip-warn { background:#fff6e6; color:#c47a10; font-weight:600; border:1px solid #ffe0a8; }
+.rk-date-pos { font-size:11px; color:#a8a5b8; padding:0 6px 0 2px; white-space:nowrap; }
+.rk-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:16px; }
+.rk-cards:empty { display:none; }
+.rk-card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
+.rk-card-l, .rk-card-t { font-size:12px; color:var(--text-secondary); margin-bottom:4px; }
+.rk-card-n { font-size:15px; font-weight:700; color:var(--text); line-height:1.3; margin-bottom:2px; }
+.rk-card-n i { font-style:normal; font-size:11px; font-weight:400; color:var(--text-secondary); }
+.rk-card-v { font-size:20px; font-weight:700; color:var(--primary); line-height:1.2; }
+.rk-card-s { font-size:11px; color:#a8a5b8; margin-top:3px; }
+.rk-table-wrap { background:#fff; border-radius:14px; border:1px solid var(--border); overflow-x:auto; }
+.rk-table { width:100%; border-collapse:collapse; font-size:14px; min-width:640px; }
+.rk-table thead { background:#faf8ff; }
+.rk-table th { padding:13px 10px; text-align:center; font-weight:600; color:var(--text);
+  font-size:13px; border-bottom:2px solid var(--border); white-space:nowrap; position:relative; }
+.rk-table th.rk-sortable { cursor:pointer; user-select:none; }
+.rk-table th.rk-sortable:hover { color:var(--primary); }
+.rk-table th.rk-sortable.active { color:var(--primary); }
+.rk-arrow { font-size:10px; margin-left:3px; color:#d5d2e0; }
+.rk-table th.active .rk-arrow { color:var(--primary); }
+.rk-table td { padding:12px 10px; border-bottom:1px solid #f2f0f7; text-align:center; font-size:14px; }
+.rk-table tbody tr:last-child td { border-bottom:none; }
+.rk-table tbody tr:hover td { background:#faf8ff; }
+.rk-c-rank { width:64px; }
+.rk-c-name { width:100px; text-align:left !important; padding-left:18px !important; }
+.rk-c-shop { width:120px; }
+.rk-table td.rk-c-name { font-weight:600; text-align:left; padding-left:18px; }
+.rk-table td.rk-c-shop { color:var(--text-secondary); font-size:13px; }
+.rk-badge { display:inline-flex; width:28px; height:28px; border-radius:50%; align-items:center;
+  justify-content:center; font-size:13px; font-weight:700; color:#fff; background:#c9c6d6; }
+.rk-badge.b1 { background:#f0a020; }
+.rk-badge.b2 { background:#9aa3ad; }
+.rk-badge.b3 { background:#cd7f5a; }
+.rk-group-row td { background:#f5f3fb; font-weight:700; font-size:13px; color:var(--primary);
+  text-align:left !important; padding-left:18px !important; }
+.rk-good { color:#1d9e75; font-weight:600; }
+.rk-table td.rk-hl { background:#f0fbf6 !important; font-weight:700; }
+.rk-warn { color:#d98820; font-weight:600; }
+.rk-bad { color:#d64545; font-weight:600; }
+.rk-empty { text-align:center; padding:48px 20px; color:var(--text-secondary); font-size:14px;
+  background:#fff; border:1px solid var(--border); border-radius:14px; }
+.rk-empty .rk-empty-ico { font-size:34px; margin-bottom:10px; opacity:.55; }
+@media (max-width:768px) {
+  .rk-filter { gap:8px; }
+  .rk-seg-btn { padding:6px 11px; font-size:12px; }
+  .rk-table { font-size:13px; min-width:560px; }
+  .rk-table th, .rk-table td { padding:10px 7px; }
+  .rk-cards { grid-template-columns:repeat(2,1fr); }
+}
+
 </style>
 </head>
 <body>
@@ -3122,7 +3198,6 @@ body {
     <div class="tool-list" id="tool-list"></div>
   </div>
 
-  <!-- ===== 客服排名 ===== -->
   <!-- ===== 质检工具 ===== -->
   <div class="page" id="page-qc" style="padding:0;overflow:hidden;flex-direction:column;">
     <div class="qc-topbar">
@@ -3257,41 +3332,53 @@ body {
   </div>
 
   <div class="page" id="page-ranking">
-    <div class="page-header"><h1>🏆 客服排名</h1><p>A/B/C三组，按转化率/连带销售额/满意度/响应时效排名</p></div>
-    <div class="ranking-toolbar">
-      <div class="ranking-groups">
-        <button class="rank-group-btn active" data-group="0">A组</button>
-        <button class="rank-group-btn" data-group="1">B组</button>
-        <button class="rank-group-btn" data-group="2">C组</button>
+    <div class="page-header"><h1>客服排名</h1><p>按天看排名 · 转化率 / 销售额 / 满意度 / 响应</p></div>
+
+    <div class="rk-filter">
+      <div class="rk-seg" id="rk-view-seg">
+        <button class="rk-seg-btn active" data-view="day">日排名</button>
+        <button class="rk-seg-btn" data-view="month">月累计</button>
       </div>
-      <div class="ranking-actions">
-        <input type="month" id="ranking-month-input" style="padding:4px 8px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;" onchange="onRankingMonthChange()">
-        <button class="collab-btn" id="collab-ranking-btn" onclick="openCollabPanel('ranking')" style="display:none;">👥 协作者</button>
-        <button class="feishu-sync-btn admin-only-nav" id="ranking-sync-btn" onclick="syncRankingFromFeishu()" style="display:none;">🔄 从飞书同步</button>
-        <button class="rank-action-btn admin-only" id="rank-import-btn" onclick="openExcelImport('ranking')">📥 导入Excel</button>
-        <button class="rank-action-btn" id="rank-edit-btn" onclick="toggleRankEdit()">✎ 编辑数据</button>
-        <button class="rank-action-btn primary" id="rank-save-btn" onclick="saveRankingToDB()" style="display:none;">💾 保存</button>
+      <div class="rk-seg" id="rk-group-seg">
+        <button class="rk-seg-btn active" data-group="ALL">全部</button>
+        <button class="rk-seg-btn" data-group="售前1组">A组</button>
+        <button class="rk-seg-btn" data-group="售前2组">B组</button>
+        <button class="rk-seg-btn" data-group="售前3组">C组</button>
       </div>
+      <label class="rk-split" title="勾选后同一个客服在每个店各占一行（看单店表现时用）">
+        <input type="checkbox" id="rk-byshop" onchange="rkSetByShop(this.checked)"> 按店拆分
+      </label>
+      <div class="rk-datenav" id="rk-datenav">
+        <button class="rk-nav-btn" id="rk-prev" onclick="rkShiftDate(-1)" title="前一天">◀</button>
+        <select id="rk-date-select" onchange="rkOnDateChange(this.value)"></select>
+        <button class="rk-nav-btn" id="rk-next" onclick="rkShiftDate(1)" title="后一天">▶</button>
+        <span class="rk-date-pos" id="rk-date-pos"></span>
+      </div>
+      <div class="rk-spacer"></div>
+      <button class="rk-refresh" onclick="rkReload(true)" title="重新拉取">↻ 刷新</button>
     </div>
-    <div class="ranking-meta" id="ranking-meta"></div>
-    <div class="ranking-table-wrap">
-      <table class="ranking-table" style="min-width:900px;">
+
+    <div class="rk-meta" id="rk-meta"></div>
+
+    <div class="rk-cards" id="rk-cards"></div>
+
+    <div class="rk-table-wrap">
+      <table class="rk-table">
         <thead>
           <tr>
-            <th class="col-rank">排名</th>
-            <th class="col-name">花名</th>
-            <th class="sortable" data-key="visitors">接待量 <span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="inquiryCount">询单人数 <span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="paymentCount">付款人数 <span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="conversion">转化率 <span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="crossSales">连带销售额 <span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="response">响应(秒) <span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="satisfaction">满意度 <span class="sort-arrow"></span></th>
+            <th class="rk-c-rank">名次</th>
+            <th class="rk-c-name">客服</th>
+            <th class="rk-c-shop">店铺</th>
+            <th class="rk-sortable" data-key="conversion">转化率<span class="rk-arrow"></span></th>
+            <th class="rk-sortable" data-key="sales">销售额<span class="rk-arrow"></span></th>
+            <th class="rk-sortable" data-key="satisfaction">满意度<span class="rk-arrow"></span></th>
+            <th class="rk-sortable" data-key="response">响应<span class="rk-arrow"></span></th>
           </tr>
         </thead>
-        <tbody id="ranking-tbody"></tbody>
+        <tbody id="rk-tbody"></tbody>
       </table>
     </div>
+    <div class="rk-empty" id="rk-empty" style="display:none;"></div>
   </div>
 
   <!-- ===== 申请审批 ===== -->
@@ -4158,13 +4245,7 @@ function refreshAdminUI() {
   // 排班表编辑权限
   const schedSyncBtn = document.getElementById('sched-sync-btn');
   if (schedSyncBtn) schedSyncBtn.style.display = canEditSchedule ? '' : 'none';
-  // 客服排名编辑权限
-  const rankImportBtn = document.getElementById('rank-import-btn');
-  if (rankImportBtn) rankImportBtn.style.display = canEditRanking ? '' : 'none';
-  const rankEditBtn = document.getElementById('rank-edit-btn');
-  if (rankEditBtn) rankEditBtn.style.display = canEditRanking ? '' : 'none';
-  const rankSyncBtn = document.getElementById('ranking-sync-btn');
-  if (rankSyncBtn) rankSyncBtn.style.display = canEditRanking ? '' : 'none';
+  // 客服排名：页面只读（数据来自看板自动同步），无编辑按钮
   // 售前月度编辑权限
   const presaleImportBtn = document.getElementById('presale-monthly-import-btn');
   if (presaleImportBtn) presaleImportBtn.style.display = canEditPresale ? '' : 'none';
@@ -4302,11 +4383,20 @@ let toolsData = [];
 let quizData = [];
 let scheduleData = {};
 let scheduleMonth = '';  // current viewing month 'YYYY-MM'
-let rankingData = { groups: [] };
-let rankGroupIdx = 0;
-let rankSortKey = 'response';
-let rankSortAsc = true;
-let rankEditMode = false;
+// ★2026-09-21 排名页重做：数据源改为 Supabase ranking_daily（由看板「每日明细·按分组」同步而来）
+let rkView = 'day';          // day=日排名 / month=月累计
+let rkGroup = 'ALL';         // ALL / 售前1组 / 售前2组 / 售前3组
+let rkDate = '';             // 当前查看日期 'YYYY-MM-DD'
+let rkDates = [];            // 库里可用日期（升序）
+let rkRows = [];             let rkAllRows = [];          // ranking_daily 全量明细
+let rkSortKey = 'conversion';
+let rkSortAsc = false;
+let rkLoadedOnce = false;
+let rkSub = null;
+let rkDayStat = new Map();   // work_date -> { shops, staff }
+let rkMaxShops = 0;          // 历史上单日最多更新的店铺数
+let rkLastFull = '';         // 最近一个「数据回齐」的日期
+let rkByShop = false;        // 是否按店铺拆行（默认 false：一个客服一行，更清爽）
 
 async function loadConfig() {
   try {
@@ -4327,7 +4417,6 @@ async function loadConfig() {
     toolsData = cfg.toolsData || [];
     quizData = cfg.quizData || [];
     scheduleData = cfg.scheduleData || {};
-    rankingData = cfg.rankingData || { groups: [] };
     window._fullConfig = cfg; // for export
     document.getElementById('config-version').textContent = 'v' + configVersion;
     document.getElementById('config-update').textContent = cfg.lastUpdate || '';
@@ -4899,137 +4988,389 @@ async function saveScheduleCellToDB(staffName, monthKey, schedule) {
   } catch(e) { console.error('排班保存失败:', e); }
 }
 
-// ==================== 客服排名 Supabase 加载 ====================
-let rankingSub = null;
-let rankingPeriod = '';  // 当前查看的月份 'YYYY-MM'
-let rankingAllRows = []; // 所有排名数据（用于月份切换）
-const RANK_GROUP_NAMES = ['A组', 'B组', 'C组'];
+// ==================== 客服排名（数据源：Supabase ranking_daily） ====================
+// ranking_daily 由桌面看板「每日明细 · 客服每日明细·按分组」同步而来
+// 唯一键：(work_date, group_name, staff_name, shop_name)
+const RK_GROUP_LABEL = { '售前1组': 'A组', '售前2组': 'B组', '售前3组': 'C组' };
+const RK_METRICS = [
+  { key: 'conversion',   label: '转化率', fmt: 'pct',   better: 'high' },
+  { key: 'sales',        label: '销售额', fmt: 'money', better: 'high' },
+  { key: 'satisfaction', label: '满意度', fmt: 'pct',   better: 'high' },
+  { key: 'response',     label: '响应',   fmt: 'sec',   better: 'low'  }
+];
 
-async function loadRankingFromDB() {
-  if (!supabase) return;
-  try {
+function rkEsc(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function rkFmt(v, fmt) {
+  if (v === null || v === undefined || v === '' || (typeof v === 'number' && !isFinite(v))) return '—';
+  if (fmt === 'pct') return (v * 100).toFixed(1) + '%';
+  if (fmt === 'money') return '¥' + Math.round(v).toLocaleString();
+  if (fmt === 'sec') return Math.round(v) + 's';
+  return String(v);
+}
+function rkDateFmt(d) {
+  const p = String(d).split('-');
+  return p.length === 3 ? (Number(p[1]) + '/' + Number(p[2])) : d;
+}
+function rkWeekday(d) {
+  const dt = new Date(String(d) + 'T00:00:00');
+  return isNaN(dt.getTime()) ? '' : '周' + '日一二三四五六'[dt.getDay()];
+}
+
+// 拉取所有明细行（ranking_daily 是手工同步的小表，一次全取）
+async function rkLoadRows() {
+  if (!supabase) throw new Error('数据库未连接');
+  const all = [];
+  const PAGE = 1000;
+  for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
-      .from('ranking_data')
-      .select('*')
-      .order('period', { ascending: false });
-    if (error) { console.warn('排名数据加载失败:', error.message); return; }
-    rankingAllRows = data || [];
-    // 默认查看最新月份
-    if (!rankingPeriod && rankingAllRows.length > 0) {
-      rankingPeriod = rankingAllRows[0].period;
-    }
-    if (!rankingPeriod) {
-      const now = new Date();
-      rankingPeriod = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-    }
-    // 设置月份选择器
-    const monthInput = document.getElementById('ranking-month-input');
-    if (monthInput) monthInput.value = rankingPeriod;
-    updateRankingDataFromRows();
-    if (currentPage === 'ranking') renderRanking();
-  } catch(e) { console.error('排名数据加载异常:', e); }
+      .from('ranking_daily')
+      .select('work_date,group_name,staff_name,shop_name,inquiry,payment,sales,conversion,satisfaction,response_time')
+      .order('work_date', { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    const batch = data || [];
+    all.push(...batch);
+    if (batch.length < PAGE) break;
+    if (from > 20000) break; // 安全上限
+  }
+  return all;
 }
 
-function updateRankingDataFromRows() {
-  const periodRows = rankingAllRows.filter(r => r.period === rankingPeriod);
-  const groups = RANK_GROUP_NAMES.map(name => ({ name, members: [] }));
-  periodRows.forEach(row => {
-    const idx = RANK_GROUP_NAMES.indexOf(row.group_name);
-    if (idx >= 0) {
-      groups[idx].members.push({
-        name: row.staff_name || '',
-        visitors: row.visitors || 0,
-        inquiryCount: row.inquiry_count || 0,
-        paymentCount: row.payment_count || 0,
-        conversion: row.conversion_rate || 0,
-        crossSales: row.cross_sales || 0,
-        satisfaction: row.satisfaction || 0,
-        response: row.response_time || 0
-      });
-    }
+function rkReload(manual) {
+  if (!supabase) { rkEmpty('⚠️ 数据库未连接'); return; }
+  const btn = document.querySelector('.rk-refresh');
+  if (btn) { btn.disabled = true; btn.textContent = '↻ 加载中…'; }
+  rkLoadRows().then(rows => {
+    rkAllRows = rows;
+    rkBuildDates();
+    rkLoadedOnce = true;
+    rkRender();
+    if (manual) showToast('✅ 已刷新（' + rows.length + ' 条明细）');
+  }).catch(e => {
+    console.warn('排名数据加载失败:', e && e.message);
+    rkEmpty('加载失败：' + (e && e.message ? e.message : '未知错误') +
+            '<br><span style="font-size:12px;color:var(--text-secondary);">表 ranking_daily 可能还没建，或同步脚本还没跑。</span>');
+  }).finally(() => {
+    const b = document.querySelector('.rk-refresh');
+    if (b) { b.disabled = false; b.textContent = '↻ 刷新'; }
   });
-  rankingData = { groups, lastUpdate: new Date().toISOString() };
 }
 
-function onRankingMonthChange() {
-  const monthInput = document.getElementById('ranking-month-input');
-  if (monthInput) rankingPeriod = monthInput.value;
-  updateRankingDataFromRows();
-  renderRanking();
-}
+// 库里有哪些「已更新数据」的日期
+// 每天的「数据完整度」：有几家店已更新。
+// 各平台回传速度不一样（抖音快、其他平台慢 1~3 天），所以最新的一天常常只有部分店铺，
+// 不能默认拿它当排名依据，否则会看到一堆 0。
+function rkBuildDates() {
+  const shopsByDay = new Map(), staffByDay = new Map();
+  rkAllRows.forEach(r => {
+    const d = String(r.work_date || '').slice(0, 10);
+    if (!d) return;
+    if (!shopsByDay.has(d)) { shopsByDay.set(d, new Set()); staffByDay.set(d, new Set()); }
+    if (r.shop_name) shopsByDay.get(d).add(r.shop_name);
+    if (r.staff_name) staffByDay.get(d).add(r.staff_name);
+  });
+  rkDayStat = new Map();
+  shopsByDay.forEach((sh, d) => {
+    rkDayStat.set(d, { shops: sh.size, staff: (staffByDay.get(d) || new Set()).size });
+  });
+  rkDates = Array.from(shopsByDay.keys()).sort();
+  rkMaxShops = rkDates.reduce((m, d) => Math.max(m, rkDayStat.get(d).shops), 0);
+  rkLastFull = '';
+  for (let i = rkDates.length - 1; i >= 0; i--) {
+    if (rkDayStat.get(rkDates[i]).shops >= rkMaxShops) { rkLastFull = rkDates[i]; break; }
+  }
 
-function subscribeRanking() {
-  if (!supabase || rankingSub) return;
-  rankingSub = supabase.channel('ranking-changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'ranking_data' }, () => {
-      debouncedReload('ranking', loadRankingFromDB);
-    })
-    .subscribe();
-}
-
-async function syncRankingFromFeishu() {
-  const btn = document.getElementById('ranking-sync-btn');
-  if (!FEISHU_SYNC_CONFIG.authToken) { showToast('⚠️ 请先配置飞书同步参数'); return; }
-  if (!confirm('确定从飞书同步客服排名数据？')) return;
-  if (btn) { btn.disabled = true; btn.classList.add('syncing'); btn.textContent = '🔄 同步中...'; }
-  try {
-    const resp = await fetch(FEISHU_SYNC_CONFIG.edgeFunctionUrl, {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + FEISHU_SYNC_CONFIG.authToken, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'sync_ranking' })
-    });
-    const data = await resp.json();
-    if (data.ok && data.results) {
-      const r = data.results.ranking || {};
-      if (r.error) showToast('❌ 排名同步失败: ' + r.error);
-      else showToast('✅ 排名同步完成！飞书 ' + (r.total_in_feishu||0) + ' 条，写入 ' + (r.synced||0) + ' 条');
-      loadRankingFromDB();
-    } else {
-      showToast('❌ 同步失败: ' + (data.error || '未知错误'));
+  if (!rkDate || rkDates.indexOf(rkDate) < 0) {
+    // 从最新往回找第一天「店铺数 = 历史最大店铺数」，也就是数据回齐的那天
+    let pick = rkDates.length ? rkDates[rkDates.length - 1] : '';
+    for (let i = rkDates.length - 1; i >= 0; i--) {
+      if (rkDayStat.get(rkDates[i]).shops >= rkMaxShops) { pick = rkDates[i]; break; }
     }
-  } catch(e) {
-    showToast('❌ 同步异常: ' + e.message);
-  } finally {
-    if (btn) { btn.disabled = false; btn.classList.remove('syncing'); btn.textContent = '🔄 从飞书同步'; }
+    rkDate = pick;
   }
 }
 
-// 保存排名到 Supabase
-async function saveRankingToDB() {
-  if (!supabase) { showToast('⚠️ 数据库未连接'); return; }
-  const period = rankingPeriod;
-  const rows = [];
-  rankingData.groups.forEach(group => {
-    group.members.forEach(m => {
-      if (m.name) {
-        rows.push({
-          staff_name: m.name,
-          group_name: group.name,
-          visitors: m.visitors || 0,
-          inquiry_count: m.inquiryCount || 0,
-          payment_count: m.paymentCount || 0,
-          conversion_rate: m.conversion,
-          cross_sales: m.crossSales,
-          satisfaction: m.satisfaction,
-          response_time: m.response,
-          period: period
-        });
-      }
-    });
-  });
-  if (rows.length === 0) { showToast('⚠️ 没有有效数据可保存'); return; }
-  try {
-    const { error } = await supabase
-      .from('ranking_data')
-      .upsert(rows, { onConflict: 'staff_name,period' });
-    if (error) { showToast('❌ 保存失败: ' + error.message); return; }
-    showToast('✅ 排名数据已保存（' + rows.length + ' 条）');
-    rankEditMode = false;
-    document.getElementById('rank-edit-btn').textContent = '✎ 编辑数据';
-    document.getElementById('rank-save-btn').style.display = 'none';
-    loadRankingFromDB();
-  } catch(e) { showToast('❌ 保存异常: ' + e.message); }
+// 某天数据是否完整（店铺数与历史最大一致）
+function rkDayFull(d) {
+  const st = rkDayStat.get(d);
+  return !!st && st.shops >= rkMaxShops;
 }
+
+function rkShiftDate(step) {
+  if (!rkDates.length) return;
+  let i = rkDates.indexOf(rkDate);
+  if (i < 0) i = rkDates.length - 1;
+  i = Math.min(rkDates.length - 1, Math.max(0, i + step));
+  if (rkDates[i] === rkDate) { showToast(step > 0 ? '已经是最新一天了' : '已经是最早一天了'); return; }
+  rkDate = rkDates[i];
+  rkRender();
+}
+
+function rkOnDateChange(v) { rkDate = v; rkRender(); }
+function rkSetView(v) { rkView = v; rkRender(); }
+function rkSetGroup(g) { rkGroup = g; rkRender(); }
+function rkSetByShop(v) { rkByShop = !!v; rkRender(); }
+
+function rkSortBy(key) {
+  if (rkSortKey === key) rkSortAsc = !rkSortAsc;
+  else { rkSortKey = key; rkSortAsc = (key === 'response'); }
+  rkRender();
+}
+
+// 把明细行聚合成「一条 = 一个客服（可选：再按店铺拆）」
+// 口径：询单/付款/销售额 **求和**；转化率 = 付款/询单；满意度/响应 **按询单人数加权**
+function rkAgg(rows, byShop) {
+  const map = new Map();
+  rows.forEach(r => {
+    const k = byShop ? (r.group_name + '||' + r.staff_name + '||' + r.shop_name)
+                     : (r.group_name + '||' + r.staff_name);
+    if (!map.has(k)) {
+      map.set(k, {
+        group: r.group_name, name: r.staff_name,
+        shop: byShop ? r.shop_name : '', shops: new Set(),
+        inquiry: 0, payment: 0, sales: 0,
+        satW: 0, satN: 0, respW: 0, respN: 0
+      });
+    }
+    const o = map.get(k);
+    const inq = Number(r.inquiry) || 0;
+    const pay = Number(r.payment) || 0;
+    o.inquiry += inq;
+    o.payment += pay;
+    o.sales += Number(r.sales) || 0;
+    if (r.shop_name) o.shops.add(r.shop_name);
+    const sat = Number(r.satisfaction);
+    if (isFinite(sat) && inq > 0) { o.satW += sat * inq; o.satN += inq; }
+    const resp = Number(r.response_time);
+    if (isFinite(resp) && resp > 0 && inq > 0) { o.respW += resp * inq; o.respN += inq; }
+    // 没有询单人数时退化为算术平均，保证有值可看
+    if (isFinite(sat) && inq <= 0) { o.satW += sat; o.satN += 1; }
+    if (isFinite(resp) && resp > 0 && inq <= 0) { o.respW += resp; o.respN += 1; }
+  });
+  return Array.from(map.values()).map(o => ({
+    group: o.group, name: o.name, shop: o.shop,
+    shops: Array.from(o.shops),
+    inquiry: o.inquiry, payment: o.payment, sales: o.sales,
+    conversion: o.inquiry > 0 ? o.payment / o.inquiry : null,
+    satisfaction: o.satN > 0 ? o.satW / o.satN : null,
+    response: o.respN > 0 ? o.respW / o.respN : null
+  }));
+}
+
+// 当前视图的行
+function rkCurrentRows() {
+  if (!rkAllRows.length) return [];
+  let rows;
+  if (rkView === 'day') {
+    rows = rkAllRows.filter(r => String(r.work_date).slice(0, 10) === rkDate);
+  } else {
+    // 月累计：本月月初 → 最新可用日
+    const mono = rkDate ? rkDate.slice(0, 7) : '';
+    rows = rkAllRows.filter(r => String(r.work_date).slice(0, 7) === mono);
+  }
+  if (rkGroup !== 'ALL') rows = rows.filter(r => r.group_name === rkGroup);
+  return rows;
+}
+
+function rkRender() {
+  if (!rkAllRows.length) { rkEmpty('还没有排名数据。先跑一次同步脚本把看板数据灌进 Supabase 吧。'); return; }
+  const raw = rkCurrentRows();
+  // 默认按人聚合（一人一行，清爽）；勾选「按店拆分」才展开成一人多行
+  const rows = rkAgg(raw, rkByShop);
+
+  // 排序
+  const M = RK_METRICS.find(m => m.key === rkSortKey) || RK_METRICS[0];
+  const dir = rkSortAsc ? 1 : -1;
+  rows.sort((a, b) => {
+    let va = a[rkSortKey], vb = b[rkSortKey];
+    const na = (va === null || va === undefined), nb = (vb === null || vb === undefined);
+    if (na && nb) return 0;
+    if (na) return 1;   // 空值永远垫底
+    if (nb) return -1;
+    if (RK_METRICS.find(m => m.key === rkSortKey).better === 'low') return (va - vb) * dir;
+    return (vb - va) * dir;
+  });
+
+  // 组顺序 A→B→C，组内保持排序
+  rows.sort((a, b) => (a.group || '').localeCompare(b.group || ''));
+
+  rkRenderFilterBar();
+  rkRenderMeta(raw, rows);
+  rkRenderCards(rows);
+  rkRenderTable(rows, M);
+}
+
+function rkEmpty(html) {
+  const t = document.getElementById('rk-tbody');
+  if (t) t.innerHTML = '';
+  const c = document.getElementById('rk-cards');
+  if (c) c.innerHTML = '';
+  const m = document.getElementById('rk-meta');
+  if (m) m.innerHTML = '';
+  const d = document.getElementById('rk-datenav');
+  if (d) d.style.display = 'none';
+  const e = document.getElementById('rk-empty');
+  if (e) { e.style.display = ''; e.innerHTML = html; }
+  rkAllRows.length === 0 && rkRenderFilterBar();
+}
+
+function rkRenderFilterBar() {
+  const seg = document.getElementById('rk-view-seg');
+  if (seg) seg.querySelectorAll('.rk-seg-btn').forEach(b => b.classList.toggle('active', b.dataset.view === rkView));
+  const gs = document.getElementById('rk-group-seg');
+  if (gs) gs.querySelectorAll('.rk-seg-btn').forEach(b => b.classList.toggle('active', b.dataset.group === rkGroup));
+
+  const nav = document.getElementById('rk-datenav');
+  if (!nav) return;
+  if (rkView === 'month') {
+    nav.style.display = 'none';
+  } else {
+    nav.style.display = '';
+    const sel = document.getElementById('rk-date-select');
+    if (sel) {
+      const cur = sel.value;
+      sel.innerHTML = rkDates.slice().reverse().map(d => {
+        const st = rkDayStat.get(d) || { shops: 0, staff: 0 };
+        const full = st.shops >= rkMaxShops;
+        const tail = full ? (d === rkLastFull ? '　✅ 数据完整' : '')
+                          : '　⚠️ 仅 ' + st.shops + '/' + rkMaxShops + ' 店已更新';
+        return '<option value="' + d + '">' + d + ' ' + rkWeekday(d) + tail + '</option>';
+      }).join('');
+      sel.value = rkDate;
+      if (cur !== rkDate && sel.value !== rkDate && rkDates.length) sel.value = rkDates[rkDates.length - 1];
+    }
+    const prev = document.getElementById('rk-prev'), next = document.getElementById('rk-next');
+    const i = rkDates.indexOf(rkDate);
+    if (prev) prev.disabled = (i <= 0);
+    if (next) next.disabled = (i < 0 || i >= rkDates.length - 1);
+    const pos = document.getElementById('rk-date-pos');
+    if (pos) pos.textContent = rkDates.length ? ('第 ' + (i + 1) + ' / ' + rkDates.length + ' 天') : '';
+  }
+}
+
+function rkRenderMeta(raw, rows) {
+  const el = document.getElementById('rk-meta');
+  if (!el) return;
+  const people = new Set(rows.map(r => r.name)).size;
+  const shops = new Set(); rows.forEach(r => (r.shop ? [r.shop] : r.shops).forEach(x => shops.add(x)));
+  const range = rkView === 'day'
+    ? (rkDate + ' ' + rkWeekday(rkDate))
+    : ('本月 ' + (rkDates.length ? rkDates[0].slice(0, 7) : '') + ' · ' + rkDate + ' 为止');
+  // 数据完整度提示：这一天是不是所有店都回传了
+  const st = rkDayStat.get(rkDate);
+  const full = !st || st.shops >= rkMaxShops;
+  const warn = (rkView === 'day' && !full)
+    ? '<span class="rk-chip rk-chip-warn">⚠️ 这一天只有 ' + st.shops + '/' + rkMaxShops +
+      ' 家店回传（各平台有 1~3 天延迟），下面只反映已更新的店</span>'
+    : '<span class="rk-chip rk-chip-ok">✅ ' + (st ? st.shops : 0) + ' 家店数据已回齐</span>';
+  el.innerHTML = '<span class="rk-chip">' + (rkView === 'day' ? '📅 日排名' : '📈 月累计') + '</span>' +
+    '<span class="rk-chip">' + rkEsc(range) + '</span>' +
+    '<span class="rk-chip">' + (rkGroup === 'ALL' ? '全部组' : rkEsc(rkGroup)) + '</span>' +
+    '<span class="rk-chip">' + people + ' 人 · ' + shops.size + ' 店 · ' + raw.length + ' 条明细</span>' +
+    warn +
+    '<span class="rk-chip rk-chip-tip">口径：转化率=付款/询单 · 满意度&响应按询单加权</span>';
+}
+
+function rkRenderCards(rows) {
+  const el = document.getElementById('rk-cards');
+  if (!el) return;
+  if (!rows.length) { el.innerHTML = ''; return; }
+  const cards = RK_METRICS.map(m => {
+    const valid = rows.filter(r => r[m.key] !== null && r[m.key] !== undefined);
+    if (!valid.length) return '';
+    valid.sort((a, b) => m.better === 'low' ? a[m.key] - b[m.key] : b[m.key] - a[m.key]);
+    const top = valid[0];
+    const avg = valid.reduce((s, r) => s + r[m.key], 0) / valid.length;
+    return '<div class="rk-card">' +
+      '<div class="rk-card-t">' + m.label + ' 冠军</div>' +
+      '<div class="rk-card-n">' + rkEsc(top.name) + (top.shop ? ' <i>' + rkEsc(top.shop) + '</i>' : '') + '</div>' +
+      '<div class="rk-card-v">' + rkFmt(top[m.key], m.fmt) + '</div>' +
+      '<div class="rk-card-s">平均 ' + rkFmt(avg, m.fmt) + '</div>' +
+      '</div>';
+  }).join('');
+  el.innerHTML = cards;
+  el.style.display = cards ? '' : 'none';
+}
+
+function rkRenderTable(rows, M) {
+  const tbody = document.getElementById('rk-tbody');
+  const emptyEl = document.getElementById('rk-empty');
+  if (emptyEl) emptyEl.style.display = 'none';
+  if (!tbody) return;
+  if (!rows.length) { rkEmpty('这一天没有已更新的数据（可能是休息日，或数据还没导出同步）。'); return; }
+
+  // 表头排序指示
+  document.querySelectorAll('.rk-table th.rk-sortable').forEach(th => {
+    const on = th.dataset.key === rkSortKey;
+    th.classList.toggle('active', on);
+    const a = th.querySelector('.rk-arrow');
+    if (a) a.textContent = on ? (rkSortAsc ? '▲' : '▼') : '';
+  });
+
+  // 相邻名次打平（同分同名次）
+  const rankOf = [];
+  let lastV = null, lastRank = 0;
+  rows.forEach((r, i) => {
+    const v = r[rkSortKey];
+    if (lastV !== null && v !== null && Math.abs(v - lastV) < 1e-9) rankOf.push(lastRank);
+    else { lastRank = i + 1; rankOf.push(lastRank); lastV = v; }
+  });
+
+  let html = '';
+  let curGroup = null;
+  const GFULL = { '售前1组': 'A组（售前1组）', '售前2组': 'B组（售前2组）', '售前3组': 'C组（售前3组）' };
+  rows.forEach((r, i) => {
+    if (r.group !== curGroup) {
+      curGroup = r.group;
+      const n = rows.filter(x => x.group === curGroup).length;
+      html += '<tr class="rk-group-row"><td colspan="7">' + rkEsc(GFULL[curGroup] || curGroup) + ' · ' + n + '</td></tr>';
+    }
+    const rk = rankOf[i];
+    const badge = (rk === 1) ? 'rk-badge b1' : (rk === 2) ? 'rk-badge b2' : (rk === 3) ? 'rk-badge b3' : 'rk-badge';
+    const conv = r[rkSortKey === 'conversion' ? 'conversion' : 'conversion'];
+    html += '<tr>' +
+      '<td class="rk-c-rank"><span class="' + badge + '">' + rk + '</span></td>' +
+      '<td class="rk-c-name">' + rkEsc(r.name) + '</td>' +
+      '<td class="rk-c-shop">' + (r.shop ? rkEsc(r.shop) : '<i>' + r.shops.length + ' 店合计</i>') + '</td>' +
+      '<td class="' + (rkSortKey === 'conversion' ? 'rk-hl ' : '') + 'rk-good">' + rkFmt(r.conversion, 'pct') + '</td>' +
+      '<td class="' + (rkSortKey === 'sales' ? 'rk-hl ' : '') + '">' + rkFmt(r.sales, 'money') + '</td>' +
+      '<td class="' + (rkSortKey === 'satisfaction' ? 'rk-hl ' : '') + '">' + rkFmt(r.satisfaction, 'pct') + '</td>' +
+      '<td class="' + (rkSortKey === 'response' ? 'rk-hl ' : '') + '">' + rkFmt(r.response, 'sec') + '</td>' +
+      '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+let rkBound = false;
+function rkBindOnce() {
+  if (rkBound) return;
+  rkBound = true;
+  const vs = document.getElementById('rk-view-seg');
+  if (vs) vs.querySelectorAll('.rk-seg-btn').forEach(b => b.onclick = () => rkSetView(b.dataset.view));
+  const gs = document.getElementById('rk-group-seg');
+  if (gs) gs.querySelectorAll('.rk-seg-btn').forEach(b => b.onclick = () => rkSetGroup(b.dataset.group));
+  document.querySelectorAll('.rk-table th.rk-sortable').forEach(th => {
+    th.onclick = () => rkSortBy(th.dataset.key);
+    th.style.cursor = 'pointer';
+  });
+}
+
+function subscribeRanking() {
+  if (!supabase || rkSub) return;
+  try {
+    rkSub = supabase.channel('ranking-daily-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ranking_daily' }, () => {
+        debouncedReload('ranking', rkReload);
+      })
+      .subscribe();
+  } catch (e) { console.warn('排名订阅失败', e); }
+}
+
+// 旧接口保留成空壳，避免历史代码调用报错
+function renderRanking() { rkRender(); }
+function loadRankingFromDB() { rkReload(false); }
 
 // ==================== 售前月度数据 ====================
 let presaleMonthlyData = []; // 当前月份的数据
@@ -7808,9 +8149,7 @@ function handleExcelImport(input) {
         return;
       }
 
-      if (excelImportTarget === 'ranking') {
-        importRankingFromSheet(rows);
-      } else if (excelImportTarget === 'presale_monthly') {
+      if (excelImportTarget === 'presale_monthly') {
         importPresaleMonthlyFromSheet(rows);
       } else if (excelImportTarget === 'cross_sales') {
         importCrossSalesFromSheet(rows);
@@ -7942,65 +8281,7 @@ function parseMonth(val) {
 }
 
 async function importRankingFromSheet(rows) {
-  const header = buildHeaderMap(rows[0]);
-  const required = ['姓名', 'group', 'name'];
-  const hasName = required.some(k => header[normalizeHeader(k)] !== undefined);
-  if (!hasName) {
-    showToast('⚠️ Excel 缺少「姓名」列，无法导入');
-    return;
-  }
-
-  const imported = [];
-  const skipped = [];
-
-  for (let i = 1; i < rows.length; i++) {
-    const row = rows[i];
-    if (!row || row.every(c => c === '' || c === null || c === undefined)) continue;
-
-    const name = String(getCell(row, header, ['姓名', 'name', '姓名name']) || '').trim();
-    const groupRaw = String(getCell(row, header, ['组别', 'group', '组', 'group_name']) || 'A组').trim();
-    const period = parseMonth(getCell(row, header, ['月份', 'period', '月份period', '年月']));
-
-    if (!name) { skipped.push(`第${i + 1}行：缺少姓名`); continue; }
-    if (!period) { skipped.push(`第${i + 1}行：月份格式不正确`); continue; }
-
-    const groupName = ['A组', 'B组', 'C组'].includes(groupRaw) ? groupRaw : 'A组';
-
-    imported.push({
-      staff_name: name,
-      group_name: groupName,
-      period: period,
-      visitors: parseNumber(getCell(row, header, ['接待量', 'visitors', 'visitor'])),
-      inquiry_count: parseNumber(getCell(row, header, ['询单人数', 'inquiry_count', 'inquirycount', '询单'])),
-      payment_count: parseNumber(getCell(row, header, ['付款人数', 'payment_count', 'paymentcount', '付款'])),
-      conversion_rate: parseNumber(getCell(row, header, ['转化率', 'conversion', 'conversion_rate'])),
-      cross_sales: parseNumber(getCell(row, header, ['连带销售额', 'crosssales', 'cross_sales', '连带销售'])),
-      satisfaction: parseNumber(getCell(row, header, ['满意度', 'satisfaction'])),
-      response_time: parseNumber(getCell(row, header, ['响应时间', 'responsetime', 'response_time', '响应']))
-    });
-  }
-
-  if (imported.length === 0) {
-    showToast('⚠️ 没有可导入的有效数据' + (skipped.length ? '（' + skipped.slice(0, 3).join('；') + '）' : ''));
-    return;
-  }
-
-  try {
-    const { error } = await supabase
-      .from('ranking_data')
-      .upsert(imported, { onConflict: 'staff_name,period' });
-    if (error) { showToast('❌ 导入失败: ' + error.message); return; }
-    showToast(`✅ 已导入 ${imported.length} 条排名数据` + (skipped.length ? `，跳过 ${skipped.length} 行` : ''));
-
-    // 如果导入的数据包含当前查看月份，刷新；否则切到第一个导入月份
-    const firstPeriod = imported[0].period;
-    if (firstPeriod !== rankingPeriod) {
-      rankingPeriod = firstPeriod;
-      const monthInput = document.getElementById('ranking-month-input');
-      if (monthInput) monthInput.value = rankingPeriod;
-    }
-    loadRankingFromDB();
-  } catch(e) { showToast('❌ 导入异常: ' + e.message); }
+  showToast('ℹ️ 客服排名已改为自动读取看板数据，不需要手动导入');
 }
 
 async function importPresaleMonthlyFromSheet(rows) {
@@ -8790,7 +9071,7 @@ function switchPage(page) {
   if (page === 'quiz') renderQuiz();
   if (page === 'schedule') { loadScheduleFromDB(); subscribeSchedule(); renderSchedule(); }
   if (page === 'requests') { loadRequests(); renderReqForm(); subscribeRequests(); }
-  if (page === 'ranking') { if (rankingAllRows.length === 0) loadRankingFromDB(); else renderRanking(); subscribeRanking(); }
+  if (page === 'ranking') { rkBindOnce(); rkReload(false); subscribeRanking(); }
   if (page === 'cross-sales') {
     loadCrossSalesFromDB(); // 每次进入都重新拉取，保证最新（Realtime 仅本页激活时刷新）
     // 加载下拉选项模板 + 实时订阅（防止刷新后选项消失）
@@ -13287,210 +13568,6 @@ function queryLogistics() {
   document.getElementById('log-res-fee').className = 'value fee' + (feeText === '包邮' || feeText === '无需补费' || feeText === '无需空运' ? ' free' : '');
   document.getElementById('log-res-note').innerHTML = note;
   document.getElementById('log-result').classList.add('show');
-}
-
-// ==================== RANKING ====================
-function renderRanking() {
-  if (!rankingData.groups || rankingData.groups.length === 0) {
-    document.getElementById('ranking-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-secondary);">暂无排名数据，点击「编辑数据」录入吧！</td></tr>';
-    document.getElementById('ranking-meta').textContent = '';
-    return;
-  }
-
-  // Sort header click handlers
-  document.querySelectorAll('.ranking-table th.sortable').forEach(th => {
-    th.onclick = () => {
-      if (rankEditMode) return;
-      const key = th.dataset.key;
-      if (rankSortKey === key) {
-        rankSortAsc = !rankSortAsc;
-      } else {
-        rankSortKey = key;
-        rankSortAsc = key === 'response';
-      }
-      renderRanking();
-    };
-  });
-
-  // Update sort indicators
-  document.querySelectorAll('.ranking-table th.sortable').forEach(th => {
-    th.classList.remove('active', 'asc', 'desc');
-    const key = th.dataset.key;
-    if (!rankEditMode && key === rankSortKey) {
-      th.classList.add('active', rankSortAsc ? 'asc' : 'desc');
-      th.querySelector('.sort-arrow').textContent = rankSortAsc ? '▲' : '▼';
-    } else {
-      th.querySelector('.sort-arrow').textContent = '';
-    }
-  });
-
-  const tbody = document.getElementById('ranking-tbody');
-  let html = '';
-  let grandVisitors = 0, grandInquiry = 0, grandPayment = 0, grandSales = 0;
-  let grandConv = 0, grandSat = 0, grandResp = 0, grandCount = 0;
-  let globalRank = 0;
-
-  rankingData.groups.forEach((group, gIdx) => {
-    if (!group.members || group.members.length === 0) return;
-
-    // Group header row
-    html += `<tr class="group-header-row"><td colspan="9">${group.name}</td></tr>`;
-
-    // Sort members (view mode only)
-    let sorted = [...group.members];
-    if (!rankEditMode) {
-      sorted.sort((a, b) => {
-        const va = a[rankSortKey];
-        const vb = b[rankSortKey];
-        if (rankSortKey === 'response') return rankSortAsc ? va - vb : vb - va;
-        return rankSortAsc ? vb - va : va - vb;
-      });
-    }
-
-    let gVisitors = 0, gInquiry = 0, gPayment = 0, gSales = 0;
-    let gConv = 0, gSat = 0, gResp = 0;
-
-    sorted.forEach((m, i) => {
-      globalRank++;
-      const rank = i + 1;
-      let rankClass = '';
-      if (rank === 1) rankClass = 'top1';
-      else if (rank === 2) rankClass = 'top2';
-      else if (rank === 3) rankClass = 'top3';
-
-      const isTop3 = rank <= 3 ? ' top-row' : '';
-      gVisitors += m.visitors || 0;
-      gInquiry += m.inquiryCount || 0;
-      gPayment += m.paymentCount || 0;
-      gSales += m.crossSales || 0;
-      gConv += m.conversion || 0;
-      gSat += m.satisfaction || 0;
-      gResp += m.response || 0;
-
-      const respClass = (m.response || 0) <= 30 ? ' fast' : '';
-
-      if (rankEditMode) {
-        html += `<tr class="${isTop3}">
-          <td class="col-rank"><span class="rank-badge ${rankClass}">${rank}</span></td>
-          <td class="col-name"><input class="rank-name-input" data-gidx="${gIdx}" data-midx="${i}" data-field="name" value="${m.name || ''}" placeholder="姓名" onchange="updateRankCell(${gIdx},${i},'name',this.value)"></td>
-          <td><input class="rank-cell-input" data-gidx="${gIdx}" data-midx="${i}" data-field="visitors" value="${m.visitors || 0}" onchange="updateRankCell(${gIdx},${i},'visitors',this.value)"></td>
-          <td><input class="rank-cell-input" data-gidx="${gIdx}" data-midx="${i}" data-field="inquiryCount" value="${m.inquiryCount || 0}" onchange="updateRankCell(${gIdx},${i},'inquiryCount',this.value)"></td>
-          <td><input class="rank-cell-input" data-gidx="${gIdx}" data-midx="${i}" data-field="paymentCount" value="${m.paymentCount || 0}" onchange="updateRankCell(${gIdx},${i},'paymentCount',this.value)"></td>
-          <td><input class="rank-cell-input" data-gidx="${gIdx}" data-midx="${i}" data-field="conversion" value="${m.conversion}" onchange="updateRankCell(${gIdx},${i},'conversion',this.value)">%</td>
-          <td>¥<input class="rank-cell-input" data-gidx="${gIdx}" data-midx="${i}" data-field="crossSales" value="${m.crossSales}" onchange="updateRankCell(${gIdx},${i},'crossSales',this.value)"></td>
-          <td><input class="rank-cell-input" data-gidx="${gIdx}" data-midx="${i}" data-field="response" value="${m.response}" onchange="updateRankCell(${gIdx},${i},'response',this.value)">秒</td>
-          <td><input class="rank-cell-input" data-gidx="${gIdx}" data-midx="${i}" data-field="satisfaction" value="${m.satisfaction}" onchange="updateRankCell(${gIdx},${i},'satisfaction',this.value)">%</td>
-        </tr>`;
-      } else {
-        html += `<tr class="${isTop3}">
-          <td class="col-rank"><span class="rank-badge ${rankClass}">${rank}</span></td>
-          <td class="col-name">${m.name || '<span style="color:#ccc">—</span>'}</td>
-          <td>${(m.visitors || 0).toLocaleString()}</td>
-          <td>${(m.inquiryCount || 0).toLocaleString()}</td>
-          <td>${(m.paymentCount || 0).toLocaleString()}</td>
-          <td>${m.conversion}%</td>
-          <td class="col-crossSales">¥${(m.crossSales || 0).toLocaleString()}</td>
-          <td class="col-response${respClass}">${m.response}秒</td>
-          <td>${m.satisfaction}%</td>
-        </tr>`;
-      }
-    });
-
-    // Group summary row
-    const gN = sorted.length;
-    grandVisitors += gVisitors;
-    grandInquiry += gInquiry;
-    grandPayment += gPayment;
-    grandSales += gSales;
-    grandConv += gConv;
-    grandSat += gSat;
-    grandResp += gResp;
-    grandCount += gN;
-
-    const gAvgConv = gN ? (gConv / gN).toFixed(1) : '0';
-    const gAvgSat = gN ? (gSat / gN).toFixed(1) : '0';
-    const gAvgResp = gN ? Math.round(gResp / gN) : 0;
-
-    html += `<tr class="group-summary-row">
-      <td colspan="2">${group.name}汇总</td>
-      <td>${gVisitors.toLocaleString()}</td>
-      <td>${gInquiry.toLocaleString()}</td>
-      <td>${gPayment.toLocaleString()}</td>
-      <td>${gAvgConv}%</td>
-      <td>¥${gSales.toLocaleString()}</td>
-      <td>${gAvgResp}秒</td>
-      <td>${gAvgSat}%</td>
-    </tr>`;
-  });
-
-  // Grand total row
-  if (grandCount > 0) {
-    const grandAvgConv = (grandConv / grandCount).toFixed(1);
-    const grandAvgSat = (grandSat / grandCount).toFixed(1);
-    const grandAvgResp = Math.round(grandResp / grandCount);
-    html += `<tr class="grand-total-row">
-      <td colspan="2">总计 (${grandCount}人)</td>
-      <td>${grandVisitors.toLocaleString()}</td>
-      <td>${grandInquiry.toLocaleString()}</td>
-      <td>${grandPayment.toLocaleString()}</td>
-      <td>${grandAvgConv}%</td>
-      <td>¥${grandSales.toLocaleString()}</td>
-      <td>${grandAvgResp}秒</td>
-      <td>${grandAvgSat}%</td>
-    </tr>`;
-  }
-
-  tbody.innerHTML = html;
-
-  // Metadata
-  document.getElementById('ranking-meta').innerHTML =
-    `共<b>${grandCount}人</b> · 总接待 <b>${grandVisitors.toLocaleString()}</b> · 总成交 <b>¥${grandSales.toLocaleString()}</b> · 平均转化率 <b>${grandCount ? (grandConv/grandCount).toFixed(1) : 0}%</b>`;
-}
-
-function updateRankCell(groupIdx, memberIdx, field, value) {
-  const m = rankingData.groups[groupIdx].members[memberIdx];
-  if (field === 'name') {
-    m[field] = value.trim();
-  } else {
-    const num = parseFloat(value);
-    m[field] = isNaN(num) ? 0 : num;
-  }
-}
-
-function toggleRankEdit() {
-  rankEditMode = !rankEditMode;
-  const btn = document.getElementById('rank-edit-btn');
-  const saveBtn = document.getElementById('rank-save-btn');
-  if (rankEditMode) {
-    btn.textContent = ' 取消编辑';
-    btn.style.borderColor = 'var(--primary)';
-    btn.style.color = 'var(--primary)';
-    if (saveBtn) saveBtn.style.display = 'inline-block';
-  } else {
-    btn.textContent = '✏️ 编辑数据';
-    btn.style.borderColor = '';
-    btn.style.color = '';
-    if (saveBtn) saveBtn.style.display = 'none';
-  }
-  renderRanking();
-}
-
-function exportRankData() {
-  const exportData = JSON.stringify(rankingData, null, 2);
-  document.getElementById('rank-export-text').value = exportData;
-  document.getElementById('rank-export-area').style.display = 'block';
-  document.getElementById('rank-export-area').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-function copyRankExport() {
-  const textarea = document.getElementById('rank-export-text');
-  textarea.select();
-  navigator.clipboard.writeText(textarea.value).then(() => {
-    showToast('✅ 已复制到剪贴板，发给我帮你更新部署');
-  }).catch(() => {
-    document.execCommand('copy');
-    showToast('✅ 已复制到剪贴板');
-  });
 }
 
 // ==================== SCHEDULE ====================
