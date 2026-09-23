@@ -1702,6 +1702,13 @@ body {
   font-size:13px; text-align:left !important; padding-left:28px !important; }
 .rk-table tr.rk-group-l2 .rk-sub { color:var(--text-secondary); font-weight:400; font-size:12px; }
 .rk-table tr.rk-shop-row td { font-size:13.5px; padding-top:10px; padding-bottom:10px; }
+/* ★ 每个块重复的表头行（下拉看后面的客服/店铺时也知道每列是什么指标） */
+.rk-table tr.rk-head-row td { background:#f4f2fb; color:var(--text-secondary); font-weight:600;
+  font-size:12.5px; padding:7px 10px; white-space:nowrap; border-bottom:1px solid var(--border); }
+.rk-table tr.rk-head-row td.rk-sortable { cursor:pointer; user-select:none; }
+.rk-table tr.rk-head-row td.rk-sortable:hover { color:var(--primary); }
+.rk-table tr.rk-head-row td.rk-c-name { text-align:left !important; padding-left:18px !important; }
+.rk-table tr.rk-head-row .rk-arrow { color:var(--primary); }
 /* 按人看：缺店标红提示（该店按 0 计入合计，但值得留意） */
 .rk-table .rk-cover-warn { color:#d97706; font-style:normal; font-weight:600; }
 .rk-table tr.rk-group-row .rk-sub { font-weight:400; }
@@ -3359,8 +3366,7 @@ body {
         <button class="rk-seg-btn" data-view="month">月累计</button>
       </div>
       <div class="rk-seg" id="rk-group-seg">
-        <button class="rk-seg-btn active" data-group="ALL">全部</button>
-        <button class="rk-seg-btn" data-group="售前1组">A组</button>
+        <button class="rk-seg-btn active" data-group="售前1组">A组</button>
         <button class="rk-seg-btn" data-group="售前2组">B组</button>
         <button class="rk-seg-btn" data-group="售前3组">C组</button>
       </div>
@@ -4409,7 +4415,9 @@ let scheduleData = {};
 let scheduleMonth = '';  // current viewing month 'YYYY-MM'
 // ★2026-09-21 排名页重做：数据源改为 Supabase ranking_daily（由看板「每日明细·按分组」同步而来）
 let rkView = 'day';          // day=日排名 / month=月累计
-let rkGroup = 'ALL';         // ALL / 售前1组 / 售前2组 / 售前3组
+let rkGroup = '售前1组';     // 售前1组 / 售前2组 / 售前3组（★ 已去掉「全部」，默认 A组）
+let rkGroupFixed = '售前1组'; // 记忆用户选的组（切「按店看 / 按人看」时保持）
+let rkPrevGroupBy = '';      // 上一次的分组维度，用于判断要不要重置组
 let rkDate = '';             // 当前查看日期 'YYYY-MM-DD'
 let rkDates = [];            // 库里可用日期（升序）
 let rkRows = [];             let rkAllRows = [];          // ranking_daily 全量明细
@@ -5072,7 +5080,7 @@ async function rkLoadRows() {
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
       .from('ranking_daily')
-      .select('work_date,group_name,staff_name,shop_name,inquiry,payment,sales,conversion,satisfaction,response_time')
+      .select('work_date,group_name,staff_name,shop_name,inquiry,payment,sales,good_reviews,bad_reviews,conversion,satisfaction,response_time')
       .order('work_date', { ascending: true })
       .range(from, from + PAGE - 1);
     if (error) throw error;
@@ -5177,6 +5185,34 @@ function rkSortBy(key) {
   rkRender();
 }
 
+function rkNum(v) {
+  // ★ 关键：Number(null) === 0、Number('') === 0，且 isFinite(0) === true，
+  //   所以「没有这个指标数据」的 null 会被当成真实的 0 参与运算，
+  //   把满意度/响应严重拉低（实测小欣 100% 被算成 31.7%）。
+  //   这里统一把 null / undefined / '' 判为「无数据」返回 NaN。
+  if (v === null || v === undefined || v === '') return NaN;
+  const n = Number(v);
+  return isFinite(n) ? n : NaN;
+}
+
+// ★ 满意度口径 = 好评数 ÷ (好评数 + 差评数)，**用原始评价条数合计后再算**，
+//   不是把各店的百分比求平均，也不是按询单人数加权。
+//   只有 (好评+差评) > 0 的店才计入；两样都是 0 的店说明该平台没评价字段
+//   （拼多多源表没有评价字段），必须跳过，不能当成 0% 拉低整体。
+//   返回 null 表示「这些店都没有评价数据」。
+function rkSatOf(rows) {
+  let good = 0, bad = 0;
+  rows.forEach(r => {
+    const g = rkNum(r.good_reviews), b = rkNum(r.bad_reviews);
+    if (isNaN(g) && isNaN(b)) return;              // 两个字段都没有 → 跳过
+    const gg = isNaN(g) ? 0 : g;
+    const bb = isNaN(b) ? 0 : b;
+    if (gg + bb <= 0) return;                      // 无评价（如拼多多）→ 跳过
+    good += gg; bad += bb;
+  });
+  return (good + bad) > 0 ? good / (good + bad) : null;
+}
+
 // 把明细行聚合成「一条 = 一个客服（可选：再按店铺拆）」
 // 口径：询单/付款/销售额 **求和**；转化率 = 付款/询单；满意度/响应 **按询单人数加权**
 // ★ 按人看时：改由 rkAggPerson() 走「本组标准店铺」口径，保证同组内每人分母一致
@@ -5190,7 +5226,7 @@ function rkAggByShop(rows, byShop) {
         group: r.group_name, name: r.staff_name,
         shop: byShop ? r.shop_name : '', shops: new Set(),
         inquiry: 0, payment: 0, sales: 0,
-        satW: 0, satN: 0, respW: 0, respN: 0
+        satW: 0, satN: 0, respW: 0, respN: 0, _rows: []
       });
     }
     const o = map.get(k);
@@ -5200,13 +5236,11 @@ function rkAggByShop(rows, byShop) {
     o.payment += pay;
     o.sales += Number(r.sales) || 0;
     if (r.shop_name) o.shops.add(r.shop_name);
-    // ★ 同 rkAggPerson：询单为 0 的店（没接待）不参与满意度/响应合计，
-    //   否则看板里写死的 satisfaction=0 会污染整组合计值。
+    o._rows.push(r);          // ★ 留着原始行，满意度按「好评/差评条数」合计后再算
+    // 响应：只在有接待（询单>0）且字段有值、时长>0 时按询单加权
     if (inq > 0) {
-      const sat = Number(r.satisfaction);
-      if (isFinite(sat)) { o.satW += sat * inq; o.satN += inq; }
-      const resp = Number(r.response_time);
-      if (isFinite(resp) && resp > 0) { o.respW += resp * inq; o.respN += inq; }
+      const resp = rkNum(r.response_time);
+      if (!isNaN(resp) && resp > 0) { o.respW += resp * inq; o.respN += inq; }
     }
   });
   return Array.from(map.values()).map(o => ({
@@ -5214,7 +5248,8 @@ function rkAggByShop(rows, byShop) {
     shops: Array.from(o.shops),
     inquiry: o.inquiry, payment: o.payment, sales: o.sales,
     conversion: o.inquiry > 0 ? o.payment / o.inquiry : null,
-    satisfaction: o.satN > 0 ? o.satW / o.satN : null,
+    // ★ 满意度 = 该范围内「好评合计 ÷ (好评+差评)合计」，无评价的店自动跳过
+    satisfaction: rkSatOf(o._rows),
     response: o.respN > 0 ? o.respW / o.respN : null
   }));
 }
@@ -5231,7 +5266,7 @@ function rkAggPerson(rows) {
         group: r.group_name, name: r.staff_name,
         shops: new Set(), miss: [],
         inquiry: 0, payment: 0, sales: 0,
-        satW: 0, satN: 0, respW: 0, respN: 0
+        satW: 0, satN: 0, respW: 0, respN: 0, _rows: []
       });
     }
     const o = map.get(k);
@@ -5240,14 +5275,11 @@ function rkAggPerson(rows) {
     o.payment += Number(r.payment) || 0;
     o.sales += Number(r.sales) || 0;
     if (r.shop_name) o.shops.add(r.shop_name);
-    // ★ 满意度/响应只在「当天该店有接待（询单>0）」时才参与合计。
-    //   看板里没接待的店会写 satisfaction=0 / response=null，若把 0 也算进去
-    //   会把没干活的人拉成 0%，也会把正常人的满意度拉低。→ 询单为 0 一律不计。
+    o._rows.push(r);          // ★ 留着原始行，满意度按「好评/差评条数」合计后再算
+    // 响应：只在有接待（询单>0）且字段有值、时长>0 时按询单加权
     if (inq > 0) {
-      const sat = Number(r.satisfaction);
-      if (isFinite(sat)) { o.satW += sat * inq; o.satN += inq; }
-      const resp = Number(r.response_time);
-      if (isFinite(resp) && resp > 0) { o.respW += resp * inq; o.respN += inq; }
+      const resp = rkNum(r.response_time);
+      if (!isNaN(resp) && resp > 0) { o.respW += resp * inq; o.respN += inq; }
     }
   });
   const out = Array.from(map.values()).map(o => {
@@ -5263,7 +5295,8 @@ function rkAggPerson(rows) {
       stdCount: std.length, cover: std.length ? (std.length - miss.length) : has.length,
       inquiry: o.inquiry, payment: o.payment, sales: o.sales,
       conversion: o.inquiry > 0 ? o.payment / o.inquiry : null,
-      satisfaction: o.satN > 0 ? o.satW / o.satN : null,
+      // ★ 满意度 = 该人本组标准店范围内「好评合计 ÷ (好评+差评)合计」
+      satisfaction: rkSatOf(o._rows),
       response: o.respN > 0 ? o.respW / o.respN : null
     };
   });
@@ -5301,7 +5334,8 @@ function rkCurrentRows() {
     const mono = rkDate ? rkDate.slice(0, 7) : '';
     rows = rkAllRows.filter(r => String(r.work_date).slice(0, 7) === mono);
   }
-  if (rkGroup !== 'ALL') rows = rows.filter(r => r.group_name === rkGroup);
+  // ★ 已去掉「全部」：rkGroup 始终是某个具体组（默认 A组）
+  if (rkGroup) rows = rows.filter(r => r.group_name === rkGroup);
   // ★ 按人看时：把范围收窄到「本组负责的标准店铺」，保证同组内每人分母一致
   //   （某人的某个标准店没数据 → 该店视为 0，不参与加权，但分母照算）
   if (rkGroupBy === 'person') {
@@ -5478,7 +5512,8 @@ function rkRenderFilterBar() {
       : rkAllRows;
     const names = [];
     pool.forEach(r => {
-      if (rkGroup !== 'ALL' && r.group_name !== rkGroup) return;
+      // ★ 已去掉「全部」：rkGroup 始终是某个具体组，这里不需要再判 ALL
+      if (r.group_name !== rkGroup) return;
       if (r.shop_name && names.indexOf(r.shop_name) < 0) names.push(r.shop_name);
     });
     names.sort((a, b) => a.localeCompare(b, 'zh'));
@@ -5535,10 +5570,10 @@ function rkRenderMeta(raw, rows) {
   el.innerHTML = '<span class="rk-chip">' + (rkView === 'day' ? '📅 日排名' : '📈 月累计') + '</span>' +
     '<span class="rk-chip">' + rkEsc(range) + '</span>' +
     '<span class="rk-chip">' + (rkGroupBy === 'shop' ? '🏪 按店铺分组 · 店内排名'
-                                : (rkGroup === 'ALL' ? '👥 全部组' : '👥 ' + rkEsc(rkGroup))) + '</span>' +
+                                : '👥 ' + rkEsc(rkGroup)) + '</span>' +
     '<span class="rk-chip">' + people + ' 人 · ' + shops.size + ' 店 · ' + raw.length + ' 条明细</span>' +
     warn +
-    '<span class="rk-chip rk-chip-tip">口径：转化率=付款/询单 · 满意度&响应按询单加权</span>';
+    '<span class="rk-chip rk-chip-tip">口径：转化率=付款/询单 · 满意度=好评数/评价总数 · 响应按询单加权</span>';
 }
 
 function rkRenderCards(rows) {
@@ -5620,6 +5655,22 @@ function rkRenderTable(rows, M) {
   const GFULL = { '售前1组': 'A组（售前1组）', '售前2组': 'B组（售前2组）', '售前3组': 'C组（售前3组）' };
   // 按店看时隐藏「店铺」列 → 分组标题的 colspan 少 1
   const CSPAN = (rkGroupBy === 'shop') ? 6 : 7;
+
+  // ★ 每个块都重复一次表头：下拉看后面的客服/店铺时，也能知道每列是什么指标。
+  //   表头本身也可点（沿用 thead 的排序 handler，用 data-key 标记）。
+  const headRow = () => {
+    const ar = k => (k === rkSortKey) ? (rkSortAsc ? ' ▲' : ' ▼') : '';
+    return '<tr class="rk-head-row">' +
+      '<td class="rk-c-rank">名次</td>' +
+      '<td class="rk-c-name">客服</td>' +
+      '<td class="rk-c-shop">店铺</td>' +
+      '<td class="rk-sortable" data-key="conversion">转化率<span class="rk-arrow">' + ar('conversion') + '</span></td>' +
+      '<td class="rk-sortable" data-key="sales">销售额<span class="rk-arrow">' + ar('sales') + '</span></td>' +
+      '<td class="rk-sortable" data-key="satisfaction">满意度<span class="rk-arrow">' + ar('satisfaction') + '</span></td>' +
+      '<td class="rk-sortable" data-key="response">响应<span class="rk-arrow">' + ar('response') + '</span></td>' +
+      '</tr>';
+  };
+
   rows.forEach((r, i) => {
     if (rkGroupBy === 'shop') {
       // ── 第一级：A/B/C 组 ──
@@ -5640,6 +5691,7 @@ function rkRenderTable(rows, M) {
                           .reduce((s, x) => s + (Number(x.sales) || 0), 0);
         html += '<tr class="rk-group-row rk-group-l2"><td colspan="' + CSPAN + '">🏪 ' + rkEsc(curShopKey || '未知店铺') +
                 '　<span class="rk-sub">' + n + ' 人 · 合计 ' + rkFmt(sales, 'money') + '</span></td></tr>';
+        html += headRow();          // ★ 每个店铺块前重复表头
       }
     } else {
       if (r.group !== curGroupKey) {
@@ -5650,6 +5702,7 @@ function rkRenderTable(rows, M) {
           ? '　<span class="rk-sub">本组合计口径 = 全部 ' + std.length + ' 个店（' + std.map(rkEsc).join('、') + '）</span>'
           : '';
         html += '<tr class="rk-group-row"><td colspan="' + CSPAN + '">' + rkEsc(GFULL[curGroupKey] || curGroupKey) + ' · ' + n + ' 人' + scope + '</td></tr>';
+        html += headRow();          // ★ 每个组块前重复表头
       }
     }
     const rk = rankOf[i];
@@ -5680,6 +5733,13 @@ function rkRenderTable(rows, M) {
   try {
     const tbl = tbody.parentNode;
     if (tbl && tbl.classList) tbl.classList.toggle('rk-hide-shop', rkGroupBy === 'shop');
+  } catch (e) {}
+  // ★ 块内重复表头是动态生成的，每次渲染都要重新绑排序点击
+  try {
+    tbody.querySelectorAll('tr.rk-head-row td.rk-sortable').forEach(td => {
+      td.onclick = () => rkSortBy(td.dataset.key);
+      td.style.cursor = 'pointer';
+    });
   } catch (e) {}
 }
 
