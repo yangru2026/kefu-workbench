@@ -5284,11 +5284,11 @@ function rkAggByShop(rows, byShop) {
     o.sales += Number(r.sales) || 0;
     if (r.shop_name) o.shops.add(r.shop_name);
     o._rows.push(r);          // ★ 留着原始行，满意度按「好评/差评条数」合计后再算
-    // 响应：只在有接待（询单>0）且字段有值、时长>0 时按询单加权
-    if (inq > 0) {
-      const resp = rkNum(r.response_time);
-      if (!isNaN(resp) && resp > 0) { o.respW += resp * inq; o.respN += inq; }
-    }
+    // ★ 响应时间：直接对「每条店铺记录」的响应时间做算术平均（不加权）。
+    //   用户 2026-09-23：「响应不是按询单加权的呀，就是按我的数据源的响应，
+    //   多店铺跨平台的话，就是用平均值公式计算」——取各店响应值等权平均。
+    const resp = rkNum(r.response_time);
+    if (!isNaN(resp) && resp > 0) { o.respW += resp; o.respN += 1; }
   });
   return Array.from(map.values()).map(o => ({
     group: o.group, name: o.name, shop: o.shop,
@@ -5323,11 +5323,10 @@ function rkAggPerson(rows) {
     o.sales += Number(r.sales) || 0;
     if (r.shop_name) o.shops.add(r.shop_name);
     o._rows.push(r);          // ★ 留着原始行，满意度按「好评/差评条数」合计后再算
-    // 响应：只在有接待（询单>0）且字段有值、时长>0 时按询单加权
-    if (inq > 0) {
-      const resp = rkNum(r.response_time);
-      if (!isNaN(resp) && resp > 0) { o.respW += resp * inq; o.respN += inq; }
-    }
+    // ★ 响应时间：跨店跨平台取「算术平均」（不加权）。
+    //   用户 2026-09-23：「多店铺跨平台的话，就是用平均值公式计算」
+    const resp = rkNum(r.response_time);
+    if (!isNaN(resp) && resp > 0) { o.respW += resp; o.respN += 1; }
   });
   const out = Array.from(map.values()).map(o => {
     const std = RK_GROUP_SHOPS[o.group] || [];
@@ -5624,7 +5623,7 @@ function rkRenderMeta(raw, rows) {
     '<span class="rk-chip">' + rkEsc(rkGroup) + '</span>' +
     '<span class="rk-chip">' + people + ' 人 · ' + shops.size + ' 店 · ' + raw.length + ' 条明细</span>' +
     warn +
-    '<span class="rk-chip rk-chip-tip">口径：转化率=付款/询单 · 满意度=好评数/评价总数 · 响应按询单加权</span>';
+    '<span class="rk-chip rk-chip-tip">口径：转化率=付款/询单 · 满意度=好评数/评价总数 · 响应=各店算术平均</span>';
 }
 
 // ══════════════════════════════════════════════════════════════════
