@@ -1653,6 +1653,9 @@ body {
 .rk-split:hover { border-color:var(--primary); color:var(--primary); }
 .rk-split input { accent-color:var(--primary); margin:0; cursor:pointer; }
 .rk-spacer { flex:1; }
+.rk-shopsel { padding:7px 12px; border-radius:8px; border:1px solid var(--border);
+  background:#fff; color:var(--text); font-size:13px; cursor:pointer; max-width:180px; }
+.rk-shopsel:focus { outline:none; border-color:var(--primary); }
 .rk-refresh { border:1px solid var(--border); background:#fff; color:#6b6880; font-size:13px;
   font-family:inherit; padding:6px 14px; border-radius:10px; cursor:pointer; transition:all .15s; }
 .rk-refresh:hover { border-color:var(--primary); color:var(--primary); }
@@ -1689,6 +1692,19 @@ body {
 .rk-c-shop { width:120px; }
 .rk-table td.rk-c-name { font-weight:600; text-align:left; padding-left:18px; }
 .rk-table td.rk-c-shop { color:var(--text-secondary); font-size:13px; }
+/* 按店拆分：同一客服的店铺行做视觉分组 */
+.rk-table td.rk-c-name.rk-staff-cont { font-weight:400; color:#b9b5c9; }
+.rk-table tr.rk-staff-row-start td { border-top:1px solid #e8e4f4; }
+.rk-table tbody tr.rk-staff-row-start:first-child td { border-top:none; }
+/* 两级分组标题：L1=A/B/C组，L2=店铺 */
+.rk-table tr.rk-group-l1 td { background:#ece7fb; font-size:14px; padding-left:16px !important; }
+.rk-table tr.rk-group-l2 td { background:#f7f5fd; font-weight:600; color:var(--text);
+  font-size:13px; text-align:left !important; padding-left:28px !important; }
+.rk-table tr.rk-group-l2 .rk-sub { color:var(--text-secondary); font-weight:400; font-size:12px; }
+.rk-table tr.rk-shop-row td { font-size:13.5px; padding-top:10px; padding-bottom:10px; }
+/* 按店看时隐藏「店铺」列（已写在分组标题里） */
+.rk-table.rk-hide-shop th.rk-c-shop,
+.rk-table.rk-hide-shop td.rk-c-shop { display:none; }
 .rk-badge { display:inline-flex; width:28px; height:28px; border-radius:50%; align-items:center;
   justify-content:center; font-size:13px; font-weight:700; color:#fff; background:#c9c6d6; }
 .rk-badge.b1 { background:#f0a020; }
@@ -3345,8 +3361,13 @@ body {
         <button class="rk-seg-btn" data-group="售前2组">B组</button>
         <button class="rk-seg-btn" data-group="售前3组">C组</button>
       </div>
-      <label class="rk-split" title="勾选后同一个客服在每个店各占一行（看单店表现时用）">
-        <input type="checkbox" id="rk-byshop" onchange="rkSetByShop(this.checked)"> 按店拆分
+      <div class="rk-seg" id="rk-groupby-seg">
+        <button class="rk-seg-btn" data-groupby="person" title="按客服分组，看每个人的综合表现">按人看</button>
+        <button class="rk-seg-btn active" data-groupby="shop" title="按店铺分组，看每个店里谁做得最好">按店看</button>
+      </div>
+      <select id="rk-shop-select" class="rk-shopsel" onchange="rkSetShopFocus(this.value)" title="只看某一家店"></select>
+      <label class="rk-split" id="rk-split-label" title="不勾选：一个客服一行（各店合计）；勾选：一个客服在每个店各占一行，看单店表现">
+        <input type="checkbox" id="rk-byshop" checked onchange="rkSetByShop(this.checked)"> 按店拆分
       </label>
       <div class="rk-datenav" id="rk-datenav">
         <button class="rk-nav-btn" id="rk-prev" onclick="rkShiftDate(-1)" title="前一天">◀</button>
@@ -4396,7 +4417,9 @@ let rkSub = null;
 let rkDayStat = new Map();   // work_date -> { shops, staff }
 let rkMaxShops = 0;          // 历史上单日最多更新的店铺数
 let rkLastFull = '';         // 最近一个「数据回齐」的日期
-let rkByShop = false;        // 是否按店铺拆行（默认 false：一个客服一行，更清爽）
+let rkByShop = true;         // 是否按店铺拆行（默认 true：一个客服 × 一个店一行，能看清单店表现）
+let rkGroupBy = 'shop';      // 分组维度：person=按客服（A/B/C 组） / shop=按店铺（店名分组，店内排名）
+let rkShopFocus = '';        // 按店分组时，聚焦的店铺（'' = 全部）
 
 async function loadConfig() {
   try {
@@ -5111,7 +5134,19 @@ function rkShiftDate(step) {
 function rkOnDateChange(v) { rkDate = v; rkRender(); }
 function rkSetView(v) { rkView = v; rkRender(); }
 function rkSetGroup(g) { rkGroup = g; rkRender(); }
+// 只聚焦某一家店（'' = 全部店铺）
+function rkSetShopFocus(v) { rkShopFocus = v || ''; rkRender(); }
+
 function rkSetByShop(v) { rkByShop = !!v; rkRender(); }
+// 分组维度：person=按客服（A/B/C 组） / shop=按店铺（店名分组，店内排名）
+function rkSetGroupBy(v) {
+  rkGroupBy = (v === 'shop') ? 'shop' : 'person';
+  // 按店看时自动开启「按店拆分」，否则一人一行没法在店内排名
+  if (rkGroupBy === 'shop') rkByShop = true;
+  const cb = document.getElementById('rk-byshop');
+  if (cb) cb.checked = rkByShop;
+  rkRender();
+}
 
 function rkSortBy(key) {
   if (rkSortKey === key) rkSortAsc = !rkSortAsc;
@@ -5171,13 +5206,16 @@ function rkCurrentRows() {
     rows = rkAllRows.filter(r => String(r.work_date).slice(0, 7) === mono);
   }
   if (rkGroup !== 'ALL') rows = rows.filter(r => r.group_name === rkGroup);
+  // 只看某一家店
+  if (rkShopFocus) rows = rows.filter(r => r.shop_name === rkShopFocus);
   return rows;
 }
 
 function rkRender() {
   if (!rkAllRows.length) { rkEmpty('还没有排名数据。先跑一次同步脚本把看板数据灌进 Supabase 吧。'); return; }
   const raw = rkCurrentRows();
-  // 默认按人聚合（一人一行，清爽）；勾选「按店拆分」才展开成一人多行
+  // 按店看时强制拆店；按人看时才受复选框控制
+  if (rkGroupBy === 'shop') rkByShop = true;
   const rows = rkAgg(raw, rkByShop);
 
   // 排序
@@ -5193,8 +5231,80 @@ function rkRender() {
     return (vb - va) * dir;
   });
 
-  // 组顺序 A→B→C，组内保持排序
-  rows.sort((a, b) => (a.group || '').localeCompare(b.group || ''));
+  if (rkGroupBy === 'shop') {
+    // ===== 两层分组：A/B/C 组 →（组内）店铺 → 该店客服排名 =====
+    // 说明：每个组的客服只负责固定几个店；同一店若跨组（如拼多多1店在 B/C 组都有），
+    //       则在各组下分别出现，只列该组的人
+    const GFULL = { '售前1组': 'A组（售前1组）', '售前2组': 'B组（售前2组）', '售前3组': 'C组（售前3组）' };
+    const groupSeq = { '售前1组': 0, '售前2组': 1, '售前3组': 2 };
+    const G_ORDER = ['售前1组', '售前2组', '售前3组'];
+    // 先按「组 → 店内该组总销售额」算出店铺展示顺序
+    const shopOrder = {};
+    G_ORDER.forEach(g => {
+      const shops = [];
+      rows.forEach(r => {
+        if (r.group !== g || !r.shop) return;
+        if (shops.indexOf(r.shop) < 0) shops.push(r.shop);
+      });
+      const salesOf = {};
+      shops.forEach(sh => {
+        salesOf[sh] = rows.filter(r => r.group === g && r.shop === sh)
+                          .reduce((s, r) => s + (Number(r.sales) || 0), 0);
+      });
+      shops.sort((a, b) => {
+        const d = salesOf[b] - salesOf[a];
+        return Math.abs(d) > 1e-6 ? d : (a || '').localeCompare(b || '');
+      });
+      shopOrder[g] = {};
+      shops.forEach((sh, i) => { shopOrder[g][sh] = i; });
+    });
+    const up = M.better === 'low';
+    const metricRank = { conversion: 0, sales: 1, satisfaction: 2, response: 3 };
+    rows.sort((a, b) => {
+      const ga = groupSeq[a.group] === undefined ? 9 : groupSeq[a.group];
+      const gb = groupSeq[b.group] === undefined ? 9 : groupSeq[b.group];
+      if (ga !== gb) return ga - gb;
+      const sa = (shopOrder[a.group] || {})[a.shop || ''] || 0;
+      const sb = (shopOrder[b.group] || {})[b.shop || ''] || 0;
+      if (sa !== sb) return sa - sb;
+      const va = a[rkSortKey], vb = b[rkSortKey];
+      const na = (va === null || va === undefined), nb = (vb === null || vb === undefined);
+      if (na && nb) return 0;
+      if (na) return 1;
+      if (nb) return -1;
+      return up ? va - vb : vb - va;
+    });
+  } else {
+    // ===== 按客服分组：A→B→C 组顺序，组内保持排序 =====
+    rows.sort((a, b) => (a.group || '').localeCompare(b.group || ''));
+
+    // 按店拆分时：让同一个客服名下的店铺聚在一起
+    if (rkByShop) {
+      const keyed = {};
+      rows.forEach(r => { keyed[r.name] = r[rkSortKey]; });
+      const val = name => {
+        const v = keyed[name];
+        return (v === null || v === undefined) ? -Infinity : v;
+      };
+      const up = RK_METRICS.find(m => m.key === rkSortKey).better === 'low';
+      const staffOrder = {};
+      rows.forEach(r => {
+        const v = val(r.name);
+        const cur = staffOrder[r.name];
+        if (cur === undefined) staffOrder[r.name] = v;
+        else staffOrder[r.name] = up ? Math.min(cur, v) : Math.max(cur, v);
+      });
+      const rank = {};
+      Object.keys(staffOrder).sort((a, b) => up ? staffOrder[a] - staffOrder[b]
+                                                : staffOrder[b] - staffOrder[a])
+        .forEach((n, i) => { rank[n] = i; });
+      rows.sort((a, b) => {
+        if (a.group !== b.group) return (a.group || '').localeCompare(b.group || '');
+        if (a.name !== b.name) return rank[a.name] - rank[b.name];
+        return b[rkSortKey] - a[rkSortKey];
+      });
+    }
+  }
 
   rkRenderFilterBar();
   rkRenderMeta(raw, rows);
@@ -5220,7 +5330,42 @@ function rkRenderFilterBar() {
   const seg = document.getElementById('rk-view-seg');
   if (seg) seg.querySelectorAll('.rk-seg-btn').forEach(b => b.classList.toggle('active', b.dataset.view === rkView));
   const gs = document.getElementById('rk-group-seg');
-  if (gs) gs.querySelectorAll('.rk-seg-btn').forEach(b => b.classList.toggle('active', b.dataset.group === rkGroup));
+  if (gs) {
+    gs.querySelectorAll('.rk-seg-btn').forEach(b => b.classList.toggle('active', b.dataset.group === rkGroup));
+    // 按店看时，A/B/C 组筛选不生效（会误导），置灰
+    gs.style.opacity = (rkGroupBy === 'shop') ? '.45' : '';
+    gs.style.pointerEvents = (rkGroupBy === 'shop') ? 'none' : '';
+  }
+  const gb = document.getElementById('rk-groupby-seg');
+  if (gb) gb.querySelectorAll('.rk-seg-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.groupby === rkGroupBy));
+  // 按店看时「按店拆分」强制勾选且不可取消
+  const cb = document.getElementById('rk-byshop');
+  if (cb) {
+    cb.checked = rkByShop;
+    cb.disabled = (rkGroupBy === 'shop');
+    const lb = document.getElementById('rk-split-label');
+    if (lb) lb.style.opacity = (rkGroupBy === 'shop') ? '.55' : '';
+  }
+
+  // 店铺下拉：按当前组筛选列出店铺
+  const shopSel = document.getElementById('rk-shop-select');
+  if (shopSel) {
+    const pool = rkGroupBy === 'shop'
+      ? rkAllRows.filter(r => !rkDate || String(r.work_date).slice(0, 10) === rkDate)
+      : rkAllRows;
+    const names = [];
+    pool.forEach(r => {
+      if (rkGroup !== 'ALL' && r.group_name !== rkGroup) return;
+      if (r.shop_name && names.indexOf(r.shop_name) < 0) names.push(r.shop_name);
+    });
+    names.sort((a, b) => a.localeCompare(b, 'zh'));
+    shopSel.innerHTML = '<option value="">全部店铺(' + names.length + ')</option>' +
+      names.map(n => '<option value="' + rkEsc(n) + '">' + rkEsc(n) + '</option>').join('');
+    shopSel.value = rkShopFocus;
+    if (rkShopFocus && names.indexOf(rkShopFocus) < 0) { rkShopFocus = ''; shopSel.value = ''; }
+    shopSel.style.display = (rkGroupBy === 'shop') ? '' : 'none';
+  }
 
   const nav = document.getElementById('rk-datenav');
   if (!nav) return;
@@ -5267,7 +5412,8 @@ function rkRenderMeta(raw, rows) {
     : '<span class="rk-chip rk-chip-ok">✅ ' + (st ? st.shops : 0) + ' 家店数据已回齐</span>';
   el.innerHTML = '<span class="rk-chip">' + (rkView === 'day' ? '📅 日排名' : '📈 月累计') + '</span>' +
     '<span class="rk-chip">' + rkEsc(range) + '</span>' +
-    '<span class="rk-chip">' + (rkGroup === 'ALL' ? '全部组' : rkEsc(rkGroup)) + '</span>' +
+    '<span class="rk-chip">' + (rkGroupBy === 'shop' ? '🏪 按店铺分组 · 店内排名'
+                                : (rkGroup === 'ALL' ? '👥 全部组' : '👥 ' + rkEsc(rkGroup))) + '</span>' +
     '<span class="rk-chip">' + people + ' 人 · ' + shops.size + ' 店 · ' + raw.length + ' 条明细</span>' +
     warn +
     '<span class="rk-chip rk-chip-tip">口径：转化率=付款/询单 · 满意度&响应按询单加权</span>';
@@ -5309,28 +5455,66 @@ function rkRenderTable(rows, M) {
     if (a) a.textContent = on ? (rkSortAsc ? '▲' : '▼') : '';
   });
 
-  // 相邻名次打平（同分同名次）
+  // 名次：按店看时「每个店内单独排名」，按人看时全局排名
   const rankOf = [];
-  let lastV = null, lastRank = 0;
-  rows.forEach((r, i) => {
-    const v = r[rkSortKey];
-    if (lastV !== null && v !== null && Math.abs(v - lastV) < 1e-9) rankOf.push(lastRank);
-    else { lastRank = i + 1; rankOf.push(lastRank); lastV = v; }
-  });
+  if (rkGroupBy === 'shop') {
+    let curKey = null, cnt = 0, lastV = null, lastRank = 0;
+    rows.forEach(r => {
+      const k = (r.group || '') + '||' + (r.shop || '');   // 名次按「组+店」重新计数
+      const v = r[rkSortKey];
+      if (k !== curKey) { curKey = k; cnt = 0; lastV = null; lastRank = 0; }
+      cnt++;
+      if (lastV !== null && v !== null && v !== undefined && Math.abs(v - lastV) < 1e-9) {
+        rankOf.push(lastRank);          // 与上一位同分 → 并列
+      } else {
+        lastRank = cnt; rankOf.push(cnt); lastV = v;
+      }
+    });
+  } else {
+    let lastV = null, lastRank = 0;
+    rows.forEach((r, i) => {
+      const v = r[rkSortKey];
+      if (lastV !== null && v !== null && Math.abs(v - lastV) < 1e-9) rankOf.push(lastRank);
+      else { lastRank = i + 1; rankOf.push(lastRank); lastV = v; }
+    });
+  }
 
   let html = '';
-  let curGroup = null;
+  let curGroupKey = null, curShopKey = null;
   const GFULL = { '售前1组': 'A组（售前1组）', '售前2组': 'B组（售前2组）', '售前3组': 'C组（售前3组）' };
+  // 按店看时隐藏「店铺」列 → 分组标题的 colspan 少 1
+  const CSPAN = (rkGroupBy === 'shop') ? 6 : 7;
   rows.forEach((r, i) => {
-    if (r.group !== curGroup) {
-      curGroup = r.group;
-      const n = rows.filter(x => x.group === curGroup).length;
-      html += '<tr class="rk-group-row"><td colspan="7">' + rkEsc(GFULL[curGroup] || curGroup) + ' · ' + n + '</td></tr>';
+    if (rkGroupBy === 'shop') {
+      // ── 第一级：A/B/C 组 ──
+      if (r.group !== curGroupKey) {
+        curGroupKey = r.group;
+        curShopKey = null;
+        const n = rows.filter(x => x.group === curGroupKey).length;
+        const shops = [];
+        rows.forEach(x => { if (x.group === curGroupKey && x.shop && shops.indexOf(x.shop) < 0) shops.push(x.shop); });
+        html += '<tr class="rk-group-row rk-group-l1"><td colspan="' + CSPAN + '">' +
+                rkEsc(GFULL[curGroupKey] || curGroupKey) + ' · ' + shops.length + ' 个店 · ' + n + ' 行</td></tr>';
+      }
+      // ── 第二级：店铺 ──
+      if (r.shop !== curShopKey) {
+        curShopKey = r.shop;
+        const n = rows.filter(x => x.group === curGroupKey && x.shop === curShopKey).length;
+        const sales = rows.filter(x => x.group === curGroupKey && x.shop === curShopKey)
+                          .reduce((s, x) => s + (Number(x.sales) || 0), 0);
+        html += '<tr class="rk-group-row rk-group-l2"><td colspan="' + CSPAN + '">🏪 ' + rkEsc(curShopKey || '未知店铺') +
+                '　<span class="rk-sub">' + n + ' 人 · 合计 ' + rkFmt(sales, 'money') + '</span></td></tr>';
+      }
+    } else {
+      if (r.group !== curGroupKey) {
+        curGroupKey = r.group;
+        const n = rows.filter(x => x.group === curGroupKey).length;
+        html += '<tr class="rk-group-row"><td colspan="' + CSPAN + '">' + rkEsc(GFULL[curGroupKey] || curGroupKey) + ' · ' + n + ' 人</td></tr>';
+      }
     }
     const rk = rankOf[i];
     const badge = (rk === 1) ? 'rk-badge b1' : (rk === 2) ? 'rk-badge b2' : (rk === 3) ? 'rk-badge b3' : 'rk-badge';
-    const conv = r[rkSortKey === 'conversion' ? 'conversion' : 'conversion'];
-    html += '<tr>' +
+    html += '<tr' + (rkGroupBy === 'shop' ? ' class="rk-shop-row"' : '') + '>' +
       '<td class="rk-c-rank"><span class="' + badge + '">' + rk + '</span></td>' +
       '<td class="rk-c-name">' + rkEsc(r.name) + '</td>' +
       '<td class="rk-c-shop">' + (r.shop ? rkEsc(r.shop) : '<i>' + r.shops.length + ' 店合计</i>') + '</td>' +
@@ -5341,6 +5525,11 @@ function rkRenderTable(rows, M) {
       '</tr>';
   });
   tbody.innerHTML = html;
+  // 按店看时，店铺已在分组标题里，隐藏「店铺」列避免重复
+  try {
+    const tbl = tbody.parentNode;
+    if (tbl && tbl.classList) tbl.classList.toggle('rk-hide-shop', rkGroupBy === 'shop');
+  } catch (e) {}
 }
 
 let rkBound = false;
@@ -5351,6 +5540,8 @@ function rkBindOnce() {
   if (vs) vs.querySelectorAll('.rk-seg-btn').forEach(b => b.onclick = () => rkSetView(b.dataset.view));
   const gs = document.getElementById('rk-group-seg');
   if (gs) gs.querySelectorAll('.rk-seg-btn').forEach(b => b.onclick = () => rkSetGroup(b.dataset.group));
+  const gb = document.getElementById('rk-groupby-seg');
+  if (gb) gb.querySelectorAll('.rk-seg-btn').forEach(b => b.onclick = () => rkSetGroupBy(b.dataset.groupby));
   document.querySelectorAll('.rk-table th.rk-sortable').forEach(th => {
     th.onclick = () => rkSortBy(th.dataset.key);
     th.style.cursor = 'pointer';
