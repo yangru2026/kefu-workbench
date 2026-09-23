@@ -1696,6 +1696,93 @@ body {
 .rk-card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
 .rk-card-l, .rk-card-t { font-size:12px; color:var(--text-secondary); margin-bottom:4px; }
 .rk-card-n { font-size:15px; font-weight:700; color:var(--text); line-height:1.3; margin-bottom:2px; }
+
+/* ══════════════════════════════════════════════════════════════════
+   ★ 图形化卡片磁贴（用户 2026-09-23：「我想改成不要表格形式的，
+     我想要图形形式的，比如一个图形板块是一个指标这样」
+     「就是像这样一样，一块一块的」——参考花色素材页的磁贴风格）
+   每张卡 = 一个指标；卡内是该组客服的横条排行，条越长数值越高。
+   ══════════════════════════════════════════════════════════════════ */
+.rk-tiles { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-bottom:16px; }
+@media (max-width:1000px) { .rk-tiles { grid-template-columns:1fr; } }
+
+.rk-tile {
+  position:relative; background:#fff; border:1px solid var(--border);
+  border-radius:16px; padding:18px 20px 16px 24px; overflow:hidden;
+  box-shadow:0 1px 3px rgba(35,31,60,.04); transition:box-shadow .2s, transform .2s;
+}
+.rk-tile:hover { box-shadow:0 6px 18px rgba(35,31,60,.09); transform:translateY(-1px); }
+/* 左侧彩色竖边条（参考花色素材页） */
+.rk-tile::before {
+  content:''; position:absolute; left:0; top:0; bottom:0; width:5px; border-radius:16px 0 0 16px;
+}
+.rk-tile.t-conversion::before   { background:linear-gradient(180deg,#5B8DEF,#8FB4FF); }
+.rk-tile.t-sales::before        { background:linear-gradient(180deg,#F5A623,#FFCB6B); }
+.rk-tile.t-satisfaction::before { background:linear-gradient(180deg,#2FB98C,#7ED9B6); }
+.rk-tile.t-response::before     { background:linear-gradient(180deg,#A66BE8,#C9A3F5); }
+
+/* 卡片头部：居中图标 + 指标名 + 参与人数 */
+.rk-tile-head { text-align:center; padding-bottom:12px; margin-bottom:12px; border-bottom:1px dashed #efedf7; }
+.rk-tile-ico { font-size:20px; line-height:1; display:block; margin-bottom:6px; }
+.rk-tile-name { font-size:15px; font-weight:700; color:var(--text); }
+.rk-tile-sub { font-size:11px; color:var(--text-secondary); margin-top:3px; }
+.rk-tile-tag { display:inline-block; font-size:10px; border-radius:20px; padding:1px 8px; margin-left:5px; vertical-align:1px; }
+.t-conversion   .rk-tile-tag { background:#eef4ff; color:#3D6FD6; }
+.t-sales        .rk-tile-tag { background:#fff6e5; color:#C97F0A; }
+.t-satisfaction .rk-tile-tag { background:#e9f8f2; color:#1E8F68; }
+.t-response     .rk-tile-tag { background:#f5eeff; color:#7E43C4; }
+
+/* 卡内排行：一行一人，名字+数值+横条 */
+.rk-tile-list { display:flex; flex-direction:column; gap:2px; }
+.rk-tile-row {
+  display:grid; grid-template-columns:18px 1fr auto; align-items:center; gap:8px;
+  padding:6px 8px; border-radius:8px; position:relative; overflow:hidden;
+}
+.rk-tile-row .rk-tile-bg {
+  position:absolute; left:0; top:0; bottom:0; border-radius:8px; opacity:.13; z-index:0;
+  transition:width .5s cubic-bezier(.22,.61,.36,1);
+}
+.rk-tile-row > * { position:relative; z-index:1; }
+.rk-tile-row:hover { background:#fafaff; }
+.rk-tile-row:hover .rk-tile-bg { opacity:.24; }
+.rk-tile-rk { font-size:11px; color:#b9b6c9; text-align:center; font-weight:600; }
+.rk-tile-row.top1 .rk-tile-rk { color:#D98A00; }
+.rk-tile-row.top2 .rk-tile-rk { color:#8C93A8; }
+.rk-tile-row.top3 .rk-tile-rk { color:#B07A4E; }
+.rk-tile-nm { font-size:13px; color:var(--text); font-weight:500; }
+.rk-tile-row.top1 .rk-tile-nm { font-weight:700; }
+.rk-tile-vl { font-size:13px; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; }
+.rk-tile-row.top1 .rk-tile-vl { font-size:14px; }
+/* 横条颜色（只作用于 .rk-tile-bg，不碰文字） */
+.t-conversion   .rk-tile-bg { background:#5B8DEF; }
+.t-sales        .rk-tile-bg { background:#F5A623; }
+.t-satisfaction .rk-tile-bg { background:#2FB98C; }
+.t-response     .rk-tile-bg { background:#A66BE8; }
+/* 第一名数值用主题色强调 */
+.t-conversion   .rk-tile-row.top1 .rk-tile-vl { color:#3D6FD6; }
+.t-sales        .rk-tile-row.top1 .rk-tile-vl { color:#C97F0A; }
+.t-satisfaction .rk-tile-row.top1 .rk-tile-vl { color:#1E8F68; }
+.t-response     .rk-tile-row.top1 .rk-tile-vl { color:#7E43C4; }
+.rk-tile-empty { text-align:center; color:#b9b6c9; font-size:12px; padding:18px 0; }
+.rk-tile-more { text-align:center; font-size:11px; color:var(--text-secondary); margin-top:8px; }
+
+/* 店铺分组用的标题条（按店看时，每个店铺一组磁贴） */
+.rk-shop-sec { margin-bottom:20px; }
+.rk-group-sec-head {
+  display:flex; align-items:center; gap:10px; font-size:15px; font-weight:800; color:#5b3fa8;
+  padding:11px 16px; margin:6px 0 14px; border-radius:12px;
+  background:linear-gradient(90deg,#ece7fb,#f7f5ff); border-left:5px solid var(--primary);
+}
+.rk-tiles-empty {
+  text-align:center; color:var(--text-secondary); font-size:13px;
+  padding:34px 20px; background:#fff; border:1px dashed var(--border); border-radius:14px;
+}
+.rk-shop-sec-head {
+  display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; color:var(--text);
+  padding:9px 14px; margin-bottom:12px; border-radius:10px;
+  background:linear-gradient(90deg,#f7f5ff,#fbfaff); border-left:4px solid var(--primary);
+}
+.rk-shop-sec-head .rk-sub { font-size:11px; font-weight:400; color:var(--text-secondary); }
 .rk-card-n i { font-style:normal; font-size:11px; font-weight:400; color:var(--text-secondary); }
 .rk-card-v { font-size:20px; font-weight:700; color:var(--primary); line-height:1.2; }
 .rk-card-s { font-size:11px; color:#a8a5b8; margin-top:3px; }
@@ -3415,9 +3502,13 @@ body {
 
     <div class="rk-meta" id="rk-meta"></div>
 
-    <div class="rk-cards" id="rk-cards"></div>
+    <!-- ★ 图形化卡片磁贴区：一块一指标（用户 2026-09-23）—— 排名主视图 -->
+    <div id="rk-tiles"></div>
 
-    <!-- ★ 按店看：店铺冠军轮播（每个店铺的冠军轮流滚动展示） -->
+    <!-- 第八轮起停用：顶部冠军卡区（已并入磁贴） -->
+    <div class="rk-cards" id="rk-cards" style="display:none;"></div>
+
+    <!-- 第八轮起停用：按店看店铺冠军轮播（已改为每店一组磁贴） -->
     <div class="rk-carousel" id="rk-carousel" style="display:none;">
       <div class="rk-crs-head">
         <span class="rk-crs-shop" id="rk-crs-shop"></span>
@@ -3433,7 +3524,8 @@ body {
       <div class="rk-crs-bar"><i id="rk-crs-bar"></i></div>
     </div>
 
-    <div class="rk-table-wrap">
+    <!-- 第八轮起停用：明细表格（已被图形化磁贴取代） -->
+    <div class="rk-table-wrap" style="display:none;">
       <table class="rk-table">
         <thead>
           <tr>
@@ -5082,10 +5174,10 @@ const RK_EXCLUDE_STAFF = [
   { group: '售前3组', name: '小雷（练手）' }
 ];
 const RK_METRICS = [
-  { key: 'conversion',   label: '转化率', fmt: 'pct',   better: 'high' },
-  { key: 'sales',        label: '销售额', fmt: 'money', better: 'high' },
-  { key: 'satisfaction', label: '满意度', fmt: 'pct',   better: 'high' },
-  { key: 'response',     label: '响应',   fmt: 'sec',   better: 'low'  }
+  { key: 'conversion',   label: '转化率', fmt: 'pct',   better: 'high', icon: '🎯', tip: '付款 ÷ 询单' },
+  { key: 'sales',        label: '销售额', fmt: 'money', better: 'high', icon: '💰', tip: '毛额合计' },
+  { key: 'satisfaction', label: '满意度', fmt: 'pct',   better: 'high', icon: '😊', tip: '好评 ÷ 评价总数' },
+  { key: 'response',     label: '响应',   fmt: 'sec',   better: 'low',  icon: '⏱️', tip: '仅统计响应最快的记录' }
 ];
 
 function rkEsc(v) {
@@ -5514,13 +5606,17 @@ function rkRender() {
 
   rkRenderFilterBar();
   rkRenderMeta(raw, rows);
-  rkRenderCards(raw);          // ★ 冠军卡按「该组全部负责店铺的合计」评比，与按人看同口径
-  rkRenderTable(rows, M);
+  // ★ 图形化卡片磁贴（一块一指标）——用户 2026-09-23 要求彻底替代表格
+  rkRenderTiles(raw);
+  rkRenderCards(raw);          // 第八轮起只做清理：冠军卡区 + 店铺轮播都不再需要
+  rkRenderTable(rows, M);      // 第八轮起只做清理：表格已被磁贴取代
 }
 
 function rkEmpty(html) {
   const t = document.getElementById('rk-tbody');
   if (t) t.innerHTML = '';
+  const tl = document.getElementById('rk-tiles');
+  if (tl) tl.innerHTML = '';
   const c = document.getElementById('rk-cards');
   if (c) c.innerHTML = '';
   const m = document.getElementById('rk-meta');
@@ -5619,7 +5715,7 @@ function rkRenderMeta(raw, rows) {
     : '<span class="rk-chip rk-chip-ok">✅ ' + (st ? st.shops : 0) + ' 家店数据已回齐</span>';
   el.innerHTML = '<span class="rk-chip">' + (rkView === 'day' ? '📅 日排名' : '📈 月累计') + '</span>' +
     '<span class="rk-chip">' + rkEsc(range) + '</span>' +
-    '<span class="rk-chip">' + (rkGroupBy === 'shop' ? '🏪 按店铺分组 · 店内排名' : '👥 按人看') + '</span>' +
+    '<span class="rk-chip">' + (rkGroupBy === 'shop' ? '🏪 按店看 · 店内排名' : '👥 按人看 · 全店合计') + '</span>' +
     '<span class="rk-chip">' + rkEsc(rkGroup) + '</span>' +
     '<span class="rk-chip">' + people + ' 人 · ' + shops.size + ' 店 · ' + raw.length + ' 条明细</span>' +
     warn +
@@ -5663,82 +5759,15 @@ function rkCardsHtml(list, noteText) {
 }
 
 function rkRenderCards(raw) {
-  const el = document.getElementById('rk-cards');
-  const car = document.getElementById('rk-carousel');
-  if (!el) return;
+  // ★ 2026-09-23 第八轮：排名区已整体改为「图形化卡片磁贴」（rkRenderTiles），
+  //   顶部冠军卡区与按店看店铺轮播都不再需要，这里只负责把它们清空并隐藏。
+  //   （函数保留是为了不破坏已有调用点；rkCardsHtml / rkCarousel* 也一并保留定义，
+  //    避免其它地方引用时报 ReferenceError。）
   rkCarouselStop();
-  if (!raw || !raw.length) {
-    el.innerHTML = ''; el.style.display = 'none';
-    if (car) car.style.display = 'none';
-    return;
-  }
-
-  // ── 按店看 → 轮播 ──
-  if (rkGroupBy === 'shop') {
-    const agg = rkAggByShop(raw, true);          // 一人 × 一店一行
-    // 店铺顺序 + 该店合计销售额：★ 直接从 raw 明细算，不要从聚合行取
-    //   （聚合行的 sales 可能是 null，会导致排序和底部合计都变成 undefined）
-    const order = [], pool = {}, salesOf = {};
-    agg.forEach(r => {
-      if (!r.shop) return;
-      if (!pool[r.shop]) { pool[r.shop] = []; order.push(r.shop); salesOf[r.shop] = 0; }
-      pool[r.shop].push(r);
-    });
-    raw.forEach(r => {
-      if (r.shop_name && salesOf[r.shop_name] !== undefined) {
-        salesOf[r.shop_name] += (Number(r.sales) || 0);
-      }
-    });
-    order.sort((a, b) => (salesOf[b] - salesOf[a]) || String(a).localeCompare(String(b)));
-
-    const list = order.filter(sh => pool[sh] && pool[sh].length);
-    if (!list.length) { el.innerHTML = ''; el.style.display = 'none'; if (car) car.style.display = 'none'; return; }
-
-    el.innerHTML = '';
-    el.style.display = 'none';                    // 轮播模式下隐藏静态 4 卡
-    if (!car) return;
-
-    const track = document.getElementById('rk-crs-track');
-    track.innerHTML = list.map((sh, i) => {
-      const ppl = pool[sh].slice();
-      return '<div class="rk-crs-slide' + (i === 0 ? ' on' : '') + '" data-i="' + i + '">' +
-        '<div class="rk-crs-cards rk-cards">' +
-          rkCardsHtml(ppl, '本店 ' + ppl.length + ' 人中第一') +
-        '</div>' +
-        '<div class="rk-crs-sum">🏪 ' + rkEsc(sh) +
-          '<span>本店合计销售额 ' + rkFmt(salesOf[sh] || 0, 'money') +
-          '　·　参与 ' + ppl.length + ' 人</span></div>' +
-        '<div class="rk-crs-bar"><i></i></div>' +
-        '</div>';
-    }).join('');
-
-    const dots = document.getElementById('rk-crs-dots');
-    dots.innerHTML = list.map((sh, i) =>
-      '<span class="rk-crs-dot' + (i === 0 ? ' on' : '') + '" data-i="' + i + '" title="' + rkEsc(sh) + '"></span>').join('');
-
-    car.style.display = '';
-    rkCarouselStart(list, pool, salesOf);
-    return;
-  }
-
-  // ── 按人看 → 静态 4 卡（该组全部负责店铺合计口径）──
+  const el = document.getElementById('rk-cards');
+  if (el) { el.innerHTML = ''; el.style.display = 'none'; }
+  const car = document.getElementById('rk-carousel');
   if (car) car.style.display = 'none';
-  const people = rkAggPerson(raw);
-  el.innerHTML = RK_METRICS.map(m => {
-    const valid = people.filter(r => r[m.key] !== null && r[m.key] !== undefined && isFinite(r[m.key]));
-    if (!valid.length) return '';
-    valid.sort((a, b) => m.better === 'low' ? a[m.key] - b[m.key] : b[m.key] - a[m.key]);
-    const top = valid[0];
-    const avg = valid.reduce((s, r) => s + r[m.key], 0) / valid.length;
-    const cover = (top.stdCount ? top.cover + '/' + top.stdCount + ' 店合计' : '全店合计');
-    return '<div class="rk-card">' +
-      '<div class="rk-card-t">' + m.label + ' 冠军</div>' +
-      '<div class="rk-card-n">' + rkEsc(top.name) + ' <i>全店合计</i></div>' +
-      '<div class="rk-card-v">' + rkFmt(top[m.key], m.fmt) + '</div>' +
-      '<div class="rk-card-s">' + cover + ' · 平均 ' + rkFmt(avg, m.fmt) + '</div>' +
-      '</div>';
-  }).join('');
-  el.style.display = el.innerHTML ? '' : 'none';
 }
 
 // ── 轮播控制 ──
@@ -5835,12 +5864,179 @@ function rkCarouselTick() {
 // 离开排名页时叫停，避免后台空转
 function rkCarouselKill() { rkCarouselStop(); rkCrTotal = 0; }
 
+// ══════════════════════════════════════════════════════════════════
+//  ★ 图形化卡片磁贴（用户 2026-09-23）
+//  「我想改成不要表格形式的，我想要图形形式的，比如一个图形板块是一个指标这样」
+//  「就是像这样一样，一块一块的」—— 参考花色素材页的磁贴风格
+//
+//  一张卡 = 一个指标；卡内是该范围内每个人的横条排行，条越长数值越高。
+//  按人看：4 张卡（全组的人在一起比）
+//  按店看：每个店铺一组 4 张卡（店里的人在一起比）
+// ══════════════════════════════════════════════════════════════════
+
+// 生成一张指标卡
+// list  : 参与评比的行（每行要有 metrics[key] 与 name）
+// metric: RK_METRICS 里的一项
+function rkTilesOne(list, metric, scopeNote) {
+  const m = metric;
+  // 筛选有效值
+  const valid = list.filter(r => r[m.key] !== null && r[m.key] !== undefined && isFinite(r[m.key]));
+  const cls = 'rk-tile t-' + m.key;
+  const head =
+    '<div class="rk-tile-head">' +
+      '<span class="rk-tile-ico">' + m.icon + '</span>' +
+      '<span class="rk-tile-name">' + m.label + '</span>' +
+      '<span class="rk-tile-tag">' + (m.better === 'low' ? '越短越好' : '越高越好') + '</span>' +
+      '<div class="rk-tile-sub">' + m.tip + (scopeNote ? '　·　' + scopeNote : '') + '</div>' +
+    '</div>';
+
+  if (!valid.length) {
+    return '<div class="' + cls + '">' + head +
+      '<div class="rk-tile-empty">暂无数据</div></div>';
+  }
+
+  // 排序：好的在前
+  valid.sort((a, b) => m.better === 'low' ? a[m.key] - b[m.key] : b[m.key] - a[m.key]);
+
+  // 横条长度基准：用最大值归一（响应是「越短越好」，但要让人觉得快的条更醒目 →
+  //   响应反过来用 最小值/当前值，这样最快的条最长，符合直觉）
+  const vals = valid.map(r => r[m.key]);
+  const mx = Math.max.apply(null, vals);
+  const mn = Math.min.apply(null, vals);
+  const widthOf = v => {
+    if (m.better === 'low') {
+      // 响应：最快的给 100%，越慢越短（最小值/当前值）
+      if (v <= 0) return 8;
+      return Math.max(8, Math.round(mn / v * 100));
+    }
+    if (mx <= 0) return 8;
+    return Math.max(6, Math.round(v / mx * 100));
+  };
+
+  const rows = valid.map((r, i) => {
+    const w = widthOf(r[m.key]);
+    const top = (i === 0) ? ' top1' : (i === 1) ? ' top2' : (i === 2) ? ' top3' : '';
+    // 名次：同分并列
+    let rk = i + 1;
+    const prevRow = i > 0 ? valid[i - 1] : null;
+    if (prevRow && Math.abs(prevRow[m.key] - r[m.key]) < 1e-9) rk = prevRow.__rk;
+    r.__rk = rk;
+    return '<div class="rk-tile-row' + top + '" title="' + rkEsc(r.name) + '　' + m.label + ' ' + rkFmt(r[m.key], m.fmt) + '">' +
+      '<span class="rk-tile-rk">' + rk + '</span>' +
+      '<span class="rk-tile-nm">' + rkEsc(r.name) + '</span>' +
+      '<span class="rk-tile-vl">' + rkFmt(r[m.key], m.fmt) + '</span>' +
+      '<span class="rk-tile-bg" style="width:' + w + '%"></span>' +
+      '</div>';
+  }).join('');
+
+  return '<div class="' + cls + '">' + head +
+    '<div class="rk-tile-list">' + rows + '</div>' +
+    '</div>';
+}
+
+// 一整组磁贴（4 张卡）+ 可选的范围标题
+function rkTilesGrid(list, opts) {
+  opts = opts || {};
+  const note = opts.scopeNote || '';
+  const head = opts.title
+    ? '<div class="rk-shop-sec-head">' + rkEsc(opts.title) +
+      (opts.sub ? '<span class="rk-sub">' + opts.sub + '</span>' : '') + '</div>'
+    : '';
+  const tiles = RK_METRICS.map(m => rkTilesOne(list, m, note)).join('');
+  return head + '<div class="rk-tiles">' + tiles + '</div>';
+}
+
+// 主入口：渲染整个图形化区域
+// raw = 已按「日/月 + 组 + 排除练手号 + 店铺聚焦」过滤后的明细
+function rkRenderTiles(raw) {
+  const el = document.getElementById('rk-tiles');
+  if (!el) return;
+  if (!raw || !raw.length) { el.innerHTML = ''; return; }
+
+  const scopeText = (rkView === 'month') ? '月累计' : '日排名';
+
+  if (rkGroupBy === 'shop') {
+    // ── 按店看：每个「组 × 店」一组磁贴 ──
+    //   注意：同一家店可能同时属于多个组（如拼多多1店在 B/C 组都有），
+    //   所以必须按「组 + 店」做 key，不能只用店名，否则会跨组合并。
+    const agg = rkAggByShop(raw, true);        // 一人 × 一店一行
+    const pools = {}, order = [], salesOf = {};
+    agg.forEach(r => {
+      if (!r.shop) return;
+      const key = (r.group || '') + '||' + r.shop;
+      if (!pools[key]) { pools[key] = []; order.push(key); salesOf[key] = 0; }
+      pools[key].push(r);
+    });
+    raw.forEach(r => {
+      const key = (r.group_name || '') + '||' + r.shop_name;
+      if (salesOf[key] !== undefined) salesOf[key] += (Number(r.sales) || 0);
+    });
+    // 店铺顺序：销售额从高到低；同额按 组顺序 → 店名
+    const G_SEQ = { '售前1组': 0, '售前2组': 1, '售前3组': 2 };
+    const gShops = {};                          // 组 → 该组店铺（按店内合计销售额排序）
+    order.forEach(key => {
+      const gi = key.indexOf('||');
+      const g = key.slice(0, gi), sh = key.slice(gi + 2);
+      if (!gShops[g]) gShops[g] = [];
+      gShops[g].push(sh);
+    });
+    Object.keys(gShops).forEach(g => {
+      gShops[g].sort((a, b) =>
+        (salesOf[g + '||' + b] - salesOf[g + '||' + a]) || String(a).localeCompare(String(b)));
+    });
+    const gfOrder = Object.keys(gShops).sort((a, b) => (G_SEQ[a] || 9) - (G_SEQ[b] || 9));
+
+    const GFULL2 = { '售前1组': 'A组（售前1组）', '售前2组': 'B组（售前2组）', '售前3组': 'C组（售前3组）' };
+    let html = '';
+    gfOrder.forEach(g => {
+      const keyOf = sh => g + '||' + sh;
+      const shown = gShops[g].filter(sh => pools[keyOf(sh)] && pools[keyOf(sh)].length);
+      if (!shown.length) return;
+      html += '<div class="rk-group-sec-head">' + rkEsc(GFULL2[g] || g) +
+        '<span class="rk-sub">' + shown.length + ' 个店铺　·　' + scopeText + '</span></div>';
+      html += shown.map(sh =>
+        '<div class="rk-shop-sec">' +
+          rkTilesGrid(pools[keyOf(sh)], {
+            title: '🏪 ' + sh,
+            sub: '本店 ' + pools[keyOf(sh)].length + ' 人　·　合计销售额 ' + rkFmt(salesOf[keyOf(sh)] || 0, 'money'),
+            scopeNote: '本店内排名'
+          }) +
+        '</div>'
+      ).join('');
+    });
+    el.innerHTML = html;
+    return;
+  }
+
+  // ── 按人看：全组合在一起比（每人 = 本组全部负责店铺的合计）──
+  const people = rkAggPerson(raw);
+  const std = RK_GROUP_SHOPS[rkGroup] || [];
+  const scope = std.length
+    ? '口径：本组 ' + std.length + ' 个店合计'
+    : '口径：本组全部店铺合计';
+  el.innerHTML = rkTilesGrid(people, {
+    title: (RK_GROUP_LABEL[rkGroup] || rkGroup) + '　' + (rkGroup || '') + '　' + scopeText,
+    sub: people.length + ' 人　·　' + scope,
+    scopeNote: ''
+  });
+}
+
 
 function rkRenderTable(rows, M) {
+  // ★ 2026-09-23 第八轮：表格已被「图形化卡片磁贴」取代，这里只做清理 + 兜底空态。
+  //   保留整个函数的其余代码不删，方便以后想恢复表格视图时直接改回来。
+  const wrap = document.querySelector('#page-ranking .rk-table-wrap');
+  if (wrap) wrap.style.display = 'none';
   const tbody = document.getElementById('rk-tbody');
   const emptyEl = document.getElementById('rk-empty');
+  if (tbody) tbody.innerHTML = '';
   if (emptyEl) emptyEl.style.display = 'none';
-  if (!tbody) return;
+  if (!rows.length) {
+    const el = document.getElementById('rk-tiles');
+    if (el) el.innerHTML = '<div class="rk-tiles-empty">这一天没有已更新的数据（可能是休息日，或数据还没导出同步）。</div>';
+  }
+  return;
+  /* eslint-disable no-unreachable */
   if (!rows.length) { rkEmpty('这一天没有已更新的数据（可能是休息日，或数据还没导出同步）。'); return; }
 
   // 表头排序指示
