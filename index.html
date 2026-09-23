@@ -1668,6 +1668,31 @@ body {
 .rk-date-pos { font-size:11px; color:#a8a5b8; padding:0 6px 0 2px; white-space:nowrap; }
 .rk-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:16px; }
 .rk-cards:empty { display:none; }
+/* ★ 按店看：店铺冠军轮播（用户 2026-09-23 要求「所有店铺轮流滚动展示排名」） */
+.rk-carousel { margin-bottom:16px; }
+.rk-crs-head { display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+.rk-crs-shop { font-size:14px; font-weight:700; color:var(--text); }
+.rk-crs-idx { font-size:11px; color:var(--text-secondary); background:#f1eefb; border-radius:20px; padding:2px 9px; }
+.rk-crs-ctl { margin-left:auto; display:flex; align-items:center; gap:6px; }
+.rk-crs-btn { border:1px solid var(--border); background:#fff; color:var(--text-secondary); border-radius:8px;
+  width:26px; height:26px; line-height:1; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; }
+.rk-crs-btn:hover { border-color:var(--primary); color:var(--primary); }
+.rk-crs-btn.on { background:var(--primary); border-color:var(--primary); color:#fff; }
+.rk-crs-dots { display:flex; align-items:center; gap:4px; margin-left:4px; }
+.rk-crs-dot { width:6px; height:6px; border-radius:50%; background:#ddd8ec; cursor:pointer; transition:all .2s; }
+.rk-crs-dot.on { background:var(--primary); width:16px; border-radius:3px; }
+.rk-crs-track { position:relative; overflow:hidden; }
+.rk-crs-slide { display:none; }
+.rk-crs-slide.on { display:block; animation:rkFadeIn .35s ease; }
+@keyframes rkFadeIn { from { opacity:0; transform:translateX(10px); } to { opacity:1; transform:translateX(0); } }
+.rk-crs-bar { height:3px; background:#eeebf8; border-radius:2px; overflow:hidden; margin-top:10px; }
+.rk-crs-bar i { display:block; height:100%; width:0; background:var(--primary); border-radius:2px; }
+.rk-crs-cards { margin-bottom:0; }
+.rk-crs-sum { margin-top:10px; font-size:11px; color:var(--text-secondary); }
+.rk-crs-sum span { margin-left:8px; }
+.rk-card-empty { background:#faf9fd; border-style:dashed; }
+.rk-card-empty .rk-card-v { color:#c9c5d8; }
+.rk-card-empty .rk-card-n { color:var(--text-secondary); font-weight:400; }
 .rk-card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
 .rk-card-l, .rk-card-t { font-size:12px; color:var(--text-secondary); margin-bottom:4px; }
 .rk-card-n { font-size:15px; font-weight:700; color:var(--text); line-height:1.3; margin-bottom:2px; }
@@ -3391,6 +3416,22 @@ body {
     <div class="rk-meta" id="rk-meta"></div>
 
     <div class="rk-cards" id="rk-cards"></div>
+
+    <!-- ★ 按店看：店铺冠军轮播（每个店铺的冠军轮流滚动展示） -->
+    <div class="rk-carousel" id="rk-carousel" style="display:none;">
+      <div class="rk-crs-head">
+        <span class="rk-crs-shop" id="rk-crs-shop"></span>
+        <span class="rk-crs-idx" id="rk-crs-idx"></span>
+        <div class="rk-crs-ctl">
+          <button class="rk-crs-btn" id="rk-crs-prev" title="上一个店铺">◀</button>
+          <button class="rk-crs-btn on" id="rk-crs-play" title="暂停/继续自动轮播">❚❚</button>
+          <button class="rk-crs-btn" id="rk-crs-next" title="下一个店铺">▶</button>
+          <span class="rk-crs-dots" id="rk-crs-dots"></span>
+        </div>
+      </div>
+      <div class="rk-crs-track" id="rk-crs-track"></div>
+      <div class="rk-crs-bar"><i id="rk-crs-bar"></i></div>
+    </div>
 
     <div class="rk-table-wrap">
       <table class="rk-table">
@@ -5586,37 +5627,215 @@ function rkRenderMeta(raw, rows) {
     '<span class="rk-chip rk-chip-tip">口径：转化率=付款/询单 · 满意度=好评数/评价总数 · 响应按询单加权</span>';
 }
 
+// ══════════════════════════════════════════════════════════════════
+//  冠军卡
+//  · 按人看：4 张卡 = 该组全部负责店铺的合计口径冠军（rkAggPerson）
+//  · 按店看：改成轮播 —— 每个店铺轮流出场，展示「该店内的 4 项冠军」
+//           用户 2026-09-23：「按店看改成滚动的，每个店铺的冠军轮流滚动展示，
+//                             日和月累积数据不一样要注意」
+//           日/月差异由 rkCurrentRows() 负责（日=当日、月累计=月初至今），
+//           raw 传进来时已经过滤好，轮播只负责分组展示。
+// ══════════════════════════════════════════════════════════════════
+
+// 把一组行按「指标」生成 4 张冠军卡（同一批人之间比大小）
+// ★ 固定输出 4 张：某指标全组都没数据时留一张「—」占位，
+//   否则各店铺 slide 的卡片数量会忽多忽少，轮播时高度跳动、很难看。
+function rkCardsHtml(list, noteText) {
+  return RK_METRICS.map(m => {
+    const valid = list.filter(r => r[m.key] !== null && r[m.key] !== undefined && isFinite(r[m.key]));
+    if (!valid.length) {
+      return '<div class="rk-card rk-card-empty">' +
+        '<div class="rk-card-t">' + m.label + ' 冠军</div>' +
+        '<div class="rk-card-n">— <i>本店暂无可比数据</i></div>' +
+        '<div class="rk-card-v">—</div>' +
+        '<div class="rk-card-s">0 人参与</div>' +
+        '</div>';
+    }
+    valid.sort((a, b) => m.better === 'low' ? a[m.key] - b[m.key] : b[m.key] - a[m.key]);
+    const top = valid[0];
+    const avg = valid.reduce((s, r) => s + r[m.key], 0) / valid.length;
+    return '<div class="rk-card">' +
+      '<div class="rk-card-t">' + m.label + ' 冠军</div>' +
+      '<div class="rk-card-n">' + rkEsc(top.name) + ' <i>' + noteText + '</i></div>' +
+      '<div class="rk-card-v">' + rkFmt(top[m.key], m.fmt) + '</div>' +
+      '<div class="rk-card-s">' + valid.length + ' 人参与 · 平均 ' + rkFmt(avg, m.fmt) + '</div>' +
+      '</div>';
+  }).join('');
+}
+
 function rkRenderCards(raw) {
   const el = document.getElementById('rk-cards');
+  const car = document.getElementById('rk-carousel');
   if (!el) return;
-  if (!raw || !raw.length) { el.innerHTML = ''; return; }
-  // ★ 冠军口径（用户 2026-09-23 要求）：
-  //   「按所有该组负责的店铺的当日合计」评比，月累计则按「月初至当前」的合计。
-  //   所以这里必须用 rkAggPerson(raw) —— 即「该客服在本组全部负责店铺上的合计」，
-  //   与下面榜单（按人看）完全同一口径。
-  //   不能再拿明细行（一人×一店）去挑最大值：那样小店铺某一天偶然高就会夺冠，
-  //   看不出真实水平（例如「转化率冠军 小七/拼多多YH 100%」这种假冠军）。
-  //   注意 raw 已被 rkCurrentRows() 按「日/月累计 + 组 + 组外店排除」过滤过，
-  //   所以日排名=当日全店合计、月累计=月初至今全店合计，无需额外处理。
+  rkCarouselStop();
+  if (!raw || !raw.length) {
+    el.innerHTML = ''; el.style.display = 'none';
+    if (car) car.style.display = 'none';
+    return;
+  }
+
+  // ── 按店看 → 轮播 ──
+  if (rkGroupBy === 'shop') {
+    const agg = rkAggByShop(raw, true);          // 一人 × 一店一行
+    // 店铺顺序 + 该店合计销售额：★ 直接从 raw 明细算，不要从聚合行取
+    //   （聚合行的 sales 可能是 null，会导致排序和底部合计都变成 undefined）
+    const order = [], pool = {}, salesOf = {};
+    agg.forEach(r => {
+      if (!r.shop) return;
+      if (!pool[r.shop]) { pool[r.shop] = []; order.push(r.shop); salesOf[r.shop] = 0; }
+      pool[r.shop].push(r);
+    });
+    raw.forEach(r => {
+      if (r.shop_name && salesOf[r.shop_name] !== undefined) {
+        salesOf[r.shop_name] += (Number(r.sales) || 0);
+      }
+    });
+    order.sort((a, b) => (salesOf[b] - salesOf[a]) || String(a).localeCompare(String(b)));
+
+    const list = order.filter(sh => pool[sh] && pool[sh].length);
+    if (!list.length) { el.innerHTML = ''; el.style.display = 'none'; if (car) car.style.display = 'none'; return; }
+
+    el.innerHTML = '';
+    el.style.display = 'none';                    // 轮播模式下隐藏静态 4 卡
+    if (!car) return;
+
+    const track = document.getElementById('rk-crs-track');
+    track.innerHTML = list.map((sh, i) => {
+      const ppl = pool[sh].slice();
+      return '<div class="rk-crs-slide' + (i === 0 ? ' on' : '') + '" data-i="' + i + '">' +
+        '<div class="rk-crs-cards rk-cards">' +
+          rkCardsHtml(ppl, '本店 ' + ppl.length + ' 人中第一') +
+        '</div>' +
+        '<div class="rk-crs-sum">🏪 ' + rkEsc(sh) +
+          '<span>本店合计销售额 ' + rkFmt(salesOf[sh] || 0, 'money') +
+          '　·　参与 ' + ppl.length + ' 人</span></div>' +
+        '<div class="rk-crs-bar"><i></i></div>' +
+        '</div>';
+    }).join('');
+
+    const dots = document.getElementById('rk-crs-dots');
+    dots.innerHTML = list.map((sh, i) =>
+      '<span class="rk-crs-dot' + (i === 0 ? ' on' : '') + '" data-i="' + i + '" title="' + rkEsc(sh) + '"></span>').join('');
+
+    car.style.display = '';
+    rkCarouselStart(list, pool, salesOf);
+    return;
+  }
+
+  // ── 按人看 → 静态 4 卡（该组全部负责店铺合计口径）──
+  if (car) car.style.display = 'none';
   const people = rkAggPerson(raw);
-  const cards = RK_METRICS.map(m => {
+  el.innerHTML = RK_METRICS.map(m => {
     const valid = people.filter(r => r[m.key] !== null && r[m.key] !== undefined && isFinite(r[m.key]));
     if (!valid.length) return '';
     valid.sort((a, b) => m.better === 'low' ? a[m.key] - b[m.key] : b[m.key] - a[m.key]);
     const top = valid[0];
     const avg = valid.reduce((s, r) => s + r[m.key], 0) / valid.length;
-    // 副标题：标明是「全店合计」口径，并说明覆盖了几个店
-    const cover = (top.stdCount ? top.cover + '/' + top.stdCount + ' 店合计' : '');
+    const cover = (top.stdCount ? top.cover + '/' + top.stdCount + ' 店合计' : '全店合计');
     return '<div class="rk-card">' +
       '<div class="rk-card-t">' + m.label + ' 冠军</div>' +
       '<div class="rk-card-n">' + rkEsc(top.name) + ' <i>全店合计</i></div>' +
       '<div class="rk-card-v">' + rkFmt(top[m.key], m.fmt) + '</div>' +
-      '<div class="rk-card-s">' + (cover ? cover + ' · ' : '') + '平均 ' + rkFmt(avg, m.fmt) + '</div>' +
+      '<div class="rk-card-s">' + cover + ' · 平均 ' + rkFmt(avg, m.fmt) + '</div>' +
       '</div>';
   }).join('');
-  el.innerHTML = cards;
-  el.style.display = cards ? '' : 'none';
+  el.style.display = el.innerHTML ? '' : 'none';
 }
+
+// ── 轮播控制 ──
+let rkCrTimer = null, rkCrProg = null, rkCrIdx = 0, rkCrTotal = 0, rkCrPlaying = true, rkCrBound = false;
+const RK_CR_MS = 4500;      // 每个店铺停留时长
+
+function rkCarouselStop() {
+  if (rkCrTimer) { clearInterval(rkCrTimer); rkCrTimer = null; }
+  if (rkCrProg) { clearInterval(rkCrProg); rkCrProg = null; }
+}
+
+function rkCarouselGo(i) {
+  const track = document.getElementById('rk-crs-track');
+  if (!track || !rkCrTotal) return;
+  rkCrIdx = ((i % rkCrTotal) + rkCrTotal) % rkCrTotal;
+  track.querySelectorAll('.rk-crs-slide').forEach(s => s.classList.toggle('on', Number(s.dataset.i) === rkCrIdx));
+  const shopEl = document.getElementById('rk-crs-shop');
+  const slide = track.querySelector('.rk-crs-slide[data-i="' + rkCrIdx + '"]');
+  const idxEl = document.getElementById('rk-crs-idx');
+  if (shopEl) shopEl.textContent = '🏪 ' + (rkCrNames[rkCrIdx] || '');
+  if (idxEl) idxEl.textContent = (rkCrIdx + 1) + ' / ' + rkCrTotal + ' · ' + rkCrScopeText;
+  document.querySelectorAll('#rk-crs-dots .rk-crs-dot').forEach(d =>
+    d.classList.toggle('on', Number(d.dataset.i) === rkCrIdx));
+  // 进度条重置
+  const bar = document.getElementById('rk-crs-bar');
+  if (bar) bar.style.width = '0%';
+  const inner = slide && slide.querySelector('.rk-crs-bar i');
+  if (inner) inner.style.width = '0%';
+}
+
+let rkCrNames = [], rkCrScopeText = '';
+
+function rkCarouselStart(list, pool, salesOf) {
+  rkCrNames = list;
+  rkCrScopeText = (rkView === 'month') ? '月累计' : '日排名';
+  rkCrTotal = list.length;
+  rkCrIdx = 0;
+  rkCarouselGo(0);
+  rkCarouselPlay(true);
+
+  if (rkCrBound) return;
+  rkCrBound = true;
+  const pv = document.getElementById('rk-crs-prev');
+  const nx = document.getElementById('rk-crs-next');
+  const pl = document.getElementById('rk-crs-play');
+  if (pv) pv.onclick = () => { rkCarouselGo(rkCrIdx - 1); rkCarouselPlay(rkCrPlaying); };
+  if (nx) nx.onclick = () => { rkCarouselGo(rkCrIdx + 1); rkCarouselPlay(rkCrPlaying); };
+  if (pl) pl.onclick = () => rkCarouselPlay(!rkCrPlaying);
+  const dots = document.getElementById('rk-crs-dots');
+  if (dots) dots.onclick = e => {
+    const d = e.target.closest('.rk-crs-dot');
+    if (d) { rkCarouselGo(Number(d.dataset.i)); rkCarouselPlay(rkCrPlaying); }
+  };
+  // 鼠标移入暂停，移出继续
+  const car = document.getElementById('rk-carousel');
+  if (car) {
+    car.onmouseenter = () => rkCarouselPauseOnly();
+    car.onmouseleave = () => { if (rkCrPlaying) rkCarouselTick(); };
+  }
+}
+
+function rkCarouselPauseOnly() {
+  if (rkCrTimer) { clearInterval(rkCrTimer); rkCrTimer = null; }
+  if (rkCrProg) { clearInterval(rkCrProg); rkCrProg = null; }
+}
+
+function rkCarouselPlay(on) {
+  rkCrPlaying = !!on;
+  const pl = document.getElementById('rk-crs-play');
+  if (pl) {
+    pl.textContent = rkCrPlaying ? '❚❚' : '▶';
+    pl.classList.toggle('on', rkCrPlaying);
+    pl.title = rkCrPlaying ? '暂停自动轮播' : '继续自动轮播';
+  }
+  rkCarouselPauseOnly();
+  if (rkCrPlaying) rkCarouselTick();
+}
+
+function rkCarouselTick() {
+  rkCarouselPauseOnly();
+  const STEP = 60;
+  let acc = 0;
+  rkCrProg = setInterval(() => {
+    acc += STEP;
+    const pct = Math.min(100, acc / RK_CR_MS * 100);
+    const bar = document.getElementById('rk-crs-bar');
+    if (bar) bar.style.width = pct + '%';
+    const slide = document.querySelector('#rk-crs-track .rk-crs-slide.on .rk-crs-bar i');
+    if (slide) slide.style.width = pct + '%';
+  }, STEP);
+  rkCrTimer = setInterval(() => { rkCarouselGo(rkCrIdx + 1); rkCarouselPlay(true); }, RK_CR_MS);
+}
+
+// 离开排名页时叫停，避免后台空转
+function rkCarouselKill() { rkCarouselStop(); rkCrTotal = 0; }
+
 
 function rkRenderTable(rows, M) {
   const tbody = document.getElementById('rk-tbody');
@@ -9498,6 +9717,7 @@ function switchPage(page) {
   if (page === 'schedule') { loadScheduleFromDB(); subscribeSchedule(); renderSchedule(); }
   if (page === 'requests') { loadRequests(); renderReqForm(); subscribeRequests(); }
   if (page === 'ranking') { rkBindOnce(); rkReload(false); subscribeRanking(); }
+  else if (currentPage !== 'ranking' && typeof rkCarouselKill === 'function') rkCarouselKill();
   if (page === 'cross-sales') {
     loadCrossSalesFromDB(); // 每次进入都重新拉取，保证最新（Realtime 仅本页激活时刷新）
     // 加载下拉选项模板 + 实时订阅（防止刷新后选项消失）
