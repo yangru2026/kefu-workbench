@@ -5263,9 +5263,16 @@ const RK_GROUP_LABEL = { '售前1组': 'A组', '售前2组': 'B组', '售前3组
 // ★ 各组负责的标准店铺（2026-09-21 确认）——「按人看」时用它统一分母：
 //   同一组里每个人的合计范围都是「本组全部标准店」，某人某店没数据按 0 计，
 //   这样不会出现「A 合计 5 个店、B 合计 6 个店」导致排名不公平。
+// ★ 2026-09-23 用户指定了「店铺标签的排列顺序」，必须严格按这个顺序渲染（不再按销售额排序）：
+//   A组：抖音1店 → 天猫弥生 → 天猫极氧 → 快手弥生 → 京东弥生 → 抖音极氧 → 抖音YH → 拼多多YH
+//        （用户原话「快手弥生改到，天猫极氧的后面，其他不变」）
+//   B组：抖音3店 → 拼多多1~7店 → 小红书弥生
+//        （用户原话「抖音三店后面是拼多多1-7，然后小红书弥生」）
+//        ⚠️ 注意：数据源里**没有「拼多多6店」**，实际是 1/2/3/4/5/7 共 6 个 → B组合计 8 店。
+//   C组：抖音2店 → 抖音4店（用户未改动）
 const RK_GROUP_SHOPS = {
-  '售前1组': ['京东弥生', '天猫弥生', '天猫极氧', '快手弥生', '抖音1店', '抖音YH', '抖音极氧', '拼多多YH'],
-  '售前2组': ['小红书弥生', '抖音3店', '拼多多1店', '拼多多2店', '拼多多3店', '拼多多4店', '拼多多5店', '拼多多7店'],
+  '售前1组': ['抖音1店', '天猫弥生', '天猫极氧', '快手弥生', '京东弥生', '抖音极氧', '抖音YH', '拼多多YH'],
+  '售前2组': ['抖音3店', '拼多多1店', '拼多多2店', '拼多多3店', '拼多多4店', '拼多多5店', '拼多多7店', '小红书弥生'],
   '售前3组': ['抖音2店', '抖音4店']
 };
 // ★ 不参与排名的账号（临时支援/练手号），用户 2026-09-23 确认：「小雷（练手）是临时支援的，不用统计排名」
@@ -5280,7 +5287,9 @@ const RK_METRICS = [
   { key: 'conversion',   label: '转化率', fmt: 'pct',   better: 'high', icon: '', tip: '付款 ÷ 询单' },
   { key: 'sales',        label: '销售额', fmt: 'money', better: 'high', icon: '', tip: '毛额合计' },
   { key: 'satisfaction', label: '满意度', fmt: 'pct',   better: 'high', icon: '', tip: '好评 ÷ 评价总数' },
-  { key: 'response',     label: '响应',   fmt: 'sec',   better: 'low',  icon: '', tip: '仅统计响应最快的记录' }
+  // ★ 2026-09-23 用户指出口径说明写错了（截图圈出「仅统计响应最快的记录」）：
+  //   实际算法是「各店响应时间等权算术平均」，与该文案完全不符，必须改。
+  { key: 'response',     label: '响应',   fmt: 'sec',   better: 'low',  icon: '', tip: '各店响应时间取平均' }
 ];
 
 // ★ 标签页选中状态（2026-09-23 用户要求「点中店铺名字出来对应的指标图形，不点的不出现」）
@@ -5814,7 +5823,15 @@ function rkRenderFilterBar() {
       if (stdShops && stdShops.length && stdShops.indexOf(r.shop_name) < 0) return;
       if (r.shop_name && names.indexOf(r.shop_name) < 0) names.push(r.shop_name);
     });
-    names.sort((a, b) => a.localeCompare(b, 'zh'));
+    // ★ 2026-09-23：下拉顺序也按 RK_GROUP_SHOPS 的指定顺序（与店铺标签页一致），
+    //   不再按拼音排 —— 用户要求「按我的顺序来」。
+    const stdSeq = RK_GROUP_SHOPS[rkGroup] || [];
+    names.sort((a, b) => {
+      const ia = stdSeq.indexOf(a), ib = stdSeq.indexOf(b);
+      const pa = ia >= 0 ? ia : 9999, pb = ib >= 0 ? ib : 9999;
+      if (pa !== pb) return pa - pb;
+      return a.localeCompare(b, 'zh');
+    });
     shopSel.innerHTML = '<option value="">全部店铺(' + names.length + ')</option>' +
       names.map(n => '<option value="' + rkEsc(n) + '">' + rkEsc(n) + '</option>').join('');
     shopSel.value = rkShopFocus;
@@ -6199,9 +6216,20 @@ function rkRenderTiles(raw) {
       if (!gShops[g]) gShops[g] = [];
       gShops[g].push(sh);
     });
+    // ★ 2026-09-23 用户指定顺序：不再按销售额排序，严格按 RK_GROUP_SHOPS 的排列。
+    //   （用户原话「每个组的店铺顺序比较乱，按我的顺序来」）
+    //   本组清单里没登记过的店（跨组支援等）排到最后，仍按销售额降序兜底。
     Object.keys(gShops).forEach(g => {
-      gShops[g].sort((a, b) =>
-        (salesOf[g + '||' + b] - salesOf[g + '||' + a]) || String(a).localeCompare(String(b)));
+      const std = RK_GROUP_SHOPS[g] || [];
+      const posOf = sh => {
+        const i = std.indexOf(sh);
+        return i >= 0 ? i : 9999;      // 未登记的排最后
+      };
+      gShops[g].sort((a, b) => {
+        const pa = posOf(a), pb = posOf(b);
+        if (pa !== pb) return pa - pb;
+        return (salesOf[g + '||' + b] - salesOf[g + '||' + a]) || String(a).localeCompare(String(b));
+      });
     });
     const gfOrder = Object.keys(gShops).sort((a, b) => (G_SEQ[a] || 9) - (G_SEQ[b] || 9));
 
