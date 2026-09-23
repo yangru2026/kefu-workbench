@@ -5743,7 +5743,7 @@ function rkRenderCards(raw) {
 
 // ── 轮播控制 ──
 let rkCrTimer = null, rkCrProg = null, rkCrIdx = 0, rkCrTotal = 0, rkCrPlaying = true, rkCrBound = false;
-const RK_CR_MS = 4500;      // 每个店铺停留时长
+const RK_CR_MS = 2500;      // 每个店铺停留时长（2.5s；用户 2026-09-23「你这时间有点长啊」）
 
 function rkCarouselStop() {
   if (rkCrTimer) { clearInterval(rkCrTimer); rkCrTimer = null; }
