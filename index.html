@@ -5716,7 +5716,9 @@ function rkRenderTable(rows, M) {
       const tip = full ? '' : '　<span class="rk-sub" title="没有数据记录的店（按 0 计入合计）">缺 ' + rkEsc(r.miss.join('、')) + '</span>';
       shopCell = '<i class="' + (full ? '' : 'rk-cover-warn') + '">' + r.cover + '/' + r.stdCount + ' 店合计</i>' + tip;
     } else {
-      shopCell = '<i>' + r.shops.length + ' 店合计</i>';
+      // 兜底：既没有 shop 也没有 stdCount（理论不可达）
+      const n = (r.shops && r.shops.length) ? r.shops.length : 0;
+      shopCell = '<i>' + n + ' 店合计</i>';
     }
     html += '<tr' + (rkGroupBy === 'shop' ? ' class="rk-shop-row"' : '') + '>' +
       '<td class="rk-c-rank"><span class="' + badge + '">' + rk + '</span></td>' +
