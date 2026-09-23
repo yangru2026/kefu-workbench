@@ -5034,6 +5034,12 @@ const RK_GROUP_SHOPS = {
   '售前2组': ['小红书弥生', '抖音3店', '拼多多1店', '拼多多2店', '拼多多3店', '拼多多4店', '拼多多5店', '拼多多7店'],
   '售前3组': ['抖音2店', '抖音4店']
 };
+// ★ 不参与排名的账号（临时支援/练手号），用户 2026-09-23 确认：「小雷（练手）是临时支援的，不用统计排名」
+//   必须「组名 + 客服名」成对匹配 —— 售前1组另有一位正式客服「小雷」，只按名字删会误伤。
+//   加人时照抄一行即可；想让某个人重新回到榜单，删掉对应行。
+const RK_EXCLUDE_STAFF = [
+  { group: '售前3组', name: '小雷（练手）' }
+];
 const RK_METRICS = [
   { key: 'conversion',   label: '转化率', fmt: 'pct',   better: 'high' },
   { key: 'sales',        label: '销售额', fmt: 'money', better: 'high' },
@@ -5334,6 +5340,10 @@ function rkCurrentRows() {
     const mono = rkDate ? rkDate.slice(0, 7) : '';
     rows = rkAllRows.filter(r => String(r.work_date).slice(0, 7) === mono);
   }
+  // ★ 临时支援账号不参与排名（用户 2026-09-23：「这个小雷去掉 是临时支援的 不用统计排名」）
+  //   注意：售前1组另有正式客服「小雷」，所以必须「组名 + 客服名」一起匹配，不能只按名字删。
+  rows = rows.filter(r => !RK_EXCLUDE_STAFF.some(x =>
+    x.group === r.group_name && x.name === String(r.staff_name || '').trim()));
   // ★ 已去掉「全部」：rkGroup 始终是某个具体组（默认 A组）
   if (rkGroup) rows = rows.filter(r => r.group_name === rkGroup);
   // ★ 按人看时：把范围收窄到「本组负责的标准店铺」，保证同组内每人分母一致
