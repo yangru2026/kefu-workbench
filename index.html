@@ -1722,21 +1722,22 @@ body {
 .rk-tile.t-response::before     { background:linear-gradient(180deg,#A66BE8,#C9A3F5); }
 
 /* 卡片头部：居中图标 + 指标名 + 参与人数 */
+/* 卡片头部：居中图标 + 指标名 + 参与人数（用户 2026-09-23：「标题的字做大一点」） */
 .rk-tile-head { text-align:center; padding-bottom:12px; margin-bottom:12px; border-bottom:1px dashed #efedf7; }
-.rk-tile-ico { font-size:20px; line-height:1; display:block; margin-bottom:6px; }
-.rk-tile-name { font-size:15px; font-weight:700; color:var(--text); }
-.rk-tile-sub { font-size:11px; color:var(--text-secondary); margin-top:3px; }
-.rk-tile-tag { display:inline-block; font-size:10px; border-radius:20px; padding:1px 8px; margin-left:5px; vertical-align:1px; }
+.rk-tile-ico { font-size:24px; line-height:1; display:block; margin-bottom:7px; }
+.rk-tile-name { font-size:19px; font-weight:800; color:var(--text); letter-spacing:.3px; }
+.rk-tile-sub { font-size:12.5px; color:var(--text-secondary); margin-top:5px; }
+.rk-tile-tag { display:inline-block; font-size:11px; font-weight:600; border-radius:20px; padding:2px 9px; margin-left:6px; vertical-align:2px; }
 .t-conversion   .rk-tile-tag { background:#eef4ff; color:#3D6FD6; }
 .t-sales        .rk-tile-tag { background:#fff6e5; color:#C97F0A; }
 .t-satisfaction .rk-tile-tag { background:#e9f8f2; color:#1E8F68; }
 .t-response     .rk-tile-tag { background:#f5eeff; color:#7E43C4; }
 
-/* 卡内排行：一行一人，名字+数值+横条 */
-.rk-tile-list { display:flex; flex-direction:column; gap:2px; }
+/* 卡内排行：一行一人，名字+数值+横条（用户 2026-09-23：「按人看也是，太多太乱了」→ 收紧行距/对齐） */
+.rk-tile-list { display:flex; flex-direction:column; gap:1px; }
 .rk-tile-row {
-  display:grid; grid-template-columns:18px 1fr auto; align-items:center; gap:8px;
-  padding:6px 8px; border-radius:8px; position:relative; overflow:hidden;
+  display:grid; grid-template-columns:20px minmax(44px,auto) 1fr; align-items:center; gap:10px;
+  padding:7px 10px; border-radius:8px; position:relative; overflow:hidden;
 }
 .rk-tile-row .rk-tile-bg {
   position:absolute; left:0; top:0; bottom:0; border-radius:8px; opacity:.13; z-index:0;
@@ -1745,19 +1746,25 @@ body {
 .rk-tile-row > * { position:relative; z-index:1; }
 .rk-tile-row:hover { background:#fafaff; }
 .rk-tile-row:hover .rk-tile-bg { opacity:.24; }
-.rk-tile-rk { font-size:11px; color:#b9b6c9; text-align:center; font-weight:600; }
+.rk-tile-rk { font-size:11.5px; color:#b9b6c9; text-align:center; font-weight:600; }
 .rk-tile-row.top1 .rk-tile-rk { color:#D98A00; }
 .rk-tile-row.top2 .rk-tile-rk { color:#8C93A8; }
 .rk-tile-row.top3 .rk-tile-rk { color:#B07A4E; }
-.rk-tile-nm { font-size:13px; color:var(--text); font-weight:500; }
+.rk-tile-nm { font-size:13.5px; color:var(--text); font-weight:500; white-space:nowrap; }
 .rk-tile-row.top1 .rk-tile-nm { font-weight:700; }
-.rk-tile-vl { font-size:13px; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; }
-.rk-tile-row.top1 .rk-tile-vl { font-size:14px; }
+/* 数值靠右对齐，位数不同也能对齐成一列（看起来不散） */
+.rk-tile-vl { font-size:13.5px; font-weight:700; color:var(--text); text-align:right;
+  font-variant-numeric:tabular-nums; white-space:nowrap; }
+.rk-tile-row.top1 .rk-tile-vl { font-size:15px; }
 /* 横条颜色（只作用于 .rk-tile-bg，不碰文字） */
 .t-conversion   .rk-tile-bg { background:#5B8DEF; }
 .t-sales        .rk-tile-bg { background:#F5A623; }
 .t-satisfaction .rk-tile-bg { background:#2FB98C; }
 .t-response     .rk-tile-bg { background:#A66BE8; }
+/* ★ 最差的那一行用红色条（用户 2026-09-23：「数据最低的红色数据条」） */
+.rk-tile-row.bot .rk-tile-bg { background:#E5484D !important; }
+.rk-tile-row.bot .rk-tile-vl { color:#C62A2F; }
+.rk-tile-row.bot .rk-tile-rk { color:#E5484D; }
 /* 第一名数值用主题色强调 */
 .t-conversion   .rk-tile-row.top1 .rk-tile-vl { color:#3D6FD6; }
 .t-sales        .rk-tile-row.top1 .rk-tile-vl { color:#C97F0A; }
@@ -1767,12 +1774,50 @@ body {
 .rk-tile-more { text-align:center; font-size:11px; color:var(--text-secondary); margin-top:8px; }
 
 /* 店铺分组用的标题条（按店看时，每个店铺一组磁贴） */
-.rk-shop-sec { margin-bottom:20px; }
+/* ★ A/B/C 组标题条（按店看时，分组之上） */
 .rk-group-sec-head {
-  display:flex; align-items:center; gap:10px; font-size:15px; font-weight:800; color:#5b3fa8;
-  padding:11px 16px; margin:6px 0 14px; border-radius:12px;
+  display:flex; align-items:center; gap:10px; font-size:16px; font-weight:800; color:#5b3fa8;
+  padding:12px 16px; margin:14px 0 12px; border-radius:12px;
   background:linear-gradient(90deg,#ece7fb,#f7f5ff); border-left:5px solid var(--primary);
 }
+.rk-group-sec-head .rk-sub { font-size:12px; font-weight:400; color:#7a6ba8; }
+
+/* ── 店铺分组标题条（按店看）：可点开/收起 ── */
+.rk-shop-sec { margin-bottom:12px; }
+.rk-shop-sec-head {
+  display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none;
+  padding:11px 16px; border-radius:12px; border:1px solid var(--border);
+  background:linear-gradient(90deg,#f7f5ff,#fdfcff); transition:background .15s, box-shadow .15s;
+}
+.rk-shop-sec-head:hover { background:linear-gradient(90deg,#f0ecff,#faf8ff); box-shadow:0 2px 8px rgba(35,31,60,.06); }
+.rk-shop-sec.open .rk-shop-sec-head { border-bottom-left-radius:0; border-bottom-right-radius:0; border-bottom-color:transparent; }
+.rk-shop-caret { color:var(--primary); font-size:13px; width:14px; flex:none; }
+.rk-shop-name { font-size:16px; font-weight:800; color:var(--text); flex:none; }
+.rk-shop-sec-head .rk-sub { font-size:12px; font-weight:400; color:var(--text-secondary); }
+.rk-shop-tops { display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; }
+.rk-top-badge {
+  display:inline-flex; align-items:center; gap:3px; font-size:11.5px; font-weight:600;
+  padding:2px 8px; border-radius:20px; white-space:nowrap;
+}
+.rk-top-badge i { font-style:normal; font-weight:700; opacity:.85; }
+.rk-top-badge.b-conversion   { background:#eef4ff; color:#3D6FD6; }
+.rk-top-badge.b-sales        { background:#fff6e5; color:#C97F0A; }
+.rk-top-badge.b-satisfaction { background:#e9f8f2; color:#1E8F68; }
+.rk-top-badge.b-response     { background:#f5eeff; color:#7E43C4; }
+/* 收起时隐藏磁贴主体 */
+.rk-shop-body { display:none; padding:14px 14px 4px; border:1px solid var(--border);
+  border-top:none; border-radius:0 0 12px 12px; background:#fdfcff; }
+.rk-shop-sec.open .rk-shop-body { display:block; }
+.rk-shop-sec.open .rk-shop-body .rk-tiles { margin-bottom:0; }
+
+/* 展开/收起全部工具条 */
+.rk-tiles-tools { display:flex; gap:8px; justify-content:flex-end; margin:-6px 0 12px; }
+.rk-tool-btn {
+  font-size:12px; font-weight:600; color:var(--primary); cursor:pointer;
+  background:#fff; border:1px solid var(--border); border-radius:9px; padding:6px 12px;
+  transition:all .15s;
+}
+.rk-tool-btn:hover { background:#f0fdf8; border-color:var(--primary); }
 .rk-tiles-empty {
   text-align:center; color:var(--text-secondary); font-size:13px;
   padding:34px 20px; background:#fff; border:1px dashed var(--border); border-radius:14px;
@@ -3505,6 +3550,12 @@ body {
     <!-- ★ 图形化卡片磁贴区：一块一指标（用户 2026-09-23）—— 排名主视图 -->
     <div id="rk-tiles"></div>
 
+    <!-- ★ 按店看时的展开/收起全部（店铺多的时候用，用户 2026-09-23 反馈「太多太乱」） -->
+    <div class="rk-tiles-tools" id="rk-tiles-tools" style="display:none;">
+      <button class="rk-tool-btn" onclick="rkToggleAllShops(true)">▾ 展开全部店铺</button>
+      <button class="rk-tool-btn" onclick="rkToggleAllShops(false)">▸ 收起全部店铺</button>
+    </div>
+
     <!-- 第八轮起停用：顶部冠军卡区（已并入磁贴） -->
     <div class="rk-cards" id="rk-cards" style="display:none;"></div>
 
@@ -5180,6 +5231,39 @@ const RK_METRICS = [
   { key: 'response',     label: '响应',   fmt: 'sec',   better: 'low',  icon: '⏱️', tip: '仅统计响应最快的记录' }
 ];
 
+// ★ 店铺折叠状态（按店看专用）：key = '组名||店名' → true/false 表示手动展开/收起。
+//   没记录的店铺走默认值（只有每组的第一个店铺默认展开），见 rkRenderTiles。
+//   用户 2026-09-23：「按店看的话，店铺多的组，太多太乱了」→ 默认折叠，点标题展开。
+let rkShopOpen = {};
+function rkToggleShop(sec) {
+  if (!sec) return;
+  const key = sec.dataset.shopkey || '';
+  const nowOpen = !sec.classList.contains('open');
+  sec.classList.toggle('open', nowOpen);
+  const caret = sec.querySelector('.rk-shop-caret');
+  if (caret) caret.textContent = nowOpen ? '▾' : '▸';
+  if (key) rkShopOpen[key] = nowOpen;
+}
+// 一组店铺的「全部展开 / 全部收起」
+function rkToggleAllShops(open) {
+  document.querySelectorAll('#rk-tiles .rk-shop-sec').forEach(sec => {
+    sec.classList.toggle('open', !!open);
+    const caret = sec.querySelector('.rk-shop-caret');
+    if (caret) caret.textContent = open ? '▾' : '▸';
+    if (sec.dataset.shopkey) rkShopOpen[sec.dataset.shopkey] = !!open;
+  });
+}
+// 折叠标题右侧的「各项第一」小徽章，收起时也能一眼看到本店谁最强
+function rkShopTopBadges(list) {
+  return '<span class="rk-shop-tops">' + RK_METRICS.map(m => {
+    const valid = list.filter(r => r[m.key] !== null && r[m.key] !== undefined && isFinite(r[m.key]));
+    if (!valid.length) return '';
+    valid.sort((a, b) => m.better === 'low' ? a[m.key] - b[m.key] : b[m.key] - a[m.key]);
+    return '<span class="rk-top-badge b-' + m.key + '">' + m.icon + rkEsc(valid[0].name) +
+      '<i>' + rkFmt(valid[0][m.key], m.fmt) + '</i></span>';
+  }).join('') + '</span>';
+}
+
 function rkEsc(v) {
   return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -5310,9 +5394,13 @@ function rkSetShopFocus(v) { rkShopFocus = v || ''; rkRender(); }
 function rkSetByShop(v) { rkByShop = !!v; rkRender(); }
 // 分组维度：person=按客服（A/B/C 组） / shop=按店铺（店名分组，店内排名）
 function rkSetGroupBy(v) {
+  const prev = rkGroupBy;
   rkGroupBy = (v === 'shop') ? 'shop' : 'person';
   // 按店看时自动开启「按店拆分」，否则一人一行没法在店内排名
   if (rkGroupBy === 'shop') rkByShop = true;
+  // ★ 切回按店看时，清掉上一次的折叠记忆 → 恢复「每组第一个店铺展开」的默认，
+  //   否则用户上次收起过的店铺会一直保持收起，看起来像没数据。
+  if (rkGroupBy === 'shop' && prev !== 'shop') rkShopOpen = {};
   const cb = document.getElementById('rk-byshop');
   if (cb) cb.checked = rkByShop;
   rkRender();
@@ -5657,9 +5745,17 @@ function rkRenderFilterBar() {
       ? rkAllRows.filter(r => !rkDate || String(r.work_date).slice(0, 10) === rkDate)
       : rkAllRows;
     const names = [];
+    // ★ 2026-09-23：店铺下拉必须与排名口径一致 —— 只列「本组标准负责店」，
+    //   否则 C 组会把「小雷（练手）」支援过的 4 个拼多多店也列出来（用户已反馈过两次）。
+    const stdShops = RK_GROUP_SHOPS[rkGroup];
+    const excluded = RK_EXCLUDE_STAFF.some(x => x.group === rkGroup);
     pool.forEach(r => {
       // ★ 已去掉「全部」：rkGroup 始终是某个具体组，这里不需要再判 ALL
       if (r.group_name !== rkGroup) return;
+      // 练手号支援的店不算本组负责的店
+      if (excluded && RK_EXCLUDE_STAFF.some(x =>
+            x.group === r.group_name && x.name === String(r.staff_name || '').trim())) return;
+      if (stdShops && stdShops.length && stdShops.indexOf(r.shop_name) < 0) return;
       if (r.shop_name && names.indexOf(r.shop_name) < 0) names.push(r.shop_name);
     });
     names.sort((a, b) => a.localeCompare(b, 'zh'));
@@ -5913,15 +6009,25 @@ function rkTilesOne(list, metric, scopeNote) {
     return Math.max(6, Math.round(v / mx * 100));
   };
 
+  // ★ 名次与「是否标红」都按「格式化后的显示值」判定：
+  //   真实数据里两人的值可能差 0.0008（浮点/店铺组合差异），
+  //   但显示出来都是 51.2% —— 用户眼里就是并列，不该挑一个人标红。
+  const dispOf = r => rkFmt(r[m.key], m.fmt);
+
   const rows = valid.map((r, i) => {
     const w = widthOf(r[m.key]);
     const top = (i === 0) ? ' top1' : (i === 1) ? ' top2' : (i === 2) ? ' top3' : '';
-    // 名次：同分并列
+    // 名次：显示值相同 → 并列
     let rk = i + 1;
     const prevRow = i > 0 ? valid[i - 1] : null;
-    if (prevRow && Math.abs(prevRow[m.key] - r[m.key]) < 1e-9) rk = prevRow.__rk;
+    const sameAsPrev = !!(prevRow && dispOf(prevRow) === dispOf(r));
+    if (sameAsPrev) rk = prevRow.__rk;
     r.__rk = rk;
-    return '<div class="rk-tile-row' + top + '" title="' + rkEsc(r.name) + '　' + m.label + ' ' + rkFmt(r[m.key], m.fmt) + '">' +
+    // ★ 末位标红条：用户 2026-09-23「数据最低的红色数据条」。
+    //   只有「真的独特最差」才标红 —— 并列垫底时都不标（避免把并列的最后一名单独示众）。
+    const last = i === valid.length - 1;
+    const bot = (last && valid.length > 1 && !sameAsPrev) ? ' bot' : '';
+    return '<div class="rk-tile-row' + top + bot + '" title="' + rkEsc(r.name) + '　' + m.label + ' ' + rkFmt(r[m.key], m.fmt) + '">' +
       '<span class="rk-tile-rk">' + rk + '</span>' +
       '<span class="rk-tile-nm">' + rkEsc(r.name) + '</span>' +
       '<span class="rk-tile-vl">' + rkFmt(r[m.key], m.fmt) + '</span>' +
@@ -5950,10 +6056,16 @@ function rkTilesGrid(list, opts) {
 // raw = 已按「日/月 + 组 + 排除练手号 + 店铺聚焦」过滤后的明细
 function rkRenderTiles(raw) {
   const el = document.getElementById('rk-tiles');
+  const tools = document.getElementById('rk-tiles-tools');
   if (!el) return;
-  if (!raw || !raw.length) { el.innerHTML = ''; return; }
+  if (!raw || !raw.length) {
+    el.innerHTML = '';
+    if (tools) tools.style.display = 'none';
+    return;
+  }
 
   const scopeText = (rkView === 'month') ? '月累计' : '日排名';
+  if (tools) tools.style.display = (rkGroupBy === 'shop') ? '' : 'none';
 
   if (rkGroupBy === 'shop') {
     // ── 按店看：每个「组 × 店」一组磁贴 ──
@@ -5994,15 +6106,25 @@ function rkRenderTiles(raw) {
       if (!shown.length) return;
       html += '<div class="rk-group-sec-head">' + rkEsc(GFULL2[g] || g) +
         '<span class="rk-sub">' + shown.length + ' 个店铺　·　' + scopeText + '</span></div>';
-      html += shown.map(sh =>
-        '<div class="rk-shop-sec">' +
-          rkTilesGrid(pools[keyOf(sh)], {
-            title: '🏪 ' + sh,
-            sub: '本店 ' + pools[keyOf(sh)].length + ' 人　·　合计销售额 ' + rkFmt(salesOf[keyOf(sh)] || 0, 'money'),
-            scopeNote: '本店内排名'
-          }) +
-        '</div>'
-      ).join('');
+      // ★ 店铺多时太乱 → 每个店铺默认折叠，只留一行标题（点开才展开 4 张磁贴）。
+      //   第一个店铺默认展开，让人一眼看到最高优先级的大店。
+      html += shown.map((sh, i) => {
+        const list = pools[keyOf(sh)];
+        const open = rkShopOpen[g + '||' + sh] !== undefined
+          ? rkShopOpen[g + '||' + sh] : (i === 0);
+        return '<div class="rk-shop-sec' + (open ? ' open' : '') + '" data-shopkey="' + rkEsc(g + '||' + sh) + '">' +
+          '<div class="rk-shop-sec-head" onclick="rkToggleShop(this.parentNode)">' +
+            '<span class="rk-shop-caret">' + (open ? '▾' : '▸') + '</span>' +
+            '<span class="rk-shop-name">🏪 ' + rkEsc(sh) + '</span>' +
+            '<span class="rk-sub">' + list.length + ' 人　·　合计销售额 ' +
+              rkFmt(salesOf[keyOf(sh)] || 0, 'money') + '</span>' +
+            rkShopTopBadges(list) +
+          '</div>' +
+          '<div class="rk-shop-body">' +
+            rkTilesGrid(list, { scopeNote: '本店内排名' }) +
+          '</div>' +
+        '</div>';
+      }).join('');
     });
     el.innerHTML = html;
     return;
