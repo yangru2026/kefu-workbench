@@ -5474,7 +5474,7 @@ function rkRender() {
 
   rkRenderFilterBar();
   rkRenderMeta(raw, rows);
-  rkRenderCards(rows);
+  rkRenderCards(raw);          // ★ 冠军卡按「该组全部负责店铺的合计」评比，与按人看同口径
   rkRenderTable(rows, M);
 }
 
@@ -5586,21 +5586,32 @@ function rkRenderMeta(raw, rows) {
     '<span class="rk-chip rk-chip-tip">口径：转化率=付款/询单 · 满意度=好评数/评价总数 · 响应按询单加权</span>';
 }
 
-function rkRenderCards(rows) {
+function rkRenderCards(raw) {
   const el = document.getElementById('rk-cards');
   if (!el) return;
-  if (!rows.length) { el.innerHTML = ''; return; }
+  if (!raw || !raw.length) { el.innerHTML = ''; return; }
+  // ★ 冠军口径（用户 2026-09-23 要求）：
+  //   「按所有该组负责的店铺的当日合计」评比，月累计则按「月初至当前」的合计。
+  //   所以这里必须用 rkAggPerson(raw) —— 即「该客服在本组全部负责店铺上的合计」，
+  //   与下面榜单（按人看）完全同一口径。
+  //   不能再拿明细行（一人×一店）去挑最大值：那样小店铺某一天偶然高就会夺冠，
+  //   看不出真实水平（例如「转化率冠军 小七/拼多多YH 100%」这种假冠军）。
+  //   注意 raw 已被 rkCurrentRows() 按「日/月累计 + 组 + 组外店排除」过滤过，
+  //   所以日排名=当日全店合计、月累计=月初至今全店合计，无需额外处理。
+  const people = rkAggPerson(raw);
   const cards = RK_METRICS.map(m => {
-    const valid = rows.filter(r => r[m.key] !== null && r[m.key] !== undefined);
+    const valid = people.filter(r => r[m.key] !== null && r[m.key] !== undefined && isFinite(r[m.key]));
     if (!valid.length) return '';
     valid.sort((a, b) => m.better === 'low' ? a[m.key] - b[m.key] : b[m.key] - a[m.key]);
     const top = valid[0];
     const avg = valid.reduce((s, r) => s + r[m.key], 0) / valid.length;
+    // 副标题：标明是「全店合计」口径，并说明覆盖了几个店
+    const cover = (top.stdCount ? top.cover + '/' + top.stdCount + ' 店合计' : '');
     return '<div class="rk-card">' +
       '<div class="rk-card-t">' + m.label + ' 冠军</div>' +
-      '<div class="rk-card-n">' + rkEsc(top.name) + (top.shop ? ' <i>' + rkEsc(top.shop) + '</i>' : '') + '</div>' +
+      '<div class="rk-card-n">' + rkEsc(top.name) + ' <i>全店合计</i></div>' +
       '<div class="rk-card-v">' + rkFmt(top[m.key], m.fmt) + '</div>' +
-      '<div class="rk-card-s">平均 ' + rkFmt(avg, m.fmt) + '</div>' +
+      '<div class="rk-card-s">' + (cover ? cover + ' · ' : '') + '平均 ' + rkFmt(avg, m.fmt) + '</div>' +
       '</div>';
   }).join('');
   el.innerHTML = cards;
