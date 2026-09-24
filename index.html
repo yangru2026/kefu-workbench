@@ -11924,19 +11924,26 @@ function toLargeImageUrl(url) {
   return addCacheBuster(toCdnUrl(base + 'patterns/hd/' + name + '.webp'));
 }
 
-// 统一将 GitHub Pages 本地图片 URL 转成 jsDelivr CDN 加速地址
+// 统一把图片 URL 规范成「同源 GitHub Pages 直连地址」
+// ⚠️ 2026-09-24 花色素材「加载太慢」根因：本函数原先输出
+//    cdn.jsdelivr.net/gh/yangru2026/kefu-workbench@main/...，
+//    但 jsDelivr 对本仓库的图片会 301 跳转到 raw.githubusercontent.com，
+//    而该域名国内直连极慢（实测 12s 超时失败）→ 首屏 20 张卡片图全部卡死。
+//    改走同源 GitHub Pages（Fastly CDN，实测 0.5~1.7s）后：
+//      ① 不再有跨域 301 中转；② 与页面同源，可被 Service Worker 缓存 → 二次访问秒开。
 function toCdnUrl(url) {
   if (!url) return '';
-  // 已经是 CDN / Supabase / 带参数的 URL 不再转换
-  if (url.includes('cdn.jsdelivr.net') || url.includes('supabase.co') || url.includes('?')) return url;
-  // 把 https://yangru2026.github.io/kefu-workbench/... 转成 jsDelivr
-  const gh = url.replace(/^https?:\/\/yangru2026\.github\.io\/kefu-workbench\//, '');
-  if (gh !== url) {
-    return 'https://cdn.jsdelivr.net/gh/yangru2026/kefu-workbench@main/' + gh;
+  // 已是目标源 / Supabase Storage：原样返回
+  if (url.includes('yangru2026.github.io') || url.includes('supabase.co')) return url;
+  // 历史数据里存了 jsDelivr 仓库地址 → 还原成同源
+  if (url.includes('cdn.jsdelivr.net/gh/yangru2026/kefu-workbench@main/')) {
+    return url.replace(/^https?:\/\/cdn\.jsdelivr\.net\/gh\/yangru2026\/kefu-workbench@main\//, 'https://yangru2026.github.io/kefu-workbench/');
   }
-  // 相对路径：假设部署在 kefu-workbench/ 下
+  // 其它 jsDelivr（npm 包等）保持不动
+  if (url.includes('cdn.jsdelivr.net')) return url;
+  // 相对路径（images/patterns/...）→ 同源绝对地址
   if (!url.startsWith('http')) {
-    return 'https://cdn.jsdelivr.net/gh/yangru2026/kefu-workbench@main/' + url.replace(/^\.?\/?/, '');
+    return 'https://yangru2026.github.io/kefu-workbench/' + url.replace(/^\.?\/?/, '');
   }
   return url;
 }
