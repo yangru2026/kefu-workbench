@@ -11693,23 +11693,25 @@ function renderPatterns() {
     // 所有上眼图加入 lightbox images
     eyeUrlList.forEach((url, i) => {
       const cdnUrl = addCacheBuster(toCdnUrl(url));
+      const thumbUrl = addCacheBuster(toThumbUrl(url));
       const largeUrl = url ? toLargeImageUrl(url) : '';
-      images.push({ thumb: cdnUrl, large: largeUrl, hd: cdnUrl, type: 'eye', hint: i > 0 ? `上眼效果 ${i + 1}` : '上眼效果' });
+      images.push({ thumb: thumbUrl, large: largeUrl, hd: cdnUrl, type: 'eye', hint: i > 0 ? `上眼效果 ${i + 1}` : '上眼效果' });
     });
     // 所有花色图加入 lightbox images
     lensUrlList.forEach((url, i) => {
-      const thumbSrc = addCacheBuster(toCdnUrl(url));
+      const hdSrc = addCacheBuster(toCdnUrl(url));
+      const thumbSrc = addCacheBuster(toThumbUrl(url));
       const largeUrl = url ? toLargeImageUrl(url) : '';
-      images.push({ thumb: thumbSrc, large: largeUrl, hd: thumbSrc, type: 'lens', hint: i > 0 ? `镜片图 ${i + 1}` : '镜片图' });
+      images.push({ thumb: thumbSrc, large: largeUrl, hd: hdSrc, type: 'lens', hint: i > 0 ? `镜片图 ${i + 1}` : '镜片图' });
     });
 
     // 卡片显示用第一张上眼图 + 第一张花色图
     const firstEyeUrl = eyeUrlList[0] || '';
     const firstLensUrl = lensUrlList[0] || '';
     const rawEyeSrc = (p.thumbEye && p.thumbEye.trim() !== '') ? p.thumbEye : firstEyeUrl;
-    const eyeSrc = addCacheBuster(toCdnUrl(rawEyeSrc));
+    const eyeSrc = addCacheBuster(toThumbUrl(rawEyeSrc));
     const rawLensThumbSrc = (p.thumbLens && p.thumbLens.trim() !== '') ? p.thumbLens : firstLensUrl;
-    const lensThumbSrc = addCacheBuster(toCdnUrl(rawLensThumbSrc));
+    const lensThumbSrc = addCacheBuster(toThumbUrl(rawLensThumbSrc));
     const lensLarge = firstLensUrl ? toLargeImageUrl(firstLensUrl) : '';
     const lensHd = addCacheBuster(toCdnUrl(firstLensUrl));
 
@@ -11917,6 +11919,10 @@ function escapeAttr(s) {
 // 支持绝对路径和相对路径：.../patterns/xxx.jpg => .../patterns/large/xxx.webp
 function toLargeImageUrl(url) {
   if (!url || url.includes('/patterns/thumb/')) return '';
+  // Supabase Storage 原图（平均 1.2MB、最大 10MB）→ 转成 1200px webp 中图，供 hover / 灯箱使用
+  if (url.includes('/storage/v1/object/public/')) {
+    return toStorageRender(url, 1200, 80);
+  }
   const m = url.match(/^(.*\/)patterns\/(.+?)(?:\.(jpg|jpeg|png|webp))?$/i);
   if (!m) return '';
   const base = m[1];
@@ -11946,6 +11952,23 @@ function toCdnUrl(url) {
     return 'https://yangru2026.github.io/kefu-workbench/' + url.replace(/^\.?\/?/, '');
   }
   return url;
+}
+
+// ⚠️ 2026-09-24 花色素材「加载太慢」第二个根因：
+//    有 41 条花色的 eye_img/lens_img 存的是 Supabase Storage 原始大图，
+//    实测平均 1.24MB、最大 10.07MB（41 张合计 50.9MB）→ 首屏拉这种图必然卡死。
+//    解决：卡片主图走 Supabase 图片转换端点缩到 400px webp（10MB → 约 25KB），
+//    hover / 灯箱走 1200px webp（约 100~200KB）。转换结果由浏览器缓存，不影响清晰度。
+// 把 Supabase Storage 原图 URL 换成「图片转换端点 + 指定宽度 webp」
+function toStorageRender(url, width, quality) {
+  if (!url || !url.includes('/storage/v1/object/public/')) return '';
+  return url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/')
+    + '?width=' + width + '&quality=' + (quality || 72) + '&format=webp&resize=contain';
+}
+// 卡片主图专用：Storage 原图缩到 400px；其它图（同源缩略图等）原样返回
+function toThumbUrl(url) {
+  const u = toCdnUrl(url);
+  return toStorageRender(u, 400, 72) || u;
 }
 
 // 将 jsDelivr CDN URL 回退到 GitHub Pages 直接源（CDN 异常时备用）
@@ -12533,13 +12556,13 @@ function ppCardHtml(p, canManage) {
   const eyeUrlList = (p.eyeImgs && p.eyeImgs.length) ? p.eyeImgs : (p.eyeImg ? [p.eyeImg] : []);
   const lensUrlList = (p.lensImgs && p.lensImgs.length) ? p.lensImgs : (p.lensImg ? [p.lensImg] : []);
   const images = [];
-  eyeUrlList.forEach((url, i) => { const c = addCacheBuster(toCdnUrl(url)); images.push({ thumb: c, large: url ? toLargeImageUrl(url) : '', hd: c, type: 'eye', hint: i > 0 ? '上眼效果 ' + (i + 1) : '上眼效果' }); });
-  lensUrlList.forEach((url, i) => { const c = addCacheBuster(toCdnUrl(url)); images.push({ thumb: c, large: url ? toLargeImageUrl(url) : '', hd: c, type: 'lens', hint: i > 0 ? '镜片图 ' + (i + 1) : '镜片图' }); });
+  eyeUrlList.forEach((url, i) => { const c = addCacheBuster(toCdnUrl(url)); images.push({ thumb: addCacheBuster(toThumbUrl(url)), large: url ? toLargeImageUrl(url) : '', hd: c, type: 'eye', hint: i > 0 ? '上眼效果 ' + (i + 1) : '上眼效果' }); });
+  lensUrlList.forEach((url, i) => { const c = addCacheBuster(toCdnUrl(url)); images.push({ thumb: addCacheBuster(toThumbUrl(url)), large: url ? toLargeImageUrl(url) : '', hd: c, type: 'lens', hint: i > 0 ? '镜片图 ' + (i + 1) : '镜片图' }); });
   let lbKey = '';
   if (images.length) { lbKey = 'plb' + (++_ppLbIdx); window._lbImages = window._lbImages || {}; window._lbImages[lbKey] = images; }
   const rawSrc = (p.thumbEye && p.thumbEye.trim()) ? p.thumbEye : (eyeUrlList[0] || (p.thumbLens && p.thumbLens.trim()) || lensUrlList[0] || '');
   const imgHtml = rawSrc
-    ? '<img src="' + escapeHtml(addCacheBuster(toCdnUrl(rawSrc))) + '" loading="lazy" decoding="async" alt="' + escapeHtml(p.name) + '">'
+    ? '<img src="' + escapeHtml(addCacheBuster(toThumbUrl(rawSrc))) + '" loading="lazy" decoding="async" alt="' + escapeHtml(p.name) + '">'
     : '<div class="img-placeholder"><span>👁️</span>暂无图片</div>';
   const tierLabel = ppTierLabel(p);
   const priceTag = tierLabel

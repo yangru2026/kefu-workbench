@@ -49,7 +49,14 @@ const rows = [
     lens_imgs: [], eye_imgs: ['images/patterns/thumb/misho_daily_%E4%BC%81%E9%B9%85%E5%A6%AE%E5%A6%AE_eye.webp'],
     thumb_eye_url: 'images/patterns/thumb/misho_daily_%E4%BC%81%E9%B9%85%E5%A6%AE%E5%A6%AE_eye.webp',
     thumb_lens_url: '',
-    description: '测试用花色二', sort_order: 5, is_discontinued: false, created_at: '2026-07-01T00:00:00Z' }
+    description: '测试用花色二', sort_order: 5, is_discontinued: false, created_at: '2026-07-01T00:00:00Z' },
+  { id: 'a3', brand: '弥生', type: '日抛', name: '在逃公主pro', series: '少女漫-日抛', color: '棕色系',
+    diameter: '14.2', color_diameter: '13.5', material: '硅水凝胶', base_curve: '8.6',
+    price_tier: '29.9元/副', diam_group: '小直径',
+    lens_img: '', eye_img: 'https://ienmejlxukhrxjjxvfqf.supabase.co/storage/v1/object/public/pattern-images/eye/41d189d3-7d83-4413-a089-da94ffb90822.jpg',
+    lens_imgs: [], eye_imgs: ['https://ienmejlxukhrxjjxvfqf.supabase.co/storage/v1/object/public/pattern-images/eye/41d189d3-7d83-4413-a089-da94ffb90822.jpg'],
+    thumb_eye_url: '', thumb_lens_url: '',
+    description: '测试用花色三（Supabase Storage 原图，应走 render 缩略）', sort_order: 3, is_discontinued: false, created_at: '2026-06-01T00:00:00Z' }
 ];
 
 (async () => {
@@ -101,12 +108,16 @@ const rows = [
       srcs,
       jsdelivrCount: srcs.filter(s => s.includes('cdn.jsdelivr.net')).length,
       sameOriginCount: srcs.filter(s => s.indexOf('https://yangru2026.github.io/kefu-workbench/') === 0).length,
+      storageThumbCount: srcs.filter(s => s.includes('/storage/v1/render/image/public/') && s.includes('width=400')).length,
+      storageRawCount: srcs.filter(s => s.includes('/storage/v1/object/public/')).length,
       loadedOk: imgs.filter(i => i.complete && i.naturalWidth > 0).length,
       broken: imgs.filter(i => i.complete && i.naturalWidth === 0).length,
       // 直接测函数
       fnRelative: (typeof toCdnUrl === 'function') ? toCdnUrl('images/patterns/thumb/x.webp') : 'NO_FN',
       fnOldCdn: (typeof toCdnUrl === 'function') ? toCdnUrl('https://cdn.jsdelivr.net/gh/yangru2026/kefu-workbench@main/images/patterns/thumb/x.webp') : 'NO_FN',
       fnSupabase: (typeof toCdnUrl === 'function') ? toCdnUrl('https://ienmejlxukhrxjjxvfqf.supabase.co/storage/v1/object/public/a.webp') : 'NO_FN',
+      fnStorageThumb: (typeof toThumbUrl === 'function') ? toThumbUrl('https://ienmejlxukhrxjjxvfqf.supabase.co/storage/v1/object/public/pattern-images/eye/x.jpg') : 'NO_FN',
+      fnStorageLarge: (typeof toLargeImageUrl === 'function') ? toLargeImageUrl('https://ienmejlxukhrxjjxvfqf.supabase.co/storage/v1/object/public/pattern-images/eye/x.jpg') : 'NO_FN',
       swRegistered: !!(navigator.serviceWorker && navigator.serviceWorker.controller !== undefined)
     };
   });
@@ -115,14 +126,19 @@ const rows = [
   console.log('ERRORS:', errs.length ? errs.join(' | ') : 'none');
 
   const ok = errs.length === 0
-    && out.imgCount > 0
+    && out.imgCount === 4
     && out.jsdelivrCount === 0
-    && out.sameOriginCount === out.imgCount
-    && out.loadedOk > 0
+    && out.storageRawCount === 0          // 不再直接拉 Supabase Storage 原图
+    && out.storageThumbCount === 1        // Storage 图改走 render 缩略端点
+    && out.sameOriginCount === 3          // 其余 3 张走同源 GitHub Pages
+    && out.loadedOk === 4
     && out.broken === 0
     && out.fnRelative.indexOf('https://yangru2026.github.io/kefu-workbench/images/') === 0
     && out.fnOldCdn.indexOf('https://yangru2026.github.io/kefu-workbench/images/') === 0
-    && out.fnSupabase.indexOf('supabase.co') > -1;
+    && out.fnSupabase.indexOf('supabase.co') > -1
+    && out.fnStorageThumb.indexOf('/storage/v1/render/image/public/') > -1
+    && out.fnStorageThumb.indexOf('width=400') > -1
+    && out.fnStorageLarge.indexOf('width=1200') > -1;
 
   console.log(ok ? 'PATTERN_SPEED_SMOKE_PASS' : 'PATTERN_SPEED_SMOKE_FAIL');
   await browser.close(); server.close(); clearTimeout(wd); process.exit(ok ? 0 : 1);
