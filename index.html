@@ -2435,7 +2435,7 @@ body {
   </div>
 
   <!-- 连带成交 · 极速登记弹窗 -->
-  <div class="modal-overlay" id="mod-cs-quick" onclick="closeModal('mod-cs-quick')">
+  <div class="modal-overlay" id="mod-cs-quick"undefined>
     <div class="modal-box" style="max-width:480px;" onclick="event.stopPropagation()" onkeydown="csQuickOnEnter(event)">
       <div class="modal-header">
         <h3>➕ 极速登记</h3>
@@ -2513,7 +2513,7 @@ body {
   </div>
 
   <!-- 连带成交 · 选项管理弹窗 -->
-  <div class="modal-overlay" id="mod-cs-options" onclick="closeModal('mod-cs-options')">
+  <div class="modal-overlay" id="mod-cs-options"undefined>
     <div class="modal-box" style="max-width:560px;" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3>⚙️ 选项管理</h3>
@@ -2557,7 +2557,7 @@ body {
   </div>
 
   <!-- 连带成交 · 表头筛选弹窗 -->
-  <div class="modal-overlay" id="mod-cs-filter" onclick="closeModal('mod-cs-filter')">
+  <div class="modal-overlay" id="mod-cs-filter"undefined>
     <div class="modal-box" style="max-width:480px;" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3>🔽 <span id="cs-filter-title">筛选</span></h3>
@@ -2578,7 +2578,7 @@ body {
   </div>
 
   <!-- 连带成交 · 历史月份归档弹窗 -->
-  <div class="modal-overlay" id="mod-cs-archive" onclick="closeModal('mod-cs-archive')">
+  <div class="modal-overlay" id="mod-cs-archive"undefined>
     <div class="modal-box" style="max-width:520px;" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3>📁 历史月份存档</h3>
@@ -2597,7 +2597,7 @@ body {
   </div>
 
   <!-- 连带成交 · 批量粘贴弹窗 -->
-  <div class="modal-overlay" id="mod-cs-paste" onclick="closeModal('mod-cs-paste')">
+  <div class="modal-overlay" id="mod-cs-paste"undefined>
     <div class="modal-box" style="max-width:780px;" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3>📋 批量粘贴连带成交数据</h3>
@@ -2632,7 +2632,7 @@ body {
   </div>
 
   <!-- 连带成交 · 客服个人看板弹窗 -->
-  <div class="modal-overlay" id="mod-cs-profile" onclick="closeModal('mod-cs-profile')">
+  <div class="modal-overlay" id="mod-cs-profile"undefined>
     <div class="modal-box" style="max-width:760px;" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3>📊 个人第二单业绩看板</h3>
@@ -2646,7 +2646,7 @@ body {
   </div>
 
   <!-- 通知中心弹窗 -->
-  <div class="modal-overlay" id="mod-notify" onclick="closeModal('mod-notify')">
+  <div class="modal-overlay" id="mod-notify"undefined>
     <div class="modal-box" style="max-width:520px;" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3>🔔 通知中心</h3>
@@ -13976,6 +13976,93 @@ function copyScriptStyle(btn) {
   }
 }
 
+// ── 弹窗遮罩防误关（修「编辑话术/资料时闪退」）──────────────────────────
+// 根因：overlay 上 inline onclick=closeModal，在输入框/文本域里拖动选择文字、
+//       鼠标拖出弹窗边界才松手时，click 会派发到 overlay → 误判"点空白"→ 弹窗关闭，
+//       用户视角就是"编辑到一半闪退"。（同赠品编码页 c1aee5d 的根因）
+// 修复：移除各输入型弹窗 overlay 的 inline onclick，改为
+//       「按下点在遮罩上 + 松手位置未拖动」才算真点空白，才允许关闭。
+function installMaskSafeClose() {
+  function safeBind(overlay, onClose) {
+    if (!overlay || overlay._maskSafe) return;
+    overlay._maskSafe = true;
+    let down = null;
+    overlay.addEventListener('mousedown', e => { down = { x: e.clientX, y: e.clientY, onMask: e.target === overlay }; });
+    overlay.addEventListener('click', e => {
+      if (e.target !== overlay || !down || !down.onMask) return;
+      if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) return;
+      onClose();
+    });
+  }
+  ['mod-script','mod-training','mod-train-detail','mod-script-detail','mod-pattern',
+   'mod-penalty-standard','mod-lic-preview','mod-lic-edit','mod-factory-edit',
+   'mod-cs-quick','mod-cs-options','mod-cs-filter','mod-cs-archive','mod-cs-paste',
+   'mod-cs-profile','mod-notify','mod-jiyang-brand'
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) safeBind(el, () => closeModal(id));
+  });
+  // 邀请弹窗（关闭函数名不同，单独绑定）
+  const invite = document.getElementById('invite-modal');
+  if (invite && typeof closeInviteModal === 'function') safeBind(invite, () => closeInviteModal());
+  // 话术编辑草稿：输入时自动保存（防闪退/误关后白打）
+  const sb = document.getElementById('mod-script-body');
+  if (sb) {
+    let t = null;
+    sb.addEventListener('input', () => { clearTimeout(t); t = setTimeout(saveScriptDraft, 300); });
+  }
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', installMaskSafeClose);
+} else {
+  installMaskSafeClose();
+}
+
+// ── 话术编辑草稿（闪退/误关后重开自动恢复，不再重新输入）────────────────
+const SCRIPT_DRAFT_KEY = 'kefu_script_draft_v1';
+function _scriptDraftSnapshot() {
+  const v = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  const styles = {};
+  SCRIPT_STYLES.forEach(k => { styles[k] = v('sf-style-' + k); });
+  return {
+    key: (window._editScript && window._editScript.isNew) ? 'new' : ((window._editScript && window._editScript.id) || 'new'),
+    category: (window._editScript && window._editScript.category) || '',
+    sub: v('sf-sub'), group: v('sf-group'), title: v('sf-title'), tags: v('sf-tags'),
+    styles: styles, ts: Date.now()
+  };
+}
+function saveScriptDraft() {
+  try {
+    if (!window._editScript) return;
+    const modal = document.getElementById('mod-script');
+    if (!modal || !modal.classList.contains('show')) return;
+    const d = _scriptDraftSnapshot();
+    const hasContent = (d.title || '').trim() || (d.tags || '').trim() || (d.sub || '').trim()
+      || Object.values(d.styles || {}).some(x => (x || '').trim());
+    if (!hasContent) return;   // 全空不占存储
+    localStorage.setItem(SCRIPT_DRAFT_KEY, JSON.stringify(d));
+  } catch (e) {}
+}
+function clearScriptDraft(key) {
+  try {
+    const raw = localStorage.getItem(SCRIPT_DRAFT_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (!key || !d.key || d.key === key) localStorage.removeItem(SCRIPT_DRAFT_KEY);
+  } catch (e) {}
+}
+function restoreScriptDraft(curKey, curCategory) {
+  try {
+    const d = JSON.parse(localStorage.getItem(SCRIPT_DRAFT_KEY) || 'null');
+    if (!d || d.key !== curKey) return false;
+    if (d.category && curCategory && d.category !== curCategory) return false;
+    const set = (id, val) => { const el = document.getElementById(id); if (el && val != null && val !== '') el.value = val; };
+    set('sf-sub', d.sub); set('sf-group', d.group); set('sf-title', d.title); set('sf-tags', d.tags);
+    Object.entries(d.styles || {}).forEach(([k, val]) => set('sf-style-' + k, val));
+    return true;
+  } catch (e) { return false; }
+}
+
 function openScriptEditor(s) {
   const isNew = !s;
   const cat = isScriptTopCat(trainingGroup) ? trainingGroup : SCRIPT_GROUP;
@@ -14008,6 +14095,9 @@ function openScriptEditor(s) {
   document.getElementById('mod-script-body').innerHTML = html;
   document.getElementById('mod-script').classList.add('show');
   document.body.style.overflow = 'hidden';
+  // 恢复上次未保存的草稿（闪退/误关后不再重新输入）
+  const draftKey = isNew ? 'new' : (s ? s.id : 'new');
+  if (restoreScriptDraft(draftKey, cat)) showToast('📝 已恢复上次未保存的输入');
 }
 
 async function saveScript() {
@@ -14033,6 +14123,7 @@ async function saveScript() {
     showToast('✅ 话术场景已更新');
   }
   closeModal('mod-script');
+  clearScriptDraft(isNew ? 'new' : (window._editScript && window._editScript.id));
   loadTrainingScripts();
 }
 
@@ -15701,7 +15792,7 @@ async function applyInviteClaim() {
 <script src="app.js?v=20260916a"></script>
 
 <!-- Pattern Editor Modal -->
-<div class="modal-overlay" id="mod-pattern" onclick="closeModal('mod-pattern')">
+<div class="modal-overlay" id="mod-pattern"undefined>
   <div class="modal-box" onclick="event.stopPropagation()">
     <div class="modal-header">
       <h3 id="mod-pattern-title">✎ 编辑花色</h3>
@@ -15716,7 +15807,7 @@ async function applyInviteClaim() {
 </div>
 
 <!-- 培训资料编辑弹窗 -->
-<div class="modal-overlay" id="mod-training" onclick="closeModal('mod-training')">
+<div class="modal-overlay" id="mod-training"undefined>
   <div class="modal-box" onclick="event.stopPropagation()">
     <div class="modal-header">
       <h3 id="mod-training-title">＋ 新增培训资料</h3>
@@ -15731,7 +15822,7 @@ async function applyInviteClaim() {
 </div>
 
 <!-- 培训资料详情弹窗 -->
-<div class="modal-overlay" id="mod-train-detail" onclick="closeModal('mod-train-detail')">
+<div class="modal-overlay" id="mod-train-detail"undefined>
   <div class="modal-box" onclick="event.stopPropagation()" style="max-width:520px;">
     <div class="modal-header">
       <h3 style="display:flex;align-items:center;gap:10px;">
@@ -15750,7 +15841,7 @@ async function applyInviteClaim() {
 </div>
 
 <!-- 极氧品牌定位一站式详情弹窗 -->
-<div class="modal-overlay jy-brand-modal" id="mod-jiyang-brand" onclick="closeModal('mod-jiyang-brand')">
+<div class="modal-overlay jy-brand-modal" id="mod-jiyang-brand"undefined>
   <div class="modal-box" onclick="event.stopPropagation()">
     <div class="modal-header">
       <h3 style="display:flex;align-items:center;gap:10px;">
@@ -15769,7 +15860,7 @@ async function applyInviteClaim() {
 </div>
 
 <!-- 话术详情弹窗 -->
-<div class="modal-overlay" id="mod-script-detail" onclick="closeModal('mod-script-detail')">
+<div class="modal-overlay" id="mod-script-detail"undefined>
   <div class="modal-box" onclick="event.stopPropagation()" style="max-width:560px;">
     <div class="modal-header">
       <h3 id="mod-script-detail-title"></h3>
@@ -15784,7 +15875,7 @@ async function applyInviteClaim() {
 </div>
 
 <!-- 话术编辑弹窗 -->
-<div class="modal-overlay" id="mod-script" onclick="closeModal('mod-script')">
+<div class="modal-overlay" id="mod-script"undefined>
   <div class="modal-box" onclick="event.stopPropagation()" style="max-width:600px;">
     <div class="modal-header">
       <h3 id="mod-script-title">＋ 新增话术场景</h3>
@@ -15799,7 +15890,7 @@ async function applyInviteClaim() {
 </div>
 
 <!-- 扣罚标准大图弹窗 -->
-<div class="modal-overlay" id="mod-penalty-standard" onclick="closeModal('mod-penalty-standard')">
+<div class="modal-overlay" id="mod-penalty-standard"undefined>
   <div class="modal-box penalty-modal-box" onclick="event.stopPropagation()">
     <div class="modal-header">
       <h3>📋 客服服务差错扣罚标准（2026年执行版）</h3>
@@ -15816,7 +15907,7 @@ async function applyInviteClaim() {
 </div>
 
 <!-- 查验证明：大图预览弹窗 -->
-<div class="modal-overlay" id="mod-lic-preview" onclick="closeModal('mod-lic-preview')">
+<div class="modal-overlay" id="mod-lic-preview"undefined>
   <div class="modal-box lic-preview-box" onclick="event.stopPropagation()">
     <div class="modal-header">
       <h3 id="lic-preview-title">证件预览</h3>
@@ -15832,7 +15923,7 @@ async function applyInviteClaim() {
 </div>
 
 <!-- 查验证明：编辑店铺弹窗 -->
-<div class="modal-overlay" id="mod-lic-edit" onclick="closeModal('mod-lic-edit')">
+<div class="modal-overlay" id="mod-lic-edit"undefined>
   <div class="modal-box" onclick="event.stopPropagation()" style="max-width:640px;">
     <div class="modal-header">
       <h3 id="lic-edit-title">✏️ 编辑店铺</h3>
@@ -15847,7 +15938,7 @@ async function applyInviteClaim() {
 </div>
 
 <!-- 查验证明：编辑生产方弹窗 -->
-<div class="modal-overlay" id="mod-factory-edit" onclick="closeModal('mod-factory-edit')">
+<div class="modal-overlay" id="mod-factory-edit"undefined>
   <div class="modal-box" onclick="event.stopPropagation()" style="max-width:420px;">
     <div class="modal-header">
       <h3 id="factory-edit-title">✏️ 编辑生产方许可证</h3>
