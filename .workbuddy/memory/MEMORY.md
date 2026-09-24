@@ -68,11 +68,13 @@
   → 首屏 20 张卡片图全卡死（茹姐原话「加载太慢，我想秒开」）。同源直连实测 0.47~1.68s（commit bae1214）。
 - 三级图片：`thumb/` 缩略图 34KB（卡片主图）/ `large/` 与 `hd/` 内容相同 28~128KB（hover、灯箱）；
   文件名规则 `{品牌}_{系列}_{花色}_eye|_lens|_extra.webp`（thumb 目录 357 个文件）。
-- 数据库 `pattern_assets`：多数记录 `thumb_eye_url`/`thumb_lens_url` 存相对路径
-  （如 `images/patterns/thumb/xxx_eye.webp`）；**55 条为空**时卡片回退用自己的 `eye_img`/`lens_img`，
-  其中 **41 条是 Supabase Storage 原始大图（平均 1.24MB、最大 10.07MB、41 张合计 50.9MB）**；
-  `eye_imgs`/`lens_imgs` 数组供灯箱多图。thumb 目录 357 个文件 / 数据库引用 293 个，
+- 数据库 `pattern_assets`：卡片主图链路 **176 款同源 thumb 缩略图（快）/ 13 款无图 / 0 款 Storage 慢链路**
+  （2026-09-24 已把 41 张 Storage 原图预转成 `thumb/u{记录id}_{eye|lens}.webp` 存仓库并回填字段，commit f3307b2）；
+  `eye_imgs`/`lens_imgs` 数组供灯箱多图。thumb 目录 398 个文件 / 数据库引用 334 个，
   **孤儿文件不要按名字猜着配对**（同名不同抛型会错配 → 客服看到错花色）。
+- ⚠️ **管理员重新上传图片只写 Storage，不生成缩略图** → 会重新出现慢链路。
+  清零三步：`SBP_TOKEN=xxx node outputs/gen-storage-thumbs.js`（预转换到 thumb/）→ git push → 跑生成的 SQL。
+  ⚠️ `pattern_assets.id` 是 UUID，SQL 里 `where id = '<uuid>'` 必须带引号。
 - **Storage 大图兜底（2026-09-24 commit 15998c1）**：`toStorageRender(url,w,q)` 把
   `/storage/v1/object/public/` 换成 `/storage/v1/render/image/public/`，加
   `?width=NNN&quality=NN&format=webp&resize=contain`；`toThumbUrl()` = 卡片主图 400px/q72
