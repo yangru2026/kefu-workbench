@@ -98,7 +98,7 @@ const rows = [
       if (typeof patternData !== 'undefined' && patternData && patternData.brands) renderPatterns();
     } catch (e) {}
   });
-  await sleep(4000);  // 等图片真实加载
+  await sleep(6000);  // 等图片真实加载 + 预热触发（loadPatternsFromDB 成功后 2s 启动）
 
   const out = await page.evaluate(() => {
     const imgs = [...document.querySelectorAll('#pattern-grid img')];
@@ -106,6 +106,9 @@ const rows = [
     return {
       imgCount: imgs.length,
       srcs,
+      hasRetryImg: typeof retryImg === 'function',
+      hasPrecache: typeof precachePatternThumbs === 'function',
+      onerrorCount: imgs.filter(i => (i.getAttribute('onerror') || '').includes('retryImg')).length,
       jsdelivrCount: srcs.filter(s => s.includes('cdn.jsdelivr.net')).length,
       sameOriginCount: srcs.filter(s => s.indexOf('https://yangru2026.github.io/kefu-workbench/') === 0).length,
       storageThumbCount: srcs.filter(s => s.includes('/storage/v1/render/image/public/') && s.includes('width=400')).length,
@@ -122,11 +125,26 @@ const rows = [
     };
   });
 
+  // 检查预热缓存是否已写入（预热在数据就绪 2s 后启动）
+  const cacheInfo = await page.evaluate(async () => {
+    try {
+      if (!('caches' in window)) return { available: false };
+      if (!(await caches.has('kefu-sw-img-v1'))) return { available: true, entries: 0 };
+      const c = await caches.open('kefu-sw-img-v1');
+      const keys = await c.keys();
+      return { available: true, entries: keys.length, sample: keys.slice(0, 2).map(k => k.url.slice(-40)) };
+    } catch (e) { return { available: false, err: e.message }; }
+  });
+  console.log('预热缓存:', JSON.stringify(cacheInfo));
+
   console.log(JSON.stringify(out, null, 2));
   console.log('ERRORS:', errs.length ? errs.join(' | ') : 'none');
 
   const ok = errs.length === 0
     && out.imgCount === 4
+    && out.hasRetryImg && out.hasPrecache
+    && out.onerrorCount === out.imgCount
+    && cacheInfo.available && cacheInfo.entries >= 3   // 预热已把 mock 的图写入本地缓存
     && out.jsdelivrCount === 0
     && out.storageRawCount === 0          // 不再直接拉 Supabase Storage 原图
     && out.storageThumbCount === 1        // Storage 图改走 render 缩略端点

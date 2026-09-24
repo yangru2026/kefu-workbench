@@ -5034,6 +5034,8 @@ async function loadPatternsFromDB() {
     renderPatterns();
     if (currentPage === 'pattern-price') renderPatternPricePage();
     subscribePatterns();
+    // 数据就绪后空闲预热全部缩略图到本地缓存（治本：之后不依赖境外网络）
+    setTimeout(() => { try { precachePatternThumbs(); } catch (e) {} }, 2000);
     loadPpCardNotes();
     subscribePpNotes();
   } catch(e) {
@@ -11721,12 +11723,12 @@ function renderPatterns() {
 
     if (hasEye && hasLens) {
       // 主图用缩略图，hover 切换的 lens 用 data-lens-src 存中图，hover 时 JS 加载中图替换缩略图
-      imgHtml = `<img src="${escapeHtml(eyeSrc)}" class="img-eye" alt="${escapeHtml(p.name)} 上眼图" loading="lazy" decoding="async"${fpAttr}>
-                 <img src="${escapeHtml(lensThumbSrc)}" data-lens-src="${escapeHtml(lensLarge || lensHd)}" class="img-lens" alt="${escapeHtml(p.name)} 镜片图" loading="lazy" decoding="async">`;
+      imgHtml = `<img src="${escapeHtml(eyeSrc)}" class="img-eye" alt="${escapeHtml(p.name)} 上眼图" loading="lazy" decoding="async" onerror="retryImg(this)"${fpAttr}>
+                 <img src="${escapeHtml(lensThumbSrc)}" data-lens-src="${escapeHtml(lensLarge || lensHd)}" class="img-lens" alt="${escapeHtml(p.name)} 镜片图" loading="lazy" decoding="async" onerror="retryImg(this)">`;
     } else if (hasEye) {
-      imgHtml = `<img src="${escapeHtml(eyeSrc)}" alt="${escapeHtml(p.name)} 上眼图" loading="lazy" decoding="async"${fpAttr}>`;
+      imgHtml = `<img src="${escapeHtml(eyeSrc)}" alt="${escapeHtml(p.name)} 上眼图" loading="lazy" decoding="async" onerror="retryImg(this)"${fpAttr}>`;
     } else if (hasLens) {
-      imgHtml = `<img src="${escapeHtml(lensThumbSrc)}" alt="${escapeHtml(p.name)} 镜片图" loading="lazy" decoding="async"${fpAttr}>`;
+      imgHtml = `<img src="${escapeHtml(lensThumbSrc)}" alt="${escapeHtml(p.name)} 镜片图" loading="lazy" decoding="async" onerror="retryImg(this)"${fpAttr}>`;
     } else {
       imgHtml = `<div class="img-placeholder"><span>👁️</span>暂无图片</div>`;
     }
@@ -11809,7 +11811,7 @@ function renderPatterns() {
     const imgsHtml = images.length
       ? `<div class="pfeed-imgs">` + shownImgs.map((im, i) =>
           `<div class="pfeed-img" onclick="openLightbox(window._lbImages['${lbKey}'])">` +
-          `<img src="${escapeHtml(im.thumb)}" loading="lazy" decoding="async" alt="${escapeHtml(p.name)}"${fpAttr}>` +
+          `<img src="${escapeHtml(im.thumb)}" loading="lazy" decoding="async" onerror="retryImg(this)" alt="${escapeHtml(p.name)}"${fpAttr}>` +
           (i === MAX_IMGS - 1 && images.length > MAX_IMGS ? `<div class="more-mask">+${images.length - MAX_IMGS}</div>` : '') +
           `</div>`).join('') + `</div>`
       : `<div class="pfeed-imgs"><div class="pfeed-empty-img">暂无图片</div></div>`;
@@ -11969,6 +11971,66 @@ function toStorageRender(url, width, quality) {
 function toThumbUrl(url) {
   const u = toCdnUrl(url);
   return toStorageRender(u, 400, 72) || u;
+}
+
+// ── 图片加载失败自动重试（应对 GitHub Pages 国内间歇性不通）──────────────
+// 间歇性失败下，隔 600ms 重试一次往往就能成功；只重试一次，避免死循环
+function retryImg(el) {
+  if (!el || el.dataset.retried) return;
+  el.dataset.retried = '1';
+  const src = el.getAttribute('src') || '';
+  setTimeout(() => { try { el.src = src + (src.includes('?') ? '&' : '?') + 'retry=1'; } catch (e) {} }, 600);
+}
+
+// ── 缩略图全量预缓存（彻底解决「每隔一段时间都很卡」）──────────────────
+// 思路：花色数据就绪后，趁空闲把全部缩略图分批下载进 Service Worker 本地缓存
+//（约 200 张 × 34KB ≈ 7MB）。之后打开任何花色/价格页，图片全部命中本地缓存，
+// 秒开且不再依赖 GitHub Pages 是否被墙 —— 这是治本手段。
+let _thumbPrecacheStarted = false;
+function collectPatternThumbUrls() {
+  const urls = new Set();
+  const brands = (typeof patternData !== 'undefined' && patternData && patternData.brands) ? patternData.brands : {};
+  Object.values(brands).forEach(types => {
+    Object.values(types || {}).forEach(list => {
+      (list || []).forEach(p => {
+        if (p.thumbEye) urls.add(addCacheBuster(toCdnUrl(p.thumbEye)));
+        if (p.thumbLens) urls.add(addCacheBuster(toCdnUrl(p.thumbLens)));
+        // 没有缩略图但走同源原图的，也一并预热（数量很少）
+        if (!p.thumbEye && p.eyeImg && !/^https?:/.test(p.eyeImg)) urls.add(addCacheBuster(toCdnUrl(p.eyeImg)));
+        if (!p.thumbLens && p.lensImg && !/^https?:/.test(p.lensImg)) urls.add(addCacheBuster(toCdnUrl(p.lensImg)));
+      });
+    });
+  });
+  return [...urls];
+}
+async function precachePatternThumbs() {
+  if (_thumbPrecacheStarted || !('caches' in window)) return;
+  _thumbPrecacheStarted = true;
+  const urls = collectPatternThumbUrls();
+  if (!urls.length) return;
+  const BATCH = 6, GAP = 500;
+  try {
+    const cache = await caches.open('kefu-sw-img-v1');
+    const todo = [];
+    for (const u of urls) {
+      try { if (!(await cache.match(u))) todo.push(u); } catch (e) { todo.push(u); }
+    }
+    console.log('[预热] 缩略图预缓存：需下载 ' + todo.length + ' / 共 ' + urls.length + ' 张');
+    for (let i = 0; i < todo.length; i += BATCH) {
+      const batch = todo.slice(i, i + BATCH);
+      await Promise.all(batch.map(async u => {
+        try {
+          const r = await fetch(u, { priority: 'low' });
+          if (r && r.ok) { try { await cache.put(u, r); } catch (e) {} }
+        } catch (e) { /* 单张失败不阻塞，下次打开会再补 */ }
+      }));
+      await new Promise(r => setTimeout(r, GAP));
+    }
+    console.log('[预热] 缩略图预缓存完成，此后图片全部本地秒开');
+  } catch (e) {
+    console.warn('[预热] 预缓存不可用（不影响使用）:', e && e.message);
+    _thumbPrecacheStarted = false;  // 失败允许下次重试
+  }
 }
 
 // 将 jsDelivr CDN URL 回退到 GitHub Pages 直接源（CDN 异常时备用）
@@ -12562,7 +12624,7 @@ function ppCardHtml(p, canManage) {
   if (images.length) { lbKey = 'plb' + (++_ppLbIdx); window._lbImages = window._lbImages || {}; window._lbImages[lbKey] = images; }
   const rawSrc = (p.thumbEye && p.thumbEye.trim()) ? p.thumbEye : (eyeUrlList[0] || (p.thumbLens && p.thumbLens.trim()) || lensUrlList[0] || '');
   const imgHtml = rawSrc
-    ? '<img src="' + escapeHtml(addCacheBuster(toThumbUrl(rawSrc))) + '" loading="lazy" decoding="async" alt="' + escapeHtml(p.name) + '">'
+    ? '<img src="' + escapeHtml(addCacheBuster(toThumbUrl(rawSrc))) + '" loading="lazy" decoding="async" onerror="retryImg(this)" alt="' + escapeHtml(p.name) + '">'
     : '<div class="img-placeholder"><span>👁️</span>暂无图片</div>';
   const tierLabel = ppTierLabel(p);
   const priceTag = tierLabel
