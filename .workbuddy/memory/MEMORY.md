@@ -35,6 +35,11 @@
 - 访问地址：https://yangru2026.github.io/kefu-workbench/
 
 ## Supabase anon public key 管理（重要）
+- ⚠️ **`sbp_` 是 Supabase Personal Access Token（可管理整个项目，权限极高）**：
+  **绝不能硬编码进任何要提交的文件**。2026-09-24 因两个诊断脚本硬编码 token，
+  GitHub Secret Scanning 直接拦下 push（`push declined due to repository rule violations`）。
+  规矩：脚本一律 `process.env.SBP_TOKEN` 读取，用法写注释里。
+  遇到被拦 **不要点 unblock-secret 链接**，脱敏后 `git commit --amend` 重写未推送的 commit 再 push。
 - **首次刷新记录**：2026-08-18，旧 key 失效后从 Project Settings → API 复制新 key，已替换 5 个文件并 commit `83fa2e4`。
 - **涉及文件**：`cs-qc.html` `diagnose.html` `qc-share.html` `qc-v2.html` `qc.html`
 - **key 位置**：https://supabase.com/dashboard/project/ienmejlxukhrxjjxvfqf/settings/api → 复制 "anon public"
@@ -63,9 +68,18 @@
   → 首屏 20 张卡片图全卡死（茹姐原话「加载太慢，我想秒开」）。同源直连实测 0.47~1.68s（commit bae1214）。
 - 三级图片：`thumb/` 缩略图 34KB（卡片主图）/ `large/` 与 `hd/` 内容相同 28~128KB（hover、灯箱）；
   文件名规则 `{品牌}_{系列}_{花色}_eye|_lens|_extra.webp`（thumb 目录 357 个文件）。
-- 数据库 `pattern_assets` 存**相对路径**（如 `images/patterns/thumb/xxx_eye.webp`）：
-  `thumb_eye_url`/`thumb_lens_url`（148/189 有值，41 个为 null 时回退 `eye_img` 原图）；
-  `eye_imgs`/`lens_imgs` 数组供灯箱多图。
+- 数据库 `pattern_assets`：多数记录 `thumb_eye_url`/`thumb_lens_url` 存相对路径
+  （如 `images/patterns/thumb/xxx_eye.webp`）；**55 条为空**时卡片回退用自己的 `eye_img`/`lens_img`，
+  其中 **41 条是 Supabase Storage 原始大图（平均 1.24MB、最大 10.07MB、41 张合计 50.9MB）**；
+  `eye_imgs`/`lens_imgs` 数组供灯箱多图。thumb 目录 357 个文件 / 数据库引用 293 个，
+  **孤儿文件不要按名字猜着配对**（同名不同抛型会错配 → 客服看到错花色）。
+- **Storage 大图兜底（2026-09-24 commit 15998c1）**：`toStorageRender(url,w,q)` 把
+  `/storage/v1/object/public/` 换成 `/storage/v1/render/image/public/`，加
+  `?width=NNN&quality=NN&format=webp&resize=contain`；`toThumbUrl()` = 卡片主图 400px/q72
+  （**10.07MB → 25KB**），`toLargeImageUrl()` 对 Storage 返回 1200px/q80（供 hover/灯箱）。
+  ⚠️ Supabase 转换端点响应 `Cache-Control: no-cache`、`CF-Cache-Status: BYPASS`（服务端不缓存），
+  且跨域 → 我们的 SW 也缓存不到，只靠浏览器自身 ETag/304。
+  ⚠️ 该端点是 **Supabase 付费/按量功能**，若哪天 4xx 要能优雅退化（回原图）。
 - 性能配套：`PATTERN_PAGE_SIZE=20` 分页 + `loading="lazy"` + 首屏 6 张 `fetchpriority="high"`
   + 数据层秒显缓存 `kefu_cache_pattern_assets`（先渲染缓存再后台刷新）。
 - **sw.js 图片缓存**（VERSION v2）：`/images/` 走 stale-while-revalidate（先返缓存秒开 + 后台静默更新），
