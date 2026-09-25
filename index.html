@@ -5427,12 +5427,9 @@ function rkBuildDates() {
   }
 
   if (!rkDate || rkDates.indexOf(rkDate) < 0) {
-    // 从最新往回找第一天「店铺数 = 历史最大店铺数」，也就是数据回齐的那天
-    let pick = rkDates.length ? rkDates[rkDates.length - 1] : '';
-    for (let i = rkDates.length - 1; i >= 0; i--) {
-      if (rkDayStat.get(rkDates[i]).shops >= rkMaxShops) { pick = rkDates[i]; break; }
-    }
-    rkDate = pick;
+    // ★ 用户 2026-09-25 口径：22 号、23 号都是同一次导出来的，就当同一天看，
+    //   默认直接落在最新一天，不再往回找「18 店齐全」的那天。
+    rkDate = rkDates.length ? rkDates[rkDates.length - 1] : '';
   }
 }
 
@@ -5928,9 +5925,9 @@ function rkRenderMeta(raw, rows) {
   } else {
     const full = !st || st.shops >= rkMaxShops;
     warn = !full
-      ? '<span class="rk-chip rk-chip-warn">⚠️ 这一天只有 ' + st.shops + '/' + rkMaxShops +
-        ' 家店回传（各平台有 1~3 天延迟），下面只反映已更新的店</span>'
-      : '<span class="rk-chip rk-chip-ok">✅ ' + (st ? st.shops : 0) + ' 家店数据已回齐</span>';
+      ? '<span class="rk-chip rk-chip-warn">ℹ️ 已回传 ' + st.shops + '/' + rkMaxShops +
+        ' 家店（各平台更新节奏不同，抖音 T-2、其余 T-3）</span>'
+      : '<span class="rk-chip rk-chip-ok">✅ ' + (st ? st.shops : 0) + ' 家店已回传</span>';
   }
   el.innerHTML = '<span class="rk-chip">' + (rkView === 'day' ? '📅 日排名' : '📈 月累计') + '</span>' +
     '<span class="rk-chip">' + rkEsc(range) + '</span>' +
