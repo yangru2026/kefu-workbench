@@ -108,6 +108,43 @@
   .gal-next{right:24px;}
   .gal-count{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);color:#fff;font-size:14px;
              background:rgba(15,23,42,.6);padding:4px 14px;border-radius:16px;}
+  /* ===== 统计看板（仅管理员） ===== */
+  .stats-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:18px;
+              box-shadow:0 2px 12px rgba(31,41,55,.05);display:none;}
+  .stats-card.open{display:block;}
+  .stats-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .stats-head h2{font-size:15px;font-weight:800;flex:1;}
+  .period-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+  .pchip{padding:6px 14px;border-radius:16px;border:1.5px solid var(--border);background:#fff;font-size:12.5px;
+         font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;transition:all .15s;}
+  .pchip:hover{border-color:var(--primary);color:var(--primary-dark);}
+  .pchip.on{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .custom-range{display:none;gap:8px;align-items:center;margin:10px 0 2px;flex-wrap:wrap;font-size:13px;color:var(--muted);}
+  .custom-range.show{display:flex;}
+  .custom-range input[type=date]{padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;
+                                  font-family:inherit;outline:none;background:#fff;}
+  .custom-range input[type=date]:focus{border-color:var(--primary);}
+  .stat-sum{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 14px;}
+  .stat-sum .sum-cell{flex:1;min-width:110px;background:var(--primary-light);border-radius:10px;padding:10px 14px;text-align:center;}
+  .stat-sum .sum-cell b{display:block;font-size:22px;color:var(--primary-dark);}
+  .stat-sum .sum-cell span{font-size:12px;color:var(--muted);}
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:14px;}
+  .stat-block{border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+  .stat-block h3{font-size:13px;font-weight:800;margin-bottom:10px;color:var(--text);}
+  .bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12.5px;}
+  .bar-row .b-name{width:78px;flex-shrink:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .bar-row .b-track{flex:1;height:14px;background:#f1f5f9;border-radius:7px;overflow:hidden;}
+  .bar-row .b-fill{display:block;height:100%;background:var(--primary);border-radius:7px;min-width:2px;}
+  .bar-row.r2 .b-fill{background:var(--orange);}
+  .bar-row.r3 .b-fill{background:#6366f1;}
+  .bar-row .b-num{width:30px;text-align:right;font-weight:700;color:var(--primary-dark);flex-shrink:0;}
+  .day-chart{display:flex;align-items:flex-end;gap:3px;height:110px;padding-top:6px;overflow-x:auto;}
+  .day-col{flex:1;min-width:16px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+  .day-col .d-bar{width:70%;max-width:26px;background:var(--primary);border-radius:3px 3px 0 0;min-height:2px;}
+  .day-col .d-lbl{font-size:9.5px;color:var(--muted);margin-top:4px;white-space:nowrap;transform:scale(.9);}
+  .stat-empty{font-size:12.5px;color:var(--muted);padding:8px 0;}
+  .btn-export{background:var(--primary);color:#fff;}
+  .btn-export:hover{background:var(--primary-dark);}
   /* ===== toast / 未登录 ===== */
   .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);
          background:rgba(30,41,59,.9);color:#fff;font-size:13px;padding:9px 20px;border-radius:22px;
@@ -135,6 +172,7 @@
     <input type="text" id="searchInput" placeholder="搜客服 / 昵称 / 订单号…" autocomplete="off">
   </div>
   <button class="btn btn-ghost" id="btnRefresh" title="重新加载">🔄</button>
+  <button class="btn btn-ghost" id="btnStats" style="display:none;" title="登记统计看板">📊 统计</button>
 </div>
 
 <div class="wrap">
@@ -196,6 +234,34 @@
     <div class="reg-actions">
       <button class="btn btn-primary" id="btnSave">💾 提交登记</button>
     </div>
+  </div>
+
+  <!-- 统计看板（仅管理员可见） -->
+  <div class="stats-card" id="statsCard">
+    <div class="stats-head">
+      <h2>📊 登记统计</h2>
+      <button class="btn btn-export" id="btnExport">⬇ 导出Excel明细</button>
+    </div>
+    <div class="period-chips" id="periodChips">
+      <button class="pchip" data-p="today">今天</button>
+      <button class="pchip" data-p="7d">近7天</button>
+      <button class="pchip on" data-p="30d">近30天</button>
+      <button class="pchip" data-p="month">本月</button>
+      <button class="pchip" data-p="all">全部</button>
+      <button class="pchip" data-p="custom">自定义</button>
+    </div>
+    <div class="custom-range" id="customRange">
+      <input type="date" id="dateFrom"> <span>至</span> <input type="date" id="dateTo">
+      <button class="btn btn-ghost" id="btnApplyRange" style="padding:6px 14px;">应用</button>
+    </div>
+    <div class="stat-sum" id="statSum"></div>
+    <div class="stat-grid">
+      <div class="stat-block"><h3>👤 按客服</h3><div id="byCs"></div></div>
+      <div class="stat-block"><h3>🏷 按转接原因</h3><div id="byReason"></div></div>
+      <div class="stat-block"><h3>🏪 按接待店铺</h3><div id="byShop"></div></div>
+      <div class="stat-block"><h3>📮 按分流号</h3><div id="byNick"></div></div>
+    </div>
+    <div class="stat-block"><h3>📅 按天趋势</h3><div id="byDay"></div></div>
   </div>
 
   <!-- 列表 -->
@@ -280,6 +346,7 @@ function reasonCls(r){ return r==='跨店问正品' ? 'r2' : (r==='反馈建议�
     badge.textContent = isAdmin ? '👑 管理员 · 可删记录' : '📖 登记模式';
     $('fCs').value = myName;
     $('regCard').style.display = '';
+    if(isAdmin) $('btnStats').style.display = '';
     await loadRecords();
   }catch(e){
     console.error(e);
@@ -309,6 +376,7 @@ async function loadRecords(){
   records = data || [];
   divCacheSet(records);
   renderList();
+  renderStats();
 }
 
 /* ==================== 渲染列表 ==================== */
@@ -366,6 +434,166 @@ $('list').addEventListener('click', e => {
 });
 $('searchInput').addEventListener('input', renderList);
 $('btnRefresh').addEventListener('click', () => { toast('刷新中…'); loadRecords(); });
+
+/* ==================== 统计看板（仅管理员） ==================== */
+let statsPeriod = '30d';
+let customFrom = '', customTo = '';
+
+function periodRange(){
+  const now = new Date();
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23,59,59);
+  const start = new Date(end);
+  if(statsPeriod==='today'){ start.setHours(0,0,0,0); return [start,end]; }
+  if(statsPeriod==='7d'){ start.setDate(start.getDate()-6); start.setHours(0,0,0,0); return [start,end]; }
+  if(statsPeriod==='30d'){ start.setDate(start.getDate()-29); start.setHours(0,0,0,0); return [start,end]; }
+  if(statsPeriod==='month'){ start.setDate(1); start.setHours(0,0,0,0); return [start,end]; }
+  if(statsPeriod==='custom'){
+    const s = customFrom ? new Date(customFrom+'T00:00:00') : null;
+    const e = customTo ? new Date(customTo+'T23:59:59') : null;
+    return [s, e];
+  }
+  return [null,null];
+}
+
+function rangeLabel(){
+  if(statsPeriod==='today') return '今天';
+  if(statsPeriod==='7d') return '近7天';
+  if(statsPeriod==='30d') return '近30天';
+  if(statsPeriod==='month') return '本月';
+  if(statsPeriod==='all') return '全部';
+  return (customFrom||'开始') + ' ~ ' + (customTo||'今天');
+}
+
+function filteredByPeriod(){
+  const [s,e] = periodRange();
+  return records.filter(r=>{
+    if(!r.created_at) return false;
+    const d = new Date(r.created_at);
+    if(s && d < s) return false;
+    if(e && d > e) return false;
+    return true;
+  });
+}
+
+function aggCount(list, key){
+  const m = {};
+  list.forEach(r=>{ const k=String(r[key]||'').trim()||'（未填）'; m[k]=(m[k]||0)+1; });
+  return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+}
+
+function barHtml(rows, clsFn){
+  if(!rows.length) return '<div class="stat-empty">该周期暂无数据</div>';
+  const max = rows[0][1] || 1;
+  return rows.map(([k,v])=>`<div class="bar-row ${clsFn?clsFn(k):''}">
+    <span class="b-name" title="${esc(k)}">${esc(k)}</span>
+    <span class="b-track"><span class="b-fill" style="width:${Math.max(4,Math.round(v/max*100))}%"></span></span>
+    <span class="b-num">${v}</span></div>`).join('');
+}
+
+function renderStats(){
+  if(!isAdmin) return;
+  const list = filteredByPeriod();
+  const people = new Set(list.map(r=>String(r.cs_name||'').trim()).filter(Boolean));
+  const shops = new Set(list.map(r=>String(r.shop||'').trim()).filter(Boolean));
+  $('statSum').innerHTML =
+    '<div class="sum-cell"><b>'+list.length+'</b><span>登记总数</span></div>'+
+    '<div class="sum-cell"><b>'+people.size+'</b><span>登记客服数</span></div>'+
+    '<div class="sum-cell"><b>'+shops.size+'</b><span>涉及店铺数</span></div>';
+  $('byCs').innerHTML = barHtml(aggCount(list,'cs_name'));
+  $('byReason').innerHTML = barHtml(aggCount(list,'reason'), k=> k==='跨店问正品'?'r2':(k==='反馈建议类'?'r3':''));
+  $('byShop').innerHTML = barHtml(aggCount(list,'shop'));
+  $('byNick').innerHTML = barHtml(aggCount(list,'diversion_nick'));
+  const dayMap = {};
+  list.forEach(r=>{
+    if(!r.created_at) return;
+    const d = new Date(r.created_at);
+    const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    dayMap[k]=(dayMap[k]||0)+1;
+  });
+  const days = Object.keys(dayMap).sort();
+  if(!days.length){ $('byDay').innerHTML='<div class="stat-empty">该周期暂无数据</div>'; return; }
+  const maxD = Math.max.apply(null, days.map(k=>dayMap[k]));
+  const lblStep = days.length>15 ? Math.ceil(days.length/15) : 1;
+  $('byDay').innerHTML = '<div class="day-chart">'+days.map((k,i)=>
+    '<div class="day-col" title="'+k+'：'+dayMap[k]+' 条">'+
+    '<div class="d-bar" style="height:'+Math.max(3,Math.round(dayMap[k]/maxD*80))+'px"></div>'+
+    (i%lblStep===0 ? '<div class="d-lbl">'+k.slice(5)+'</div>' : '')+'</div>').join('')+'</div>';
+}
+
+$('periodChips').addEventListener('click', e=>{
+  const chip = e.target.closest('.pchip'); if(!chip) return;
+  statsPeriod = chip.dataset.p;
+  document.querySelectorAll('.pchip').forEach(c=>c.classList.toggle('on', c===chip));
+  $('customRange').classList.toggle('show', statsPeriod==='custom');
+  if(statsPeriod!=='custom') renderStats();
+});
+$('btnApplyRange').addEventListener('click', ()=>{
+  customFrom = $('dateFrom').value; customTo = $('dateTo').value;
+  if(!customFrom && !customTo){ toast('请先选择起止日期'); return; }
+  renderStats();
+});
+$('btnStats').addEventListener('click', ()=>{
+  const card = $('statsCard');
+  card.classList.toggle('open');
+  if(card.classList.contains('open')) renderStats();
+});
+
+/* ==================== 导出 Excel（xlsx 库懒加载，失败降级 CSV） ==================== */
+let xlsxLoading = null;
+function ensureXLSX(){
+  if(window.XLSX) return Promise.resolve();
+  if(xlsxLoading) return xlsxLoading;
+  xlsxLoading = new Promise((res,rej)=>{
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload = res;
+    s.onerror = ()=>{ xlsxLoading = null; rej(new Error('xlsx 库加载失败')); };
+    document.head.appendChild(s);
+  });
+  return xlsxLoading;
+}
+function pad2(n){ return String(n).padStart(2,'0'); }
+function detailRows(list){
+  return [['时间','客服','客户昵称/订单号','接待店铺','分流号','转接原因','截图数']]
+    .concat(list.map(r=>[fmtTime(r.created_at), r.cs_name||'', r.customer_info||'',
+      r.shop||'', r.diversion_nick||'', r.reason||'', (r.screenshots||[]).length]));
+}
+$('btnExport').addEventListener('click', async ()=>{
+  const list = filteredByPeriod();
+  if(!list.length){ toast('当前周期没有可导出的数据'); return; }
+  const btn = $('btnExport'); btn.disabled = true; btn.textContent = '生成中…';
+  try{
+    await ensureXLSX();
+    const summary = [['舆情转接统计汇总（周期：'+rangeLabel()+'）','数量'],
+      ['登记总数', list.length]]
+      .concat(aggCount(list,'cs_name').map(([k,v])=>['客服 - '+k, v]))
+      .concat(aggCount(list,'reason').map(([k,v])=>['原因 - '+k, v]))
+      .concat(aggCount(list,'shop').map(([k,v])=>['店铺 - '+k, v]))
+      .concat(aggCount(list,'diversion_nick').map(([k,v])=>['分流号 - '+k, v]));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(detailRows(list)), '登记明细');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), '统计汇总');
+    const now = new Date();
+    XLSX.writeFile(wb, '舆情转接明细_'+now.getFullYear()+pad2(now.getMonth()+1)+pad2(now.getDate())+'_'+pad2(now.getHours())+pad2(now.getMinutes())+'.xlsx');
+    toast('✅ 已导出 ' + list.length + ' 条');
+  }catch(e){
+    console.error(e);
+    exportCsv(list);
+  }finally{
+    btn.disabled = false; btn.textContent = '⬇ 导出Excel明细';
+  }
+});
+function exportCsv(list){
+  const rows = detailRows(list);
+  const csv = '\ufeff' + rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '舆情转接明细.csv';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 3000);
+  toast('xlsx 库加载失败，已导出 CSV 格式');
+}
 
 /* ==================== 灯箱 ==================== */
 let galImgs = [], galIdx = 0;
