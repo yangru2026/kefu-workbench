@@ -31,25 +31,7 @@ const server = http.createServer((req, res) => {
 let pass = 0, fail = 0;
 const check = (n, c, extra) => { if (c) { pass++; console.log('PASS ' + n); } else { fail++; console.log('FAIL ' + n + (extra ? ' | ' + extra : '')); } };
 
-/* ---------- 假数据 ---------- */
-const today = new Date();
-const yest = new Date(Date.now() - 864e5);
-function detail() {
-  const d = [];
-  for (let i = 1; i <= 35; i++) d.push({ no: i, sec: '一、单选题', ans: i <= 30 ? 'A. 测试作答' : '测试文本', got: i <= 27 ? 2 : 0, full: 2, kind: i > 30 ? 'self' : 'auto' });
-  return d;
-}
-const ROWS = [
-  { id: 'r1', quiz_key: 'miyang-color-price', quiz_title: '弥生 · 花色与价格 考核试卷', examinee: '张三',
-    score: 90, total: 100, auto_score: 70, auto_total: 76, self_score: 20, self_total: 24,
-    duration_sec: 830, detail: detail(), created_at: today.toISOString() },
-  { id: 'r2', quiz_key: 'miyang-color-price', quiz_title: '弥生 · 花色与价格 考核试卷', examinee: '李四',
-    score: 60, total: 100, auto_score: 48, auto_total: 76, self_score: 12, self_total: 24,
-    duration_sec: 1200, detail: detail(), created_at: new Date(today.getTime() - 3600e3).toISOString() },
-  { id: 'r3', quiz_key: 'miyang-color-price', quiz_title: '弥生 · 花色与价格 考核试卷', examinee: '张三',
-    score: 70, total: 100, auto_score: 56, auto_total: 76, self_score: 14, self_total: 24,
-    duration_sec: 900, detail: detail(), created_at: yest.toISOString() }
-];
+/* ---------- 假数据：在页面内按 seed 生成，见 stubSupabase 里的 mkRows() ---------- */
 
 /* ---------- 页面内桩 ---------- */
 function stubFetch() {
@@ -68,7 +50,34 @@ function stubFetch() {
   };
 }
 function stubSupabase() {
-  window.__CFG__ = { loggedIn: true, role: 'admin', rows: [] };
+  // ⚠️ 配置只从 URL 读，不从 window 读：evaluateOnNewDocument 注册的脚本会在 page 之间残留，
+  //    用 window.__CFG__ 会被上一个场景污染（曾导致 D 的「未登录」泄漏到 E/F）。
+  // ⚠️ 假数据不要塞进 URL —— Node 的请求头默认上限 16KB，超了直接 431，页面一片空白。
+  //    所以 URL 里只放 `seed=1` 标记，数据在页面里现生成。
+  const readCfg = () => {
+    try {
+      const m = String(location.search || '').match(/[?&]cfg=([^&]*)/);
+      if (m) return JSON.parse(decodeURIComponent(m[1]));
+    } catch (e) {}
+    return {};
+  };
+  const mkDetail = () => {
+    const d = [];
+    for (let i = 1; i <= 35; i++) {
+      d.push({ no: i, sec: '一、单选题', ans: i <= 30 ? 'A. 测试作答' : '测试文本', got: i <= 27 ? 2 : 0, full: 2, kind: i > 30 ? 'self' : 'auto' });
+    }
+    return d;
+  };
+  const mkRows = () => {
+    const today = new Date(), yest = new Date(Date.now() - 864e5);
+    const base = { quiz_key: 'miyang-color-price', quiz_title: '弥生 · 花色与价格 考核试卷', total: 100, auto_total: 76, self_total: 24 };
+    return [
+      Object.assign({}, base, { id: 'r1', examinee: '张三', score: 90, auto_score: 70, self_score: 20, duration_sec: 830, detail: mkDetail(), created_at: today.toISOString() }),
+      Object.assign({}, base, { id: 'r2', examinee: '李四', score: 60, auto_score: 48, self_score: 12, duration_sec: 1200, detail: mkDetail(), created_at: new Date(today.getTime() - 3600e3).toISOString() }),
+      Object.assign({}, base, { id: 'r3', examinee: '张三', score: 70, auto_score: 56, self_score: 14, duration_sec: 900, detail: mkDetail(), created_at: yest.toISOString() })
+    ];
+  };
+  const cfg = () => Object.assign({ loggedIn: true, role: 'admin', rows: [] }, readCfg());
   const mk = (result) => {
     const o = {};
     ['select', 'order', 'limit', 'eq', 'delete', 'insert'].forEach(m => { o[m] = () => o; });
@@ -80,12 +89,13 @@ function stubSupabase() {
     createClient: () => ({
       auth: {
         getSession: async () => ({
-          data: { session: window.__CFG__.loggedIn ? { user: { id: 'u1', email: 'ru@youhe.com', app_metadata: {} } } : null }
+          data: { session: cfg().loggedIn === false ? null : { user: { id: 'u1', email: 'ru@youhe.com', app_metadata: {} } } }
         })
       },
       from: (t) => {
-        if (t === 'profiles') return mk({ data: { role: window.__CFG__.role }, error: null });
-        if (t === 'quiz_results') return mk({ data: window.__CFG__.rows || [], error: null });
+        const c = cfg();
+        if (t === 'profiles') return mk({ data: { role: c.role }, error: null });
+        if (t === 'quiz_results') return mk({ data: c.seed ? mkRows() : (c.rows || []), error: null });
         return mk({ data: [], error: null });
       }
     })
@@ -115,17 +125,53 @@ const fillAllCorrect = () => {
     headless: 'new', args: ['--no-sandbox', '--disable-gpu', '--no-proxy-server', '--proxy-bypass-list=*']
   });
   const errs = [];
-  const newPage = async (cfg) => {
-    const p = await browser.newPage();
+  const ctxOf = new Map();
+  // 每个场景一个独立 BrowserContext：evaluateOnNewDocument 注册的脚本、缓存、storage 全部隔离
+  // （踩过坑：同一个默认上下文里，前一个场景注册的"未登录"配置会残留到后面的页面）
+  const newPage = async (opts) => {
+    const ctx = await browser.createBrowserContext();
+    const p = await ctx.newPage();
+    ctxOf.set(p, ctx);
     p.on('pageerror', e => errs.push('PAGEERROR:' + e.message));
+    // ⚠️ 必须拦掉 supabase-js 本体（本地 vendor 或境外 CDN 都要拦）：
+    //    真库一旦加载成功就会覆盖我们的桩 → getSession() 返回真实空会话 → 偶发「未登录」。
+    //    （排查了很久，之前误以为是 evaluateOnNewDocument 跨 page 泄漏）
+    await p.setRequestInterception(true);
+    p.on('request', (req) => {
+      const u = req.url();
+      if (u.indexOf('cdn.jsdelivr.net') >= 0 || u.indexOf('supabase.co') >= 0 ||
+          u.indexOf('vendor/supabase') >= 0 || u.indexOf('vendor/xlsx') >= 0) {
+        req.abort().catch(() => {});
+        return;
+      }
+      req.continue().catch(() => {});
+    });
     await p.evaluateOnNewDocument(stubFetch);
-    await p.evaluateOnNewDocument(stubSupabase);
+    if (!(opts && opts.noSupabaseStub)) await p.evaluateOnNewDocument(stubSupabase);
     await p.evaluateOnNewDocument(() => { window.confirm = () => true; });
-    if (cfg) await p.evaluateOnNewDocument((c) => { Object.assign(window.__CFG__, c); }, cfg);
+    // XLSX 桩：只验证"导出了哪几张表"，不真生成文件
+    await p.evaluateOnNewDocument(() => {
+      window.__SHEETS__ = [];
+      window.XLSX = {
+        utils: {
+          json_to_sheet: () => ({}),
+          book_new: () => ({}),
+          book_append_sheet: (wb, ws, name) => { window.__SHEETS__.push(name); }
+        },
+        writeFile: () => { window.__WROTE__ = true; }
+      };
+    });
     await p.setViewport({ width: 1280, height: 900 });
     return p;
   };
-  const U = f => 'http://127.0.0.1:' + PORT + '/' + f;
+  const closePage = async (p) => {
+    const ctx = ctxOf.get(p);
+    try { await p.close(); } catch (e) {}
+    if (ctx) { try { await ctx.close(); } catch (e) {} }
+    ctxOf.delete(p);
+  };
+  const U = (f, cfg) => 'http://127.0.0.1:' + PORT + '/' + f +
+    (cfg ? ('?cfg=' + encodeURIComponent(JSON.stringify(cfg))) : '');
 
   /* ============ A. 不填姓名 → 拦截 ============ */
   let page = await newPage();
@@ -194,11 +240,11 @@ const fillAllCorrect = () => {
   }));
   check('C 失败时有错误提示', C.note.indexOf('失败') >= 0 && C.cls.indexOf('err') >= 0, C.note.slice(0, 70));
   check('C 失败后按钮可重试', C.disabled === false && C.btn.indexOf('交卷') >= 0, C.btn + '/' + C.disabled);
-  await page.close();
+  await closePage(page);
 
   /* ============ D. 成绩页：未登录 ============ */
-  page = await newPage({ loggedIn: false });
-  await page.goto(U('quiz-results.html'), { waitUntil: 'domcontentloaded' });
+  page = await newPage();
+  await page.goto(U('quiz-results.html', { loggedIn: false }), { waitUntil: 'domcontentloaded' });
   await sleep(800);
   const D = await page.evaluate(() => ({
     maskShown: document.getElementById('mask').classList.contains('show'),
@@ -208,13 +254,14 @@ const fillAllCorrect = () => {
   check('D 未登录显示遮罩', D.maskShown, JSON.stringify(D));
   check('D 提示先登录', D.title.indexOf('登录') >= 0, D.title);
   check('D 主区隐藏', D.mainHidden);
-  await page.close();
+  await closePage(page);
 
   /* ============ E. 成绩页：普通客服 ============ */
-  page = await newPage({ role: 'cs' });
-  await page.goto(U('quiz-results.html'), { waitUntil: 'domcontentloaded' });
+  page = await newPage();
+  await page.goto(U('quiz-results.html', { role: 'cs' }), { waitUntil: 'domcontentloaded' });
   await sleep(800);
   const E = await page.evaluate(() => ({
+    search: decodeURIComponent(location.search || '').slice(0, 30),
     maskShown: document.getElementById('mask').classList.contains('show'),
     title: document.getElementById('maskTitle').textContent,
     mainHidden: document.getElementById('main').style.display === 'none',
@@ -222,11 +269,11 @@ const fillAllCorrect = () => {
   }));
   check('E 非管理员显示遮罩', E.maskShown && E.mainHidden, JSON.stringify(E));
   check('E 提示仅主管可见', E.title.indexOf('主管') >= 0, E.title);
-  await page.close();
+  await closePage(page);
 
   /* ============ F. 成绩页：管理员 + 有数据 ============ */
-  page = await newPage({ role: 'admin', rows: ROWS });
-  await page.goto(U('quiz-results.html'), { waitUntil: 'domcontentloaded' });
+  page = await newPage();
+  await page.goto(U('quiz-results.html', { role: 'admin', seed: 1 }), { waitUntil: 'domcontentloaded' });
   await sleep(1000);
   const F = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('.card')].map(c => c.querySelector('.k').textContent + '=' + c.querySelector('.v').textContent.replace(/\s+/g, ''));
@@ -247,6 +294,7 @@ const fillAllCorrect = () => {
   check('F 未合格 1 人', F.cards.some(c => c.indexOf('未合格=1人') >= 0), F.cards.join(' | '));
   check('F 列表按人汇总 2 行', F.recs.length === 2, 'rows=' + F.recs.length);
   check('F 张三最新分 90 且标合格', F.recs.some(r => r.indexOf('张三') >= 0 && r.indexOf('90') >= 0 && r.indexOf('合格') >= 0), F.recs.join(' || ').slice(0, 170));
+  check('F 列表行显示错题数', F.recs.length > 0 && F.recs.every(r => /错\s*\d+\s*题/.test(r)), F.recs.join(' || ').slice(0, 150));
   check('F 导出与名单按钮存在', F.hasExport && F.hasRoster);
   check('F 今天视图不显示历史提交次数', F.recs.every(r => r.indexOf('2 次') < 0), F.recs.join(' || ').slice(0, 120));
 
@@ -274,14 +322,38 @@ const fillAllCorrect = () => {
   const F3 = await page.evaluate(() => ({
     shown: document.getElementById('modal').classList.contains('show'),
     title: document.getElementById('mTitle').textContent,
-    rows: document.querySelectorAll('#mBody table tbody tr').length,
+    cards: document.querySelectorAll('#mBody .qd').length,
+    wrongCards: document.querySelectorAll('#mBody .qd.wrong').length,
+    hasToggle: !!document.getElementById('qdWrong'),
     body: document.getElementById('mBody').textContent
   }));
-  check('F 详情弹窗打开', F3.shown, JSON.stringify(F3).slice(0, 120));
-  check('F 详情显示 35 行作答', F3.rows === 35, 'rows=' + F3.rows);
-  check('F 详情含题目文本（题干已注入）', F3.body.indexOf('系列') >= 0 || F3.body.indexOf('花色') >= 0, F3.body.slice(0, 100));
+  check('F 答卷明细弹窗打开', F3.shown, JSON.stringify(F3).slice(0, 120));
+  check('F 明细 35 题全显示', F3.cards === 35, 'cards=' + F3.cards);
+  check('F 明细标注正确答案', F3.body.indexOf('正确答案') >= 0, F3.body.slice(0, 80));
+  check('F 明细含题干（题库已注入）', F3.body.indexOf('系列') >= 0 || F3.body.indexOf('花色') >= 0, F3.body.slice(0, 100));
+  check('F 明细含解析', F3.body.indexOf('💡') >= 0, F3.body.slice(0, 100));
+  check('F 错题被标红', F3.wrongCards === 8, 'wrong=' + F3.wrongCards);
+  check('F 有「只看错题」开关', F3.hasToggle);
+
+  // 只看错题
+  await page.evaluate(() => {
+    const c = document.getElementById('qdWrong'); c.checked = true; c.dispatchEvent(new Event('change'));
+  });
+  await sleep(300);
+  const F3b = await page.evaluate(() => {
+    const nodes = [...document.querySelectorAll('#mBody .qd')];
+    return { cards: nodes.length, allWrong: nodes.every(e => e.classList.contains('wrong')) };
+  });
+  check('F 只看错题后只剩错题', F3b.cards === 8 && F3b.allWrong, 'cards=' + F3b.cards + ' allWrong=' + F3b.allWrong);
   await page.evaluate(() => document.getElementById('mClose').click());
   await sleep(250);
+
+  // 导出 Excel：应为 3 张表
+  await page.evaluate(() => document.getElementById('btnExport').click());
+  await sleep(700);
+  const F6 = await page.evaluate(() => ({ sheets: window.__SHEETS__, wrote: !!window.__WROTE__, toast: document.getElementById('toast').textContent }));
+  check('F 导出含 3 张表', F6.sheets.join(',') === '成绩汇总,逐题明细,错题排行', JSON.stringify(F6.sheets));
+  check('F 导出已落盘', F6.wrote, 'wrote=' + F6.wrote);
 
   // 搜索过滤
   await page.evaluate(() => {
@@ -301,7 +373,20 @@ const fillAllCorrect = () => {
   await sleep(400);
   const F5 = await page.evaluate(() => ({ rows: document.querySelectorAll('#list .rec').length, toast: document.getElementById('toast').textContent }));
   check('F 删除一条后列表减少', F5.rows === F5a - 1, F5a + ' → ' + F5.rows + ' / ' + F5.toast);
-  await page.close();
+  await closePage(page);
+
+  /* ============ G. 成绩页：supabase 库没加载成功 → 给友好提示而不是白屏 ============ */
+  page = await newPage({ noSupabaseStub: true });
+  await page.goto(U('quiz-results.html'), { waitUntil: 'domcontentloaded' });
+  await sleep(800);
+  const G = await page.evaluate(() => ({
+    shown: document.getElementById('mask').classList.contains('show'),
+    title: document.getElementById('maskTitle').textContent,
+    desc: document.getElementById('maskDesc').textContent
+  }));
+  check('G 库缺失时显示友好提示', G.shown && G.title.indexOf('组件') >= 0, JSON.stringify(G));
+  check('G 提示刷新即可', G.desc.indexOf('刷新') >= 0, G.desc);
+  await closePage(page);
 
   check('全程无页面错误', errs.length === 0, errs.join(' ; '));
   console.log('RESULT: pass=' + pass + ' fail=' + fail);

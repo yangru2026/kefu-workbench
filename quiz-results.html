@@ -118,6 +118,29 @@
          transition:all .25s;z-index:99;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
   .link{color:var(--primary-dark);text-decoration:underline;cursor:pointer;font-weight:600;}
+  /* ===== 逐题明细 ===== */
+  .qd-toolbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:2px 0 12px;font-size:13px;}
+  .qd-toolbar label{display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:700;color:var(--muted);user-select:none;}
+  .qd-toolbar input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px;cursor:pointer;}
+  .qd-toolbar .n{color:var(--muted);font-size:12.5px;}
+  .qd{background:#fff;border:1px solid var(--border);border-left:4px solid var(--primary);
+      border-radius:10px;padding:10px 14px;margin-bottom:9px;}
+  .qd.wrong{border-left-color:var(--danger);background:rgba(224,82,82,.04);}
+  .qd.selfkind{border-left-color:#cbd5e1;background:#fbfcfd;}
+  .qd-h{display:flex;gap:8px;align-items:flex-start;font-size:14px;font-weight:700;line-height:1.55;}
+  .qd-h .num{color:var(--primary-dark);flex-shrink:0;}
+  .qd-h .pt{margin-left:auto;flex-shrink:0;font-size:12px;font-weight:800;padding:2px 9px;border-radius:11px;
+            background:var(--primary-light);color:var(--primary-dark);white-space:nowrap;}
+  .qd.wrong .qd-h .pt{background:rgba(224,82,82,.12);color:var(--danger);}
+  .qd.selfkind .qd-h .pt{background:#f1f5f9;color:var(--muted);}
+  .qd-sec{font-size:11.5px;color:var(--muted);margin:3px 0 0 20px;}
+  .qd-line{font-size:13px;margin:5px 0 0 20px;line-height:1.6;}
+  .qd-line .k{display:inline-block;min-width:60px;color:var(--muted);font-weight:600;font-size:12.5px;}
+  .qd-line .right{color:var(--primary-dark);font-weight:700;}
+  .qd-line .mine{color:#334155;}
+  .qd-line .mine.bad{color:var(--danger);font-weight:700;}
+  .qd-exp{font-size:12.5px;color:var(--muted);margin:7px 0 0 20px;padding-top:6px;border-top:1px dashed var(--border);line-height:1.6;}
+  .qd-empty{text-align:center;color:var(--muted);font-size:13.5px;padding:26px 0;}
   @media (max-width:640px){
     .wrap{padding:12px 12px 60px;}
     .rec-score{font-size:19px;min-width:74px;}
@@ -184,17 +207,19 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="vendor/supabase.min.js?v=2"></script>
 <script>
 /* ==================== 配置 ==================== */
 const SUPABASE_URL = 'https://ienmejlxukhrxjjxvfqf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imllbm1lamx4dWtocnhqanh2ZnFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMTgyMjgsImV4cCI6MjEwMDc5NDIyOH0.Z6n6eMSgTVSFeXg1y8Inzh5LQenSgonNWE2plZM29co';
 const QUIZ_FILE = 'quiz.html';       // 试卷页（详情里可跳转对照题目）
 const PASS_LINE = 80;                // 合格线
-const BANK = {"1":{"stem":"「女高系列」这个系列，卖货时应该按哪个价格档核对？","sec":"一、单选题","points":2},"2":{"stem":"「随便花系列」这个系列，卖货时应该按哪个价格档核对？","sec":"一、单选题","points":2},"3":{"stem":"「少女漫半年抛」这个系列，卖货时应该按哪个价格档核对？","sec":"一、单选题","points":2},"4":{"stem":"「初音」这个系列，卖货时应该按哪个价格档核对？","sec":"一、单选题","points":2},"5":{"stem":"花色「闪闪自信」属于哪个系列？","sec":"一、单选题","points":2},"6":{"stem":"花色「暧昧戏法」属于哪个系列？","sec":"一、单选题","points":2},"7":{"stem":"花色「D在逃公主pro」属于哪个系列？","sec":"一、单选题","points":2},"8":{"stem":"花色「黄油流心」属于哪个系列？","sec":"一、单选题","points":2},"9":{"stem":"下面哪一款花色的价格档是「半年抛-29.9元/副」？","sec":"一、单选题","points":2},"10":{"stem":"下面哪一款花色的价格档是「半年抛-49.9元/副」？","sec":"一、单选题","points":2},"11":{"stem":"下面哪一款花色的价格档是「半年抛-59.9元/副」？","sec":"一、单选题","points":2},"12":{"stem":"下面哪一款花色的价格档是「少女漫日抛-39.9/盒」？","sec":"一、单选题","points":2},"13":{"stem":"「D在逃公主pro」和「D在逃公主pro6片装」的区别是什么？","sec":"一、单选题","points":2},"14":{"stem":"弥生花色的计价单位是怎么规定的？","sec":"一、单选题","points":2},"15":{"stem":"「少女漫」和「少女漫-日抛」的区别是什么？","sec":"一、单选题","points":2},"16":{"stem":"「初音-日抛」系列按什么价格档核对？","sec":"一、单选题","points":2},"17":{"stem":"以下哪些花色属于「女高系列」？（多选）","sec":"二、多选题","points":3},"18":{"stem":"以下哪些花色属于「随便花系列」？（多选）","sec":"二、多选题","points":3},"19":{"stem":"以下哪些花色属于「少女漫半年抛」？（多选）","sec":"二、多选题","points":3},"20":{"stem":"下面哪些系列是「日抛」系列（按「盒」计价）？（多选）","sec":"二、多选题","points":3},"21":{"stem":"关于「初音」系列，下面说法哪些是对的？（多选）","sec":"二、多选题","points":3},"22":{"stem":"「人鱼系列日抛」里同时出现过下面哪些价格档？（多选，注意同系列也可能不同价）","sec":"二、多选题","points":3},"23":{"stem":"「少女漫」半年抛和日抛价格一样，都可以按 39.9 元备注。","sec":"三、判断题","points":2},"24":{"stem":"日抛按「盒」计价，半年抛按「副」计价，写备注前先确认单位。","sec":"三、判断题","points":2},"25":{"stem":"初音半年抛 69 元/副，但为了成单可以按普通半年抛 49.9 元/副备注。","sec":"三、判断题","points":2},"26":{"stem":"「女高系列」都是半年抛，价格档是 29.9 元/副。","sec":"三、判断题","points":2},"27":{"stem":"「随便花系列」和「花厨小熊系列」都是 49.9 元/副的半年抛。","sec":"三、判断题","points":2},"28":{"stem":"只要系列对得上，价格档写错一点没关系，反正客服会改。","sec":"三、判断题","points":2},"29":{"stem":"把左边花色和右边正确的价格档连起来（把正确答案的字母填在括号里）。","sec":"四、配对题","points":10},"30":{"stem":"订单金额：59.9 元 / 1 副　　备注写的是：少女漫半年抛 · 39.9/盒　　请指出错在哪、正确应怎么写。","sec":"五、纠错题","points":4},"31":{"stem":"订单金额：99.8 元 / 2 副　　备注写的是：初音半年抛 · 按普通半年抛 49.9 备注（2 副）　　请指出错在哪、正确应怎么写。","sec":"五、纠错题","points":4},"32":{"stem":"订单金额：44.9 元 / 1 盒　　备注写的是：人鱼系列日抛 · 39.9/盒　　请指出该不该这样写。","sec":"五、纠错题","points":4},"33":{"stem":"订单金额：49.9 元 / 1 副　　备注写的是：女焉系列 …（系统里查不到）　　新客服说「女高系列写错了，帮我改一下」。请写出正确的系列名与价格档写法。","sec":"五、纠错题","points":4},"34":{"stem":"订单金额：39.9 元 / 1 盒　　备注写的是：花厨小熊系列 · 半年抛　　请指出错在哪、正确应怎么写。","sec":"五、纠错题","points":4},"35":{"stem":"写出你在核对「花色备注」时的 3 个防错动作（至少 3 条）。","sec":"六、简答题","points":8}};          // {题号: {stem, sec, points}}
+const BANK = {"1":{"stem":"「女高系列」这个系列，卖货时应该按哪个价格档核对？","sec":"一、单选题","points":2,"type":"single","ans":"A. 半年抛-29.9元/副","explain":"女高系列 全系列都是「半年抛-29.9元/副」。"},"2":{"stem":"「随便花系列」这个系列，卖货时应该按哪个价格档核对？","sec":"一、单选题","points":2,"type":"single","ans":"B. 半年抛-49.9元/副","explain":"随便花系列 全系列都是「半年抛-49.9元/副」。"},"3":{"stem":"「少女漫半年抛」这个系列，卖货时应该按哪个价格档核对？","sec":"一、单选题","points":2,"type":"single","ans":"A. 半年抛-59.9元/副","explain":"少女漫半年抛 全系列都是「半年抛-59.9元/副」。"},"4":{"stem":"「初音」这个系列，卖货时应该按哪个价格档核对？","sec":"一、单选题","points":2,"type":"single","ans":"D. 初音半年抛-69元/副","explain":"初音 全系列都是「初音半年抛-69元/副」。"},"5":{"stem":"花色「闪闪自信」属于哪个系列？","sec":"一、单选题","points":2,"type":"single","ans":"D. 女高系列","explain":"闪闪自信 属于「女高系列」（半年抛，半年抛-29.9元/副）。"},"6":{"stem":"花色「暧昧戏法」属于哪个系列？","sec":"一、单选题","points":2,"type":"single","ans":"C. 随便花系列","explain":"暧昧戏法 属于「随便花系列」（半年抛，半年抛-49.9元/副）。"},"7":{"stem":"花色「D在逃公主pro」属于哪个系列？","sec":"一、单选题","points":2,"type":"single","ans":"C. 少女漫半年抛","explain":"D在逃公主pro 属于「少女漫半年抛」（半年抛，半年抛-59.9元/副）。"},"8":{"stem":"花色「黄油流心」属于哪个系列？","sec":"一、单选题","points":2,"type":"single","ans":"D. 花厨小熊系列","explain":"黄油流心 属于「花厨小熊系列」（半年抛，半年抛-49.9元/副）。"},"9":{"stem":"下面哪一款花色的价格档是「半年抛-29.9元/副」？","sec":"一、单选题","points":2,"type":"single","ans":"D. 栗栗在逃","explain":"栗栗在逃 属「半年抛-29.9元/副」；其余三款分别是：小黑环pro（少女漫日抛-39.9/盒）、初生玫瑰（半年抛-49.9元/副）、柏林热吻（半年抛-49.9元/副）。"},"10":{"stem":"下面哪一款花色的价格档是「半年抛-49.9元/副」？","sec":"一、单选题","points":2,"type":"single","ans":"D. 夏吻野火","explain":"夏吻野火 属「半年抛-49.9元/副」；其余三款分别是：甜心主唱（初音半年抛-69元/副）、D爱的无限曲6片装（初音日抛-49.9/盒）、D在逃公主pro6片装（少女漫日抛-39.9/盒）。"},"11":{"stem":"下面哪一款花色的价格档是「半年抛-59.9元/副」？","sec":"一、单选题","points":2,"type":"single","ans":"B. D在逃公主pro","explain":"D在逃公主pro 属「半年抛-59.9元/副」；其余三款分别是：一夜鲍富（少女漫日抛-39.9/盒）、黄油流心（半年抛-49.9元/副）、桃气闪闪（半年抛-29.9元/副）。"},"12":{"stem":"下面哪一款花色的价格档是「少女漫日抛-39.9/盒」？","sec":"一、单选题","points":2,"type":"single","ans":"D. D在逃公主pro6片装","explain":"D在逃公主pro6片装 属「少女漫日抛-39.9/盒」；其余三款分别是：超大宝宝棕（半年抛-59.9元/副）、黑礁芝麻（超薄0.06mm）（人鱼超薄日抛-44.9/盒）、无人区玫瑰（半年抛-59.9元/副）。"},"13":{"stem":"「D在逃公主pro」和「D在逃公主pro6片装」的区别是什么？","sec":"一、单选题","points":2,"type":"single","ans":"B. 「D在逃公主pro」是半年抛（半年抛-59.9元/副），「D在逃公主pro6片装」是日抛（少女漫日抛-39.9/盒）","explain":"D在逃公主pro＝半年抛（半年抛-59.9元/副）；D在逃公主pro6片装＝日抛（少女漫日抛-39.9/盒），同名不同规格，价格与单位都不同，最易发错。"},"14":{"stem":"弥生花色的计价单位是怎么规定的？","sec":"一、单选题","points":2,"type":"single","ans":"D. 日抛按「盒」、半年抛按「副」","explain":"日抛按「盒」，半年抛按「副」——单位写错会导致价格口径错误。"},"15":{"stem":"「少女漫」和「少女漫-日抛」的区别是什么？","sec":"一、单选题","points":2,"type":"single","ans":"D. 「少女漫」是半年抛（半年抛-59.9元/副），「少女漫-日抛」是日抛（少女漫日抛-39.9/盒）","explain":"半年抛「少女漫」＝半年抛-59.9元/副；日抛「少女漫-日抛」＝少女漫日抛-39.9/盒。同名系列不同抛型，价格与单位都不同。"},"16":{"stem":"「初音-日抛」系列按什么价格档核对？","sec":"一、单选题","points":2,"type":"single","ans":"C. 初音日抛-49.9/盒","explain":"初音日抛 初音日抛-49.9/盒，属高价特殊品，禁止按普通日抛（39.9 / 44.9）备注。"},"17":{"stem":"以下哪些花色属于「女高系列」？（多选）","sec":"二、多选题","points":3,"type":"multi","ans":"A. 千禧莓莓　C. 闪闪自信","explain":"女高系列 的正确花色：闪闪自信、千禧莓莓；另外两个属于其他系列。"},"18":{"stem":"以下哪些花色属于「随便花系列」？（多选）","sec":"二、多选题","points":3,"type":"multi","ans":"C. 暧昧戏法　D. 水星记","explain":"随便花系列 的正确花色：暧昧戏法、水星记；另外两个属于其他系列。"},"19":{"stem":"以下哪些花色属于「少女漫半年抛」？（多选）","sec":"二、多选题","points":3,"type":"multi","ans":"C. D在逃公主pro　D. 超大椰椰灰","explain":"少女漫半年抛 的正确花色：D在逃公主pro、超大椰椰灰；另外两个属于其他系列。"},"20":{"stem":"下面哪些系列是「日抛」系列（按「盒」计价）？（多选）","sec":"二、多选题","points":3,"type":"multi","ans":"B. 少女漫-日抛　D. 初音-日抛　E. 花厨小熊-日抛","explain":"日抛系列：少女漫-日抛、花厨小熊-日抛、初音-日抛、人鱼系列日抛（均按「盒」计价）；女高系列、随便花系列是半年抛（按「副」计价）。"},"21":{"stem":"关于「初音」系列，下面说法哪些是对的？（多选）","sec":"二、多选题","points":3,"type":"multi","ans":"B. 初音属于高价特殊品，禁止按普通款备注　C. 初音日抛按 49.9 元/盒　E. 初音半年抛按 69 元/副","explain":"初音日抛 49.9 元/盒、半年抛 69 元/副，属高价特殊品，禁止按普通款备注；普通半年抛是 29.9 / 49.9 / 59.9 元/副，日抛 39.9 / 44.9 元/盒，都与初音不同价。"},"22":{"stem":"「人鱼系列日抛」里同时出现过下面哪些价格档？（多选，注意同系列也可能不同价）","sec":"二、多选题","points":3,"type":"multi","ans":"C. 少女漫日抛-39.9/盒　D. 人鱼超薄日抛-44.9/盒","explain":"人鱼系列日抛大多数是「人鱼超薄日抛-44.9/盒」，另有几款「D…6片装」是「少女漫日抛-39.9/盒」——同一个系列两个档，最容易发错，必须逐款核对。"},"23":{"stem":"「少女漫」半年抛和日抛价格一样，都可以按 39.9 元备注。","sec":"三、判断题","points":2,"type":"judge","ans":"✘ 错误","explain":"❌ 少女漫半年抛是 59.9 元/副，日抛才是 39.9 元/盒。同名系列不同抛型价格不同，且单位不同（副 / 盒）。"},"24":{"stem":"日抛按「盒」计价，半年抛按「副」计价，写备注前先确认单位。","sec":"三、判断题","points":2,"type":"judge","ans":"✔ 正确","explain":"✅ 日抛=盒、半年抛=副。单位写错会造成价格口径错误。"},"25":{"stem":"初音半年抛 69 元/副，但为了成单可以按普通半年抛 49.9 元/副备注。","sec":"三、判断题","points":2,"type":"judge","ans":"✘ 错误","explain":"❌ 初音属高价特殊品，禁止按普通款备注，也不能自行降价凑单。"},"26":{"stem":"「女高系列」都是半年抛，价格档是 29.9 元/副。","sec":"三、判断题","points":2,"type":"judge","ans":"✔ 正确","explain":"✅ 女高系列（含「女高」）均为半年抛、29.9 元/副。"},"27":{"stem":"「随便花系列」和「花厨小熊系列」都是 49.9 元/副的半年抛。","sec":"三、判断题","points":2,"type":"judge","ans":"✔ 正确","explain":"✅ 两个系列都是半年抛-49.9元/副（happy系列 也是 49.9）。"},"28":{"stem":"只要系列对得上，价格档写错一点没关系，反正客服会改。","sec":"三、判断题","points":2,"type":"judge","ans":"✘ 错误","explain":"❌ 价格档写错=报价错，直接导致亏单或客诉，必须先核对价格档再发备注。"},"29":{"stem":"把左边花色和右边正确的价格档连起来（把正确答案的字母填在括号里）。","sec":"四、配对题","points":10,"type":"match","ans":"栗栗在逃→B　夏吻野火→C　D在逃公主pro→D　D在逃公主pro6片装→A　乌托邦幻想→E","explain":"栗栗在逃 → 半年抛-29.9元/副；夏吻野火 → 半年抛-49.9元/副；D在逃公主pro → 半年抛-59.9元/副；D在逃公主pro6片装 → 少女漫日抛-39.9/盒；乌托邦幻想 → 初音半年抛-69元/副"},"30":{"stem":"订单金额：59.9 元 / 1 副　　备注写的是：少女漫半年抛 · 39.9/盒　　请指出错在哪、正确应怎么写。","sec":"五、纠错题","points":4,"type":"text","ans":"价格与单位都错：59.9 元是半年抛的「副」价，39.9 是「少女漫日抛」的盒价。正确备注：少女漫半年抛 · 半年抛-59.9元/副（按副）。","explain":"价格与单位都错：59.9 元是半年抛的「副」价，39.9 是「少女漫日抛」的盒价。正确备注：少女漫半年抛 · 半年抛-59.9元/副（按副）。"},"31":{"stem":"订单金额：99.8 元 / 2 副　　备注写的是：初音半年抛 · 按普通半年抛 49.9 备注（2 副）　　请指出错在哪、正确应怎么写。","sec":"五、纠错题","points":4,"type":"text","ans":"错在把高价特殊品按普通款备注。初音半年抛是 69 元/副（2 副 138 元；99.8 元是普通半年抛 49.9×2）。正确备注：初音半年抛-69元/副，且必须核对初音联名机制。","explain":"错在把高价特殊品按普通款备注。初音半年抛是 69 元/副（2 副 138 元；99.8 元是普通半年抛 49.9×2）。正确备注：初音半年抛-69元/副，且必须核对初音联名机制。"},"32":{"stem":"订单金额：44.9 元 / 1 盒　　备注写的是：人鱼系列日抛 · 39.9/盒　　请指出该不该这样写。","sec":"五、纠错题","points":4,"type":"text","ans":"不一定对：人鱼系列日抛里「D…6片装」等款才是 39.9/盒，超薄款（如 摆烂海星、微醺海浪、企鹅妮妮）是 44.9/盒。44.9 元的订单应对应「人鱼超薄日抛-44.9/盒」，必须逐款核对。","explain":"不一定对：人鱼系列日抛里「D…6片装」等款才是 39.9/盒，超薄款（如 摆烂海星、微醺海浪、企鹅妮妮）是 44.9/盒。44.9 元的订单应对应「人鱼超薄日抛-44.9/盒」，必须逐款核对。"},"33":{"stem":"订单金额：49.9 元 / 1 副　　备注写的是：女焉系列 …（系统里查不到）　　新客服说「女高系列写错了，帮我改一下」。请写出正确的系列名与价格档写法。","sec":"五、纠错题","points":4,"type":"text","ans":"弥生没有「女焉系列」，近似的是「女高系列」（半年抛-29.9元/副）与「少女漫半年抛」（59.9 元/副）。49.9 元/副对应的是「随便花系列 / 花厨小熊系列 / happy系列」，要先确认花色再写系列。","explain":"弥生没有「女焉系列」，近似的是「女高系列」（半年抛-29.9元/副）与「少女漫半年抛」（59.9 元/副）。49.9 元/副对应的是「随便花系列 / 花厨小熊系列 / happy系列」，要先确认花色再写系列。"},"34":{"stem":"订单金额：39.9 元 / 1 盒　　备注写的是：花厨小熊系列 · 半年抛　　请指出错在哪、正确应怎么写。","sec":"五、纠错题","points":4,"type":"text","ans":"系列与抛型都写错：39.9 元/盒是日抛，对应「花厨小熊-日抛」（少女漫日抛-39.9/盒）；「花厨小熊系列」是半年抛（49.9 元/副）。正确备注：花厨小熊-日抛 · 少女漫日抛-39.9/盒。","explain":"系列与抛型都写错：39.9 元/盒是日抛，对应「花厨小熊-日抛」（少女漫日抛-39.9/盒）；「花厨小熊系列」是半年抛（49.9 元/副）。正确备注：花厨小熊-日抛 · 少女漫日抛-39.9/盒。"},"35":{"stem":"写出你在核对「花色备注」时的 3 个防错动作（至少 3 条）。","sec":"六、简答题","points":8,"type":"text","ans":"参考答案：① 先看订单金额，反推价格档，再挑花色（不要先挑花色再凑价格）；② 确认抛型：日抛按盒、半年抛按副，单位不能写错；③ 识别高价特殊品（初音 / 少女漫定轴）禁止按普通款备注；④ 同名系列要分抛型（少女漫日抛 39.9/盒 ≠ 少女漫半年抛 59.9 元/副）；⑤ 同系列可能有两个档（人鱼系列日抛 44.9 与 39.9），必须逐款核对；⑥ 拿不准就查「弥生价」页按系列/价格档确认。","explain":""}};          // {题号: {stem, sec, type, points, ans, explain}}
 
 const $ = id => document.getElementById(id);
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let sb = null;
+try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); }
+catch (e) { console.error('supabase 库未加载', e); }
 let rows = [];
 let isAdmin = false;
 let view = 'person';
@@ -217,6 +242,10 @@ function scoreCls(v){
   if(v >= 60) return 'mid';
   return 'bad';
 }
+function wrongCount(r){
+  const d = Array.isArray(r.detail) ? r.detail : [];
+  return d.filter(x => x.got < x.full).length;
+}
 let toastTimer;
 function toast(msg){
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
@@ -226,6 +255,14 @@ function toast(msg){
 /* ==================== 初始化：登录 + 权限 ==================== */
 (async function init(){
   try{
+    if(!sb){
+      $('roleBadge').className = 'badge lock'; $('roleBadge').textContent = '⚠️ 组件未加载';
+      $('maskIcon').textContent = '⚠️';
+      $('maskTitle').textContent = '页面组件没加载成功';
+      $('maskDesc').innerHTML = '一般是网络抖动导致的。请刷新一下页面重试（电脑按 <b>Ctrl + F5</b>，手机下拉刷新）。';
+      $('mask').classList.add('show');
+      return;
+    }
     const { data:{ session } } = await sb.auth.getSession();
     const user = session && session.user;
     if(!user){
@@ -362,6 +399,7 @@ function render(){
         (p.count > 1 ? '<span class="rec-tag times">共提交 ' + p.count + ' 次</span>' : '') +
         '<span class="rec-meta">交卷 <b>' + fmtTime(r.created_at) + '</b><br>' +
           '用时 ' + fmtDur(r.duration_sec) +
+          ' · 错 <b>' + wrongCount(r) + '</b> 题' +
           (r.auto_score != null ? ' · 客观 <b>' + r.auto_score + '/' + (r.auto_total||0) + '</b>' : '') +
           (r.self_total ? ' · 主观自评 <b>' + (r.self_score||0) + '/' + r.self_total + '</b>' : '') +
           (p.count > 1 ? ' · 历史最高 <b>' + p.best + '</b>' : '') +
@@ -378,7 +416,8 @@ function render(){
         '<span class="rec-name">' + esc(r.examinee) + '</span>' +
         '<span class="rec-score ' + cls + '">' + r.score + '<small> / ' + (r.total||100) + '</small></span>' +
         '<span class="rec-tag ' + (pass ? 'pass' : 'fail') + '">' + (pass ? '合格' : '未合格') + '</span>' +
-        '<span class="rec-meta">交卷 <b>' + fmtTime(r.created_at) + '</b> · 用时 ' + fmtDur(r.duration_sec) + '</span>' +
+        '<span class="rec-meta">交卷 <b>' + fmtTime(r.created_at) + '</b> · 用时 ' + fmtDur(r.duration_sec) +
+          ' · 错 <b>' + wrongCount(r) + '</b> 题</span>' +
         '<button class="rec-btn" data-act="detail" data-id="' + r.id + '">📖 看答卷</button>' +
         '<button class="rec-btn del" data-act="del" data-id="' + r.id + '">🗑</button>' +
       '</div>';
@@ -389,43 +428,67 @@ function card(k, v, warn){
   return '<div class="card' + (warn ? ' warn' : '') + '"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>';
 }
 
-/* ==================== 答卷明细 ==================== */
+/* ==================== 答卷明细（含正确答案与解析） ==================== */
+let curDetail = null;
+let onlyWrong = false;
+
 function openDetail(id){
   const r = rows.find(x => x.id === id);
   if(!r) return;
+  curDetail = r;
+  onlyWrong = false;
+  $('mTitle').textContent = r.examinee + ' · ' + r.score + '/' + (r.total||100) + ' 分';
+  $('modal').classList.add('show');
+  renderDetail();
+}
+
+function renderDetail(){
+  const r = curDetail; if(!r) return;
   const d = Array.isArray(r.detail) ? r.detail : [];
   const wrong = d.filter(x => x.got < x.full);
-  $('mTitle').textContent = r.examinee + ' · ' + r.score + '/' + (r.total||100) + ' 分';
   let html = '<div class="kv">' +
+    '<span>考生 <b>' + esc(r.examinee) + '</b></span>' +
     '<span>交卷时间 <b>' + fmtTime(r.created_at) + '</b></span>' +
     '<span>用时 <b>' + fmtDur(r.duration_sec) + '</b></span>' +
     (r.auto_score != null ? '<span>客观题 <b>' + r.auto_score + '/' + (r.auto_total||0) + '</b></span>' : '') +
     (r.self_total ? '<span>主观题自评 <b>' + (r.self_score||0) + '/' + r.self_total + '</b></span>' : '') +
-    '<span>错/未得满分 <b>' + wrong.length + ' 题</b></span>' +
-    '</div>';
+    '<span>错 / 未满分 <b>' + wrong.length + ' 题</b></span>' +
+  '</div>';
+
   if(!d.length){
-    html += '<p style="color:var(--muted);font-size:13px;">这条记录没有逐题明细（可能是早期版本提交的）。</p>';
+    html += '<div class="qd-empty">这条记录没有逐题明细（可能是早期版本提交的）。</div>';
   }else{
-    html += '<table><thead><tr><th>题</th><th>题目</th><th>考生作答</th><th style="text-align:right;">得分</th></tr></thead><tbody>';
-    d.forEach(x => {
+    html += '<div class="qd-toolbar">' +
+      '<label><input type="checkbox" id="qdWrong"' + (onlyWrong ? ' checked' : '') + '>只看错题 / 未满分（' + wrong.length + ' 题）</label>' +
+      '<span class="n">共 ' + d.length + ' 题</span>' +
+    '</div>';
+    const list = onlyWrong ? wrong : d;
+    if(!list.length){
+      html += '<div class="qd-empty">🎉 这份卷子全部答对，没有错题。</div>';
+    }
+    list.forEach(x => {
       const b = BANK[x.no] || {};
-      const sc = x.got >= x.full ? 'ok' : 'no0';
-      html += '<tr' + (x.kind === 'self' ? ' class="self"' : '') + '>' +
-        '<td class="no">' + x.no + '</td>' +
-        '<td>' + esc(String(b.stem || '').slice(0, 46)) + (String(b.stem||'').length > 46 ? '…' : '') +
-          '<div style="font-size:11px;color:var(--muted);margin-top:2px;">' + esc(b.sec || x.sec || '') +
-          (x.kind === 'self' ? ' · 自评' : '') + '</div></td>' +
-        '<td class="ans">' + esc(x.ans || '未作答') + '</td>' +
-        '<td class="sc ' + sc + '">' + x.got + '/' + x.full + '</td>' +
-      '</tr>';
+      const ok = x.got >= x.full;
+      const isSelf = x.kind === 'self';
+      html += '<div class="qd' + (ok ? '' : ' wrong') + (isSelf ? ' selfkind' : '') + '">' +
+        '<div class="qd-h"><span class="num">' + x.no + '.</span><span>' + esc(b.stem || ('第 ' + x.no + ' 题')) + '</span>' +
+          '<span class="pt">' + (isSelf ? '自评 ' : '') + x.got + '/' + x.full + '</span></div>' +
+        '<div class="qd-sec">' + esc(b.sec || x.sec || '') + '</div>' +
+        '<div class="qd-line"><span class="k">正确答案</span><span class="right">' +
+          esc(b.ans || '—').replace(/\n/g, '<br>') + '</span></div>' +
+        '<div class="qd-line"><span class="k">她的' + (isSelf ? '作答' : '选择') + '</span><span class="mine' + (ok ? '' : ' bad') + '">' +
+          esc(x.ans || '未作答') + '</span></div>' +
+        (b.explain ? '<div class="qd-exp">💡 ' + esc(b.explain).replace(/\n/g, '<br>') + '</div>' : '') +
+      '</div>';
     });
-    html += '</tbody></table>';
   }
   html += '<div style="margin-top:14px;font-size:12.5px;color:var(--muted);">' +
     '想对照原题：<span class="link" onclick="window.open(\'' + QUIZ_FILE + '\',\'_blank\')">打开试卷 ↗</span>' +
-    '　·　主观题（纠错/简答）是考生自评，可打印卷面复核。</div>';
+    '　·　主观题（纠错 / 简答）是考生自评，可打印卷面复核。</div>';
+
   $('mBody').innerHTML = html;
-  $('modal').classList.add('show');
+  const cb = $('qdWrong');
+  if(cb) cb.addEventListener('change', () => { onlyWrong = cb.checked; renderDetail(); });
 }
 
 /* ==================== 删除 ==================== */
@@ -465,7 +528,7 @@ function ensureXLSX(){
   if(xlsxLoading) return xlsxLoading;
   xlsxLoading = new Promise(resolve => {
     const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.src = 'vendor/xlsx.full.min.js?v=2';   // 用同源 vendor，别用境外 CDN（国内打不开）
     s.onload = () => resolve(!!window.XLSX);
     s.onerror = () => resolve(false);
     document.head.appendChild(s);
@@ -491,18 +554,87 @@ function detailRows(){
     '试卷': r.quiz_title || ''
   }));
 }
+/* 逐题明细：一行 = 某个考生的一道题（含正确答案，方便核对与讲评） */
+function quizDetailRows(){
+  const out = [];
+  filtered().forEach(r => {
+    const d = Array.isArray(r.detail) ? r.detail : [];
+    d.forEach(x => {
+      const b = BANK[x.no] || {};
+      out.push({
+        '考生姓名': r.examinee,
+        '交卷时间': fmtTime(r.created_at),
+        '题号': x.no,
+        '大项': b.sec || x.sec || '',
+        '题目': b.stem || '',
+        '正确答案': b.ans || '',
+        '考生作答': x.ans || '未作答',
+        '得分': x.got,
+        '满分': x.full,
+        '结果': x.kind === 'self' ? '自评' : (x.got >= x.full ? '对' : '错'),
+        '解析': b.explain || ''
+      });
+    });
+  });
+  return out;
+}
+/* 错题排行：哪道题错的人最多 → 讲评优先级 */
+function wrongRankRows(){
+  const per = {};
+  filtered().forEach(r => {
+    (Array.isArray(r.detail) ? r.detail : []).forEach(x => {
+      const k = x.no;
+      per[k] = per[k] || { no: k, wrong: 0, total: 0 };
+      per[k].total++;
+      if (x.got < x.full) per[k].wrong++;
+    });
+  });
+  return Object.values(per)
+    .sort((a, b) => (b.wrong - a.wrong) || (a.no - b.no))
+    .map(x => {
+      const b = BANK[x.no] || {};
+      return {
+        '题号': x.no,
+        '题目': b.stem || '',
+        '大项': b.sec || '',
+        '正确答案': b.ans || '',
+        '答错人数': x.wrong,
+        '作答人数': x.total,
+        '错误率': Math.round(x.wrong * 100 / Math.max(1, x.total)) + '%'
+      };
+    });
+}
 async function exportExcel(){
   const data = detailRows();
   if(!data.length){ toast('没有可导出的数据'); return; }
   const ok = await ensureXLSX();
   const stamp = new Date().toISOString().slice(0,10);
   if(ok){
+    const wb = XLSX.utils.book_new();
+
+    // 表 1：成绩汇总（每人每次交卷一行）
     const ws = XLSX.utils.json_to_sheet(data);
     ws['!cols'] = [{wch:12},{wch:8},{wch:8},{wch:10},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:10},{wch:18},{wch:26}];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, '考核成绩明细');
+    XLSX.utils.book_append_sheet(wb, ws, '成绩汇总');
+
+    // 表 2：逐题明细（含正确答案，一行一题，方便逐条核对）
+    const dt = quizDetailRows();
+    if(dt.length){
+      const ws2 = XLSX.utils.json_to_sheet(dt);
+      ws2['!cols'] = [{wch:10},{wch:18},{wch:6},{wch:12},{wch:44},{wch:30},{wch:30},{wch:6},{wch:6},{wch:6},{wch:30}];
+      XLSX.utils.book_append_sheet(wb, ws2, '逐题明细');
+    }
+
+    // 表 3：错题排行（哪题错得最多 → 讲评优先级）
+    const wr = wrongRankRows();
+    if(wr.length){
+      const ws3 = XLSX.utils.json_to_sheet(wr);
+      ws3['!cols'] = [{wch:6},{wch:44},{wch:12},{wch:30},{wch:10},{wch:10},{wch:8}];
+      XLSX.utils.book_append_sheet(wb, ws3, '错题排行');
+    }
+
     XLSX.writeFile(wb, '考核成绩_弥生花色价格_' + stamp + '.xlsx');
-    toast('已导出 ' + data.length + ' 条');
+    toast('已导出（3 张表：汇总 / 逐题明细 / 错题排行）');
     return;
   }
   // 降级 CSV

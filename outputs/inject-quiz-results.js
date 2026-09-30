@@ -33,12 +33,21 @@ if (!km) throw new Error('diversion.html 里没找到 SUPABASE_KEY');
 const KEY = km[1];
 console.log('anon key 提取成功（长度 ' + KEY.length + '，前缀 ' + KEY.slice(0, 4) + '…）');
 
-// 2) 题库（题号 -> 题干/大项/分值），用于成绩详情里显示题目
+// 2) 题库（题号 -> 题干/大项/分值/正确答案/解析），用于成绩详情里显示题目与对照答案
+const LETTER = i => String.fromCharCode(65 + i);
 const quiz = fs.readFileSync(path.join(ROOT, 'quiz.html'), 'utf8');
 const quizObj = JSON.parse(extractJson(quiz, 'const QUIZ ='));
 const bank = {};
-quizObj.questions.forEach(q => { bank[q.no] = { stem: q.stem, sec: q.section, points: q.points }; });
-console.log('题库提取成功：' + Object.keys(bank).length + ' 题');
+quizObj.questions.forEach(q => {
+  let right = '';
+  if (q.type === 'single') right = LETTER(q.answer) + '. ' + q.options[q.answer];
+  else if (q.type === 'judge') right = q.options[q.answer];
+  else if (q.type === 'multi') right = q.answer.map(i => LETTER(i) + '. ' + q.options[i]).join('　');
+  else if (q.type === 'match') right = q.pairs.map(p => p.left + '→' + LETTER(q.rightOptions.indexOf(p.right))).join('　');
+  else right = q.answer || '';   // 主观题：参考答案全文
+  bank[q.no] = { stem: q.stem, sec: q.section, points: q.points, type: q.type, ans: right, explain: q.explain || '' };
+});
+console.log('题库提取成功：' + Object.keys(bank).length + ' 题（含正确答案与解析）');
 
 // 3) 注入
 let changed = 0;
@@ -47,8 +56,14 @@ let changed = 0;
   let s = fs.readFileSync(p, 'utf8');
   const before = s;
   s = s.split('__SUPABASE_ANON_KEY__').join(KEY);
-  s = s.split('__QUIZ_BANK__').join(JSON.stringify(bank));
+  const bankJson = JSON.stringify(bank);
+  if (/const BANK = \{[\s\S]*?\};/.test(s)) {
+    // 已注入过 → 整体替换（幂等，方便以后改题库后重新跑）
+    s = s.replace(/const BANK = \{[\s\S]*?\};/, 'const BANK = ' + bankJson + ';');
+  } else {
+    s = s.split('__QUIZ_BANK__').join(bankJson);
+  }
   if (s !== before) { fs.writeFileSync(p, s); changed++; console.log('✔ ' + f + ' 已注入'); }
-  else console.log('· ' + f + ' 无占位符（可能已注入过）');
+  else console.log('· ' + f + ' 无变化');
 });
 console.log('完成，共更新 ' + changed + ' 个文件');
