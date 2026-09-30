@@ -104,6 +104,12 @@ const wd = setTimeout(()=>{ console.log('WATCHDOG_TIMEOUT'); process.exit(3); },
     o.l2NoCheckbox = document.querySelectorAll('#pp-content .pp-check').length===0;
     o.optGridOk = !!document.querySelector('#pp-content .pp-tiercards.pp-opt-grid');   // 第二层自适应多列网格
     o.optGridCols = getComputedStyle(document.querySelector('#pp-content .pp-opt-grid')).gridTemplateColumns.split(' ').length;   // 宽屏≥3列
+    // 系列按抛型分块（杨茹 2026-09-30）：日抛系列 / 半年抛系列 / 未填系列，顺序固定
+    const subs = [...document.querySelectorAll('#pp-content .pp-sub-title')].map(s=>s.textContent);
+    o.subTitles = subs.join('||');
+    o.subOrderOk = subs.length>=3 && subs[0].includes('日抛系列') && subs[1].includes('半年抛系列') && subs[2].includes('未填系列');
+    o.dayBlockCount = subs[0] && subs[0].includes('3 款');   // 倾慕系列 3 款全在日抛块
+    o.nightBlockCount = subs[1] && subs[1].includes('1 款'); // 星眸系列 1 款在半年抛块
     const bb = document.getElementById('pp-batch-bar');
     o.batchBarHiddenCsL2 = !bb || bb.style.display==='none';
     ppBackToDims();

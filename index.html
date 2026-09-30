@@ -12524,6 +12524,28 @@ function renderPatternPricePage() {
           html += dimCard(def, '__none__', opt.noneLabel, noneList, true);
           html += '</div>';
         }
+      } else if (def.dim === 'series') {
+        // 系列按抛型分块：日抛系列 / 半年抛系列 / 混合·其他——同价格档分块逻辑，纯系列排一起好找（杨茹 2026-09-30）
+        const cards = opt.list.map(v => ({ v: v, list: items.filter(p => opt.get(p) === v) }));
+        const singleType = list => { const ts = [...new Set(list.map(p => p._type || '').filter(Boolean))]; return ts.length === 1 ? ts[0] : ''; };
+        const sBlocks = [
+          { icon: '☀️', name: '日抛系列', list: cards.filter(c => singleType(c.list) === '日抛') },
+          { icon: '🌙', name: '半年抛系列', list: cards.filter(c => singleType(c.list) === '半年抛') }
+        ];
+        const sUsed = new Set([].concat(sBlocks[0].list, sBlocks[1].list).map(c => c.v));
+        const sRest = cards.filter(c => !sUsed.has(c.v));
+        const sBlockHtml = b => b.list.length
+          ? '<div class="pp-sub-title">' + b.icon + ' ' + b.name + '<span class="pp-count">' + b.list.reduce((n, c) => n + c.list.length, 0) + ' 款</span></div>'
+            + '<div class="pp-tiercards pp-opt-grid">' + b.list.map(c => dimCard(def, c.v, c.v, c.list, false)).join('') + '</div>'
+          : '';
+        html += sBlockHtml(sBlocks[0]) + sBlockHtml(sBlocks[1]);
+        if (sRest.length) html += sBlockHtml({ icon: '🧩', name: '混合 / 未标抛型', list: sRest });
+        const sNone = items.filter(p => !opt.get(p));
+        if (sNone.length) {
+          html += '<div class="pp-sub-title">📦 未填系列<span class="pp-count">' + sNone.length + ' 款</span></div><div class="pp-tiercards pp-opt-grid">';
+          html += dimCard(def, '__none__', opt.noneLabel, sNone, true);
+          html += '</div>';
+        }
       } else {
         html += '<div class="pp-tiercards pp-opt-grid">';
         opt.list.forEach(v => { html += dimCard(def, v, v, items.filter(p => opt.get(p) === v), false); });
