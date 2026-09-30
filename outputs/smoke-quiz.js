@@ -35,7 +35,14 @@ const check = (n, c, extra) => { if (c) { pass++; console.log('PASS ' + n); } el
   const page = await browser.newPage();
   const errs = [];
   page.on('pageerror', e => errs.push('PAGEERROR:' + e.message));
-  await page.evaluateOnNewDocument(() => { window.confirm = () => true; });
+  await page.evaluateOnNewDocument(() => { window.confirm = () => true; window.alert = () => {}; });
+  await page.evaluateOnNewDocument(() => {
+    // 交卷时页面会尝试把成绩上报给 Supabase；本地冒烟里桩掉，避免真发请求
+    const rf = window.fetch;
+    window.fetch = async (u, o) => (String(u).indexOf('quiz_results') >= 0)
+      ? { ok: true, status: 201, text: async () => '' }
+      : (rf ? rf(u, o) : Promise.reject(new Error('no fetch')));
+  });
   await page.setViewport({ width: 1280, height: 900 });
 
   const URL = 'http://127.0.0.1:' + PORT + '/quiz.html';
@@ -64,6 +71,7 @@ const check = (n, c, extra) => { if (c) { pass++; console.log('PASS ' + n); } el
       });
     };
     pick(true);
+    document.getElementById('examinee').value = '冒烟测试';   // 交卷要求填姓名
     return { qCount: QUIZ.questions.length, textCount: QUIZ.questions.filter(q => q.type === 'text').length };
   });
   check('题目全部渲染（' + fillA.qCount + ' 题）', fillA.qCount === 35, 'got ' + fillA.qCount);
@@ -90,6 +98,7 @@ const check = (n, c, extra) => { if (c) { pass++; console.log('PASS ' + n); } el
   // ---------- 场景 B：全错 ----------
   await page.goto(URL, { waitUntil: 'domcontentloaded' });
   await sleep(600);
+  await page.evaluate(() => { document.getElementById('examinee').value = '冒烟测试'; });
   await page.evaluate(() => {
     QUIZ.questions.forEach(q => {
       if (q.type === 'single' || q.type === 'judge') {
@@ -115,6 +124,7 @@ const check = (n, c, extra) => { if (c) { pass++; console.log('PASS ' + n); } el
   // ---------- 场景 C：部分对（只对单选）→ 分数=单选总分 32 ----------
   await page.goto(URL, { waitUntil: 'domcontentloaded' });
   await sleep(600);
+  await page.evaluate(() => { document.getElementById('examinee').value = '冒烟测试'; });
   await page.evaluate(() => {
     QUIZ.questions.forEach(q => {
       if (q.type === 'single') {

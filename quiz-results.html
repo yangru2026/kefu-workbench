@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>考核成绩 · 弥生花色与价格</title>
+<style>
+  :root{ --primary:#10b981; --primary-dark:#059669; --primary-light:rgba(16,185,129,.1);
+         --danger:#e05252; --warn:#c2660a; --warn-bg:rgba(230,145,56,.12);
+         --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f7f9f8; }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+       background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;}
+  /* ===== 顶栏 ===== */
+  .topbar{display:flex;align-items:center;gap:12px;padding:14px 20px;background:#fff;
+          border-bottom:1px solid var(--border);flex-wrap:wrap;position:sticky;top:0;z-index:10;}
+  .topbar h1{font-size:18px;font-weight:800;letter-spacing:.4px;}
+  .topbar .sub{font-size:12.5px;color:var(--muted);}
+  .grow{flex:1;}
+  .badge{font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;white-space:nowrap;}
+  .badge.admin{background:var(--primary-light);color:var(--primary-dark);}
+  .badge.lock{background:#f1f5f9;color:var(--muted);}
+  .btn{padding:8px 18px;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;
+       font-family:inherit;transition:all .15s;white-space:nowrap;}
+  .btn-primary{background:var(--primary);color:#fff;}
+  .btn-primary:hover{background:var(--primary-dark);}
+  .btn-ghost{background:#fff;color:var(--primary);border:1.5px solid var(--primary);}
+  .btn-ghost:hover{background:var(--primary-light);}
+  .wrap{max-width:1000px;margin:0 auto;padding:16px 20px 60px;}
+  /* ===== 遮罩（未登录 / 非管理员） ===== */
+  .mask{display:none;background:#fff;border:1px solid var(--border);border-radius:14px;
+        padding:52px 24px;text-align:center;box-shadow:0 2px 12px rgba(31,41,55,.05);}
+  .mask.show{display:block;}
+  .mask .big{font-size:42px;line-height:1;margin-bottom:12px;}
+  .mask h2{font-size:16px;font-weight:800;margin-bottom:6px;}
+  .mask p{font-size:13px;color:var(--muted);}
+  /* ===== 筛选 ===== */
+  .filters{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:14px;
+           box-shadow:0 2px 12px rgba(31,41,55,.05);display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;}
+  .chip{padding:6px 15px;border-radius:18px;border:1.5px solid var(--border);background:#fff;
+        font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;user-select:none;}
+  .chip:hover{border-color:var(--primary);color:var(--primary-dark);}
+  .chip.on{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .range{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);}
+  .range input[type=date]{padding:6px 9px;border:1.5px solid var(--border);border-radius:9px;
+        font-family:inherit;font-size:12.5px;outline:none;color:var(--text);background:#fff;}
+  .range input[type=date]:focus{border-color:var(--primary);}
+  .search{flex:1;min-width:170px;position:relative;}
+  .search input{width:100%;padding:8px 13px 8px 32px;border:1.5px solid var(--border);border-radius:20px;
+        font-size:13.5px;outline:none;font-family:inherit;background:#fff;}
+  .search input:focus{border-color:var(--primary);}
+  .search .icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;opacity:.45;}
+  /* ===== 汇总卡 ===== */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px;
+        box-shadow:0 2px 12px rgba(31,41,55,.05);}
+  .card .k{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px;}
+  .card .v{font-size:24px;font-weight:800;color:var(--primary-dark);line-height:1.25;}
+  .card .v small{font-size:13px;font-weight:600;color:var(--muted);}
+  .card.warn .v{color:var(--warn);}
+  /* ===== 视图切换 ===== */
+  .tabs{display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap;}
+  .tab{padding:7px 18px;border-radius:20px;border:1.5px solid var(--border);background:#fff;
+       font-size:13.5px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .15s;user-select:none;}
+  .tab.on{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .tabs .cnt{font-size:12.5px;color:var(--muted);margin-left:4px;}
+  /* ===== 列表 ===== */
+  .rec{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:10px;
+       display:flex;gap:14px;align-items:center;flex-wrap:wrap;transition:box-shadow .15s;}
+  .rec:hover{box-shadow:0 3px 14px rgba(31,41,55,.08);}
+  .rec-name{font-size:15px;font-weight:800;min-width:78px;}
+  .rec-score{font-size:22px;font-weight:800;min-width:92px;line-height:1.2;color:var(--primary-dark);}
+  .rec-score.good{color:#059669;}
+  .rec-score.mid{color:var(--warn);}
+  .rec-score.bad{color:var(--danger);}
+  .rec-score small{font-size:12px;font-weight:600;color:var(--muted);}
+  .rec-meta{flex:1;min-width:160px;font-size:12.5px;color:var(--muted);}
+  .rec-meta b{color:var(--text);font-weight:700;}
+  .rec-tag{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:12px;white-space:nowrap;}
+  .rec-tag.pass{background:var(--primary-light);color:var(--primary-dark);}
+  .rec-tag.fail{background:rgba(224,82,82,.1);color:var(--danger);}
+  .rec-tag.times{background:#f1f5f9;color:var(--muted);}
+  .rec-btn{padding:6px 14px;border-radius:16px;border:1.5px solid var(--border);background:#fff;
+       font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;transition:all .15s;}
+  .rec-btn:hover{border-color:var(--primary);color:var(--primary-dark);}
+  .rec-btn.del:hover{border-color:var(--danger);color:var(--danger);background:rgba(224,82,82,.06);}
+  .empty{background:#fff;border:1px dashed var(--border);border-radius:14px;padding:44px 20px;text-align:center;
+         color:var(--muted);font-size:13.5px;}
+  .empty .big{display:block;font-size:38px;margin-bottom:8px;}
+  /* ===== 明细弹窗 ===== */
+  .modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:60;
+         padding:32px 16px;overflow:auto;}
+  .modal.show{display:block;}
+  .modal-box{max-width:760px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;
+             box-shadow:0 18px 50px rgba(15,23,42,.25);}
+  .modal-head{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border);
+              position:sticky;top:0;background:#fff;z-index:2;}
+  .modal-head h3{font-size:16px;font-weight:800;}
+  .modal-head .grow{flex:1;}
+  .modal-close{border:none;background:#f1f5f9;border-radius:50%;width:30px;height:30px;font-size:15px;
+               cursor:pointer;color:var(--muted);line-height:1;}
+  .modal-body{padding:16px 20px 24px;}
+  .kv{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  .kv span{background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12.5px;}
+  .kv span b{color:var(--primary-dark);}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top;}
+  th{font-size:12px;color:var(--muted);font-weight:700;background:#f8fafc;}
+  td.no{width:38px;color:var(--muted);font-weight:700;}
+  td.sc{width:74px;text-align:right;font-weight:700;white-space:nowrap;}
+  td.sc.ok{color:var(--primary-dark);}
+  td.sc.no0{color:var(--danger);}
+  td.ans{word-break:break-all;color:#334155;}
+  tr.self td.sc{color:var(--muted);}
+  .toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%) translateY(20px);background:#1e293b;
+         color:#fff;padding:10px 22px;border-radius:22px;font-size:13.5px;opacity:0;pointer-events:none;
+         transition:all .25s;z-index:99;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .link{color:var(--primary-dark);text-decoration:underline;cursor:pointer;font-weight:600;}
+  @media (max-width:640px){
+    .wrap{padding:12px 12px 60px;}
+    .rec-score{font-size:19px;min-width:74px;}
+    .rec-name{min-width:60px;font-size:14px;}
+  }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>📝 考核成绩</h1>
+  <span class="sub" id="tSub">弥生 · 花色与价格</span>
+  <span class="badge lock" id="roleBadge">加载中…</span>
+  <span class="grow"></span>
+  <button class="btn btn-ghost" id="btnRoster">📋 名单对账</button>
+  <button class="btn btn-ghost" id="btnExport">⬇️ 导出 Excel</button>
+  <button class="btn btn-ghost" id="btnRefresh">↻ 刷新</button>
+</div>
+
+<div class="wrap">
+  <div class="mask" id="mask">
+    <div class="big" id="maskIcon">🔒</div>
+    <h2 id="maskTitle">仅主管可见</h2>
+    <p id="maskDesc">请在工作台登录主管账号后再查看考核成绩。</p>
+  </div>
+
+  <div id="main" style="display:none;">
+    <div class="filters">
+      <div class="chips" id="chips">
+        <span class="chip on" data-p="today">今天</span>
+        <span class="chip" data-p="7d">近 7 天</span>
+        <span class="chip" data-p="month">本月</span>
+        <span class="chip" data-p="all">全部</span>
+      </div>
+      <div class="range">
+        自 <input type="date" id="dFrom"> 至 <input type="date" id="dTo">
+      </div>
+      <div class="search"><span class="icon">🔍</span><input id="q" type="text" placeholder="搜索考生姓名"></div>
+    </div>
+
+    <div class="cards" id="cards"></div>
+
+    <div class="tabs">
+      <span class="tab on" data-v="person">按人汇总</span>
+      <span class="tab" data-v="all">全部明细</span>
+      <span class="cnt" id="listCnt"></span>
+      <span class="grow"></span>
+      <span class="cnt">试卷：<span class="link" id="openQuiz">打开试卷 ↗</span></span>
+    </div>
+
+    <div id="list"></div>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="mTitle">答卷明细</h3>
+      <span class="grow"></span>
+      <button class="modal-close" id="mClose">✕</button>
+    </div>
+    <div class="modal-body" id="mBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+/* ==================== 配置 ==================== */
+const SUPABASE_URL = 'https://ienmejlxukhrxjjxvfqf.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imllbm1lamx4dWtocnhqanh2ZnFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMTgyMjgsImV4cCI6MjEwMDc5NDIyOH0.Z6n6eMSgTVSFeXg1y8Inzh5LQenSgonNWE2plZM29co';
+const QUIZ_FILE = 'quiz.html';       // 试卷页（详情里可跳转对照题目）
+const PASS_LINE = 80;                // 合格线
+const BANK = {"1":{"stem":"「女高系列」这个系列，卖货时应该按哪个价格档核对？","sec":"一、单选题","points":2},"2":{"stem":"「随便花系列」这个系列，卖货时应该按哪个价格档核对？","sec":"一、单选题","points":2},"3":{"stem":"「少女漫半年抛」这个系列，卖货时应该按哪个价格档核对？","sec":"一、单选题","points":2},"4":{"stem":"「初音」这个系列，卖货时应该按哪个价格档核对？","sec":"一、单选题","points":2},"5":{"stem":"花色「闪闪自信」属于哪个系列？","sec":"一、单选题","points":2},"6":{"stem":"花色「暧昧戏法」属于哪个系列？","sec":"一、单选题","points":2},"7":{"stem":"花色「D在逃公主pro」属于哪个系列？","sec":"一、单选题","points":2},"8":{"stem":"花色「黄油流心」属于哪个系列？","sec":"一、单选题","points":2},"9":{"stem":"下面哪一款花色的价格档是「半年抛-29.9元/副」？","sec":"一、单选题","points":2},"10":{"stem":"下面哪一款花色的价格档是「半年抛-49.9元/副」？","sec":"一、单选题","points":2},"11":{"stem":"下面哪一款花色的价格档是「半年抛-59.9元/副」？","sec":"一、单选题","points":2},"12":{"stem":"下面哪一款花色的价格档是「少女漫日抛-39.9/盒」？","sec":"一、单选题","points":2},"13":{"stem":"「D在逃公主pro」和「D在逃公主pro6片装」的区别是什么？","sec":"一、单选题","points":2},"14":{"stem":"弥生花色的计价单位是怎么规定的？","sec":"一、单选题","points":2},"15":{"stem":"「少女漫」和「少女漫-日抛」的区别是什么？","sec":"一、单选题","points":2},"16":{"stem":"「初音-日抛」系列按什么价格档核对？","sec":"一、单选题","points":2},"17":{"stem":"以下哪些花色属于「女高系列」？（多选）","sec":"二、多选题","points":3},"18":{"stem":"以下哪些花色属于「随便花系列」？（多选）","sec":"二、多选题","points":3},"19":{"stem":"以下哪些花色属于「少女漫半年抛」？（多选）","sec":"二、多选题","points":3},"20":{"stem":"下面哪些系列是「日抛」系列（按「盒」计价）？（多选）","sec":"二、多选题","points":3},"21":{"stem":"关于「初音」系列，下面说法哪些是对的？（多选）","sec":"二、多选题","points":3},"22":{"stem":"「人鱼系列日抛」里同时出现过下面哪些价格档？（多选，注意同系列也可能不同价）","sec":"二、多选题","points":3},"23":{"stem":"「少女漫」半年抛和日抛价格一样，都可以按 39.9 元备注。","sec":"三、判断题","points":2},"24":{"stem":"日抛按「盒」计价，半年抛按「副」计价，写备注前先确认单位。","sec":"三、判断题","points":2},"25":{"stem":"初音半年抛 69 元/副，但为了成单可以按普通半年抛 49.9 元/副备注。","sec":"三、判断题","points":2},"26":{"stem":"「女高系列」都是半年抛，价格档是 29.9 元/副。","sec":"三、判断题","points":2},"27":{"stem":"「随便花系列」和「花厨小熊系列」都是 49.9 元/副的半年抛。","sec":"三、判断题","points":2},"28":{"stem":"只要系列对得上，价格档写错一点没关系，反正客服会改。","sec":"三、判断题","points":2},"29":{"stem":"把左边花色和右边正确的价格档连起来（把正确答案的字母填在括号里）。","sec":"四、配对题","points":10},"30":{"stem":"订单金额：59.9 元 / 1 副　　备注写的是：少女漫半年抛 · 39.9/盒　　请指出错在哪、正确应怎么写。","sec":"五、纠错题","points":4},"31":{"stem":"订单金额：99.8 元 / 2 副　　备注写的是：初音半年抛 · 按普通半年抛 49.9 备注（2 副）　　请指出错在哪、正确应怎么写。","sec":"五、纠错题","points":4},"32":{"stem":"订单金额：44.9 元 / 1 盒　　备注写的是：人鱼系列日抛 · 39.9/盒　　请指出该不该这样写。","sec":"五、纠错题","points":4},"33":{"stem":"订单金额：49.9 元 / 1 副　　备注写的是：女焉系列 …（系统里查不到）　　新客服说「女高系列写错了，帮我改一下」。请写出正确的系列名与价格档写法。","sec":"五、纠错题","points":4},"34":{"stem":"订单金额：39.9 元 / 1 盒　　备注写的是：花厨小熊系列 · 半年抛　　请指出错在哪、正确应怎么写。","sec":"五、纠错题","points":4},"35":{"stem":"写出你在核对「花色备注」时的 3 个防错动作（至少 3 条）。","sec":"六、简答题","points":8}};          // {题号: {stem, sec, points}}
+
+const $ = id => document.getElementById(id);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let rows = [];
+let isAdmin = false;
+let view = 'person';
+let period = 'today';
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtTime(ts){
+  if(!ts) return '';
+  const d = new Date(ts), p = n => String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
+function fmtDur(sec){
+  if(sec==null || sec==='') return '—';
+  const m = Math.floor(sec/60), s = sec%60;
+  return m ? m+' 分 '+s+' 秒' : s+' 秒';
+}
+function dayStart(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+function scoreCls(v){
+  if(v >= PASS_LINE) return 'good';
+  if(v >= 60) return 'mid';
+  return 'bad';
+}
+let toastTimer;
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('show'), 2000);
+}
+
+/* ==================== 初始化：登录 + 权限 ==================== */
+(async function init(){
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    const user = session && session.user;
+    if(!user){
+      $('roleBadge').className = 'badge lock'; $('roleBadge').textContent = '🔒 未登录';
+      $('maskIcon').textContent = '🔐';
+      $('maskTitle').textContent = '请先登录';
+      $('maskDesc').innerHTML = '这个页面只给主管看成绩，请先在工作台用主管账号登录，再回到这里。';
+      $('mask').classList.add('show');
+      return;
+    }
+    let role = user.app_metadata && user.app_metadata.role;
+    try{
+      const { data:p } = await sb.from('profiles').select('role').eq('id', user.id).single();
+      if(p && p.role) role = p.role;
+    }catch(e){ console.warn('profiles load', e); }
+    isAdmin = (role === 'admin');
+    if(!isAdmin){
+      $('roleBadge').className = 'badge lock'; $('roleBadge').textContent = '🔒 无权限';
+      $('maskIcon').textContent = '🔒';
+      $('maskTitle').textContent = '仅主管可见';
+      $('maskDesc').innerHTML = '考核成绩只有主管能看，你的账号（' + esc(role || '客服') + '）暂时没有权限。';
+      $('mask').classList.add('show');
+      return;
+    }
+    $('roleBadge').className = 'badge admin';
+    $('roleBadge').textContent = '👑 主管 · 可查看/删除';
+    $('main').style.display = '';
+    await load();
+  }catch(e){
+    console.error(e);
+    $('maskIcon').textContent = '⚠️';
+    $('maskTitle').textContent = '初始化失败';
+    $('maskDesc').textContent = e.message;
+    $('mask').classList.add('show');
+  }
+})();
+
+/* ==================== 读取成绩 ==================== */
+function setDefaultRange(){
+  const d = new Date();
+  $('dFrom').value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  $('dTo').value = $('dFrom').value;
+}
+async function load(silent){
+  if(!silent) $('list').innerHTML = '<div class="empty"><span class="big">⏳</span>正在读取成绩…</div>';
+  const { data, error } = await sb.from('quiz_results')
+    .select('id,quiz_key,quiz_title,examinee,score,total,auto_score,auto_total,self_score,self_total,duration_sec,detail,created_at')
+    .order('created_at', { ascending:false })
+    .limit(2000);
+  if(error){
+    $('list').innerHTML = '<div class="empty"><span class="big">⚠️</span>' + esc(error.message) +
+      '<br><br>若提示表不存在，请先在 Supabase SQL Editor 执行 <b>create_quiz_results.sql</b></div>';
+    return;
+  }
+  rows = data || [];
+  render();
+}
+
+/* ==================== 周期 / 筛选 ==================== */
+function periodRange(){
+  const now = new Date();
+  if(period === 'today') return [dayStart(now), null];
+  if(period === '7d')    return [dayStart(new Date(now.getTime() - 6*864e5)), null];
+  if(period === 'month') return [new Date(now.getFullYear(), now.getMonth(), 1), null];
+  if(period === 'custom'){
+    const f = $('dFrom').value ? dayStart(new Date($('dFrom').value + 'T00:00:00')) : null;
+    const t = $('dTo').value ? new Date(dayStart(new Date($('dTo').value + 'T00:00:00')).getTime() + 864e5) : null;
+    return [f, t];
+  }
+  return [null, null];
+}
+function filtered(){
+  const [from, to] = periodRange();
+  const kw = ($('q').value || '').trim();
+  return rows.filter(r => {
+    const t = new Date(r.created_at);
+    if(from && t < from) return false;
+    if(to && t >= to) return false;
+    if(kw && String(r.examinee).indexOf(kw) < 0) return false;
+    return true;
+  });
+}
+function byPerson(list){
+  const m = new Map();
+  list.forEach(r => {
+    if(!m.has(r.examinee)) m.set(r.examinee, { name:r.examinee, latest:r, count:0, best:r.score });
+    const o = m.get(r.examinee);
+    o.count++;
+    if(new Date(r.created_at) > new Date(o.latest.created_at)) o.latest = r;
+    if(r.score > o.best) o.best = r.score;
+  });
+  return [...m.values()].sort((a,b) => new Date(b.latest.created_at) - new Date(a.latest.created_at));
+}
+
+/* ==================== 渲染 ==================== */
+function render(){
+  const list = filtered();
+  const persons = byPerson(list);
+  const scores = persons.map(p => p.latest.score);
+  const avg = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0) / scores.length) : 0;
+  const passN = scores.filter(s => s >= PASS_LINE).length;
+  const passRate = scores.length ? Math.round(passN * 100 / scores.length) : 0;
+  const max = scores.length ? Math.max(...scores) : 0;
+  const min = scores.length ? Math.min(...scores) : 0;
+  const failPersons = persons.filter(p => p.latest.score < PASS_LINE);
+
+  $('cards').innerHTML =
+    card('交卷人数', persons.length + ' <small>人</small>') +
+    card('平均分', avg + ' <small>分</small>') +
+    card('合格率（≥' + PASS_LINE + '）', passRate + ' <small>%</small>', passRate < 80) +
+    card('最高 / 最低', max + ' <small>/ ' + min + '</small>') +
+    card('未合格', failPersons.length + ' <small>人</small>', failPersons.length > 0) +
+    card('提交记录', list.length + ' <small>条</small>');
+
+  $('listCnt').textContent = view === 'person'
+    ? '共 ' + persons.length + ' 人，' + list.length + ' 条提交记录'
+    : '共 ' + list.length + ' 条提交记录';
+
+  if(!list.length){
+    $('list').innerHTML = '<div class="empty"><span class="big">📭</span>这个时间段还没有交卷记录。<br>' +
+      '把试卷链接发给新客服，她们交卷后这里就会自动出现成绩。</div>';
+    return;
+  }
+
+  if(view === 'person'){
+    $('list').innerHTML = persons.map(p => {
+      const r = p.latest;
+      const cls = scoreCls(r.score);
+      const pass = r.score >= PASS_LINE;
+      return '<div class="rec">' +
+        '<span class="rec-name">' + esc(p.name) + '</span>' +
+        '<span class="rec-score ' + cls + '">' + r.score + '<small> / ' + (r.total||100) + '</small></span>' +
+        '<span class="rec-tag ' + (pass ? 'pass' : 'fail') + '">' + (pass ? '✅ 合格' : '⚠️ 未合格') + '</span>' +
+        (p.count > 1 ? '<span class="rec-tag times">共提交 ' + p.count + ' 次</span>' : '') +
+        '<span class="rec-meta">交卷 <b>' + fmtTime(r.created_at) + '</b><br>' +
+          '用时 ' + fmtDur(r.duration_sec) +
+          (r.auto_score != null ? ' · 客观 <b>' + r.auto_score + '/' + (r.auto_total||0) + '</b>' : '') +
+          (r.self_total ? ' · 主观自评 <b>' + (r.self_score||0) + '/' + r.self_total + '</b>' : '') +
+          (p.count > 1 ? ' · 历史最高 <b>' + p.best + '</b>' : '') +
+        '</span>' +
+        '<button class="rec-btn" data-act="detail" data-id="' + r.id + '">📖 看答卷</button>' +
+        '<button class="rec-btn del" data-act="del" data-id="' + r.id + '">🗑</button>' +
+      '</div>';
+    }).join('');
+  }else{
+    $('list').innerHTML = list.map(r => {
+      const cls = scoreCls(r.score);
+      const pass = r.score >= PASS_LINE;
+      return '<div class="rec">' +
+        '<span class="rec-name">' + esc(r.examinee) + '</span>' +
+        '<span class="rec-score ' + cls + '">' + r.score + '<small> / ' + (r.total||100) + '</small></span>' +
+        '<span class="rec-tag ' + (pass ? 'pass' : 'fail') + '">' + (pass ? '合格' : '未合格') + '</span>' +
+        '<span class="rec-meta">交卷 <b>' + fmtTime(r.created_at) + '</b> · 用时 ' + fmtDur(r.duration_sec) + '</span>' +
+        '<button class="rec-btn" data-act="detail" data-id="' + r.id + '">📖 看答卷</button>' +
+        '<button class="rec-btn del" data-act="del" data-id="' + r.id + '">🗑</button>' +
+      '</div>';
+    }).join('');
+  }
+}
+function card(k, v, warn){
+  return '<div class="card' + (warn ? ' warn' : '') + '"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>';
+}
+
+/* ==================== 答卷明细 ==================== */
+function openDetail(id){
+  const r = rows.find(x => x.id === id);
+  if(!r) return;
+  const d = Array.isArray(r.detail) ? r.detail : [];
+  const wrong = d.filter(x => x.got < x.full);
+  $('mTitle').textContent = r.examinee + ' · ' + r.score + '/' + (r.total||100) + ' 分';
+  let html = '<div class="kv">' +
+    '<span>交卷时间 <b>' + fmtTime(r.created_at) + '</b></span>' +
+    '<span>用时 <b>' + fmtDur(r.duration_sec) + '</b></span>' +
+    (r.auto_score != null ? '<span>客观题 <b>' + r.auto_score + '/' + (r.auto_total||0) + '</b></span>' : '') +
+    (r.self_total ? '<span>主观题自评 <b>' + (r.self_score||0) + '/' + r.self_total + '</b></span>' : '') +
+    '<span>错/未得满分 <b>' + wrong.length + ' 题</b></span>' +
+    '</div>';
+  if(!d.length){
+    html += '<p style="color:var(--muted);font-size:13px;">这条记录没有逐题明细（可能是早期版本提交的）。</p>';
+  }else{
+    html += '<table><thead><tr><th>题</th><th>题目</th><th>考生作答</th><th style="text-align:right;">得分</th></tr></thead><tbody>';
+    d.forEach(x => {
+      const b = BANK[x.no] || {};
+      const sc = x.got >= x.full ? 'ok' : 'no0';
+      html += '<tr' + (x.kind === 'self' ? ' class="self"' : '') + '>' +
+        '<td class="no">' + x.no + '</td>' +
+        '<td>' + esc(String(b.stem || '').slice(0, 46)) + (String(b.stem||'').length > 46 ? '…' : '') +
+          '<div style="font-size:11px;color:var(--muted);margin-top:2px;">' + esc(b.sec || x.sec || '') +
+          (x.kind === 'self' ? ' · 自评' : '') + '</div></td>' +
+        '<td class="ans">' + esc(x.ans || '未作答') + '</td>' +
+        '<td class="sc ' + sc + '">' + x.got + '/' + x.full + '</td>' +
+      '</tr>';
+    });
+    html += '</tbody></table>';
+  }
+  html += '<div style="margin-top:14px;font-size:12.5px;color:var(--muted);">' +
+    '想对照原题：<span class="link" onclick="window.open(\'' + QUIZ_FILE + '\',\'_blank\')">打开试卷 ↗</span>' +
+    '　·　主观题（纠错/简答）是考生自评，可打印卷面复核。</div>';
+  $('mBody').innerHTML = html;
+  $('modal').classList.add('show');
+}
+
+/* ==================== 删除 ==================== */
+async function delRec(id){
+  const r = rows.find(x => x.id === id);
+  if(!r) return;
+  if(!confirm('删除「' + r.examinee + '」这条 ' + r.score + ' 分的提交记录？删除后无法恢复。')) return;
+  const { error } = await sb.from('quiz_results').delete().eq('id', id);
+  if(error){ alert('删除失败：' + error.message); return; }
+  rows = rows.filter(x => x.id !== id);
+  render();
+  toast('已删除');
+}
+
+/* ==================== 名单对账：谁还没交卷 ==================== */
+async function rosterCheck(){
+  let names = [];
+  try{
+    const { data, error } = await sb.from('profiles').select('name,real_name,role');
+    if(error) throw error;
+    names = (data || []).filter(p => p.role !== 'admin').map(p => p.real_name || p.name || '').filter(Boolean);
+  }catch(e){
+    alert('读取客服名单失败：' + e.message);
+    return;
+  }
+  if(!names.length){ alert('没有读到客服名单（profiles 表里没有非管理员账号）。'); return; }
+  const done = new Set(byPerson(filtered()).map(p => p.name));
+  const missing = names.filter(n => !done.has(n));
+  alert('【本次筛选范围内】\n\n已交卷 ' + done.size + ' 人：' + [...done].join('、') +
+    '\n\n还没交卷 ' + missing.length + ' 人：' + (missing.length ? missing.join('、') : '（全员已交）'));
+}
+
+/* ==================== 导出 Excel ==================== */
+let xlsxLoading = null;
+function ensureXLSX(){
+  if(window.XLSX) return Promise.resolve(true);
+  if(xlsxLoading) return xlsxLoading;
+  xlsxLoading = new Promise(resolve => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload = () => resolve(!!window.XLSX);
+    s.onerror = () => resolve(false);
+    document.head.appendChild(s);
+  });
+  return xlsxLoading;
+}
+function detailRows(){
+  const list = filtered();
+  const persons = byPerson(list);
+  const latestIds = new Set(persons.map(p => p.latest.id));
+  return list.map(r => ({
+    '考生姓名': r.examinee,
+    '得分': r.score,
+    '满分': r.total || 100,
+    '是否合格': r.score >= PASS_LINE ? '合格' : '未合格',
+    '是否最新一次': latestIds.has(r.id) ? '是' : '',
+    '客观题得分': r.auto_score,
+    '客观题满分': r.auto_total,
+    '主观题自评': r.self_score,
+    '主观题满分': r.self_total,
+    '用时(秒)': r.duration_sec,
+    '交卷时间': fmtTime(r.created_at),
+    '试卷': r.quiz_title || ''
+  }));
+}
+async function exportExcel(){
+  const data = detailRows();
+  if(!data.length){ toast('没有可导出的数据'); return; }
+  const ok = await ensureXLSX();
+  const stamp = new Date().toISOString().slice(0,10);
+  if(ok){
+    const ws = XLSX.utils.json_to_sheet(data);
+    ws['!cols'] = [{wch:12},{wch:8},{wch:8},{wch:10},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:10},{wch:18},{wch:26}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '考核成绩明细');
+    XLSX.writeFile(wb, '考核成绩_弥生花色价格_' + stamp + '.xlsx');
+    toast('已导出 ' + data.length + ' 条');
+    return;
+  }
+  // 降级 CSV
+  const cols = Object.keys(data[0]);
+  const csv = '\ufeff' + [cols.join(',')].concat(data.map(r =>
+    cols.map(c => '"' + String(r[c] == null ? '' : r[c]).replace(/"/g,'""') + '"').join(',')
+  )).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
+  a.download = '考核成绩_弥生花色价格_' + stamp + '.csv';
+  a.click();
+  toast('已导出 CSV（Excel 组件加载失败，降级）');
+}
+
+/* ==================== 事件绑定 ==================== */
+$('chips').addEventListener('click', e => {
+  const c = e.target.closest('.chip'); if(!c) return;
+  $('chips').querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === c));
+  period = c.dataset.p;
+  if(period === 'custom'){ setDefaultRange(); }
+  render();
+});
+$('dFrom').addEventListener('change', () => {
+  period = 'custom';
+  $('chips').querySelectorAll('.chip').forEach(x => x.classList.remove('on'));
+  render();
+});
+$('dTo').addEventListener('change', () => {
+  period = 'custom';
+  $('chips').querySelectorAll('.chip').forEach(x => x.classList.remove('on'));
+  render();
+});
+$('q').addEventListener('input', render);
+$('list').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  if(b.dataset.act === 'detail') openDetail(b.dataset.id);
+  if(b.dataset.act === 'del') delRec(b.dataset.id);
+});
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
+    view = t.dataset.v;
+    render();
+  });
+});
+$('mClose').addEventListener('click', () => $('modal').classList.remove('show'));
+$('modal').addEventListener('click', e => { if(e.target === $('modal')) $('modal').classList.remove('show'); });
+$('btnRefresh').addEventListener('click', () => { load(); toast('已刷新'); });
+$('btnExport').addEventListener('click', exportExcel);
+$('btnRoster').addEventListener('click', rosterCheck);
+$('openQuiz').addEventListener('click', () => window.open(QUIZ_FILE, '_blank'));
+</script>
+</body>
+</html>

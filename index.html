@@ -287,7 +287,7 @@ body {
 
 .page { display: none; padding: 32px 40px; }
 .page.active { display: block; }
-#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active, #page-price-quiz.active { display: flex; height: 100vh; overflow: hidden; }
+#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active, #page-price-quiz.active, #page-quiz-results.active { display: flex; height: 100vh; overflow: hidden; }
 
 /* Header */
 .page-header { margin-bottom: 28px; }
@@ -1994,6 +1994,7 @@ body {
     <div class="nav-item" data-page="training" title="培训资料"><span class="icon">📚</span><span>培训资料</span></div>
     <div class="nav-item" data-page="rules" title="平台规则"><span class="icon">📏</span><span>平台规则</span></div>
     <div class="nav-item" data-page="price-quiz" title="弥生花色与价格考核试卷"><span class="icon">🧪</span><span>花色考核</span></div>
+    <div class="nav-item admin-only-nav" data-page="quiz-results" title="考核成绩（仅管理员，查看新客服交卷分数）" style="display:none;"><span class="icon">📝</span><span>考核成绩</span></div>
     <div class="nav-item" data-page="licenses" title="查验证明"><span class="icon">📜</span><span>查验证明</span></div>
     <div class="nav-item" data-page="sop" title="新人SOP"><span class="icon">📄</span><span>新人SOP</span></div>
     <div class="nav-item" data-page="quiz" title="知识测验"><span class="icon">⭐</span><span>知识测验</span></div>
@@ -3458,7 +3459,12 @@ body {
 
   <!-- ===== 弥生花色与价格考核试卷 ===== -->
   <div class="page" id="page-price-quiz" style="padding:0;overflow:hidden;flex-direction:column;">
-    <iframe id="price-quiz-iframe" src="about:blank" data-src="quiz.html?v=20260930a" style="flex:1;border:none;width:100%;"></iframe>
+    <iframe id="price-quiz-iframe" src="about:blank" data-src="quiz.html?v=20260930b" style="flex:1;border:none;width:100%;"></iframe>
+  </div>
+
+  <!-- ===== 考核成绩（仅管理员） ===== -->
+  <div class="page" id="page-quiz-results" style="padding:0;overflow:hidden;flex-direction:column;">
+    <iframe id="quiz-results-iframe" src="about:blank" data-src="quiz-results.html?v=20260930a" style="flex:1;border:none;width:100%;"></iframe>
   </div>
 
   <!-- ===== 售前工作清单（打卡+提醒，仅管理员） ===== -->
@@ -10323,6 +10329,14 @@ function switchPage(page) {
     if (rulesIframe && rulesIframe.getAttribute('data-src') && rulesIframe.src !== rulesIframe.getAttribute('data-src')) {
       rulesIframe.src = rulesIframe.getAttribute('data-src');
       rulesIframe.removeAttribute('data-src');
+    }
+  }
+  if (page === 'quiz-results') {
+    // 考核成绩（仅管理员）：延迟加载 iframe（首次点击才加载）
+    const qrIframe = document.getElementById('quiz-results-iframe');
+    if (qrIframe && qrIframe.getAttribute('data-src') && qrIframe.src !== qrIframe.getAttribute('data-src')) {
+      qrIframe.src = qrIframe.getAttribute('data-src');
+      qrIframe.removeAttribute('data-src');
     }
   }
   if (page === 'checklist') {
