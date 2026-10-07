@@ -4043,14 +4043,20 @@ function openStaffDetail(id) {
     };
     if (!patch.name) { showToast('花名不能为空'); return false; }
     try {
-      const { error } = await supabase.from('profiles').update(patch).eq('id', id);
+      // .select() 让 PostgREST 回传被更新的行。若权限（RLS）把这次更新挡掉，PostgreSQL 是
+      // "0 行被更新且不报错"，旧写法会误弹「✅ 已保存」但实际没改上；这里显式识别，给出准确提示。
+      const { data: upRows, error } = await supabase.from('profiles').update(patch).eq('id', id).select('id');
       if (error) throw error;
+      if (!upRows || !upRows.length) {
+        showToast('❌ 没改上：当前账号没有修改该客服的权限（或该记录已不存在）');
+        return false;
+      }
       showToast('✅ 已保存');
       await loadStaffInfo();
       return true;
     } catch (e) {
       console.error(e);
-      showToast('保存失败：' + e.message);
+      showToast('保存失败：' + ((e && e.message) ? e.message : e));
       return false;
     }
   });
@@ -4063,8 +4069,9 @@ async function saveStaffInfo(id, patch) {
     if (!supabase || typeof supabase.from !== 'function') throw new Error('数据服务未就绪');
     if (!id) throw new Error('缺少客服 id');
     const payload = Object.assign({}, patch, { updated_at: new Date().toISOString() });
-    const { error } = await supabase.from('profiles').update(payload).eq('id', id);
+    const { data: upRows, error } = await supabase.from('profiles').update(payload).eq('id', id).select('id');
     if (error) throw error;
+    if (!upRows || !upRows.length) throw new Error('当前账号没有修改该客服的权限（或该记录已不存在）');
     const idx = staffInfoData.findIndex(x => x.id === id);
     if (idx >= 0) Object.assign(staffInfoData[idx], payload);
     renderStaffTable();
@@ -4076,6 +4083,23 @@ async function saveStaffInfo(id, patch) {
   }
 }
 
+// 遮罩防误关（动态弹窗版）：在输入框里拖动选择文字、鼠标拖出弹窗边界才松手时，
+// 浏览器会把 click 派发到 mousedown/mouseup 的共同祖先——恰好是遮罩本身，
+// 被误判成"点空白"→ 弹窗关闭，用户视角就是"改到一半闪退"。
+// 只有「按下点就在遮罩上 + 松手位置几乎没移动」才算真点空白。
+// 静态弹窗走 installMaskSafeClose()，动态创建的遮罩（如 sd-modal-overlay）用这个函数绑定。
+function bindMaskSafeClose(overlay, onClose) {
+  if (!overlay || overlay._maskSafe) return;
+  overlay._maskSafe = true;
+  let down = null;
+  overlay.addEventListener('mousedown', e => { down = { x: e.clientX, y: e.clientY, onMask: e.target === overlay }; });
+  overlay.addEventListener('click', e => {
+    if (e.target !== overlay || !down || !down.onMask) return;
+    if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) return;
+    onClose();
+  });
+}
+
 // 通用编辑弹窗（复用 accts-modal 的样式类）
 function showStaffEditModal(title, bodyHtml, onSave) {
   let ov = document.getElementById('sd-modal-overlay');
@@ -4083,9 +4107,10 @@ function showStaffEditModal(title, bodyHtml, onSave) {
     ov = document.createElement('div');
     ov.id = 'sd-modal-overlay';
     ov.className = 'accts-overlay';
-    ov.onclick = closeStaffEditModal;
     document.body.appendChild(ov);
   }
+  // 不再用裸 ov.onclick 关弹窗（会把"拖动选中花名"误判成点空白 → 改名改到一半弹窗消失）
+  bindMaskSafeClose(ov, closeStaffEditModal);
   let box = document.getElementById('sd-modal');
   if (!box) {
     box = document.createElement('div');
@@ -14030,17 +14055,8 @@ function copyScriptStyle(btn) {
 // 修复：移除各输入型弹窗 overlay 的 inline onclick，改为
 //       「按下点在遮罩上 + 松手位置未拖动」才算真点空白，才允许关闭。
 function installMaskSafeClose() {
-  function safeBind(overlay, onClose) {
-    if (!overlay || overlay._maskSafe) return;
-    overlay._maskSafe = true;
-    let down = null;
-    overlay.addEventListener('mousedown', e => { down = { x: e.clientX, y: e.clientY, onMask: e.target === overlay }; });
-    overlay.addEventListener('click', e => {
-      if (e.target !== overlay || !down || !down.onMask) return;
-      if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) return;
-      onClose();
-    });
-  }
+  // 统一实现见上方 bindMaskSafeClose()：静态弹窗与动态弹窗共用同一套防误关逻辑，避免两份实现漂移
+  function safeBind(overlay, onClose) { return bindMaskSafeClose(overlay, onClose); }
   ['mod-script','mod-training','mod-train-detail','mod-script-detail','mod-pattern',
    'mod-penalty-standard','mod-lic-preview','mod-lic-edit','mod-factory-edit',
    'mod-cs-quick','mod-cs-options','mod-cs-filter','mod-cs-archive','mod-cs-paste',
