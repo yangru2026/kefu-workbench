@@ -15636,15 +15636,36 @@ function renderMembers() {
 }
 
 function updateMemberRole(sel) { updateMember(sel.dataset.id, { role: sel.value }); }
-function updateMemberGroup(inp) { updateMember(inp.dataset.id, { group_name: inp.value.trim() }); }
+function updateMemberGroup(inp) {
+  var v = (inp.value || '').trim();
+  var m = membersData.find(function (x) { return x.id === inp.dataset.id; });
+  if (m) {
+    var old = m.group_name || '';
+    if (!old && !v) return;   // 原本就没组、这次也没填 → 不发请求
+    if (old && !v && !confirm('确定清空「' + (m.name || '') + '」的组别吗？\n清空后该客服不归任何组（排名/分组统计都会受影响）。')) {
+      inp.value = old;        // 取消 → 立刻回显原值
+      return;
+    }
+  }
+  updateMember(inp.dataset.id, { group_name: v || null });
+}
 
 async function updateMember(id, patch) {
   try {
-    var { error } = await supabase.from('profiles').update(patch).eq('id', id);
+    // .select() 让 PostgREST 回传被更新的行。若权限（RLS）把这次更新挡掉，PostgreSQL 是
+    // "0 行被更新且不报错"，不带 select 会假报「已更新」，用户切页/刷新后又变回旧值，
+    // 看起来就像"改了之后自动清空"。这里显式识别并回滚到库里的真值。
+    var { data: upRows, error } = await supabase.from('profiles').update(patch).eq('id', id).select('id');
     if (error) { showToast('更新失败：' + error.message); loadMembers(); return; }
+    if (!upRows || !upRows.length) {
+      showToast('❌ 没改上：当前账号没有修改该成员的权限（请把这条提示发给小布）');
+      loadMembers();
+      return;
+    }
     showToast('已更新');
     var m = membersData.find(function (x) { return x.id === id; });
     if (m) Object.assign(m, patch);
+    renderMembers();   // 回显真值，避免界面停留在假成功
     // 若改的是当前登录者，刷新侧边栏显示
     if (currentUser && id === currentUser.id && currentProfile) {
       Object.assign(currentProfile, patch);
