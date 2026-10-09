@@ -240,6 +240,10 @@ body {
 .nav-section:first-of-type { padding-top: 6px; }
 .nav-item {
   flex: 0 0 calc(50% - 3px);
+  min-width: 0;   /* ★ 必须有：flex 项默认 min-width:auto，浏览器字号偏大时 4 字菜单的
+                     min-content 会超过半宽 → 项被撑宽 → 双列塌成单排（2026-10-09 实锤，
+                     茹姐端复现：快捷工具等 4 字项全单排、弥生价/极氧价 3 字项仍两列）。
+                     加 0 后无论字号/字体怎么变都锁定两列，文字超宽走 ellipsis。 */
   box-sizing: border-box; position: relative;
   display: flex; align-items: center; gap: 4px;
   padding: 6px 8px; cursor: pointer;
@@ -249,7 +253,7 @@ body {
 .nav-item:hover { background: var(--sidebar-hover); color: var(--primary-dark); }
 .nav-item.active { background: rgba(16,185,129,0.12); color: #065F46; box-shadow: inset 0 0 0 1px rgba(16,185,129,0.45); }
 .nav-item .icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
-.nav-item > span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-item > span:nth-child(2) { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nav-item .badge { position: absolute; top: -3px; right: -3px; margin-left: 0; background: var(--primary); color: #fff; font-size: 9px; line-height: 1.5; padding: 0 4px; border-radius: 8px; min-width: 7px; text-align: center; box-shadow: 0 0 0 1px var(--sidebar-bg); }
 
 .sidebar-footer {
