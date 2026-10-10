@@ -12,8 +12,12 @@
 //
 // 部署：
 //   supabase secrets set ARK_API_KEY=你的Key
-//   supabase secrets set ARK_MODEL=ep-你的接入点ID
+//   supabase secrets set ARK_MODEL=模型ID或ep-接入点
 //   supabase functions deploy ai-ask
+//
+// 当前线上配置（2026-10-10 起）：
+//   ARK_MODEL = doubao-seed-2-1-lite-260915   （火山方舟 豆包 Seed 2.1 lite）
+//   实测单次约 4 秒 / 约 570 tokens（关闭思考模式后）
 // ============================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -207,23 +211,43 @@ Deno.serve(async (req: Request) => {
   let errMsg = '';
   let totalTokens = 0;
 
-  try {
-    const aiRes = await fetch(ARK_URL, {
+  // 关掉「思考模式」再请求：豆包 2.x 默认带推理，客服问答场景实测
+  // 单次 12~34 秒、推理 token 占 70%+；关掉后降到约 4 秒、token 省 4 倍，
+  // 回答质量不变（实测对比见 outputs/test-thinking-toggle.js）。
+  const baseBody = {
+    model: ARK_MODEL,
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: userMessage },
+    ],
+    temperature: 0.4,
+    max_tokens: 1500,
+  };
+
+  async function callArk(body: Record<string, unknown>) {
+    return await fetch(ARK_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${ARK_API_KEY}`,
       },
-      body: JSON.stringify({
-        model: ARK_MODEL,
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: userMessage },
-        ],
-        temperature: 0.4,
-        max_tokens: 1500,
-      }),
+      body: JSON.stringify(body),
     });
+  }
+
+  try {
+    let aiRes = await callArk({ ...baseBody, thinking: { type: 'disabled' } });
+
+    // 兜底：若该模型不认识 thinking 参数（换模型时可能出现），去掉重试一次
+    if (!aiRes.ok && aiRes.status === 400) {
+      const firstTxt = await aiRes.text();
+      if (/thinking|unknown|invalid.*param/i.test(firstTxt)) {
+        console.warn('模型不支持 thinking 参数，改回默认重试：', firstTxt.slice(0, 200));
+        aiRes = await callArk(baseBody);
+      } else {
+        throw new Error(`AI 服务返回 ${aiRes.status}: ${firstTxt.slice(0, 300)}`);
+      }
+    }
 
     if (!aiRes.ok) {
       const txt = await aiRes.text();
