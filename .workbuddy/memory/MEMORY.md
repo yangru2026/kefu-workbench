@@ -1,120 +1,98 @@
 # 尤赫客服工作台 - 项目记忆
 
-## 主题配色（2026-09-09 换版）
-- 全站主题：**翡翠绿 #10B981 主色 + 白底浅色侧边栏 + 冷白背景 #F7F9F8**（旧版灰调草木绿+深橄榄侧边栏已废弃）；全部集中在 index.html `:root` CSS 变量。
-- 换侧边栏底色的坑：先 `grep var(--sidebar-bg)`，凡配 `color:#fff` 的组件（排班表头、qc-topbar 等）必须同步改，否则白底白字。
-- qc.html / qc-v2 / cs-qc 等独立质检页仍是旧绿主题，未同步。
+## 概况
+- 前端：原生单文件 HTML/CSS/JS → GitHub Pages https://yangru2026.github.io/kefu-workbench/
+- 后端：Supabase `ienmejlxukhrxjjxvfqf`（表/RLS/Storage/Edge Functions）
+- 仓库：`yangru2026/kefu-workbench`（main）；茹姐会在 Supabase SQL Editor 手动跑 SQL
+- 主题：**翡翠绿 #10B981 + 白底浅色侧边栏 + 冷白底 #F7F9F8**（index.html `:root`）。
+  换侧边栏底色前 `grep var(--sidebar-bg)`，配 `color:#fff` 的组件要同步改。
+  qc.html / qc-v2 / cs-qc 等独立质检页仍是旧绿主题（未同步）。
 
-## 已完成功能摘要
-- **客服信息管理**：Supabase 表 `cs_info` + 加班/调休小时累计（`overtime_records`/`compensatory_leave_records`）。
-- **培训资料 & 花色素材**：迁移到 Supabase（`training_materials`/`pattern_assets`/`training_categories`/`pattern_categories`），管理员页面直接维护，全员实时同步。
-- **质检工具**：`qc_records` + `qc-images` Storage，支持录入/筛选/讲解/编辑/删除/导出。
-- **花色素材性能**：缩略图/中图（WebP）+ **同源 GitHub Pages 直连**（jsDelivr 已于 2026-09-24 弃用，见下文「花色素材图片链路」）+ 分页/懒加载 + sw.js 图片缓存。
-- **花色素材同步**：飞书附件自动下载上传到 Supabase Storage（`pattern-images` bucket）；新增 `base_curve`/`fixed_axis`、`is_discontinued`、新款🆕标签。
-- **飞书多表同步**：排班表/客服排名/售前月度/连带成交均接入 Supabase，支持 Excel 导入。
-- **客服申请审批**：`cs_requests` 表，审批通过后自动联动排班/加班/调休。
-- **连带成交**（已下线，2026-09-12）：`cross_sales` 表数据保留；导航入口已被「舆情转接」替代，页面 DOM/JS 仍在 index.html 未删，需要恢复随时可改回。
-- **舆情转接登记**（2026-09-12，commit 72f3c8a）：`diversion.html`（iframe 接入，菜单 🔄 舆情转接）规范分流号使用——仅「舆情问透氧/跨店问正品」可转，登记客服/客户昵称或订单号/原因标签/聊天截图（必传≥1，支持粘贴）；表 `diversion_transfers`（screenshots text[]）+ bucket `diversion-images`，SQL `create_diversion_transfers.sql`（茹姐需 SQL Editor 跑一次）；登录可查可登记、删除仅 admin。
-- **赠品编码查询**（2026-09-09）：`gift.html`（iframe 接入，菜单 🎁 赠品编码）卡片视图 + 搜索 + 点编码复制；表 `gift_codes`（`image_paths text[]` 多图数组 + 兼容旧 `image_path`）、图片 bucket `gift-images`，建表 SQL `create_gift_codes.sql` + 存量迁移 `add_gift_image_paths.sql`（茹姐需在 Supabase SQL Editor 各跑一次）；编辑弹窗支持多图（多选/粘贴/删除/排序）、卡片点开为带左右切换的灯箱；**改文字闪退已修**：第一轮 paste 监听仅拦截图片、文字粘贴放行，第二轮弹窗布局由 flex 居中改为顶部留白，避免输入法/焦点变化导致 iframe 内重排闪烁；仅 admin 可写（要开放 leader 改 `isAdmin = (role === 'admin')`）。
-- **舆情转接登记**（2026-09-12）：`diversion.html` 替代连带成交入口（菜单 🔄），新表 `diversion_transfers`（shop/diversion_nick 两列需跑 `add_diversion_shop_nick.sql`），bucket `diversion-images`；店铺口径为独立 11 家正式名单（抖音1-4店/拼多多1-5店/天猫弥生/天猫极氧），与其他模块店铺口径不同勿混用。
-- **平台规则**（2026-09-12）：`rules.html`（iframe 接入，菜单 📏，培训资料后）；表 `platform_rules`（id/platform/level/title/content/sort_order/created_at）+ RLS（authenticated 读、admin 写）+ 预置 21 条规则（通用高压线 6 条 + 各平台特有），建表 SQL `create_platform_rules.sql`（幂等 by title，茹姐需在 SQL Editor 跑一次）；平台 chips 无「全部」默认第一个，规则卡按等级排序高压线优先；缓存 `kefu_cache_platform_rules` v1；仅 admin 可维护。
-- **工作清单打卡**（2026-09-22，commit 609f609）：`checklist.html`（iframe 接入，菜单 ✅ 工作清单，「🌙 汇报」后，**admin-only-nav 仅茹姐可见**）；内容=Excel《客服管理固定工作清单》售前管理页（每日 8 项/每周 9 项带星期锚点/每月 11 项带日期锚点），**清单项硬编码在页面数组里**（要改项需改代码）；打卡表 `checkin_records`（unique(user_id,item_key,period_key)，period_key 约定 D日期/W周一日期/M年月）+ RLS 仅 admin；三页签+进度条，绿边=今天该做、红边=到期未做；绩效核算锚点暂定 28 号（原表空白）；售后管理 sheet 未做。
-- **AI 提问复活**（2026-09-21，进行中）：8/30 就做完的页面+代码一直没部署。现已代做：① Management API 跑 `create_ai_questions.sql` 建表+4条RLS（工具 `outputs/exec-sql.js`）② 部署 `ai-ask`（npx supabase + sbp_ token）。**只差茹姐提供火山方舟 ARK_API_KEY + 模型**，之后 `npx supabase secrets set ARK_API_KEY=... ARK_MODEL=...` 即上线。豆包端点 `ark.cn-beijing.volces.com/api/v3`，每个模型须单独开通。aiforce.cloud 链接是飞书妙搭应用（强制豆包登录、无免登录形式、iframe 不被拦但要扫码），已否决嵌入方案。
+## 功能一览（新页面 = 独立 html + index.html iframe 接入 + admin-only-nav 控权限）
+| 模块 | 文件 | 表 |
+|---|---|---|
+| 客服信息 / 加班调休 | index.html | `cs_info` `overtime_records` `compensatory_leave_records` |
+| 培训资料 / 花色素材 | index.html | `training_materials` `pattern_assets` `*_categories` |
+| 质检工具 | qc.html 系 | `qc_records` + `qc-images` bucket |
+| 客服申请审批 | index.html | `cs_requests`（通过后联动排班/加班/调休） |
+| 赠品编码查询 | `gift.html` | `gift_codes` + `gift-images` |
+| 舆情转接登记 | `diversion.html` | `diversion_transfers` + `diversion-images` |
+| 平台规则 | `rules.html` | `platform_rules`（预置 21 条） |
+| 工作清单打卡 | `checklist.html` | `checkin_records`（清单项硬编码在页面数组） |
+| 花色考核试卷 | `quiz.html` | 题库内联，35 题满分 100 |
+| 考核成绩（仅 admin） | `quiz-results.html` | `quiz_results` |
+| AI 提问 | index.html + Edge Fn `ai-ask` | `ai_questions` |
+- 连带成交已下线（2026-09-12）：`cross_sales` 数据保留，页面 DOM/JS 仍在 index.html 未删。
+- 飞书多表同步：排班表 / 客服排名 / 售前月度 / 连带成交，支持 Excel 导入。
+- 舆情转接店铺口径 = 独立 11 家名单（抖音1-4店/拼多多1-5店/天猫弥生/天猫极氧），**勿与其他模块混用**。
+- 工作清单来自 Excel《客服管理固定工作清单》售前管理页（日 8/周 9/月 11），绩效锚点暂定 28 号；售后 sheet 未做。
+- **AI 提问已上线**（2026-10-10 / commit 91b2b4e）：`ARK_MODEL=doubao-seed-2-1-lite-260915`，
+  已加 `thinking:{type:'disabled'}`（12~34s → **3.9s**，token 省 4 倍，质量不变）。
+  ⚠️ 火山方舟**界面显示名不能调用**，必须带日期后缀的完整 ID；查法 `GET /api/v3/models`。
+  换 Key/改函数走 Management API，见技能 `supabase-edge-fn-ops`。aiforce.cloud 方案已否决。
 
-## 待开发功能清单
-1. **周报** - 每周数据汇总报告
-2. ~~售前月度数据汇总~~ ✅
-3. **积分卡** - 客服积分/绩效卡
-4. ~~质检工具接入~~ ✅
-5. ~~权限开放功能~~ ✅
-6. **审单统计功能** - 订单审核统计
+## 待开发
+- 周报（每周数据汇总）；积分卡（客服积分/绩效）；审单统计
 
-## 技术栈
-- 前端：原生 HTML/CSS/JS，部署于 GitHub Pages
-- 后端：Supabase (`ienmejlxukhrxjjxvfqf.supabase.co`)
-- 访问地址：https://yangru2026.github.io/kefu-workbench/
+## ⚠️ 三条必读分叉
+1. **index.html 双源码**：权威副本 `C:\temp\kefu_src\index.html`。改完必须
+   `cp /c/temp/kefu_src/index.html index.html` 再提交；推前 `git fetch` 确认远端没被别的会话推过
+   （2026-09-22 曾用旧版覆盖线上）。一致性校验用 `git rev-parse HEAD:index.html` 对比 GitHub
+   commits API 的 `files[].sha`（**trees API 有缓存，别用**）。
+2. **iframe 子页高度坑**：`.page.active{display:block}` 会让 inline `flex-direction:column` 失效 → iframe 塌成 150px。
+   每加一个 iframe 子页必须：① CSS `#page-xxx.active{display:flex;height:100vh;overflow:hidden;}`
+   ② 容器上加 `style="padding:0;overflow:hidden;flex-direction:column;"` ③ 懒加载分支
+   ④ 菜单项 + `data-src` 版本号升版。
+3. **独立页命名坑**：UMD SDK 占全局 `supabase`，禁止 `const supabase = createClient(...)`（整段脚本不执行），
+   统一 `const sb = ...`；别撞已有 `data-page`（如 `quiz` 已被知识测验占用 → 花色考核用 `price-quiz`）。
 
-## Supabase anon public key 管理（重要）
-- ⚠️ **`sbp_` 是 Supabase Personal Access Token（可管理整个项目，权限极高）**：
-  **绝不能硬编码进任何要提交的文件**。2026-09-24 因两个诊断脚本硬编码 token，
-  GitHub Secret Scanning 直接拦下 push（`push declined due to repository rule violations`）。
-  规矩：脚本一律 `process.env.SBP_TOKEN` 读取，用法写注释里。
-  遇到被拦 **不要点 unblock-secret 链接**，脱敏后 `git commit --amend` 重写未推送的 commit 再 push。
-- **首次刷新记录**：2026-08-18，旧 key 失效后从 Project Settings → API 复制新 key，已替换 5 个文件并 commit `83fa2e4`。
-- **涉及文件**：`cs-qc.html` `diagnose.html` `qc-share.html` `qc-v2.html` `qc.html`
-- **key 位置**：https://supabase.com/dashboard/project/ienmejlxukhrxjjxvfqf/settings/api → 复制 "anon public"
-- **快速诊断**：`curl -o /dev/null -w "%{http_code}" -H "apikey: <KEY>" -H "Authorization: Bearer <KEY>" "https://ienmejlxukhrxjjxvfqf.supabase.co/rest/v1/qc_shares?select=id&limit=1"` → 200 有效，401 失效。
-- **缓存问题**：GitHub Pages 会缓存静态文件，部署后若仍报旧错误，客服需 `Ctrl+Shift+R` 强制刷新。
+## 花色素材图片链路（2026-09-24 大改）
+- 图片源 = **同源 GitHub Pages 直连**，由 `toCdnUrl()` 统一规范；**绝不能再改回 jsDelivr**
+  （jsDelivr 301 到 raw.githubusercontent，国内 12s 超时 → 首屏卡死）。
+- 三级图：`thumb/`（卡片）/ `large/`、`hd/`（hover、灯箱）；`{品牌}_{系列}_{花色}_eye|_lens|_extra.webp`。
+- ⚠️ 管理员重新上传图片只写 Storage、不生成缩略图 → 慢链路复现。清零三步：
+  `SBP_TOKEN=xxx node outputs/gen-storage-thumbs.js` → git push → 跑生成的 SQL。
+- ⚠️ `pattern_assets.id` 是 UUID，SQL 必须 `where id='<uuid>'` 带引号；孤儿缩略图**别按名字猜配对**。
+- Storage 兜底：`toStorageRender()` 换 `/storage/v1/render/image/public/` + `?width=&quality=&format=webp&resize=contain`，
+  `toThumbUrl()` 400px/q72。⚠️ 该端点 no-cache + 跨域，SW 缓存不到；是**付费功能**，4xx 要优雅退化。
+- 性能配套：`PATTERN_PAGE_SIZE=20` 分页 + lazy + 首屏 6 张 high 优先级 + `kefu_cache_pattern_assets` 秒显。
+- `sw.js`：`/images/` stale-while-revalidate，`IMG_CACHE='kefu-sw-img-v1'` 固定名不清空。
+  ⚠️ fetch 分支 **isLib 必须排在 isImage 之前**；SW 只处理**同源**。
+- 价格档：`pattern_assets.price_tier`/`diam_group`（直径≥14.5 自动预填大直径）；速查页 = 直径分组 × 价格档。
 
-## 角色权限函数（极易搞混，改功能时务必选对）
-- `isAdminUser()` / `isFullAdmin()` → 仅 `role === 'admin'`
-- `isQcRole()` → `admin || leader`（组长可用质检报告 + 质检工具）
-- 组长白名单（按杨茹 2026-08-31 决定）：质检报告页 + 质检工具录入/删除；其余权限同普通客服
-- 改任何「判断某人能不能进/改某功能」的地方，**先确认用哪一个**，别想当然用 `isAdminUser()`
-- 父页面（index.html）给 QC iframe 传 setQcMode 必须用 `isQcRole()`，否则组长被锁只读
+## 权限与 RLS
+- `isAdminUser()`/`isFullAdmin()` → 仅 `role==='admin'`；`isQcRole()` → `admin||leader`。
+  改「谁能进/改某功能」前先确认用哪一个；父页给 QC iframe 传 `setQcMode` 必须用 `isQcRole()`。
+- **profiles 应有 4 条策略**：SELECT true / UPDATE `auth.uid()=id` / INSERT `auth.uid()=id` /
+  **UPDATE `auth.uid()=id OR is_admin()`**（管理员改他人）。⚠️ **绝不能有** `管理员可查看所有成员`（递归源 42P17）；
+  `is_admin()` 必须 `SECURITY DEFINER`。补丁：`fix_profiles_admin_update_policy.sql`。
+- ⚠️ 写 RLS 策略的 `USING` 里**别直接 `SELECT FROM` 同一张表**，一律包 `SECURITY DEFINER` 函数。
+- 待补：`offboardMember`/`restoreMember` 仍是不带 `.select()` 的老写法（被挡时会假报「已清退」）。
+- 免 token 排查 RLS：用页面里的 `sb_publishable_…` 直连 REST，PATCH 真实行看返回体
+  （`[]`=被挡 / `[{...}]`=放行）；读 `updated_at`、`rpc/is_admin` 交叉印证。
 
-## ⚠️ index.html 双源码分叉（2026-09-24 已对齐，必读）
-- 排名页（rk 磁贴）的工作副本在 `C:\temp\kefu_src\index.html`（kefu-ranking-sync 技能），工作区仓库也有一份 index.html。
-- 2026-09-22 工作区曾把**旧表格版** push 上线覆盖磁贴版（9/23 又被推回来）。**改 index.html 一律以 kefu_src 为准**；
-  从工作区推部署前先 `cp kefu_src/index.html index.html`，且 `git fetch` 确认远端没被其他会话推过。
-- 2026-09-24 起三方一致：工作区 = kefu_src = 线上（commit bae1214，index.html blob sha `4ccddd4e…`）。
-- **远端一致性校验**：`git rev-parse HEAD:index.html` 对比 GitHub API `git/trees/main` 返回的 sha；
-  本沙箱 curl 抓线上大文件会被截断（内容不全），别据此误判「没上线」。
+## Supabase 凭据与 Edge Function
+- ⚠️ **`sbp_` = Personal Access Token（可管理整个项目）**，绝不能硬编码进要提交的文件
+  （2026-09-24 曾被 GitHub Secret Scanning 拦下 push）。脚本一律 `process.env.SBP_TOKEN` 读取；
+  被拦**不要点 unblock 链接**，脱敏后 `git commit --amend` 再 push。
+- anon publishable key 公开可接受（页面里本来就有）；失效诊断：GET `/rest/v1/<表>?select=id&limit=1`
+  → 200 有效 / 401 失效。
+- **Edge Function 运维（2026-10-10 起）不装 CLI**，走 Management API：
+  `POST /secrets`（upsert，不删其它）/ `POST /functions/deploy?slug=<slug>`（手工拼 multipart，
+  ⚠️ `entrypoint_path` 填 **`index.ts`**）。判据分层：`500 尚未配置`=Secret 缺；
+  **`401 登录状态已失效`= 配置已生效**；网关 404 = 没部署。详见技能 `supabase-edge-fn-ops`。
+- 部署后若客服仍报旧错，让她们 `Ctrl+Shift+R`（GitHub Pages 有缓存）。
+- **注入 key 的省事做法**：页面里写占位符，用脚本从已有页面正则提取 key 后替换，避免 key 出现在对话/日志里。
 
-## 花色素材图片链路（2026-09-24 大改，必读）
-- **图片源 = 同源 GitHub Pages 直连** `https://yangru2026.github.io/kefu-workbench/images/patterns/...`，
-  由 `toCdnUrl()`（index.html ~11934 行）统一规范；**绝不能再改回 jsDelivr**。
-- ⚠️ 根因教训：jsDelivr 对本仓库图片会 **301 → `raw.githubusercontent.com`**，该域名国内直连 12s 超时失败
-  → 首屏 20 张卡片图全卡死（茹姐原话「加载太慢，我想秒开」）。同源直连实测 0.47~1.68s（commit bae1214）。
-- 三级图片：`thumb/` 缩略图 34KB（卡片主图）/ `large/` 与 `hd/` 内容相同 28~128KB（hover、灯箱）；
-  文件名规则 `{品牌}_{系列}_{花色}_eye|_lens|_extra.webp`（thumb 目录 357 个文件）。
-- 数据库 `pattern_assets`：卡片主图链路 **176 款同源 thumb 缩略图（快）/ 13 款无图 / 0 款 Storage 慢链路**
-  （2026-09-24 已把 41 张 Storage 原图预转成 `thumb/u{记录id}_{eye|lens}.webp` 存仓库并回填字段，commit f3307b2）；
-  `eye_imgs`/`lens_imgs` 数组供灯箱多图。thumb 目录 398 个文件 / 数据库引用 334 个，
-  **孤儿文件不要按名字猜着配对**（同名不同抛型会错配 → 客服看到错花色）。
-- ⚠️ **管理员重新上传图片只写 Storage，不生成缩略图** → 会重新出现慢链路。
-  清零三步：`SBP_TOKEN=xxx node outputs/gen-storage-thumbs.js`（预转换到 thumb/）→ git push → 跑生成的 SQL。
-  ⚠️ `pattern_assets.id` 是 UUID，SQL 里 `where id = '<uuid>'` 必须带引号。
-- **Storage 大图兜底（2026-09-24 commit 15998c1）**：`toStorageRender(url,w,q)` 把
-  `/storage/v1/object/public/` 换成 `/storage/v1/render/image/public/`，加
-  `?width=NNN&quality=NN&format=webp&resize=contain`；`toThumbUrl()` = 卡片主图 400px/q72
-  （**10.07MB → 25KB**），`toLargeImageUrl()` 对 Storage 返回 1200px/q80（供 hover/灯箱）。
-  ⚠️ Supabase 转换端点响应 `Cache-Control: no-cache`、`CF-Cache-Status: BYPASS`（服务端不缓存），
-  且跨域 → 我们的 SW 也缓存不到，只靠浏览器自身 ETag/304。
-  ⚠️ 该端点是 **Supabase 付费/按量功能**，若哪天 4xx 要能优雅退化（回原图）。
-- 性能配套：`PATTERN_PAGE_SIZE=20` 分页 + `loading="lazy"` + 首屏 6 张 `fetchpriority="high"`
-  + 数据层秒显缓存 `kefu_cache_pattern_assets`（先渲染缓存再后台刷新）。
-- **sw.js 图片缓存**（VERSION v2）：`/images/` 走 stale-while-revalidate（先返缓存秒开 + 后台静默更新），
-  `IMG_CACHE='kefu-sw-img-v1'` 固定名不随版本清空，上限 800 条自动淘汰。
-  ⚠️ fetch 分支顺序 **isLib 必须排在 isImage 之前**；⚠️ SW 只处理**同源**，跨域图片永远进不了缓存。
-- **诊断手法**：先 `curl -sI` 看状态码 + `Location`，再 `curl -sL -w '%{time_total}'` 看跟随重定向后的真实耗时。
-  只看首跳状态码会漏掉「301 跳到坏域名」这种最坑的情况。
+## 前端排查与验证（细节见技能 modal-mask-guard）
+- **顺序**：先证明线上是新版（抓 HTML grep）→ 排除缓存 → 再「注入变量」复现环境差异，
+  **别急着改代码**。UI bug 优先用注入变量法（字号/宽度/缩放）。
+- 语法检查 `node outputs/check-syntax.js <文件>`；无头冒烟用 `puppeteer-core` + Edge headless + 看门狗。
+  ⚠️ 页面有 `confirm()/alert()` 必须桩掉，否则 headless 永久挂起；mock supabase 要「运行时读全局配置」。
+- ⚠️ **同一文件不要在同一轮并行发多个 Edit**（互相覆盖，症状＝「返回 success 但改动不见了」），改完 `grep` 复核。
+- ⚠️ **推送后必须复核** `git rev-parse origin/main`——commit 与 push 写在同一串命令时输出易被截断，曾误判已推送。
+- ⚠️ 本地 git 对象库有损坏（`git fsck` 报 broken link），`git log -S` 可能漏提交 → 追历史改用 GitHub API 拉 raw 比对。
+- 沙箱 bash 缺 coreutils：命令前导出 `PATH=.../PortableGit/versions/1.2.0/{usr,mingw64}/bin:$PATH`。
 
-## 辽哥健身房小程序
-- 本地：`fitness-miniapp/`；AppID：`wx4d7fb2ba6a586905`；主体认证已完成（30元），ICP 备案待推进。
-
-## iframe 型子页面的高度坑（2026-09-09，commit 0f1f0c4）
-- index.html 的 `.page.active{display:block}`，容器上的 inline `flex-direction:column` 无效，iframe `flex:1` 不生效 → iframe 塌陷成默认 150px，页面只显示顶部一条。
-- **每新增 iframe 型子页，必须在 CSS 里加 `#page-xxx.active{display:flex;height:100vh;overflow:hidden;}`（qc/gift 都有），并把 iframe data-src 缓存参数升版。**
-- 截图诊断：PIL 按已知颜色（#f8fafc 卡片图区、#e2e8f0 边框、#f6f8f5 页面底色）做像素扫描，可精确还原用户看到的渲染结果。
-
-## 独立 supabase 页面命名坑（2026-09-09）
-- UMD SDK 已占用全局 `supabase`，脚本里禁止 `const supabase = window.supabase.createClient(...)`（报 "Identifier 'supabase' has already been declared"，整段脚本不执行），统一用 `const sb = ...`。
-- 冒烟脚本模板：`outputs/smoke-gift.js`（本地 http 服务 + Edge headless + pageerror 捕获 + 看门狗）。
-
-## 前端改动验证方法（本沙箱可复用）
-- **语法检查**：`node -e "..."` 提取 inline `<script>` 逐段 `new Function(m[1])` 校验。
-- **无头浏览器冒烟测试**：`puppeteer-core`（绝对路径 require）+ Edge headless，本地起服务加载页面检查 `console`/`pageerror`。
-- **线上验证**：以 `git push` 成功 + 本地冒烟测试为准，勿因本沙箱外网慢而误判未部署。
-- **冒烟必备套路（2026-09-04 沉淀，模板 `outputs/smoke-pp.js`）**：
-  1. 大 evaluate 拆多步 + 每步超时 + 全局看门狗，否则卡死时 SIGTERM 无输出；
-  2. 页面有 `confirm()/alert()` 必须 `page.on('dialog', d=>d.accept())`，否则 evaluate 永久挂起（最常见 SIGTERM 根因）；
-  3. supabase mock：`.select()`/`.order()` 链式返回 this + thenable；`.in(col, vals)` 别漏列名；
-  4. 临时覆盖 `window.loadPatternsFromDB` 等加载函数拦截异步副作用；
-  5. 调 `renderEditorForm` 前先初始化 `window._editPattern`/`window._editImages`；
-  6. 分步 evaluate 返回值要 Object.assign 合并，否则断言空跑不报错。
-
-## 花色价格速查页（2026-09-04，commit 5cd5e16）
-- 菜单「💰 花色价格速查」：直径分组 × 价格档两级分组，防低价错标高价花色；未打标落「⏳ 待分组」「❓ 未标价格」。
-- 数据：`pattern_assets.price_tier`/`diam_group` + `pattern_categories` 扩展 `price`/`diam_group` 类型（档位右键/合并对话框自维护）；迁移 SQL `add_pattern_price_tier.sql`（幂等，直径≥14.5 自动预填大直径）。
-- 管理员批量勾选打标；客服只读；花色素材页筛选行 + 编辑弹窗（ef-price/ef-diamgroup）同步支持两字段。
+## 其他项目
+- 辽哥健身房小程序：本地 `fitness-miniapp/`，AppID `wx4d7fb2ba6a586905`，主体认证已完成，ICP 备案待推进。
