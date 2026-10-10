@@ -1817,6 +1817,9 @@ body {
 .t-response     .rk-tile-bg { background:#A66BE8; }
 /* ★ 最差的那一行用红色条（用户 2026-09-23：「数据最低的红色数据条」） */
 .rk-tile-row.bot .rk-tile-bg { background:#E5484D !important; }
+/* ★ 当期无数据的行（2026-10-10）：排在有效值后面、整行淡化、显示「—」，保证编制内人人都在卡里 */
+.rk-tile-row.na { opacity:.45; }
+.rk-tile-row.na .rk-tile-vl { font-weight:500; color:var(--text-secondary); }
 .rk-tile-row.bot .rk-tile-vl { color:#C62A2F; }
 .rk-tile-row.bot .rk-tile-rk { color:#E5484D; }
 /* 第一名数值用主题色强调 */
@@ -5322,7 +5325,10 @@ const RK_GROUP_SHOPS = {
 //   必须「组名 + 客服名」成对匹配 —— 售前1组另有一位正式客服「小雷」，只按名字删会误伤。
 //   加人时照抄一行即可；想让某个人重新回到榜单，删掉对应行。
 const RK_EXCLUDE_STAFF = [
-  { group: '售前3组', name: '小雷（练手）' }
+  { group: '售前3组', name: '小雷（练手）' },
+  // ★2026-10-10（茹姐）：C组 10月考核 9 人＝小火/小咪/小恬/小溪/小贴/小江/小熊/小喜/小雪，
+  //   「小猫（三组新人）」是借小猫账号的展示行（每日明细里保留），不进排名页。
+  { group: '售前3组', name: '小猫（三组新人）' }
 ];
 // ★ 2026-09-23：用户要求「🎯💰😊⏱️ 所有页面的图标都删掉」→ 排名页不再用图标，
 //   指标靠「文字名 + 主题色」区分。icon 字段保留为空串，方便以后想恢复时填回去。
@@ -6140,6 +6146,9 @@ function rkTilesOne(list, metric, scopeNote, opts) {
   const m = metric;
   // 筛选有效值
   const valid = list.filter(r => r[m.key] !== null && r[m.key] !== undefined && isFinite(r[m.key]));
+  // ★2026-10-10（茹姐）：每张卡的名单要齐 —— 编制内的人当期没这项数据（休息/没询单/平台无评价）
+  //   也要出现在卡里，排在有效值后面显示「—」，不能整行消失（否则「B组5个人只列4个」看不懂）。
+  const noval = list.filter(r => !(r[m.key] !== null && r[m.key] !== undefined && isFinite(r[m.key])));
   const cls = 'rk-tile t-' + m.key + (opts.single ? ' t-single' : '');
   // ★ 2026-09-23：用户要求去掉图标，指标名加大，靠主题色 + 文字区分
   const head =
@@ -6151,14 +6160,18 @@ function rkTilesOne(list, metric, scopeNote, opts) {
       '<div class="rk-tile-sub">' + m.tip + (scopeNote ? '　·　' + scopeNote : '') + '</div>' +
     '</div>';
 
-  if (!valid.length) {
+  if (!valid.length && !noval.length) {
     return '<div class="' + cls + '">' + head +
       '<div class="rk-tile-empty">暂无数据</div></div>';
   }
 
   // ── 单人模式：一块 = 一个人在这项指标上的数值（大字号显示）──
   if (opts.single) {
-    const r = valid[0];
+    const r = valid[0] || noval[0];
+    if (!r) {
+      return '<div class="' + cls + '">' + head +
+        '<div class="rk-tile-empty">暂无数据</div></div>';
+    }
     return '<div class="' + cls + '">' + head +
       '<div class="rk-single-body">' +
         '<div class="rk-single-vl">' + rkFmt(r[m.key], m.fmt) + '</div>' +
@@ -6211,8 +6224,16 @@ function rkTilesOne(list, metric, scopeNote, opts) {
       '</div>';
   }).join('');
 
+  // ★2026-10-10：当期无数据的人追加在末尾（无名次、无横条、显示「—」、整行淡化）
+  const restRows = noval.map(r =>
+    '<div class="rk-tile-row na" title="' + rkEsc(r.name) + '　' + m.label + ' 当期无数据">' +
+      '<span class="rk-tile-rk"></span>' +
+      '<span class="rk-tile-nm">' + rkEsc(r.name) + '</span>' +
+      '<span class="rk-tile-vl">—</span>' +
+    '</div>').join('');
+
   return '<div class="' + cls + '">' + head +
-    '<div class="rk-tile-list">' + rows + '</div>' +
+    '<div class="rk-tile-list">' + rows + restRows + '</div>' +
     '</div>';
 }
 
