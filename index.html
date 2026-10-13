@@ -11886,7 +11886,7 @@ function renderPatterns() {
     const MAX_IMGS = 6;
     const shownImgs = images.slice(0, MAX_IMGS);
     const imgsHtml = images.length
-      ? `<div class="pfeed-imgs${images.length <= 2 ? ' onlyfew' : ''}">` + shownImgs.map((im, i) =>
+      ? `<div class="pfeed-imgs${images.length === 1 ? ' onlyfew' : ''}">` + shownImgs.map((im, i) =>
           `<div class="pfeed-img" onclick="openLightbox(window._lbImages['${lbKey}'])">` +
           `<img src="${escapeHtml(im.thumb)}" loading="lazy" decoding="async" onerror="retryImg(this)" alt="${escapeHtml(p.name)}"${fpAttr}>` +
           (i === MAX_IMGS - 1 && images.length > MAX_IMGS ? `<div class="more-mask">+${images.length - MAX_IMGS}</div>` : '') +
