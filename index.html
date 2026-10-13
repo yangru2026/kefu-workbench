@@ -9809,6 +9809,7 @@ function subscribePatternCategories() {
 function buildPatternTree(flatData) {
   const tree = { brands: {} };
   flatData.forEach(p => {
+    if (!p.brand || !String(p.brand).trim()) return;   // 品牌为空的脏数据不进树，避免顶部出现空白品牌标签
     if (!tree.brands[p.brand]) tree.brands[p.brand] = {};
     if (!tree.brands[p.brand][p.type]) tree.brands[p.brand][p.type] = [];
     tree.brands[p.brand][p.type].push({
