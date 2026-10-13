@@ -3235,7 +3235,8 @@ body {
     .pfeed-desc { font-size:13.5px; color:#334155; line-height:1.65; margin-top:8px; white-space:pre-wrap; word-break:break-word; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
     .pfeed-desc.expanded { -webkit-line-clamp:unset; display:block; }
     .pfeed-desc-toggle { border:none; background:none; color:#5f7d50; font-size:12.5px; cursor:pointer; padding:2px 0; font-family:inherit; font-weight:600; }
-    .pfeed-imgs { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:10px; }
+    .pfeed-imgs { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; margin-top:10px; }
+    .pfeed-imgs.onlyfew { grid-template-columns:repeat(3,1fr); }
     .pfeed-img { position:relative; aspect-ratio:1/1; border-radius:10px; overflow:hidden; background:#f1f5f9; cursor:zoom-in; }
     .pfeed-img img { width:100%; height:100%; object-fit:cover; display:block; }
     .pfeed-img .more-mask { position:absolute; inset:0; background:rgba(0,0,0,.45); color:#fff; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; }
@@ -3253,6 +3254,7 @@ body {
     @media (max-width:600px) {
       .pfeed-card { padding:12px; }
       .pfeed-imgs { gap:4px; }
+      .pfeed-imgs:not(.onlyfew) { grid-template-columns:repeat(4,1fr); }
       .pfeed-title { font-size:15px; }
     }
   </style>
@@ -11884,7 +11886,7 @@ function renderPatterns() {
     const MAX_IMGS = 6;
     const shownImgs = images.slice(0, MAX_IMGS);
     const imgsHtml = images.length
-      ? `<div class="pfeed-imgs">` + shownImgs.map((im, i) =>
+      ? `<div class="pfeed-imgs${images.length <= 2 ? ' onlyfew' : ''}">` + shownImgs.map((im, i) =>
           `<div class="pfeed-img" onclick="openLightbox(window._lbImages['${lbKey}'])">` +
           `<img src="${escapeHtml(im.thumb)}" loading="lazy" decoding="async" onerror="retryImg(this)" alt="${escapeHtml(p.name)}"${fpAttr}>` +
           (i === MAX_IMGS - 1 && images.length > MAX_IMGS ? `<div class="more-mask">+${images.length - MAX_IMGS}</div>` : '') +
