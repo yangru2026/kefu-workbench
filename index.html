@@ -15702,8 +15702,12 @@ async function updateMember(id, patch) {
 async function offboardMember(id) {
   if (!confirm('确认清退该成员？\n清退后其账号将被禁用、无法登录（可随时恢复）。')) return;
   try {
-    var { error } = await supabase.from('profiles').update({ status: 'disabled', left_at: new Date().toISOString() }).eq('id', id);
+    // .select('id') 用于识别「0 行被更新」：RLS 挡掉时不报错但也没改上，
+    // 不加会把没清退成功报成「已清退」（和改组别同类坑）
+    var { data: upRows, error } = await supabase.from('profiles')
+      .update({ status: 'disabled', left_at: new Date().toISOString() }).eq('id', id).select('id');
     if (error) { showToast('清退失败：' + error.message); return; }
+    if (!upRows || !upRows.length) { showToast('❌ 清退没生效：当前账号没有该操作权限（请把这条提示发给小布）'); return; }
     showToast('已清退');
     var m = membersData.find(function (x) { return x.id === id; });
     if (m) { m.status = 'disabled'; m.left_at = new Date().toISOString(); }
@@ -15713,8 +15717,10 @@ async function offboardMember(id) {
 
 async function restoreMember(id) {
   try {
-    var { error } = await supabase.from('profiles').update({ status: 'active', left_at: null }).eq('id', id);
+    var { data: upRows, error } = await supabase.from('profiles')
+      .update({ status: 'active', left_at: null }).eq('id', id).select('id');
     if (error) { showToast('恢复失败：' + error.message); return; }
+    if (!upRows || !upRows.length) { showToast('❌ 恢复没生效：当前账号没有该操作权限（请把这条提示发给小布）'); return; }
     showToast('已恢复');
     var m = membersData.find(function (x) { return x.id === id; });
     if (m) { m.status = 'active'; m.left_at = null; }
