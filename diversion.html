@@ -79,6 +79,7 @@
   .rec-reason.r1{background:var(--primary-light);color:var(--primary-dark);}
   .rec-reason.r2{background:var(--orange-bg);color:var(--orange);}
   .rec-reason.r3{background:#eef2ff;color:#4f46e5;}
+  .rec-reason.r4{background:#e0f2fe;color:#0369a1;}
   .rec-shots{display:flex;gap:6px;flex-shrink:0;}
   .rec-shots img{width:46px;height:46px;border-radius:8px;object-fit:cover;border:1px solid var(--border);cursor:zoom-in;}
   .rec-del{background:rgba(224,82,82,.1);color:var(--danger);border:none;border-radius:16px;
@@ -137,6 +138,7 @@
   .bar-row .b-fill{display:block;height:100%;background:var(--primary);border-radius:7px;min-width:2px;}
   .bar-row.r2 .b-fill{background:var(--orange);}
   .bar-row.r3 .b-fill{background:#6366f1;}
+  .bar-row.r4 .b-fill{background:#0ea5e9;}
   .bar-row .b-num{width:30px;text-align:right;font-weight:700;color:var(--primary-dark);flex-shrink:0;}
   .day-chart{display:flex;align-items:flex-end;gap:3px;height:110px;padding-top:6px;overflow-x:auto;}
   .day-col{flex:1;min-width:16px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
@@ -195,6 +197,7 @@
         <span class="reason-tag" data-reason="舆情问透氧"><b>💧 舆情问透氧</b><small>进线首句咨询透氧量</small></span>
         <span class="reason-tag" data-reason="跨店问正品"><b>🏪 跨店问正品</b><small>跨店 / 跨品牌</small></span>
         <span class="reason-tag" data-reason="反馈建议类"><b>📝 反馈建议类</b><small>客户提建议</small></span>
+        <span class="reason-tag" data-reason="单句无回复"><b>💬 单句无回复</b><small>客户只发一句、客服未回复</small></span>
       </div>
     </div>
     <div class="form-row">
@@ -321,7 +324,7 @@ function fmtTime(ts){
   const p = n => String(n).padStart(2,'0');
   return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
 }
-function reasonCls(r){ return r==='跨店问正品' ? 'r2' : (r==='反馈建议类' ? 'r3' : 'r1'); }
+function reasonCls(r){ return r==='跨店问正品' ? 'r2' : (r==='反馈建议类' ? 'r3' : (r==='单句无回复' ? 'r4' : 'r1')); }
 
 /* ==================== 初始化 ==================== */
 (async function init(){
@@ -500,7 +503,7 @@ function renderStats(){
     '<div class="sum-cell"><b>'+people.size+'</b><span>登记客服数</span></div>'+
     '<div class="sum-cell"><b>'+shops.size+'</b><span>涉及店铺数</span></div>';
   $('byCs').innerHTML = barHtml(aggCount(list,'cs_name'));
-  $('byReason').innerHTML = barHtml(aggCount(list,'reason'), k=> k==='跨店问正品'?'r2':(k==='反馈建议类'?'r3':''));
+  $('byReason').innerHTML = barHtml(aggCount(list,'reason'), k=> k==='跨店问正品'?'r2':(k==='反馈建议类'?'r3':(k==='单句无回复'?'r4':'')));
   $('byShop').innerHTML = barHtml(aggCount(list,'shop'));
   $('byNick').innerHTML = barHtml(aggCount(list,'diversion_nick'));
   const dayMap = {};
