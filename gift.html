@@ -182,6 +182,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="vendor/supabase.min.js?v=2"></script>
+<script src="vendor/img-compress.js?v=1"></script>
 <script>
 'use strict';
 /* ==================== 配置 ==================== */
@@ -423,7 +424,7 @@ $('btnSave').addEventListener('click', async () => {
     // 上传所有新图片
     let uploaded = [];
     for(const obj of editNewFiles){
-      const f = obj.file;
+      const f = (window.compressImage ? await window.compressImage(obj.file) : obj.file);
       const ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
       const path = 'gifts/' + Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.' + ext;
       const { error:upErr } = await sb.storage.from(BUCKET).upload(path, f, { contentType: f.type || 'image/jpeg', upsert:true });

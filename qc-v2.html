@@ -184,6 +184,7 @@ table.grid tr:hover{background:#fafbf8}
 </style>
 </head>
 <body>
+<script src="vendor/img-compress.js?v=1"></script>
 
 <div class="topbar">
   <h1>🔍 质检工作台</h1>
@@ -1086,7 +1087,8 @@ async function saveEdit(){
       const news=pendingUploads[kind].filter(p=>p.isNew&&p.file);
       for(const p of news){
         const path='rec/'+recId+'/'+kind+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'.jpg';
-        const {error}=await supabase.storage.from('qc-images').upload(path,p.file,{contentType:'image/jpeg',upsert:true});
+        const upFile=(window.compressImage?await window.compressImage(p.file):p.file);
+        const {error}=await supabase.storage.from('qc-images').upload(path,upFile,{contentType:'image/jpeg',upsert:true});
         if(error){ console.warn('上传失败',error.message); continue; }
         await supabase.from('qc_images').insert({record_id:recId,kind,seq:0,file_path:path});
       }
