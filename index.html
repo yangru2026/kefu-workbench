@@ -4586,7 +4586,20 @@ function refreshAdminUI() {
   }
 }
 
+// 登录/注册前确保客户端就绪（防止 SDK 慢加载时点击登录报 signInWithPassword undefined）
+async function ensureSupabaseClient(maxMs = 10000) {
+  const t0 = Date.now();
+  while (!(supabase && typeof supabase.from === 'function' && supabase.auth && typeof supabase.auth.signInWithPassword === 'function')) {
+    if (Date.now() - t0 > maxMs) return false;
+    try { await initSupabase(); } catch (e) { /* 忽略，循环重试 */ }
+    if (supabase && typeof supabase.from === 'function' && supabase.auth) break;
+    await new Promise(r => setTimeout(r, 250));
+  }
+  return true;
+}
+
 async function signUp(name, phone, password) {
+  if (!(await ensureSupabaseClient())) { showToast('数据服务还没连接上，请等几秒再点，或刷新页面重试'); return false; }
   const { data, error } = await supabase.auth.signUp({
     email: phone + '@youhu.app',
     password: password,
@@ -4598,6 +4611,7 @@ async function signUp(name, phone, password) {
 }
 
 async function signIn(phone, password) {
+  if (!(await ensureSupabaseClient())) { showToast('数据服务还没连接上，请等几秒再点，或刷新页面重试'); return false; }
   console.log('[signIn] calling signInWithPassword for', phone);
   const { data, error } = await supabase.auth.signInWithPassword({
     email: phone + '@youhu.app',
