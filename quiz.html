@@ -31,6 +31,8 @@
         font-family:inherit;font-size:13.5px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .15s;}
   .ptab:hover{border-color:var(--primary);color:var(--primary-dark);}
   .ptab.on{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .ptab.lock{opacity:.45;cursor:not-allowed;}
+  .ptab.lock:hover{border-color:var(--border);color:var(--muted);}
   .intro{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:16px;
          box-shadow:0 2px 12px rgba(31,41,55,.05);}
   .intro h2{font-size:15px;font-weight:800;margin-bottom:8px;}
@@ -119,7 +121,7 @@
     <p id="introText"></p>
     <div class="name-row">
       <label for="examinee">👤 考生姓名</label>
-      <input id="examinee" type="text" maxlength="20" autocomplete="off" placeholder="先填姓名再答题，交卷后主管按姓名查成绩">
+      <input id="examinee" type="text" maxlength="20" autocomplete="off" placeholder="先填姓名再答题（姓名决定你解锁到第几份试卷）">
       <span class="must">必填</span>
     </div>
     <div class="warn">⚠️ 先选试卷 → 填姓名 → 答题 → 交卷。交卷后自动判分并显示每题解析，成绩同步到「考核成绩」页（主管按姓名查）。</div>
@@ -144,14 +146,47 @@ const QUIZ_KEY = () => QUIZ.meta.key;
 const START_TS = Date.now();
 let submitted = false;
 
+/* ============ 顺序解锁：上一份没交卷，后面试卷看不了 ============ */
+let doneKeys = new Set();   // 该考生已交卷的 quiz_key
+let unlockMax = 0;          // 已解锁到的最大试卷下标（0 = 只解锁第一份）
+function calcUnlock() {
+  unlockMax = 0;
+  while (unlockMax < PAPERS.length - 1 && doneKeys.has(PAPERS[unlockMax].meta.key)) unlockMax++;
+}
+// 填了姓名就去查她考过哪几份卷，算出解锁进度
+async function refreshUnlock() {
+  const name = ($('examinee').value || '').trim();
+  doneKeys = new Set();
+  if (name) {
+    try {
+      const res = await fetch(SUPA_URL + '/rest/v1/quiz_results?select=quiz_key&examinee=eq.' + encodeURIComponent(name), {
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+      });
+      const arr = await res.json();
+      (Array.isArray(arr) ? arr : []).forEach(r => doneKeys.add(r.quiz_key));
+    } catch (e) { console.warn('解锁进度查询失败', e); }
+  }
+  calcUnlock();
+  renderTabs();
+  if (curPaper > unlockMax) {
+    curPaper = unlockMax;
+    renderMeta(); buildPaper();
+  }
+}
+
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const LETTER = i => String.fromCharCode(65 + i);
 
 function renderTabs(){
-  $('paperTabs').innerHTML = PAPERS.map((p, i) =>
-    '<button class="ptab' + (i === curPaper ? ' on' : '') + '" onclick="switchPaper(' + i + ')">'
-    + esc(p.meta.title) + '</button>').join('');
+  $('paperTabs').innerHTML = PAPERS.map((p, i) => {
+    const locked = i > unlockMax;
+    const label = locked ? '🔒 ' + esc(p.meta.title) : esc(p.meta.title);
+    return '<button class="ptab' + (i === curPaper ? ' on' : '') + (locked ? ' lock' : '')
+      + '" onclick="switchPaper(' + i + ')"'
+      + (locked ? ' title="先完成「' + esc(PAPERS[i - 1].meta.title) + '」并交卷后解锁"' : '')
+      + '>' + label + '</button>';
+  }).join('');
 }
 function renderMeta(){
   QUIZ = PAPERS[curPaper];
@@ -161,6 +196,10 @@ function renderMeta(){
 }
 function switchPaper(i){
   if (i === curPaper) return;
+  if (i > unlockMax) {
+    alert('🔒 这份试卷还没解锁：先把「' + PAPERS[i - 1].meta.title + '」做完并交卷，交卷成功就自动解锁下一份。');
+    return;
+  }
   if (window.__qRes && window.__qRes.length && !confirm('切换试卷会清空当前作答，确定吗？')) return;
   curPaper = i;
   submitted = false;
@@ -175,6 +214,13 @@ function switchPaper(i){
 
 /* 按 section 分组渲染 */
 function buildPaper(){
+if (curPaper > unlockMax) {
+  $('paper').innerHTML = '<div class="sec" style="text-align:center;padding:60px 20px;">'
+    + '<div style="font-size:44px;margin-bottom:10px;">🔒</div>'
+    + '<h2 style="border:none;padding-left:0;">「' + esc(QUIZ.meta.title) + '」暂未解锁</h2>'
+    + '<p style="color:var(--muted);margin-top:8px;">先把「' + esc(PAPERS[curPaper - 1].meta.title) + '」做完并交卷，交卷成功后这份试卷自动解锁。</p></div>';
+  return;
+}
 let html = '';
 const sections = [...new Set(QUIZ.questions.map(q => q.section))];
 sections.forEach(sec => {
@@ -360,6 +406,12 @@ async function reportResult(name) {
     });
     if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + (await res.text()).slice(0, 160));
     submitted = true;
+    // 交卷成功 → 记录这份卷已考，解锁下一份
+    doneKeys.add(QUIZ_KEY());
+    const hadLock = unlockMax;
+    calcUnlock();
+    renderTabs();
+    const unlockedNext = unlockMax > hadLock;
     const hasSelf = (payload.self_total || 0) > 0;
     const selfDone = (payload.self_score || 0) > 0;
     const needSelf = hasSelf && !selfDone;
@@ -370,7 +422,10 @@ async function reportResult(name) {
       (needSelf
         ? '<br><span style="color:#9b2c2c;font-weight:700;">⚠️ 主观题（纠错 / 简答）还没自评，现在这部分按 0 分算。</span>' +
           '<br><span style="opacity:.8;font-size:12.5px;">请往下翻到主观题，在「自评得分」下拉里给自己打分，再点下面的按钮提交一次，成绩才是完整的。</span>'
-        : '<br><span style="opacity:.75;font-size:12.5px;">可以关掉这个页面了；改了答案再交一次也可以，主管按最新一次为准。</span>'));
+        : '<br><span style="opacity:.75;font-size:12.5px;">可以关掉这个页面了；改了答案再交一次也可以，主管按最新一次为准。</span>') +
+      (unlockedNext && curPaper < PAPERS.length - 1
+        ? '<br><span style="color:var(--primary-dark);font-weight:700;">🎉 已解锁下一份：「' + esc(PAPERS[curPaper + 1].meta.title) + '」，点上面的试卷标签就能开始做。</span>'
+        : ''));
   } catch (e) {
     console.error('收卷上报失败', e);
     btn.disabled = false; btn.textContent = '✅ 交卷判分';
@@ -402,6 +457,12 @@ $('btnSubmit').addEventListener('click', async () => {
 });
 $('btnReset').addEventListener('click', () => location.reload());
 renderTabs(); renderMeta(); buildPaper();
+/* 姓名填入后查她考过哪几份卷，恢复解锁进度 */
+$('examinee').addEventListener('change', refreshUnlock);
+try {
+  const savedName = localStorage.getItem('kefu_quiz_examinee');
+  if (savedName) { $('examinee').value = savedName; refreshUnlock(); }
+} catch (e) {}
 </script>
 </body>
 </html>
