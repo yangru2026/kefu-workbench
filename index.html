@@ -4220,7 +4220,7 @@ async function adminResetPwd(id) {
   const pwd = input ? input.value.trim() : '';
   if (!pwd || pwd.length < 6) { showToast('请输入至少 6 位的新密码'); return; }
   try {
-    if (!supabase || typeof supabase.functions !== 'function') throw new Error('数据服务未就绪');
+    if (!supabase || !supabase.functions || typeof supabase.functions.invoke !== 'function') throw new Error('数据服务未就绪');
     const { data, error } = await supabase.functions.invoke('admin-set-password', { body: { user_id: id, password: pwd } });
     if (error) throw error;
     if (data && data.error) throw new Error(data.error);
