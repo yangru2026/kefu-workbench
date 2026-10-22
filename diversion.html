@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>舆情转接登记</title>
+<title>工作表格</title>
 <style>
   :root{ --primary:#10b981; --primary-dark:#059669; --primary-light:rgba(16,185,129,.1);
          --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f7f9f8; }
@@ -14,98 +14,74 @@
           border-bottom:1px solid var(--border);flex-wrap:wrap;position:sticky;top:0;z-index:10;}
   .topbar h1{font-size:18px;font-weight:800;letter-spacing:.5px;}
   .badge{font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;background:var(--primary-light);color:var(--primary-dark);}
-  .wrap{width:100%;max-width:760px;margin:0 auto;padding:26px 20px 60px;}
-  .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:26px 24px;
-        box-shadow:0 4px 18px rgba(31,41,55,.06);margin-bottom:18px;}
-  .hero{text-align:center;padding:8px 0 4px;}
-  .hero .ico{font-size:40px;line-height:1;}
-  .hero h2{font-size:20px;font-weight:800;margin:12px 0 8px;}
-  .hero p{color:var(--muted);font-size:13.5px;line-height:1.8;}
-  .go{display:block;width:100%;max-width:420px;margin:22px auto 10px;padding:16px 22px;border:0;border-radius:14px;
-      background:var(--primary);color:#fff;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;
-      transition:all .16s;box-shadow:0 6px 18px rgba(16,185,129,.28);}
-  .go:hover{background:var(--primary-dark);transform:translateY(-1px);}
-  .go[disabled]{background:#cbd5e1;box-shadow:none;cursor:not-allowed;transform:none;}
-  .hint{text-align:center;font-size:12px;color:var(--muted);margin-top:6px;}
-  h3{font-size:14px;font-weight:800;margin:0 0 12px;display:flex;align-items:center;gap:6px;}
-  ol.steps{list-style:none;counter-reset:s;}
-  ol.steps li{counter-increment:s;position:relative;padding:0 0 14px 34px;font-size:13.5px;line-height:1.75;color:#334155;}
-  ol.steps li:last-child{padding-bottom:0;}
-  ol.steps li::before{content:counter(s);position:absolute;left:0;top:1px;width:22px;height:22px;border-radius:50%;
-      background:var(--primary-light);color:var(--primary-dark);font-size:12px;font-weight:800;
-      display:flex;align-items:center;justify-content:center;}
-  ol.steps b{color:#0f172a;}
-  .reasons{display:flex;flex-direction:column;gap:8px;}
-  .reason{display:flex;align-items:baseline;gap:8px;background:#f8fafc;border:1px solid var(--border);
-      border-radius:10px;padding:9px 12px;font-size:12.5px;color:#475569;}
-  .reason .t{font-weight:700;color:#0f172a;white-space:nowrap;}
+  .wrap{width:100%;max-width:900px;margin:0 auto;padding:26px 20px 60px;}
+  .intro{color:var(--muted);font-size:13.5px;line-height:1.7;margin:0 2px 18px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px;}
+  .sheet-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:22px 22px 20px;
+        box-shadow:0 4px 18px rgba(31,41,55,.06);display:flex;flex-direction:column;gap:10px;}
+  .sheet-card .head{display:flex;align-items:center;gap:10px;}
+  .sheet-card .ico{width:42px;height:42px;border-radius:12px;background:var(--primary-light);
+        display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+  .sheet-card h2{font-size:16px;font-weight:800;}
+  .sheet-card .tag{display:inline-block;font-size:11px;font-weight:700;color:var(--primary-dark);
+        background:var(--primary-light);border-radius:20px;padding:2px 10px;margin-top:3px;}
+  .sheet-card p{color:var(--muted);font-size:13px;line-height:1.75;flex:1;}
+  .sheet-card p b{color:#334155;}
+  .open{display:block;width:100%;padding:12px 18px;border:0;border-radius:12px;
+      background:var(--primary);color:#fff;font-size:14.5px;font-weight:800;cursor:pointer;font-family:inherit;
+      transition:all .16s;text-align:center;}
+  .open:hover{background:var(--primary-dark);transform:translateY(-1px);}
+  .open[disabled]{background:#cbd5e1;cursor:not-allowed;transform:none;}
   .note{background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:12px 14px;font-size:12.5px;
-      color:#92400e;line-height:1.7;}
-  .foot{text-align:center;font-size:12px;color:#94a3b8;padding:8px 0 0;}
-  @media (max-width:520px){ .card{padding:20px 16px;border-radius:14px;} .hero h2{font-size:18px;} }
+      color:#92400e;line-height:1.7;margin-top:18px;}
+  .foot{text-align:center;font-size:12px;color:#94a3b8;padding:20px 0 0;}
+  @media (max-width:520px){ .grid{grid-template-columns:1fr;} .sheet-card{padding:18px 16px;} }
 </style>
 </head>
 <body>
   <div class="topbar">
-    <h1>舆情转接登记</h1>
-    <span class="badge">已迁移至飞书</span>
+    <h1>工作表格</h1>
+    <span class="badge">飞书在线文档</span>
   </div>
 
   <div class="wrap">
-    <div class="card">
-      <div class="hero">
-        <div class="ico">📋</div>
-        <h2>转接登记已搬到飞书表格</h2>
-        <p>登记、查看、截图都在飞书里完成<br>工作台这边只保留这个入口</p>
-        <button class="go" id="goBtn">打开飞书登记表 →</button>
-        <div class="hint" id="hint">点击后在新标签打开，可直接在表格里登记</div>
-      </div>
+    <p class="intro">日常工作要用到的飞书表格都从这里进：点卡片上的按钮直接打开，登记、查看、传截图都在飞书里完成。</p>
+    <div class="grid" id="grid"></div>
+
+    <div class="note">
+      📦 <b>历史登记记录</b>：已完整备份。
     </div>
 
-    <div class="card">
-      <h3>🖊 怎么登记</h3>
-      <ol class="steps">
-        <li>点上面的按钮，打开飞书《舆情转接登记》表</li>
-        <li>在表格最后一行填：<b>日期 · 客服 · 客户昵称或订单号 · 接待店铺 · 分流号 · 转接原因</b></li>
-        <li>截图<b>直接拖进「截图」那一格</b>（可以一次拖多张）</li>
-        <li>填完关掉就行，不用再回工作台提交</li>
-      </ol>
-    </div>
-
-    <div class="card">
-      <h3>🏷 转接原因（照这个选）</h3>
-      <div class="reasons">
-        <div class="reason"><span class="t">💧 透氧问询</span><span>客户问透氧率、材质安全</span></div>
-        <div class="reason"><span class="t">🏪 跨店正品</span><span>问是不是正品、和别店比</span></div>
-        <div class="reason"><span class="t">📝 反馈建议</span><span>提意见、说体验问题</span></div>
-        <div class="reason"><span class="t">💬 单句无回复</span><span>只发一句/链接，后续没回</span></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="note">
-        📦 <b>历史登记记录</b>：已完整备份。
-      </div>
-    </div>
-
-    <div class="foot">尤赫售前客服工作台 · 舆情转接</div>
+    <div class="foot">尤赫售前客服工作台 · 工作表格</div>
   </div>
 
 <script>
-  // ⚠️ 飞书登记表链接：把下面的空字符串换成飞书表格链接（要带 ?sheet= 参数）
-  const FEISHU_DIVERSION_URL = 'https://yow5cuygtx.feishu.cn/wiki/IeBRwF32Vi09Dmk1otYc4pganHg?sheet=c329af';
+  // ⚠️ 工作相关的飞书表统一加在这里：一条 = 一张卡片，url 填完整链接（要带 ?sheet= 参数）
+  const WORK_SHEETS = [
+    {
+      icon: '🔄',
+      title: '舆情转接登记',
+      tag: '每天登记',
+      desc: '客户转接明细和截图都在这张表里登记。在表格最后一行填：日期 · 客服 · 客户昵称或订单号 · 接待店铺 · 分流号 · 转接原因；截图直接拖进「截图」那一格。<br><b>转接原因</b>：💧 透氧问询 · 🏪 跨店正品 · 📝 反馈建议 · 💬 单句无回复',
+      url: 'https://yow5cuygtx.feishu.cn/wiki/IeBRwF32Vi09Dmk1otYc4pganHg?sheet=c329af',
+    },
+    // 后续新增：往这个数组里再加一条即可，页面自动出卡片
+  ];
 
-  (function () {
-    const btn = document.getElementById('goBtn');
-    const hint = document.getElementById('hint');
-    if (!FEISHU_DIVERSION_URL) {
-      btn.disabled = true;
-      btn.textContent = '飞书登记表链接待配置';
-      hint.textContent = '链接还没配上，先找杨茹要一下';
-      return;
-    }
-    btn.addEventListener('click', function () {
-      window.open(FEISHU_DIVERSION_URL, '_blank', 'noopener');
+  (function render() {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = WORK_SHEETS.map(function (s) {
+      const btn = s.url
+        ? '<button class="open" data-url="' + s.url + '">打开表格 →</button>'
+        : '<button class="open" disabled>链接待配置</button>';
+      return '<div class="sheet-card">' +
+        '<div class="head"><div class="ico">' + s.icon + '</div>' +
+        '<div><h2>' + s.title + '</h2>' + (s.tag ? '<span class="tag">' + s.tag + '</span>' : '') + '</div></div>' +
+        '<p>' + s.desc + '</p>' + btn + '</div>';
+    }).join('');
+    grid.addEventListener('click', function (e) {
+      const btn = e.target.closest('.open');
+      if (btn && btn.dataset.url) window.open(btn.dataset.url, '_blank', 'noopener');
     });
   })();
 </script>
