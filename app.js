@@ -2750,7 +2750,7 @@ let allOvertimeRecords = [];  // all overtime records from Supabase
 let allLeaveRecords = [];     // all compensatory leave records from Supabase
 let otDrawerProfileId = null;
 
-async function loadStaffInfo() {
+async function legacy_loadStaffInfo() {
   if (!supabase) {
     const tbody = document.getElementById('staff-tbody');
     if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">Supabase 未初始化</td></tr>';
@@ -2770,7 +2770,7 @@ async function loadStaffInfo() {
     allStaffData = profRes.data || [];
     allOvertimeRecords = otRes.data || [];
     allLeaveRecords = lvRes.data || [];
-    renderStaffTable();
+    legacy_renderStaffTable();
   } catch (e) {
     const tbody = document.getElementById('staff-tbody');
     if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--danger);">加载异常</td></tr>';
@@ -2788,7 +2788,7 @@ function getOTSummary(profileId) {
 
 function roundH(v) { return Math.round(v * 10) / 10; }
 
-function renderStaffTable() {
+function legacy_renderStaffTable() {
   const tbody = document.getElementById('staff-tbody');
   const term = staffSearchTerm.toLowerCase();
   const filtered = allStaffData.filter(s => {
@@ -2854,7 +2854,7 @@ function renderStaffTable() {
 
 // ========== 管理员一键重置客服工作台登录密码 ==========
 // 通过 Edge Function reset-password（服务端校验 admin 角色 + service_role 改密）
-async function adminResetPwd(phone, nickname) {
+async function legacy_adminResetPwd(phone, nickname) {
   if (!isAdminUser()) { showToast('仅管理员可重置密码'); return; }
   if (!phone || phone === '-') { showToast('该客服未登记手机号，无法重置'); return; }
   if (!confirm('确定为「' + nickname + '」重置工作台登录密码？\n重置后原密码立即失效。')) return;
@@ -2881,7 +2881,7 @@ async function adminResetPwd(phone, nickname) {
 
 // ========== 加班调休抽屉 ==========
 
-function openOTDrawer(profileId, nickname) {
+function legacy_openOTDrawer(profileId, nickname) {
   otDrawerProfileId = profileId;
   document.getElementById('ot-drawer-name').textContent = '⏱️ ' + nickname + ' - 加班调休';
   document.getElementById('ot-drawer-overlay').classList.add('show');
@@ -2967,7 +2967,7 @@ function hideOTAddForm(type) {
   document.getElementById(type === 'overtime' ? 'ot-overtime-form' : 'ot-leave-form').style.display = 'none';
 }
 
-async function saveOTRecord(type) {
+async function legacy_saveOTRecord(type) {
   const pid = otDrawerProfileId;
   if (!pid || !supabase) return;
 
@@ -3000,7 +3000,7 @@ async function saveOTRecord(type) {
   }
 
   renderOTDrawer();
-  renderStaffTable();
+  legacy_renderStaffTable();
 }
 
 async function deleteOTRecord(type, recordId) {
@@ -3021,7 +3021,7 @@ async function deleteOTRecord(type, recordId) {
   }
 
   renderOTDrawer();
-  renderStaffTable();
+  legacy_renderStaffTable();
 }
 
 // ========== 账号本 ==========
@@ -3060,9 +3060,9 @@ function copyAccts() {
   navigator.clipboard.writeText(content).then(() => showToast('已复制到剪贴板'));
 }
 
-function filterStaff() {
+function legacy_filterStaff() {
   staffSearchTerm = document.getElementById('staff-search').value;
-  renderStaffTable();
+  legacy_renderStaffTable();
 }
 
 function startEditStaffField(td, userId, field, currentValue) {
@@ -3113,7 +3113,7 @@ function startEditStaffField(td, userId, field, currentValue) {
         allStaffData[idx][field] = newVal || null;
       }
     }
-    renderStaffTable();
+    legacy_renderStaffTable();
   };
 
   input.addEventListener('blur', save);
@@ -3146,7 +3146,7 @@ async function copyStaffRow(userId) {
   }
 }
 
-function copyAllStaff() {
+function legacy_copyAllStaff() {
   const term = staffSearchTerm.toLowerCase();
   const filtered = term ? allStaffData.filter(s => {
     const name = (s.name || '').toLowerCase();
@@ -3180,7 +3180,7 @@ function copyAllStaff() {
   }
 }
 
-function exportStaffCSV() {
+function legacy_exportStaffCSV() {
   const term = staffSearchTerm.toLowerCase();
   const filtered = term ? allStaffData.filter(s => {
     const name = (s.name || '').toLowerCase();
