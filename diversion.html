@@ -6,733 +6,108 @@
 <title>舆情转接登记</title>
 <style>
   :root{ --primary:#10b981; --primary-dark:#059669; --primary-light:rgba(16,185,129,.1);
-         --danger:#e05252; --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f7f9f8;
-         --orange:#c2660a; --orange-bg:rgba(230,145,56,.12); }
+         --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f7f9f8; }
   *{margin:0;padding:0;box-sizing:border-box;}
   body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
        background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
-  /* ===== 顶栏 ===== */
   .topbar{display:flex;align-items:center;gap:12px;padding:14px 20px;background:#fff;
           border-bottom:1px solid var(--border);flex-wrap:wrap;position:sticky;top:0;z-index:10;}
   .topbar h1{font-size:18px;font-weight:800;letter-spacing:.5px;}
-  .badge{font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;white-space:nowrap;}
-  .badge.admin{background:rgba(224,82,82,.1);color:var(--danger);}
-  .badge.readonly{background:#f1f5f9;color:var(--muted);}
-  .search-wrap{flex:1;min-width:200px;max-width:420px;position:relative;}
-  .search-wrap input{width:100%;padding:9px 14px 9px 36px;border:1.5px solid var(--border);
-          border-radius:22px;font-size:14px;outline:none;transition:border-color .15s;background:#fff;}
-  .search-wrap input:focus{border-color:var(--primary);}
-  .search-wrap .icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.45;}
-  .btn{padding:8px 18px;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;
-       font-family:inherit;transition:all .15s;white-space:nowrap;}
-  .btn-primary{background:var(--primary);color:#fff;}
-  .btn-primary:hover{background:var(--primary-dark);}
-  .btn-primary[disabled]{opacity:.5;cursor:not-allowed;}
-  .btn-ghost{background:#fff;color:var(--primary);border:1.5px solid var(--primary);}
-  .btn-ghost:hover{background:var(--primary-light);}
-  .wrap{width:100%;max-width:860px;margin:0 auto;padding:16px 20px 60px;}
-  /* ===== 登记卡 ===== */
-  .reg-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:18px;
-            box-shadow:0 2px 12px rgba(31,41,55,.05);}
-  .reg-card h2{font-size:15px;font-weight:800;margin-bottom:12px;}
-  .form-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
-  .form-item{flex:1;min-width:220px;}
-  .form-item label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:5px;}
-  .form-item input[type=text]{width:100%;padding:9px 12px;border:1.5px solid var(--border);
-         border-radius:10px;font-size:14px;outline:none;font-family:inherit;transition:border-color .15s;}
-  .form-item input[type=text]:focus{border-color:var(--primary);}
-  /* 原因标签（两行：标题 + 注释） */
-  .reason-tags{display:flex;gap:10px;flex-wrap:wrap;}
-  .reason-tag{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 18px;border-radius:14px;
-              border:1.5px solid var(--border);background:#fff;cursor:pointer;transition:all .15s;user-select:none;}
-  .reason-tag b{font-size:13.5px;font-weight:700;color:var(--muted);}
-  .reason-tag small{font-size:11px;font-weight:500;color:#94a3b8;line-height:1.3;}
-  .reason-tag:hover{border-color:var(--primary);}
-  .reason-tag:hover b{color:var(--primary-dark);}
-  .reason-tag.on{background:var(--primary);border-color:var(--primary);}
-  .reason-tag.on b{color:#fff;}
-  .reason-tag.on small{color:rgba(255,255,255,.85);}
-  /* 截图上传 */
-  .shot-area{display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
-  .shot-cell{position:relative;width:74px;height:74px;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#f8fafc;}
-  .shot-cell img{width:100%;height:100%;object-fit:cover;display:block;}
-  .shot-remove{position:absolute;top:2px;right:2px;width:20px;height:20px;border:none;border-radius:50%;
-              background:rgba(15,23,42,.6);color:#fff;font-size:13px;line-height:20px;cursor:pointer;padding:0;z-index:2;}
-  .shot-add{width:74px;height:74px;border:1.5px dashed var(--border);border-radius:10px;background:#fafcfa;
-            display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
-            color:var(--muted);font-size:11px;cursor:pointer;transition:all .15s;}
-  .shot-add:hover{border-color:var(--primary);color:var(--primary-dark);background:var(--primary-light);}
-  .shot-add .plus{font-size:22px;line-height:1;}
-  .shot-tip{font-size:12px;color:var(--muted);margin-top:6px;}
-  .reg-actions{margin-top:12px;display:flex;gap:10px;align-items:center;}
-  .reg-actions .btn{padding:9px 26px;font-size:14px;}
-  /* ===== 列表 ===== */
-  .list-head{display:flex;align-items:center;gap:10px;margin:4px 0 10px;}
-  .list-head h2{font-size:15px;font-weight:800;}
-  .list-head .cnt{font-size:12px;color:var(--muted);}
-  .rec{background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:10px;
-       display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
-  .rec-time{font-size:12px;color:var(--muted);min-width:110px;flex-shrink:0;}
-  .rec-cs{font-size:13.5px;font-weight:700;min-width:64px;flex-shrink:0;}
-  .rec-info{flex:1;min-width:150px;font-size:13px;word-break:break-all;}
-  .rec-reason{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:12px;flex-shrink:0;}
-  .rec-reason.r1{background:var(--primary-light);color:var(--primary-dark);}
-  .rec-reason.r2{background:var(--orange-bg);color:var(--orange);}
-  .rec-reason.r3{background:#eef2ff;color:#4f46e5;}
-  .rec-reason.r4{background:#e0f2fe;color:#0369a1;}
-  .rec-shots{display:flex;gap:6px;flex-shrink:0;}
-  .rec-shots img{width:46px;height:46px;border-radius:8px;object-fit:cover;border:1px solid var(--border);cursor:zoom-in;}
-  .rec-del{background:rgba(224,82,82,.1);color:var(--danger);border:none;border-radius:16px;
-           font-size:12px;font-weight:600;padding:5px 12px;cursor:pointer;flex-shrink:0;font-family:inherit;}
-  .empty{text-align:center;padding:50px 0;color:var(--muted);font-size:14px;}
-  .empty .big{font-size:42px;display:block;margin-bottom:10px;opacity:.4;}
-  /* ===== 列表表头 ===== */
-  .rec-head{display:flex;gap:12px;align-items:center;padding:6px 14px 8px;font-size:12px;font-weight:700;
-            color:var(--muted);border-bottom:1px solid var(--border);margin-bottom:8px;}
-  .rec-head .h-time{min-width:110px;flex-shrink:0;}
-  .rec-head .h-cs{min-width:64px;flex-shrink:0;}
-  .rec-head .h-info{flex:1;min-width:150px;}
-  .rec-head .h-shop{min-width:80px;flex-shrink:0;}
-  .rec-head .h-nick{min-width:70px;flex-shrink:0;}
-  .rec-head .h-reason{min-width:86px;flex-shrink:0;}
-  .rec-head .h-shots{min-width:52px;flex-shrink:0;}
-  .rec-shop{font-size:12.5px;min-width:80px;flex-shrink:0;}
-  .rec-nick{font-size:12.5px;color:var(--muted);min-width:70px;flex-shrink:0;}
-  /* ===== 灯箱 ===== */
-  .lightbox{display:none;position:fixed;inset:0;background:rgba(15,23,42,.85);z-index:200;
-            align-items:center;justify-content:center;cursor:zoom-out;}
-  .lightbox.active{display:flex;}
-  .lightbox img{max-width:92vw;max-height:92vh;border-radius:8px;}
-  .gal-nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border:none;border-radius:50%;
-           background:rgba(255,255,255,.85);color:#1e293b;font-size:26px;cursor:pointer;z-index:2;line-height:46px;}
-  .gal-prev{left:24px;}
-  .gal-next{right:24px;}
-  .gal-count{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);color:#fff;font-size:14px;
-             background:rgba(15,23,42,.6);padding:4px 14px;border-radius:16px;}
-  /* ===== 统计看板（仅管理员） ===== */
-  .stats-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:18px;
-              box-shadow:0 2px 12px rgba(31,41,55,.05);display:none;}
-  .stats-card.open{display:block;}
-  .stats-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
-  .stats-head h2{font-size:15px;font-weight:800;flex:1;}
-  .period-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
-  .pchip{padding:6px 14px;border-radius:16px;border:1.5px solid var(--border);background:#fff;font-size:12.5px;
-         font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;transition:all .15s;}
-  .pchip:hover{border-color:var(--primary);color:var(--primary-dark);}
-  .pchip.on{background:var(--primary);border-color:var(--primary);color:#fff;}
-  .custom-range{display:none;gap:8px;align-items:center;margin:10px 0 2px;flex-wrap:wrap;font-size:13px;color:var(--muted);}
-  .custom-range.show{display:flex;}
-  .custom-range input[type=date]{padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;
-                                  font-family:inherit;outline:none;background:#fff;}
-  .custom-range input[type=date]:focus{border-color:var(--primary);}
-  .stat-sum{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 14px;}
-  .stat-sum .sum-cell{flex:1;min-width:110px;background:var(--primary-light);border-radius:10px;padding:10px 14px;text-align:center;}
-  .stat-sum .sum-cell b{display:block;font-size:22px;color:var(--primary-dark);}
-  .stat-sum .sum-cell span{font-size:12px;color:var(--muted);}
-  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:14px;}
-  .stat-block{border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
-  .stat-block h3{font-size:13px;font-weight:800;margin-bottom:10px;color:var(--text);}
-  .bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12.5px;}
-  .bar-row .b-name{width:78px;flex-shrink:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .bar-row .b-track{flex:1;height:14px;background:#f1f5f9;border-radius:7px;overflow:hidden;}
-  .bar-row .b-fill{display:block;height:100%;background:var(--primary);border-radius:7px;min-width:2px;}
-  .bar-row.r2 .b-fill{background:var(--orange);}
-  .bar-row.r3 .b-fill{background:#6366f1;}
-  .bar-row.r4 .b-fill{background:#0ea5e9;}
-  .bar-row .b-num{width:30px;text-align:right;font-weight:700;color:var(--primary-dark);flex-shrink:0;}
-  .day-chart{display:flex;align-items:flex-end;gap:3px;height:110px;padding-top:6px;overflow-x:auto;}
-  .day-col{flex:1;min-width:16px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
-  .day-col .d-bar{width:70%;max-width:26px;background:var(--primary);border-radius:3px 3px 0 0;min-height:2px;}
-  .day-col .d-lbl{font-size:9.5px;color:var(--muted);margin-top:4px;white-space:nowrap;transform:scale(.9);}
-  .stat-empty{font-size:12.5px;color:var(--muted);padding:8px 0;}
-  .btn-export{background:var(--primary);color:#fff;}
-  .btn-export:hover{background:var(--primary-dark);}
-  /* ===== toast / 未登录 ===== */
-  .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);
-         background:rgba(30,41,59,.9);color:#fff;font-size:13px;padding:9px 20px;border-radius:22px;
-         opacity:0;pointer-events:none;transition:all .25s;z-index:300;}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-  .auth-mask{display:none;position:fixed;inset:0;background:var(--bg);z-index:50;
-             align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--muted);}
-  .auth-mask.active{display:flex;}
-  .auth-mask .big{font-size:44px;}
-  @media (max-width:600px){
-    .wrap{padding:12px 12px 50px;}
-    .form-item{min-width:100%;}
-    .rec-time{min-width:100%;}
-    .rec-head{display:none;}
-  }
+  .badge{font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;background:var(--primary-light);color:var(--primary-dark);}
+  .wrap{width:100%;max-width:760px;margin:0 auto;padding:26px 20px 60px;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:26px 24px;
+        box-shadow:0 4px 18px rgba(31,41,55,.06);margin-bottom:18px;}
+  .hero{text-align:center;padding:8px 0 4px;}
+  .hero .ico{font-size:40px;line-height:1;}
+  .hero h2{font-size:20px;font-weight:800;margin:12px 0 8px;}
+  .hero p{color:var(--muted);font-size:13.5px;line-height:1.8;}
+  .go{display:block;width:100%;max-width:420px;margin:22px auto 10px;padding:16px 22px;border:0;border-radius:14px;
+      background:var(--primary);color:#fff;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;
+      transition:all .16s;box-shadow:0 6px 18px rgba(16,185,129,.28);}
+  .go:hover{background:var(--primary-dark);transform:translateY(-1px);}
+  .go[disabled]{background:#cbd5e1;box-shadow:none;cursor:not-allowed;transform:none;}
+  .hint{text-align:center;font-size:12px;color:var(--muted);margin-top:6px;}
+  h3{font-size:14px;font-weight:800;margin:0 0 12px;display:flex;align-items:center;gap:6px;}
+  ol.steps{list-style:none;counter-reset:s;}
+  ol.steps li{counter-increment:s;position:relative;padding:0 0 14px 34px;font-size:13.5px;line-height:1.75;color:#334155;}
+  ol.steps li:last-child{padding-bottom:0;}
+  ol.steps li::before{content:counter(s);position:absolute;left:0;top:1px;width:22px;height:22px;border-radius:50%;
+      background:var(--primary-light);color:var(--primary-dark);font-size:12px;font-weight:800;
+      display:flex;align-items:center;justify-content:center;}
+  ol.steps b{color:#0f172a;}
+  .reasons{display:flex;flex-direction:column;gap:8px;}
+  .reason{display:flex;align-items:baseline;gap:8px;background:#f8fafc;border:1px solid var(--border);
+      border-radius:10px;padding:9px 12px;font-size:12.5px;color:#475569;}
+  .reason .t{font-weight:700;color:#0f172a;white-space:nowrap;}
+  .note{background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:12px 14px;font-size:12.5px;
+      color:#92400e;line-height:1.7;}
+  .foot{text-align:center;font-size:12px;color:#94a3b8;padding:8px 0 0;}
+  @media (max-width:520px){ .card{padding:20px 16px;border-radius:14px;} .hero h2{font-size:18px;} }
 </style>
 </head>
 <body>
-
-<div class="topbar">
-  <h1>🔄 舆情转接登记</h1>
-  <span class="badge readonly" id="roleBadge">加载中…</span>
-  <div class="search-wrap">
-    <span class="icon">🔍</span>
-    <input type="text" id="searchInput" placeholder="搜客服 / 昵称 / 订单号…" autocomplete="off">
-  </div>
-  <button class="btn btn-ghost" id="btnRefresh" title="重新加载">🔄</button>
-  <button class="btn btn-ghost" id="btnStats" style="display:none;" title="登记统计看板">📊 统计</button>
-</div>
-
-<div class="wrap">
-  <!-- 登记卡 -->
-  <div class="reg-card" id="regCard" style="display:none;">
-    <h2>✏️ 转接登记</h2>
-    <div class="form-row">
-      <div class="form-item">
-        <label>客服名字 *</label>
-        <input type="text" id="fCs" placeholder="你的名字" autocomplete="off" autocorrect="off" autocapitalize="off">
-      </div>
-      <div class="form-item">
-        <label>客户昵称 / 订单号 *</label>
-        <input type="text" id="fInfo" placeholder="昵称或订单号" autocomplete="off" autocorrect="off" autocapitalize="off">
-      </div>
-    </div>
-    <div class="form-item" style="margin-bottom:12px;">
-      <label>转接原因 *（分流号仅限以下场景，虚假登记会被追责）</label>
-      <div class="reason-tags" id="reasonTags">
-        <span class="reason-tag" data-reason="舆情问透氧"><b>💧 舆情问透氧</b><small>进线首句咨询透氧量</small></span>
-        <span class="reason-tag" data-reason="跨店问正品"><b>🏪 跨店问正品</b><small>跨店 / 跨品牌</small></span>
-        <span class="reason-tag" data-reason="反馈建议类"><b>📝 反馈建议类</b><small>客户提建议</small></span>
-        <span class="reason-tag" data-reason="单句无回复"><b>💬 单句无回复</b><small>客户只发一句/链接，后续未回复</small></span>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-item">
-        <label>接待店铺 *</label>
-        <select id="fShop" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none;font-family:inherit;background:#fff;transition:border-color .15s;">
-          <option value="">请选择接待店铺</option>
-          <option value="抖音1店">抖音1店</option>
-          <option value="抖音2店">抖音2店</option>
-          <option value="抖音3店">抖音3店</option>
-          <option value="抖音4店">抖音4店</option>
-          <option value="拼多多1店">拼多多1店</option>
-          <option value="拼多多2店">拼多多2店</option>
-          <option value="拼多多3店">拼多多3店</option>
-          <option value="拼多多4店">拼多多4店</option>
-          <option value="拼多多5店">拼多多5店</option>
-          <option value="天猫弥生">天猫弥生</option>
-          <option value="天猫极氧">天猫极氧</option>
-        </select>
-      </div>
-      <div class="form-item">
-        <label>分流号昵称 *</label>
-        <select id="fNick" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none;font-family:inherit;background:#fff;transition:border-color .15s;">
-          <option value="">请选择分流号</option>
-          <option value="可可">可可</option>
-          <option value="莓莓">莓莓</option>
-          <option value="睛彩顾问">睛彩顾问</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-item">
-      <label>聊天截图证明 *（至少 1 张，可多选 / Ctrl+V 粘贴）</label>
-      <div class="shot-area" id="shotArea"></div>
-      <div class="shot-tip">📸 上传顾客咨询分流号的聊天记录截图</div>
-      <input type="file" id="fShots" accept="image/*" multiple style="display:none;">
-    </div>
-    <div class="reg-actions">
-      <button class="btn btn-primary" id="btnSave">💾 提交登记</button>
-    </div>
+  <div class="topbar">
+    <h1>舆情转接登记</h1>
+    <span class="badge">已迁移至飞书</span>
   </div>
 
-  <!-- 统计看板（仅管理员可见） -->
-  <div class="stats-card" id="statsCard">
-    <div class="stats-head">
-      <h2>📊 登记统计</h2>
-      <button class="btn btn-export" id="btnExport">⬇ 导出Excel明细</button>
+  <div class="wrap">
+    <div class="card">
+      <div class="hero">
+        <div class="ico">📋</div>
+        <h2>转接登记已搬到飞书表格</h2>
+        <p>登记、查看、截图都在飞书里完成<br>工作台这边只保留这个入口</p>
+        <button class="go" id="goBtn">打开飞书登记表 →</button>
+        <div class="hint" id="hint">点击后在新标签打开，可直接在表格里登记</div>
+      </div>
     </div>
-    <div class="period-chips" id="periodChips">
-      <button class="pchip" data-p="today">今天</button>
-      <button class="pchip" data-p="7d">近7天</button>
-      <button class="pchip on" data-p="30d">近30天</button>
-      <button class="pchip" data-p="month">本月</button>
-      <button class="pchip" data-p="all">全部</button>
-      <button class="pchip" data-p="custom">自定义</button>
+
+    <div class="card">
+      <h3>🖊 怎么登记</h3>
+      <ol class="steps">
+        <li>点上面的按钮，打开飞书《舆情转接登记》表</li>
+        <li>在表格最后一行填：<b>日期 · 客服 · 客户昵称或订单号 · 接待店铺 · 分流号 · 转接原因</b></li>
+        <li>截图<b>直接拖进「截图」那一格</b>（可以一次拖多张）</li>
+        <li>填完关掉就行，不用再回工作台提交</li>
+      </ol>
     </div>
-    <div class="custom-range" id="customRange">
-      <input type="date" id="dateFrom"> <span>至</span> <input type="date" id="dateTo">
-      <button class="btn btn-ghost" id="btnApplyRange" style="padding:6px 14px;">应用</button>
+
+    <div class="card">
+      <h3>🏷 转接原因（照这个选）</h3>
+      <div class="reasons">
+        <div class="reason"><span class="t">💧 透氧问询</span><span>客户问透氧率、材质安全</span></div>
+        <div class="reason"><span class="t">🏪 跨店正品</span><span>问是不是正品、和别店比</span></div>
+        <div class="reason"><span class="t">📝 反馈建议</span><span>提意见、说体验问题</span></div>
+        <div class="reason"><span class="t">💬 单句无回复</span><span>只发一句/链接，后续没回</span></div>
+      </div>
     </div>
-    <div class="stat-sum" id="statSum"></div>
-    <div class="stat-grid">
-      <div class="stat-block"><h3>👤 按客服</h3><div id="byCs"></div></div>
-      <div class="stat-block"><h3>🏷 按转接原因</h3><div id="byReason"></div></div>
-      <div class="stat-block"><h3>🏪 按接待店铺</h3><div id="byShop"></div></div>
-      <div class="stat-block"><h3>📮 按分流号</h3><div id="byNick"></div></div>
+
+    <div class="card">
+      <div class="note">
+        📦 <b>历史登记记录</b>：工作台里之前的记录已归档（2026-10-22 前的全部数据已完整备份）。需要查老数据找杨茹，页面上不再展示。
+      </div>
     </div>
-    <div class="stat-block"><h3>📅 按天趋势</h3><div id="byDay"></div></div>
+
+    <div class="foot">尤赫售前客服工作台 · 舆情转接</div>
   </div>
 
-  <!-- 列表 -->
-  <div class="list-head">
-    <h2>📋 登记记录</h2>
-    <span class="cnt" id="recCnt"></span>
-  </div>
-  <div id="list"><div class="empty"><span class="big">⏳</span>正在加载数据…</div></div>
-</div>
-
-<div class="auth-mask" id="authMask">
-  <span class="big">🔐</span>
-  <div>请先在<strong>工作台登录</strong>，然后刷新本页</div>
-</div>
-
-<!-- 灯箱 -->
-<div class="lightbox" id="lightbox">
-  <button type="button" class="gal-nav gal-prev" id="galPrev">‹</button>
-  <img id="lightboxImg" src="">
-  <button type="button" class="gal-nav gal-next" id="galNext">›</button>
-  <div class="gal-count" id="galCount"></div>
-</div>
-<div class="toast" id="toast"></div>
-
-<script src="vendor/supabase.min.js?v=2"></script>
-<script src="vendor/img-compress.js?v=1"></script>
 <script>
-'use strict';
-/* ==================== 配置 ==================== */
-const SUPABASE_URL = 'https://icfgireprowcqwdodfqx.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljZmdpcmVwcm93Y3F3ZG9kZnF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0ODMwNjEsImV4cCI6MjEwODA1OTA2MX0.T8yex8pjNBE0ch3vPKL3xPQPOqw3ExS4mwRsjT2FhzE';
-const BUCKET = 'diversion-images';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // ⚠️ 飞书登记表链接：把下面的空字符串换成飞书表格链接（要带 ?sheet= 参数）
+  const FEISHU_DIVERSION_URL = '';
 
-/* ==================== 状态 ==================== */
-let records = [];        // 全量记录
-let isAdmin = false;
-let myName = '';         // 当前登录人默认名
-let selReason = '';      // 选中的转接原因
-let newShots = [];       // 待上传截图 [{file,_url}]
-let editingId = null;
-
-const $ = id => document.getElementById(id);
-
-/* ==================== 工具 ==================== */
-function toast(msg){
-  const t = $('toast'); t.textContent = msg; t.classList.add('show');
-  clearTimeout(t._timer); t._timer = setTimeout(()=>t.classList.remove('show'), 1800);
-}
-function imgUrl(path){
-  if(!path) return '';
-  return SUPABASE_URL + '/storage/v1/object/public/' + BUCKET + '/' + String(path).replace(/^\/+/,'');
-}
-function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function fmtTime(ts){
-  if(!ts) return '';
-  const d = new Date(ts);
-  const p = n => String(n).padStart(2,'0');
-  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
-}
-function reasonCls(r){ return r==='跨店问正品' ? 'r2' : (r==='反馈建议类' ? 'r3' : (r==='单句无回复' ? 'r4' : 'r1')); }
-
-/* ==================== 初始化 ==================== */
-(async function init(){
-  try{
-    const { data:{ session } } = await sb.auth.getSession();
-    const user = session && session.user;
-    if(!user){
-      const b = $('roleBadge'); b.className='badge readonly'; b.textContent='🔒 未登录';
-      $('authMask').classList.add('active'); renderList(); return;
+  (function () {
+    const btn = document.getElementById('goBtn');
+    const hint = document.getElementById('hint');
+    if (!FEISHU_DIVERSION_URL) {
+      btn.disabled = true;
+      btn.textContent = '飞书登记表链接待配置';
+      hint.textContent = '链接还没配上，先找杨茹要一下';
+      return;
     }
-    let role = user.app_metadata && user.app_metadata.role;
-    let name = '';
-    try{
-      const { data:p } = await sb.from('profiles').select('role,name,real_name').eq('id', user.id).single();
-      if(p){ role = p.role; name = p.real_name || p.name || ''; }
-    }catch(e){ console.warn('profiles load', e); }
-    isAdmin = (role === 'admin');
-    if(!name) name = (user.email||'').split('@')[0];
-    myName = name;
-    const badge = $('roleBadge');
-    badge.className = isAdmin ? 'badge admin' : 'badge readonly';
-    badge.textContent = isAdmin ? '👑 管理员 · 可删记录' : '📖 登记模式';
-    $('fCs').value = myName;
-    $('regCard').style.display = '';
-    if(isAdmin) $('btnStats').style.display = '';
-    await loadRecords();
-  }catch(e){
-    console.error(e);
-    $('list').innerHTML = '<div class="empty"><span class="big">⚠️</span>初始化失败：' + esc(e.message) + '</div>';
-  }
-})();
-
-/* ==================== 缓存 & 加载 ==================== */
-var DIV_CACHE_VER = 'v1';
-function divCacheGet(){ try{ var r=localStorage.getItem('kefu_cache_diversion'); if(!r) return null; var o=JSON.parse(r); if(!o||o.ver!==DIV_CACHE_VER) return null; return o.data; }catch(e){return null;} }
-function divCacheSet(d){ try{ localStorage.setItem('kefu_cache_diversion', JSON.stringify({ver:DIV_CACHE_VER,ts:Date.now(),data:d})); }catch(e){} }
-
-async function loadRecords(){
-  var cached = divCacheGet();
-  if (cached && cached.length){ records = cached; renderList(); }
-  const { data, error } = await sb.from('diversion_transfers')
-    .select('id,cs_name,customer_info,reason,shop,diversion_nick,screenshots,created_at')
-    .order('created_at', { ascending:false })
-    .limit(500);
-  if(error){
-    if(!cached||!cached.length){
-      $('list').innerHTML = '<div class="empty"><span class="big">⚠️</span>' + esc(error.message) +
-        '<br><br>若提示表不存在，请先在 Supabase 执行 create_diversion_transfers.sql</div>';
-    }
-    return;
-  }
-  records = data || [];
-  divCacheSet(records);
-  renderList();
-  renderStats();
-}
-
-/* ==================== 渲染列表 ==================== */
-function renderList(){
-  const kw = ($('searchInput').value || '').trim().toLowerCase();
-  const list = kw ? records.filter(r =>
-      (r.cs_name||'').toLowerCase().includes(kw) ||
-      (r.customer_info||'').toLowerCase().includes(kw) ||
-      (r.reason||'').toLowerCase().includes(kw) ||
-      (r.shop||'').toLowerCase().includes(kw) ||
-      (r.diversion_nick||'').toLowerCase().includes(kw)
-    ) : records;
-  $('recCnt').textContent = list.length ? ('共 ' + list.length + ' 条') : '';
-  if(!list.length){
-    $('list').innerHTML = '<div class="empty"><span class="big">📋</span>' +
-      (kw ? '没有匹配「' + esc(kw) + '」的记录' : '还没有登记记录，从上方提交第一条') + '</div>';
-    return;
-  }
-  const head = '<div class="rec-head">' +
-    '<span class="h-time">时间</span>' +
-    '<span class="h-cs">客服</span>' +
-    '<span class="h-info">客户昵称 / 订单号</span>' +
-    '<span class="h-shop">接待店铺</span>' +
-    '<span class="h-nick">分流号</span>' +
-    '<span class="h-reason">转接原因</span>' +
-    '<span class="h-shots">截图</span>' +
-    (isAdmin ? '<span>操作</span>' : '') +
-    '</div>';
-  $('list').innerHTML = head + list.map(r => {
-    const shots = r.screenshots || [];
-    return `<div class="rec" data-id="${r.id}">
-      <span class="rec-time">🕒 ${esc(fmtTime(r.created_at))}</span>
-      <span class="rec-cs">${esc(r.cs_name)}</span>
-      <span class="rec-info">${esc(r.customer_info)}</span>
-      <span class="rec-shop">${esc(r.shop||'')}</span>
-      <span class="rec-nick">${esc(r.diversion_nick||'')}</span>
-      <span class="rec-reason ${reasonCls(r.reason)}">${esc(r.reason)}</span>
-      <span class="rec-shots">${shots.map((p,i)=>`<img src="${esc(imgUrl(p))}" loading="lazy" data-act="shot" data-i="${i}" title="点击放大">`).join('')}</span>
-      ${isAdmin ? '<button class="rec-del" data-act="del">🗑 删除</button>' : ''}
-    </div>`;
-  }).join('');
-}
-
-/* 列表事件（委托） */
-$('list').addEventListener('click', e => {
-  const rec = e.target.closest('.rec'); if(!rec) return;
-  const actEl = e.target.closest('[data-act]'); if(!actEl) return;
-  const r = records.find(x => x.id === rec.dataset.id); if(!r) return;
-  if(actEl.dataset.act === 'shot'){
-    const shots = r.screenshots || [];
-    openGallery(shots, parseInt(actEl.dataset.i,10)||0);
-  } else if(actEl.dataset.act === 'del'){
-    delRecord(r);
-  }
-});
-$('searchInput').addEventListener('input', renderList);
-$('btnRefresh').addEventListener('click', () => { toast('刷新中…'); loadRecords(); });
-
-/* ==================== 统计看板（仅管理员） ==================== */
-let statsPeriod = '30d';
-let customFrom = '', customTo = '';
-
-function periodRange(){
-  const now = new Date();
-  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23,59,59);
-  const start = new Date(end);
-  if(statsPeriod==='today'){ start.setHours(0,0,0,0); return [start,end]; }
-  if(statsPeriod==='7d'){ start.setDate(start.getDate()-6); start.setHours(0,0,0,0); return [start,end]; }
-  if(statsPeriod==='30d'){ start.setDate(start.getDate()-29); start.setHours(0,0,0,0); return [start,end]; }
-  if(statsPeriod==='month'){ start.setDate(1); start.setHours(0,0,0,0); return [start,end]; }
-  if(statsPeriod==='custom'){
-    const s = customFrom ? new Date(customFrom+'T00:00:00') : null;
-    const e = customTo ? new Date(customTo+'T23:59:59') : null;
-    return [s, e];
-  }
-  return [null,null];
-}
-
-function rangeLabel(){
-  if(statsPeriod==='today') return '今天';
-  if(statsPeriod==='7d') return '近7天';
-  if(statsPeriod==='30d') return '近30天';
-  if(statsPeriod==='month') return '本月';
-  if(statsPeriod==='all') return '全部';
-  return (customFrom||'开始') + ' ~ ' + (customTo||'今天');
-}
-
-function filteredByPeriod(){
-  const [s,e] = periodRange();
-  return records.filter(r=>{
-    if(!r.created_at) return false;
-    const d = new Date(r.created_at);
-    if(s && d < s) return false;
-    if(e && d > e) return false;
-    return true;
-  });
-}
-
-function aggCount(list, key){
-  const m = {};
-  list.forEach(r=>{ const k=String(r[key]||'').trim()||'（未填）'; m[k]=(m[k]||0)+1; });
-  return Object.entries(m).sort((a,b)=>b[1]-a[1]);
-}
-
-function barHtml(rows, clsFn){
-  if(!rows.length) return '<div class="stat-empty">该周期暂无数据</div>';
-  const max = rows[0][1] || 1;
-  return rows.map(([k,v])=>`<div class="bar-row ${clsFn?clsFn(k):''}">
-    <span class="b-name" title="${esc(k)}">${esc(k)}</span>
-    <span class="b-track"><span class="b-fill" style="width:${Math.max(4,Math.round(v/max*100))}%"></span></span>
-    <span class="b-num">${v}</span></div>`).join('');
-}
-
-function renderStats(){
-  if(!isAdmin) return;
-  const list = filteredByPeriod();
-  const people = new Set(list.map(r=>String(r.cs_name||'').trim()).filter(Boolean));
-  const shops = new Set(list.map(r=>String(r.shop||'').trim()).filter(Boolean));
-  $('statSum').innerHTML =
-    '<div class="sum-cell"><b>'+list.length+'</b><span>登记总数</span></div>'+
-    '<div class="sum-cell"><b>'+people.size+'</b><span>登记客服数</span></div>'+
-    '<div class="sum-cell"><b>'+shops.size+'</b><span>涉及店铺数</span></div>';
-  $('byCs').innerHTML = barHtml(aggCount(list,'cs_name'));
-  $('byReason').innerHTML = barHtml(aggCount(list,'reason'), k=> k==='跨店问正品'?'r2':(k==='反馈建议类'?'r3':(k==='单句无回复'?'r4':'')));
-  $('byShop').innerHTML = barHtml(aggCount(list,'shop'));
-  $('byNick').innerHTML = barHtml(aggCount(list,'diversion_nick'));
-  const dayMap = {};
-  list.forEach(r=>{
-    if(!r.created_at) return;
-    const d = new Date(r.created_at);
-    const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    dayMap[k]=(dayMap[k]||0)+1;
-  });
-  const days = Object.keys(dayMap).sort();
-  if(!days.length){ $('byDay').innerHTML='<div class="stat-empty">该周期暂无数据</div>'; return; }
-  const maxD = Math.max.apply(null, days.map(k=>dayMap[k]));
-  const lblStep = days.length>15 ? Math.ceil(days.length/15) : 1;
-  $('byDay').innerHTML = '<div class="day-chart">'+days.map((k,i)=>
-    '<div class="day-col" title="'+k+'：'+dayMap[k]+' 条">'+
-    '<div class="d-bar" style="height:'+Math.max(3,Math.round(dayMap[k]/maxD*80))+'px"></div>'+
-    (i%lblStep===0 ? '<div class="d-lbl">'+k.slice(5)+'</div>' : '')+'</div>').join('')+'</div>';
-}
-
-$('periodChips').addEventListener('click', e=>{
-  const chip = e.target.closest('.pchip'); if(!chip) return;
-  statsPeriod = chip.dataset.p;
-  document.querySelectorAll('.pchip').forEach(c=>c.classList.toggle('on', c===chip));
-  $('customRange').classList.toggle('show', statsPeriod==='custom');
-  if(statsPeriod!=='custom') renderStats();
-});
-$('btnApplyRange').addEventListener('click', ()=>{
-  customFrom = $('dateFrom').value; customTo = $('dateTo').value;
-  if(!customFrom && !customTo){ toast('请先选择起止日期'); return; }
-  renderStats();
-});
-$('btnStats').addEventListener('click', ()=>{
-  const card = $('statsCard');
-  card.classList.toggle('open');
-  if(card.classList.contains('open')) renderStats();
-});
-
-/* ==================== 导出 Excel（xlsx 库懒加载，失败降级 CSV） ==================== */
-let xlsxLoading = null;
-function ensureXLSX(){
-  if(window.XLSX) return Promise.resolve();
-  if(xlsxLoading) return xlsxLoading;
-  xlsxLoading = new Promise((res,rej)=>{
-    const s = document.createElement('script');
-    s.src = 'vendor/xlsx.full.min.js?v=2';
-    s.onload = res;
-    s.onerror = ()=>{ xlsxLoading = null; rej(new Error('xlsx 库加载失败')); };
-    document.head.appendChild(s);
-  });
-  return xlsxLoading;
-}
-function pad2(n){ return String(n).padStart(2,'0'); }
-function detailRows(list){
-  return [['时间','客服','客户昵称/订单号','接待店铺','分流号','转接原因','截图数']]
-    .concat(list.map(r=>[fmtTime(r.created_at), r.cs_name||'', r.customer_info||'',
-      r.shop||'', r.diversion_nick||'', r.reason||'', (r.screenshots||[]).length]));
-}
-$('btnExport').addEventListener('click', async ()=>{
-  const list = filteredByPeriod();
-  if(!list.length){ toast('当前周期没有可导出的数据'); return; }
-  const btn = $('btnExport'); btn.disabled = true; btn.textContent = '生成中…';
-  try{
-    await ensureXLSX();
-    const summary = [['舆情转接统计汇总（周期：'+rangeLabel()+'）','数量'],
-      ['登记总数', list.length]]
-      .concat(aggCount(list,'cs_name').map(([k,v])=>['客服 - '+k, v]))
-      .concat(aggCount(list,'reason').map(([k,v])=>['原因 - '+k, v]))
-      .concat(aggCount(list,'shop').map(([k,v])=>['店铺 - '+k, v]))
-      .concat(aggCount(list,'diversion_nick').map(([k,v])=>['分流号 - '+k, v]));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(detailRows(list)), '登记明细');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), '统计汇总');
-    const now = new Date();
-    XLSX.writeFile(wb, '舆情转接明细_'+now.getFullYear()+pad2(now.getMonth()+1)+pad2(now.getDate())+'_'+pad2(now.getHours())+pad2(now.getMinutes())+'.xlsx');
-    toast('✅ 已导出 ' + list.length + ' 条');
-  }catch(e){
-    console.error(e);
-    exportCsv(list);
-  }finally{
-    btn.disabled = false; btn.textContent = '⬇ 导出Excel明细';
-  }
-});
-function exportCsv(list){
-  const rows = detailRows(list);
-  const csv = '\ufeff' + rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = '舆情转接明细.csv';
-  a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href), 3000);
-  toast('xlsx 库加载失败，已导出 CSV 格式');
-}
-
-/* ==================== 灯箱 ==================== */
-let galImgs = [], galIdx = 0;
-function openGallery(imgs, idx){
-  galImgs = imgs || []; galIdx = Math.max(0, idx|0); updateGallery();
-  $('lightbox').classList.add('active');
-}
-function updateGallery(){
-  if(!galImgs.length) return;
-  galIdx = (galIdx + galImgs.length) % galImgs.length;
-  $('lightboxImg').src = imgUrl(galImgs[galIdx]);
-  $('galCount').textContent = (galIdx+1) + ' / ' + galImgs.length;
-  const multi = galImgs.length > 1;
-  $('galPrev').style.visibility = multi ? 'visible' : 'hidden';
-  $('galNext').style.visibility = multi ? 'visible' : 'hidden';
-}
-$('lightbox').addEventListener('click', e => { if(e.target === $('lightbox')) $('lightbox').classList.remove('active'); });
-$('galPrev').addEventListener('click', e => { e.stopPropagation(); galIdx--; updateGallery(); });
-$('galNext').addEventListener('click', e => { e.stopPropagation(); galIdx++; updateGallery(); });
-
-/* ==================== 登记表单 ==================== */
-$('reasonTags').addEventListener('click', e => {
-  const tag = e.target.closest('.reason-tag'); if(!tag) return;
-  selReason = (selReason === tag.dataset.reason) ? '' : tag.dataset.reason;
-  document.querySelectorAll('.reason-tag').forEach(t => t.classList.toggle('on', t.dataset.reason === selReason));
-});
-
-function renderShots(){
-  let html = '';
-  newShots.forEach((o,i) => {
-    html += `<div class="shot-cell"><img src="${esc(o._url)}"><button type="button" class="shot-remove" data-i="${i}">×</button></div>`;
-  });
-  html += `<div class="shot-add" id="shotAdd"><span class="plus">＋</span>添加截图</div>`;
-  $('shotArea').innerHTML = html;
-}
-$('shotArea').addEventListener('click', e => {
-  const rm = e.target.closest('.shot-remove');
-  if(rm){
-    const i = parseInt(rm.dataset.i,10);
-    URL.revokeObjectURL(newShots[i]._url);
-    newShots.splice(i,1);
-    renderShots();
-    return;
-  }
-  if(e.target.closest('.shot-add')) $('fShots').click();
-});
-$('fShots').addEventListener('change', e => { addShots(e.target.files); e.target.value=''; });
-function addShots(files){
-  if(!files || !files.length) return;
-  Array.from(files).forEach(f => {
-    if(!f.type || !f.type.startsWith('image/')) return;
-    newShots.push({ file:f, _url: URL.createObjectURL(f) });
-  });
-  renderShots();
-}
-/* Ctrl+V 粘贴截图：仅拦截图片，不影响文字输入 */
-document.addEventListener('paste', e => {
-  if($('regCard').style.display === 'none') return;
-  const items = e.clipboardData && e.clipboardData.items;
-  if(!items) return;
-  let imageFile = null;
-  for(const it of items){
-    if(it.type && it.type.startsWith('image/')){ imageFile = it.getAsFile(); if(imageFile) break; }
-  }
-  if(imageFile){
-    addShots([imageFile]);
-    toast('🖼️ 已添加截图');
-    e.preventDefault();
-  }
-});
-
-$('btnSave').addEventListener('click', async () => {
-  const csName = $('fCs').value.trim();
-  const info = $('fInfo').value.trim();
-  const shop = $('fShop').value.trim();
-  const nick = $('fNick').value;
-  if(!csName){ toast('请填写客服名字'); $('fCs').focus(); return; }
-  if(!info){ toast('请填客户昵称或订单号'); $('fInfo').focus(); return; }
-  if(!selReason){ toast('请选择转接原因'); return; }
-  if(!shop){ toast('请选择接待店铺'); $('fShop').focus(); return; }
-  if(!nick){ toast('请选择分流号昵称'); $('fNick').focus(); return; }
-  if(!newShots.length){ toast('请上传聊天截图证明'); return; }
-  const btn = $('btnSave'); btn.disabled = true; btn.textContent = '提交中…';
-  try{
-    // 上传截图
-    const paths = [];
-    for(const o of newShots){
-      const f = (window.compressImage ? await window.compressImage(o.file) : o.file);
-      const ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
-      const path = 'shots/' + Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.' + ext;
-      const { error:upErr } = await sb.storage.from(BUCKET).upload(path, f, { contentType: f.type || 'image/jpeg', upsert:true });
-      if(upErr) throw new Error('截图上传失败：' + upErr.message);
-      paths.push(path);
-    }
-    const { error } = await sb.from('diversion_transfers').insert({
-      cs_name: csName,
-      customer_info: info,
-      reason: selReason,
-      shop: shop,
-      diversion_nick: nick,
-      screenshots: paths
+    btn.addEventListener('click', function () {
+      window.open(FEISHU_DIVERSION_URL, '_blank', 'noopener');
     });
-    if(error) throw error;
-    toast('✅ 已登记');
-    // 重置表单（保留客服名）
-    selReason = ''; newShots = [];
-    document.querySelectorAll('.reason-tag').forEach(t => t.classList.remove('on'));
-    $('fInfo').value = '';
-    $('fShop').value = '';
-    $('fNick').value = '';
-    renderShots();
-    await loadRecords();
-  }catch(e){
-    console.error(e);
-    toast('❌ ' + (e.message || '登记失败'));
-  }finally{
-    btn.disabled = false; btn.textContent = '💾 提交登记';
-  }
-});
-
-/* ==================== 删除（仅管理员） ==================== */
-async function delRecord(r){
-  if(!confirm('确定删除这条登记（' + (r.cs_name||'') + ' / ' + (r.customer_info||'') + '）？')) return;
-  try{
-    const { error } = await sb.from('diversion_transfers').delete().eq('id', r.id);
-    if(error) throw error;
-    const shots = r.screenshots || [];
-    for(const p of shots){ try{ await sb.storage.from(BUCKET).remove([p]); }catch(e){} }
-    toast('已删除');
-    await loadRecords();
-  }catch(e){
-    console.error(e);
-    toast('❌ ' + (e.message || '删除失败'));
-  }
-}
+  })();
 </script>
 </body>
 </html>
