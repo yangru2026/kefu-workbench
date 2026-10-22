@@ -2008,7 +2008,7 @@ body {
     <div class="nav-item" data-page="price-jiyang" title="极氧价格速查"><span class="icon">💰</span><span>极氧价</span></div>
     <div class="nav-item" data-page="training" title="培训资料"><span class="icon">📚</span><span>培训资料</span></div>
     <div class="nav-item" data-page="rules" title="平台规则"><span class="icon">📏</span><span>平台规则</span></div>
-    <div class="nav-item" data-page="price-quiz" title="弥生花色与价格考核试卷"><span class="icon">🧪</span><span>花色考核</span></div>
+    <div class="nav-item" data-page="price-quiz" title="客服考试试卷（试卷一 / 试卷二）"><span class="icon">📝</span><span>客服考试</span></div>
     <div class="nav-item admin-only-nav" data-page="quiz-results" title="考核成绩（仅管理员，查看新客服交卷分数）" style="display:none;"><span class="icon">📝</span><span>考核成绩</span></div>
     <div class="nav-item" data-page="licenses" title="查验证明"><span class="icon">📜</span><span>查验证明</span></div>
     <div class="nav-item" data-page="sop" title="新人SOP"><span class="icon">📄</span><span>新人SOP</span></div>
@@ -3486,12 +3486,12 @@ body {
 
   <!-- ===== 弥生花色与价格考核试卷 ===== -->
   <div class="page" id="page-price-quiz" style="padding:0;overflow:hidden;flex-direction:column;">
-    <iframe id="price-quiz-iframe" src="about:blank" data-src="quiz.html?v=20261020c" style="flex:1;border:none;width:100%;"></iframe>
+    <iframe id="price-quiz-iframe" src="about:blank" data-src="quiz.html?v=20261022a" style="flex:1;border:none;width:100%;"></iframe>
   </div>
 
   <!-- ===== 考核成绩（仅管理员） ===== -->
   <div class="page" id="page-quiz-results" style="padding:0;overflow:hidden;flex-direction:column;">
-    <iframe id="quiz-results-iframe" src="about:blank" data-src="quiz-results.html?v=20261020c" style="flex:1;border:none;width:100%;"></iframe>
+    <iframe id="quiz-results-iframe" src="about:blank" data-src="quiz-results.html?v=20261022a" style="flex:1;border:none;width:100%;"></iframe>
   </div>
 
   <!-- ===== 售前工作清单（打卡+提醒，仅管理员） ===== -->
@@ -4048,6 +4048,7 @@ function filterStaff() {
 function toggleOffboarded() {
   const showOff = !!(document.getElementById('staff-show-offboarded') && document.getElementById('staff-show-offboarded').checked);
   staffInfoData = showOff ? staffInfoAllData.slice() : staffInfoAllData.filter(p => p.status !== 'disabled' && !p.left_at);
+  renderStaffTabs();
   filterStaff();
 }
 
@@ -4196,7 +4197,13 @@ function openStaffDetail(id) {
         showToast('❌ 没改上：当前账号没有修改该客服的权限（或该记录已不存在）');
         return false;
       }
-      showToast('✅ 已保存（组别：' + (patch.group_name || '未分组') + '）');
+      // 回读一次，把"库里真实存的值"报给她，避免再出现"看着改了其实没写进去"
+      let stored = patch.group_name || '';
+      try {
+        const re = await supabase.from('profiles').select('group_name,updated_at').eq('id', id).maybeSingle();
+        if (re && re.data) stored = re.data.group_name || '';
+      } catch (e) {}
+      showToast('✅ 已保存，库中组别：' + (stored || '未分组'));
       await loadStaffInfo();
       return true;
     } catch (e) {

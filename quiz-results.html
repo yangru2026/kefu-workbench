@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>考核成绩 · 弥生花色与价格</title>
+<title>考核成绩 · 客服考试</title>
 <style>
   :root{ --primary:#10b981; --primary-dark:#059669; --primary-light:rgba(16,185,129,.1);
          --danger:#e05252; --warn:#c2660a; --warn-bg:rgba(230,145,56,.12);
@@ -151,7 +151,7 @@
 <body>
 <div class="topbar">
   <h1>📝 考核成绩</h1>
-  <span class="sub" id="tSub">弥生 · 花色与价格</span>
+  <span class="sub" id="tSub">客服考试</span>
   <span class="badge lock" id="roleBadge">加载中…</span>
   <span class="grow"></span>
   <button class="btn btn-ghost" id="btnRoster">📋 名单对账</button>
@@ -178,6 +178,9 @@
         自 <input type="date" id="dFrom"> 至 <input type="date" id="dTo">
       </div>
       <div class="search"><span class="icon">🔍</span><input id="q" type="text" placeholder="搜索考生姓名"></div>
+      <select id="paperSel" onchange="render()" style="padding:8px 12px;border:1px solid var(--border);border-radius:20px;font-size:13px;font-family:inherit;background:#fff;color:var(--text);">
+        <option value="">全部试卷</option>
+      </select>
     </div>
 
     <div class="cards" id="cards"></div>
@@ -318,6 +321,19 @@ async function load(silent){
     return;
   }
   rows = data || [];
+  // 试卷下拉：按实际考过的卷子生成（试卷一 / 试卷二 …）
+  var sel = document.getElementById('paperSel');
+  if (sel) {
+    var titles = [];
+    rows.forEach(function (r) {
+      var t = r.quiz_title || r.quiz_key || '';
+      if (t && titles.indexOf(t) < 0) titles.push(t);
+    });
+    var cur = sel.value;
+    sel.innerHTML = '<option value="">全部试卷</option>' +
+      titles.map(function (t) { return '<option value="' + esc(t) + '">' + esc(t) + '</option>'; }).join('');
+    sel.value = titles.indexOf(cur) >= 0 ? cur : '';
+  }
   render();
 }
 
@@ -337,11 +353,13 @@ function periodRange(){
 function filtered(){
   const [from, to] = periodRange();
   const kw = ($('q').value || '').trim();
+  const pv = ($('paperSel') && $('paperSel').value) || '';
   return rows.filter(r => {
     const t = new Date(r.created_at);
     if(from && t < from) return false;
     if(to && t >= to) return false;
     if(kw && String(r.examinee).indexOf(kw) < 0) return false;
+    if(pv && (r.quiz_title || r.quiz_key || '') !== pv) return false;
     return true;
   });
 }
@@ -468,17 +486,19 @@ function renderDetail(){
     }
     list.forEach(x => {
       const b = BANK[x.no] || {};
+      const stem = x.stem || b.stem || ('第 ' + x.no + ' 题');
+      const exp = x.explain || b.explain || '';
       const ok = x.got >= x.full;
       const isSelf = x.kind === 'self';
       html += '<div class="qd' + (ok ? '' : ' wrong') + (isSelf ? ' selfkind' : '') + '">' +
-        '<div class="qd-h"><span class="num">' + x.no + '.</span><span>' + esc(b.stem || ('第 ' + x.no + ' 题')) + '</span>' +
+        '<div class="qd-h"><span class="num">' + x.no + '.</span><span>' + esc(stem) + '</span>' +
           '<span class="pt">' + (isSelf ? '自评 ' : '') + x.got + '/' + x.full + '</span></div>' +
         '<div class="qd-sec">' + esc(b.sec || x.sec || '') + '</div>' +
         '<div class="qd-line"><span class="k">正确答案</span><span class="right">' +
           esc(b.ans || '—').replace(/\n/g, '<br>') + '</span></div>' +
         '<div class="qd-line"><span class="k">她的' + (isSelf ? '作答' : '选择') + '</span><span class="mine' + (ok ? '' : ' bad') + '">' +
           esc(x.ans || '未作答') + '</span></div>' +
-        (b.explain ? '<div class="qd-exp">💡 ' + esc(b.explain).replace(/\n/g, '<br>') + '</div>' : '') +
+        (exp ? '<div class="qd-exp">💡 ' + esc(exp).replace(/\n/g, '<br>') + '</div>' : '') +
       '</div>';
     });
   }
@@ -633,7 +653,7 @@ async function exportExcel(){
       XLSX.utils.book_append_sheet(wb, ws3, '错题排行');
     }
 
-    XLSX.writeFile(wb, '考核成绩_弥生花色价格_' + stamp + '.xlsx');
+    XLSX.writeFile(wb, '考核成绩_客服考试_' + stamp + '.xlsx');
     toast('已导出（3 张表：汇总 / 逐题明细 / 错题排行）');
     return;
   }
@@ -644,7 +664,7 @@ async function exportExcel(){
   )).join('\r\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
-  a.download = '考核成绩_弥生花色价格_' + stamp + '.csv';
+  a.download = '考核成绩_客服考试_' + stamp + '.csv';
   a.click();
   toast('已导出 CSV（Excel 组件加载失败，降级）');
 }
