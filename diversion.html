@@ -27,7 +27,7 @@
         background:var(--primary-light);border-radius:20px;padding:2px 10px;margin-top:3px;}
   .sheet-card p{color:var(--muted);font-size:13px;line-height:1.75;flex:1;}
   .sheet-card p b{color:#334155;}
-  .open{display:block;width:100%;padding:12px 18px;border:0;border-radius:12px;
+  .open{display:block;width:100%;padding:12px 18px;border:0;border-radius:12px;margin-top:auto;
       background:var(--primary);color:#fff;font-size:14.5px;font-weight:800;cursor:pointer;font-family:inherit;
       transition:all .16s;text-align:center;}
   .open:hover{background:var(--primary-dark);transform:translateY(-1px);}
@@ -65,8 +65,29 @@
       desc: '<b>转接原因</b>：💧 透氧问询 · 🏪 跨店正品 · 📝 反馈建议 · 💬 单句无回复',
       url: 'https://yow5cuygtx.feishu.cn/wiki/IeBRwF32Vi09Dmk1otYc4pganHg?sheet=c329af',
     },
-    // 后续新增：往这个数组里再加一条即可，页面自动出卡片
+    {
+      icon: '🎨',
+      title: '半年抛花色明细表',
+      tag: '花色明细',
+      desc: '',
+      url: 'https://yow5cuygtx.feishu.cn/sheets/DWZ2sg63zh8bLetAnGpcGPtyn8g?sheet=SmiKmx',
+    },
+    {
+      icon: '💧',
+      title: '日抛花色明细表',
+      tag: '花色明细',
+      desc: '',
+      url: 'https://yow5cuygtx.feishu.cn/sheets/MPHMslvdxhoVMjtSFSZcUOp0nTg?sheet=fGCA0I',
+    },
+    {
+      icon: '✨',
+      title: '特殊类美瞳明细表',
+      tag: '花色明细',
+      desc: '',
+      url: 'https://yow5cuygtx.feishu.cn/sheets/KGhLsycIUhbSRHt17DPcagfHnNf?sheet=jRW9NN',
+    },
   ];
+  // 后续新增工作相关的飞书表：往 WORK_SHEETS 里再加一条即可，页面自动出卡片
 
   (function render() {
     const grid = document.getElementById('grid');
@@ -74,10 +95,10 @@
       const btn = s.url
         ? '<button class="open" data-url="' + s.url + '">打开表格 →</button>'
         : '<button class="open" disabled>链接待配置</button>';
-      return '<div class="sheet-card">' +
-        '<div class="head"><div class="ico">' + s.icon + '</div>' +
-        '<div><h2>' + s.title + '</h2>' + (s.tag ? '<span class="tag">' + s.tag + '</span>' : '') + '</div></div>' +
-        '<p>' + s.desc + '</p>' + btn + '</div>';
+      const head = '<div class="head"><div class="ico">' + s.icon + '</div>' +
+        '<div><h2>' + s.title + '</h2>' + (s.tag ? '<span class="tag">' + s.tag + '</span>' : '') + '</div></div>';
+      const desc = s.desc ? '<p>' + s.desc + '</p>' : '';
+      return '<div class="sheet-card">' + head + desc + btn + '</div>';
     }).join('');
     grid.addEventListener('click', function (e) {
       const btn = e.target.closest('.open');
