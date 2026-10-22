@@ -2933,9 +2933,19 @@ body {
     <div class="page-header"><h1>👥 客服信息管理</h1><p>管理客服真实姓名、入职日期、花名、手机号、岗位、加班调休（按小时累计）</p></div>
     <div class="staff-toolbar" style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
       <input type="text" id="staff-search" placeholder="🔍 搜索姓名/花名/手机号..." oninput="filterStaff()" style="flex:1;min-width:200px;padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--card-bg);color:var(--text);">
+      <select id="staff-group-filter" onchange="filterStaff()" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--card-bg);color:var(--text);">
+        <option value="">全部组别</option>
+        <option value="A组">A组</option>
+        <option value="B组">B组</option>
+        <option value="C组">C组</option>
+        <option value="__none__">未分组</option>
+      </select>
+      <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text-secondary);white-space:nowrap;cursor:pointer;">
+        <input type="checkbox" id="staff-show-offboarded" onchange="toggleOffboarded()" style="accent-color:var(--primary);"> 显示已清退
+      </label>
       <button class="collab-btn" id="collab-staff-btn" onclick="openCollabPanel('staff-info')" style="display:none;">👥 协作者</button>
-      <button class="btn-sm outline" onclick="copyAllStaff()">📋 复制全部</button>
-      <button class="btn-sm outline" onclick="exportStaffCSV()">📥 导出CSV</button>
+      <button class="btn-sm outline" onclick="copyAllStaff()">📋 复制</button>
+      <button class="btn-sm outline" onclick="exportStaffCSV()">📥 导出</button>
       <button class="btn-sm outline" onclick="loadStaffInfo()">🔄 刷新</button>
     </div>
     <div class="ranking-table-wrap">
@@ -3821,9 +3831,10 @@ function kefuCacheSet(table, data) {
 }
 
 
-// ==================== 客服信息管理（2026-09-22 重建） ====================
-var staffInfoData = [];          // 当前加载到的客服列表
-var staffInfoFiltered = [];      // 搜索过滤后的列表
+// ==================== 客服信息管理（2026-09-22 重建 / 2026-10-22 增强） ====================
+var staffInfoData = [];          // 当前加载到的客服列表（在职；勾选"显示已清退"时含已清退）
+var staffInfoAllData = [];       // 数据库原始全量（含已清退）
+var staffInfoFiltered = [];      // 搜索/组别过滤后的列表
 var currentOTStaff = null;       // 抽屉当前操作的客服
 var currentOTRecords = [];       // 抽屉当前客服的加班/调休记录
 
@@ -3884,8 +3895,11 @@ async function loadStaffInfo() {
     if (error) throw error;
     if (lastErr && !data) throw lastErr;
 
-    // 只显示"在职"：有 left_at 或 status=disabled 的视为已离职，不显示
-    staffInfoData = (data || []).filter(p => p.status !== 'disabled' && !p.left_at);
+    // 勾选"显示已清退"时不做过滤，全部展示（已清退的行灰显）
+    const showOff = !!(document.getElementById('staff-show-offboarded') && document.getElementById('staff-show-offboarded').checked);
+    const all = data || [];
+    staffInfoAllData = all;
+    staffInfoData = showOff ? all.slice() : all.filter(p => p.status !== 'disabled' && !p.left_at);
     staffInfoFiltered = staffInfoData.slice();
     renderStaffTable();
   } catch (e) {
@@ -3923,12 +3937,30 @@ function waitForLib(ms) {
   });
 }
 
+// 组别徽章颜色
+function groupChip(gn) {
+  const g = (gn || '').trim();
+  const map = { 'A组': '#3B82F6', 'B组': '#EF4444', 'C组': '#10B981' };
+  const c = map[g];
+  if (!g) return '<span style="font-size:12px;color:var(--text-muted);">未分组</span>';
+  if (!c) return '<span style="font-size:12px;font-weight:600;color:var(--text);">' + escHtml(g) + '</span>';
+  return '<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:' + c + ';">'
+    + '<span style="width:8px;height:8px;border-radius:50%;background:' + c + ';display:inline-block;"></span>' + escHtml(g) + '</span>';
+}
+// 手机号显示清洗：非 11 位手机号（如迁移残留的邮箱串）不展示
+function fmtPhone(p) {
+  const s = (p || '').trim();
+  return /^1\d{10}$/.test(s) ? '<span style="font-family:monospace;">' + s + '</span>' : '<span style="color:var(--text-muted);">-</span>';
+}
+function isOffboarded(s) { return s.status === 'disabled' || !!s.left_at; }
+
 // 渲染表格
 function renderStaffTable() {
   const tbody = document.getElementById('staff-tbody');
   const countEl = document.getElementById('staff-count');
   if (!tbody) return;
   const editable = canEdit('staff-info');
+  const isAdmin = isFullAdmin();
 
   if (!staffInfoFiltered.length) {
     tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">'
@@ -3937,49 +3969,105 @@ function renderStaffTable() {
     return;
   }
 
-  const groupOrder = { 'A组': 1, 'B组': 2, 'C组': 3 };
   const rows = staffInfoFiltered.map(s => {
     const remain = calcOTRemain(s);
     const remainColor = remain > 0 ? 'var(--primary)' : 'var(--text-muted)';
-    const nameHtml = (s.name || '-') + (s.role === 'admin'
+    const off = isOffboarded(s);
+    const nameHtml = (s.name || '-')
+      + (s.role === 'admin'
       ? ' <span style="font-size:11px;color:#fff;background:#6C5CE7;border-radius:4px;padding:1px 5px;vertical-align:middle;">管理员</span>' : '')
       + (s.role === 'leader'
       ? ' <span style="font-size:11px;color:#fff;background:#F59E0B;border-radius:4px;padding:1px 5px;vertical-align:middle;">组长</span>' : '');
-    return '<tr>'
+    const rowStyle = off ? ' style="opacity:.45;"' : '';
+    let ops = '<button class="btn-sm outline" onclick="openOTDrawer(\'' + s.id + '\')" title="加班调休明细">📋 明细</button>';
+    if (editable && !off) ops += ' <button class="btn-sm outline" onclick="openStaffDetail(\'' + s.id + '\')" title="编辑资料">✏️ 编辑</button>';
+    if (isAdmin && !off) ops += ' <button class="btn-sm outline" onclick="offboardStaff(\'' + s.id + '\')" title="清退：移出列表" style="color:#EF4444;">🗑 清退</button>';
+    if (isAdmin && off) ops += ' <button class="btn-sm outline" onclick="restoreStaff(\'' + s.id + '\')" title="恢复为在职">♻️ 恢复</button>';
+    return '<tr' + rowStyle + '>'
       + '<td style="font-weight:600;">' + nameHtml + '</td>'
       + '<td>' + (escHtml(s.real_name) || '<span style="color:var(--text-muted);">-</span>') + '</td>'
-      + '<td style="font-family:monospace;">' + (escHtml(s.phone) || '-') + '</td>'
+      + '<td>' + fmtPhone(s.phone) + '</td>'
       + '<td>' + (escHtml(s.hire_date) || '<span style="color:var(--text-muted);">-</span>') + '</td>'
       + '<td>' + (escHtml(s.position) || '-') + '</td>'
-      + '<td>' + (escHtml(s.group_name) || '-') + '</td>'
+      + '<td>' + groupChip(s.group_name) + '</td>'
       + '<td style="text-align:center;">' + fmtH(s.overtime) + '</td>'
       + '<td style="text-align:center;">' + fmtH(s.compensatory_leave) + '</td>'
       + '<td style="text-align:center;font-weight:700;color:' + remainColor + ';">' + fmtH(remain) + '</td>'
-      + '<td style="white-space:nowrap;">'
-      +   '<button class="btn-sm outline" onclick="openOTDrawer(\'' + s.id + '\')" title="加班调休明细">📋 明细</button>'
-      +   (editable ? ' <button class="btn-sm outline" onclick="openStaffDetail(\'' + s.id + '\')" title="编辑资料">✏️ 编辑</button>' : '')
-      + '</td>'
+      + '<td style="white-space:nowrap;">' + ops + '</td>'
       + '</tr>';
   }).join('');
 
   tbody.innerHTML = rows;
-  if (countEl) countEl.textContent = '共 ' + staffInfoData.length + ' 人在职'
+  const offCnt = staffInfoAllData.filter(isOffboarded).length;
+  const activeCnt = staffInfoData.filter(s => !isOffboarded(s)).length;
+  if (countEl) countEl.textContent = '共 ' + activeCnt + ' 人在职'
+    + (offCnt ? '，已清退 ' + offCnt + ' 人' : '')
     + (staffInfoFiltered.length !== staffInfoData.length ? '，匹配 ' + staffInfoFiltered.length + ' 人' : '');
 }
 
-// 搜索过滤
+// 搜索 + 组别过滤
 function filterStaff() {
   const kw = (document.getElementById('staff-search').value || '').trim().toLowerCase();
-  if (!kw) {
-    staffInfoFiltered = staffInfoData.slice();
-  } else {
-    staffInfoFiltered = staffInfoData.filter(s =>
+  const gv = document.getElementById('staff-group-filter') ? document.getElementById('staff-group-filter').value : '';
+  let list = staffInfoData.slice();
+  if (gv === '__none__') list = list.filter(s => !(s.group_name || '').trim());
+  else if (gv) list = list.filter(s => (s.group_name || '').trim() === gv);
+  if (kw) {
+    list = list.filter(s =>
       (s.name || '').toLowerCase().includes(kw)
       || (s.real_name || '').toLowerCase().includes(kw)
       || (s.phone || '').toLowerCase().includes(kw)
     );
   }
+  staffInfoFiltered = list;
   renderStaffTable();
+}
+
+// 切换"显示已清退"
+function toggleOffboarded() {
+  const showOff = !!(document.getElementById('staff-show-offboarded') && document.getElementById('staff-show-offboarded').checked);
+  staffInfoData = showOff ? staffInfoAllData.slice() : staffInfoAllData.filter(p => p.status !== 'disabled' && !p.left_at);
+  filterStaff();
+}
+
+// 清退客服（软删除：移出列表，加班/调休历史保留，可恢复）
+async function offboardStaff(id) {
+  if (!isFullAdmin()) { showToast('⛔ 仅管理员可清退客服'); return; }
+  const s = staffInfoData.find(x => x.id === id) || staffInfoAllData.find(x => x.id === id);
+  if (!s) { showToast('未找到该客服'); return; }
+  if (!confirm('确定清退「' + (s.name || s.real_name || s.phone) + '」吗？\n\n· 将从客服信息列表移出\n· 该账号将无法登录工作台\n· 加班/调休历史记录保留，可随时恢复')) return;
+  try {
+    const { data: upRows, error } = await supabase.from('profiles')
+      .update({ status: 'disabled', left_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq('id', id).select('id');
+    if (error) throw error;
+    if (!upRows || !upRows.length) { showToast('❌ 没删掉：当前账号没有清退权限'); return; }
+    showToast('✅ 已清退「' + (s.name || '') + '」');
+    await loadStaffInfo();
+  } catch (e) {
+    console.error('清退失败:', e);
+    showToast('清退失败：' + (e.message || '未知错误'));
+  }
+}
+
+// 恢复已清退客服
+async function restoreStaff(id) {
+  if (!isFullAdmin()) { showToast('⛔ 仅管理员可恢复客服'); return; }
+  const s = staffInfoAllData.find(x => x.id === id);
+  if (!s) { showToast('未找到该客服'); return; }
+  if (!confirm('恢复「' + (s.name || s.real_name || s.phone) + '」为在职？')) return;
+  try {
+    const { data: upRows, error } = await supabase.from('profiles')
+      .update({ status: 'active', left_at: null, updated_at: new Date().toISOString() })
+      .eq('id', id).select('id');
+    if (error) throw error;
+    if (!upRows || !upRows.length) { showToast('❌ 没恢复成功：当前账号没有权限'); return; }
+    showToast('✅ 已恢复「' + (s.name || '') + '」');
+    await loadStaffInfo();
+  } catch (e) {
+    console.error('恢复失败:', e);
+    showToast('恢复失败：' + (e.message || '未知错误'));
+  }
 }
 
 // 复制全部（制表符分隔，方便粘进 Excel）
@@ -4040,31 +4128,44 @@ function exportStaffCSV() {
 
 // ===== 编辑客服资料 =====
 function openStaffDetail(id) {
-  const s = staffInfoData.find(x => x.id === id);
+  const s = staffInfoData.find(x => x.id === id) || staffInfoAllData.find(x => x.id === id);
   if (!s) { showToast('未找到该客服'); return; }
   const val = (v) => (v === null || v === undefined) ? '' : String(v);
+  const curGroup = (val(s.group_name)).trim();
+  const groupOpts = ['', 'A组', 'B组', 'C组']
+    .map(g => '<option value="' + g + '"' + (g === curGroup ? ' selected' : '') + '>' + (g || '未分组') + '</option>')
+    .join('');
+  const isAdmin = isFullAdmin();
   const html = ''
     + '<div class="form-row"><label>花名</label><input type="text" id="sd-name" value="' + escHtml(val(s.name)) + '"></div>'
     + '<div class="form-row"><label>真实姓名</label><input type="text" id="sd-real" value="' + escHtml(val(s.real_name)) + '" placeholder="选填"></div>'
-    + '<div class="form-row"><label>手机号</label><input type="tel" id="sd-phone" value="' + escHtml(val(s.phone)) + '" maxlength="11"></div>'
+    + '<div class="form-row"><label>手机号</label><input type="tel" id="sd-phone" value="' + escHtml(/^1\d{10}$/.test(val(s.phone)) ? val(s.phone) : '') + '" maxlength="11" placeholder="11位手机号（登录账号）"></div>'
     + '<div class="form-row"><label>入职日期</label><input type="date" id="sd-hire" value="' + escHtml(val(s.hire_date)) + '"></div>'
     + '<div class="form-row"><label>岗位</label><input type="text" id="sd-position" value="' + escHtml(val(s.position)) + '" placeholder="如：售前客服"></div>'
-    + '<div class="form-row"><label>组别</label><input type="text" id="sd-group" value="' + escHtml(val(s.group_name)) + '" placeholder="如：A组"></div>'
+    + '<div class="form-row"><label>组别</label><select id="sd-group" style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--card-bg);color:var(--text);">' + groupOpts + '</select></div>'
     + '<div class="form-row"><label>累计加班(h)</label><input type="number" id="sd-ot" value="' + escHtml(fmtH(s.overtime)) + '" step="0.5" min="0"></div>'
-    + '<div class="form-row"><label>已调休(h)</label><input type="number" id="sd-lv" value="' + escHtml(fmtH(s.compensatory_leave)) + '" step="0.5" min="0"></div>';
+    + '<div class="form-row"><label>已调休(h)</label><input type="number" id="sd-lv" value="' + escHtml(fmtH(s.compensatory_leave)) + '" step="0.5" min="0"></div>'
+    + (isAdmin
+      ? '<div style="border-top:1px dashed var(--border);margin:10px 0;padding-top:10px;">'
+      + '<div class="form-row"><label>重置密码</label><div style="flex:1;display:flex;gap:8px;">'
+      + '<input type="text" id="sd-newpwd" placeholder="输入新密码（至少6位），留空不修改" style="flex:1;" autocomplete="new-password">'
+      + '<button class="btn-sm" onclick="adminResetPwd(\'' + s.id + '\')">🔑 重置</button></div></div>'
+      + '<div style="font-size:12px;color:var(--text-muted);padding-left:110px;">登录不上/忘记密码时用。重置后把新密码告诉该客服即可登录。</div></div>'
+      : '');
   showStaffEditModal('编辑客服资料 - ' + (s.name || ''), html, async () => {
     const patch = {
       name: document.getElementById('sd-name').value.trim(),
       real_name: document.getElementById('sd-real').value.trim() || null,
-      phone: document.getElementById('sd-phone').value.trim(),
+      phone: document.getElementById('sd-phone').value.trim() || null,
       hire_date: document.getElementById('sd-hire').value || null,
       position: document.getElementById('sd-position').value.trim() || null,
-      group_name: document.getElementById('sd-group').value.trim() || null,
+      group_name: document.getElementById('sd-group').value || null,
       overtime: parseFloat(document.getElementById('sd-ot').value) || 0,
       compensatory_leave: parseFloat(document.getElementById('sd-lv').value) || 0,
       updated_at: new Date().toISOString()
     };
     if (!patch.name) { showToast('花名不能为空'); return false; }
+    if (patch.phone && !/^1\d{10}$/.test(patch.phone)) { showToast('手机号格式不对（11位数字）'); return false; }
     try {
       // .select() 让 PostgREST 回传被更新的行。若权限（RLS）把这次更新挡掉，PostgreSQL 是
       // "0 行被更新且不报错"，旧写法会误弹「✅ 已保存」但实际没改上；这里显式识别，给出准确提示。
@@ -4074,7 +4175,7 @@ function openStaffDetail(id) {
         showToast('❌ 没改上：当前账号没有修改该客服的权限（或该记录已不存在）');
         return false;
       }
-      showToast('✅ 已保存');
+      showToast('✅ 已保存（组别：' + (patch.group_name || '未分组') + '）');
       await loadStaffInfo();
       return true;
     } catch (e) {
@@ -4083,6 +4184,24 @@ function openStaffDetail(id) {
       return false;
     }
   });
+}
+
+// 管理员重置客服登录密码（走 Edge Function，服务端校验管理员身份）
+async function adminResetPwd(id) {
+  const input = document.getElementById('sd-newpwd');
+  const pwd = input ? input.value.trim() : '';
+  if (!pwd || pwd.length < 6) { showToast('请输入至少 6 位的新密码'); return; }
+  try {
+    if (!supabase || typeof supabase.functions !== 'function') throw new Error('数据服务未就绪');
+    const { data, error } = await supabase.functions.invoke('admin-set-password', { body: { user_id: id, password: pwd } });
+    if (error) throw error;
+    if (data && data.error) throw new Error(data.error);
+    showToast('✅ 密码已重置，请把新密码告诉该客服');
+    if (input) input.value = '';
+  } catch (e) {
+    console.error('重置密码失败:', e);
+    showToast('重置失败：' + (e.message || '未知错误'));
+  }
 }
 function closeStaffDetail() { closeStaffEditModal(); }
 
@@ -4619,7 +4738,15 @@ async function signUp(name, phone, password) {
     password: password,
     options: { data: { name: name, phone: phone } }
   });
-  if (error) { showToast('注册失败：' + error.message); return false; }
+  if (error) {
+    const msg = error.message || '';
+    if (/already registered/i.test(msg)) {
+      showToast('该手机号已注册过，直接登录即可；忘记密码请联系管理员重置');
+    } else {
+      showToast('注册失败：' + msg);
+    }
+    return false;
+  }
   showToast('注册成功！请登录');
   return true;
 }
@@ -4633,7 +4760,20 @@ async function signIn(phone, password) {
   });
   if (error) {
     console.log('[signIn] auth error', error.message);
-    showToast('登录失败：' + error.message);
+    const msg = error.message || '';
+    let tip;
+    if (/Invalid login credentials/i.test(msg)) {
+      tip = '手机号或密码不正确。忘记密码请联系管理员（杨茹）在工作台-客服信息里重置';
+    } else if (/Email not confirmed/i.test(msg)) {
+      tip = '账号还没验证完成，请联系管理员处理（已可找管理员直接重开）';
+    } else if (/rate|too many/i.test(msg)) {
+      tip = '尝试次数太多，请等 1 分钟后再试';
+    } else if (/signups not allowed/i.test(msg)) {
+      tip = '当前未开放注册，请联系管理员开通账号';
+    } else {
+      tip = msg;
+    }
+    showToast('登录失败：' + tip);
     return false;
   }
   if (!data || !data.user) {
