@@ -16179,6 +16179,20 @@ async function applyInviteClaim() {
     document.getElementById('spNoticeGo').addEventListener('click', function () { spCloseNotice(true); });
     document.getElementById('spNoticeOk').addEventListener('click', function () { spCloseNotice(false); });
     // 故意不提供点遮罩/ESC 关闭：必须手动点按钮
+    // 兜底轮询：万一 updateAuthUI 路径没触发，检测到已登录（侧栏名字非「未登录」）也弹
+    var spPollN = 0;
+    var spPoll = setInterval(function () {
+      spPollN++;
+      try {
+        var m = document.getElementById('spNoticeMask');
+        if (!m) { clearInterval(spPoll); return; }
+        if (m.classList.contains('show')) { clearInterval(spPoll); return; }
+        var nameEl = document.getElementById('visitor-name');
+        var name = nameEl ? (nameEl.textContent || '').trim() : '';
+        if (name && name !== '未登录') { spMaybeShowNotice(); clearInterval(spPoll); }
+      } catch (e) { }
+      if (spPollN > 40) clearInterval(spPoll);
+    }, 1500);
   })();
 </script>
 
