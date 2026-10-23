@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>定轴花色一览</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+       background:#fff;color:#1e293b;padding:28px 34px 40px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  h1{font-size:22px;font-weight:800;letter-spacing:1px;color:#ea580c;}
+  h1 .bar{display:inline-block;width:6px;height:20px;border-radius:3px;background:#ea580c;margin-right:10px;vertical-align:-2px;}
+  .sub{font-size:12.5px;color:#64748b;margin:6px 0 18px;}
+  .grp{font-size:15px;font-weight:800;color:#ea580c;margin:14px 0 10px;display:flex;align-items:center;gap:8px;}
+  .grp span{font-size:11.5px;font-weight:600;color:#94a3b8;background:#f1f5f9;border-radius:10px;padding:2px 9px;}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
+  .item{background:#fff7ed;border:1.5px solid #fed7aa;border-radius:9px;padding:10px 12px;
+        font-size:15px;font-weight:700;line-height:1.4;word-break:break-all;text-align:center;}
+  .btnbar{margin:0 0 18px;text-align:right;}
+  .btn{background:#ea580c;color:#fff;border:none;border-radius:8px;padding:9px 22px;font-size:14px;
+       font-weight:700;cursor:pointer;font-family:inherit;}
+  .btn:hover{filter:brightness(.92);}
+  @media print{
+    body{padding:0;}
+    .btnbar{display:none;}
+    .item{break-inside:avoid;}
+    @page{margin:12mm;}
+  }
+</style>
+</head>
+<body>
+  <div class="btnbar"><button class="btn" onclick="window.print()">🖨️ 打印</button></div>
+  <h1><span class="bar"></span>定轴花色一览</h1>
+  <div class="sub">编码规则：半年抛 = D+花名；日抛 = D+花名+6片装 · 共 24 款 · 数据源：特殊类花色明细表</div>
+  <div class="grp">半年抛<span>11 款</span></div><div class="grid"><div class="item">D溺爱冰河</div><div class="item">D玻璃娃娃</div><div class="item">D在逃公主pro</div><div class="item">D超大咩咩棕</div><div class="item">D指尖蝶舞</div><div class="item">D爱的无限曲</div><div class="item">D落日漫游</div><div class="item">D虚拟泪光</div><div class="item">D甜心主唱</div><div class="item">D乌托邦幻想</div><div class="item">D全息悸动</div></div><div class="grp">日抛<span>13 款</span></div><div class="grid"><div class="item">D在逃公主pro6片装</div><div class="item">D虚拟泪光6片装</div><div class="item">D爱的无限曲6片装</div><div class="item">D追光引力6片装</div><div class="item">D琥珀音符6片装</div><div class="item">D萌主契约6片装</div><div class="item">D水色唱片6片装</div><div class="item">D巡游节拍6片装</div><div class="item">D落日漫游6片装</div><div class="item">D银河引力6片装</div><div class="item">D珊珊来信6片装</div><div class="item">D松果沙滩6片装</div><div class="item">D滴落海6片装</div></div>
+  
+</body>
+</html>
