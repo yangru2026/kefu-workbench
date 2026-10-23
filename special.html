@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>特殊花色速查</title>
+<style>
+  :root{ --primary:#10b981; --primary-dark:#059669; --primary-light:rgba(16,185,129,.1);
+         --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f7f9f8; --dz:#c2410c; --dz-bg:#fff7f0; }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+       background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+  .toolbar{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--border);padding:10px 16px 12px;}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .row+.row{margin-top:9px;padding-top:9px;border-top:1px dashed #eef2f6;}
+  .row-lv{font-size:11px;font-weight:800;color:#94a3b8;letter-spacing:.5px;margin-right:2px;width:30px;}
+  .chip{border-radius:16px;border:1.5px solid var(--border);background:#fff;font-family:inherit;cursor:pointer;transition:all .15s;white-space:nowrap;}
+  .chip.lv1{padding:7px 15px;font-size:13.5px;font-weight:800;color:#334155;}
+  .chip.lv1:hover{border-color:var(--primary);color:var(--primary-dark);}
+  .chip.lv1.on{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(16,185,129,.25);}
+  .chip.lv2{padding:5px 13px;font-size:12.5px;font-weight:700;color:var(--muted);}
+  .chip.lv2.on{background:var(--primary-light);border-color:var(--primary);color:var(--primary-dark);}
+  .chip.lv3{padding:4px 11px;font-size:12px;font-weight:600;color:#64748b;border-radius:13px;background:#f8fafc;}
+  .chip.lv3.on{background:#334155;border-color:#334155;color:#fff;}
+  .chip .n{font-size:11px;opacity:.7;margin-left:3px;font-weight:600;}
+  .search{flex:1;min-width:180px;position:relative;margin-left:auto;}
+  .search input{width:100%;padding:8px 12px 8px 32px;border:1.5px solid var(--border);border-radius:9px;font-size:13.5px;font-family:inherit;outline:none;background:var(--bg);}
+  .search input:focus{border-color:var(--primary);background:#fff;}
+  .search .ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--muted);}
+  .wrap{width:100%;max-width:1080px;margin:0 auto;padding:12px 16px 50px;flex:1;}
+  .crumb{font-size:12px;color:var(--muted);margin:0 2px 10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .crumb b{color:var(--text);font-weight:700;}
+  .crumb .tag{background:#fff;border:1px solid var(--border);border-radius:6px;padding:1px 7px;font-size:11.5px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+  .item{background:#fff;border:1px solid var(--border);border-radius:9px;padding:8px 12px;font-size:14px;font-weight:600;line-height:1.4;word-break:break-all;}
+  .item small{display:block;font-size:11px;font-weight:500;color:#94a3b8;margin-top:2px;}
+  .empty{text-align:center;padding:44px 0;color:var(--muted);font-size:14px;}
+  .foot{text-align:center;font-size:11.5px;color:#94a3b8;padding:18px 0 0;}
+  @media (max-width:560px){ .grid{grid-template-columns:repeat(auto-fill,minmax(118px,1fr));} .search{min-width:100%;margin-left:0;} }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <div class="row">
+      <span class="row-lv">类别</span>
+      <div class="row" id="lv1" style="gap:8px;"></div>
+      <div class="search"><span class="ico">🔍</span><input id="q" placeholder="搜花名 / 系列" autocomplete="off"></div>
+    </div>
+    <div class="row">
+      <span class="row-lv">抛型</span>
+      <div class="row" id="lv2" style="gap:8px;"></div>
+    </div>
+    <div class="row">
+      <span class="row-lv">系列</span>
+      <div class="row" id="lv3" style="gap:6px;"></div>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="crumb" id="crumb"></div>
+    <div class="grid" id="grid"></div>
+    <div class="foot">尤赫售前客服工作台 · 特殊花色速查（模板）</div>
+  </div>
+<script>
+  const DATA = [{"cat":"定轴","toss":"日抛","series":"少女漫","name":"在逃公主pro","color":"","dia":"14.5","tint":"14.35","bc":"","hl":""},{"cat":"定轴","toss":"日抛","series":"初音未来","name":"虚拟泪光","color":"","dia":"14.5","tint":"14.3","bc":"","hl":""},{"cat":"定轴","toss":"日抛","series":"初音未来","name":"爱的无限曲","color":"","dia":"14.5","tint":"14.3","bc":"","hl":""},{"cat":"定轴","toss":"日抛","series":"初音未来","name":"追光引力","color":"","dia":"14.2","tint":"13.6","bc":"","hl":""},{"cat":"定轴","toss":"日抛","series":"初音未来","name":"琥珀音符","color":"","dia":"14.5","tint":"14.5","bc":"","hl":""},{"cat":"定轴","toss":"日抛","series":"初音未来","name":"萌主契约","color":"","dia":"14.2","tint":"13.8","bc":"","hl":""},{"cat":"定轴","toss":"日抛","series":"初音未来","name":"水色唱片","color":"","dia":"14.2","tint":"13.9","bc":"","hl":""},{"cat":"定轴","toss":"日抛","series":"初音未来","name":"巡游节拍","color":"","dia":"14.5","tint":"14.5","bc":"","hl":""},{"cat":"定轴","toss":"日抛","series":"初音未来","name":"落日漫游","color":"","dia":"14.5","tint":"14","bc":"","hl":""},{"cat":"定轴","toss":"日抛","series":"初音未来","name":"银河引力","color":"","dia":"14.2","tint":"13.3","bc":"","hl":""},{"cat":"定轴","toss":"日抛","series":"初音未来","name":"珊珊来信","color":"","dia":"14.2","tint":"14.2","bc":"","hl":""},{"cat":"定轴","toss":"日抛","series":"初音未来","name":"松果沙滩","color":"","dia":"14.2","tint":"13.8","bc":"","hl":""},{"cat":"定轴","toss":"日抛","series":"初音未来","name":"滴落海","color":"","dia":"14.5","tint":"14","bc":"","hl":""},{"cat":"定轴","toss":"半年抛","series":"少女漫","name":"溺爱冰河","color":"","dia":"14.5","tint":"14.3","bc":"","hl":""},{"cat":"定轴","toss":"半年抛","series":"少女漫","name":"玻璃娃娃","color":"","dia":"14.5","tint":"14","bc":"","hl":""},{"cat":"定轴","toss":"半年抛","series":"少女漫","name":"在逃公主pro","color":"","dia":"14.5","tint":"14.35","bc":"","hl":""},{"cat":"定轴","toss":"半年抛","series":"少女漫","name":"超大咩咩棕","color":"","dia":"14.5","tint":"14.5","bc":"","hl":""},{"cat":"定轴","toss":"半年抛","series":"初音未来","name":"指尖蝶舞","color":"","dia":"14.5","tint":"14.1","bc":"","hl":""},{"cat":"定轴","toss":"半年抛","series":"初音未来","name":"爱的无限曲","color":"","dia":"14.5","tint":"14.3","bc":"","hl":""},{"cat":"定轴","toss":"半年抛","series":"初音未来","name":"落日漫游","color":"","dia":"14.5","tint":"14","bc":"","hl":""},{"cat":"定轴","toss":"半年抛","series":"初音未来","name":"虚拟泪光","color":"","dia":"14.5","tint":"14.3","bc":"","hl":""},{"cat":"定轴","toss":"半年抛","series":"初音未来","name":"甜心主唱","color":"","dia":"14.5","tint":"14.1","bc":"","hl":""},{"cat":"定轴","toss":"半年抛","series":"初音未来","name":"乌托邦幻想","color":"","dia":"14.5","tint":"14.1","bc":"","hl":""},{"cat":"定轴","toss":"半年抛","series":"初音未来","name":"全息悸动","color":"","dia":"14.5","tint":"14.5","bc":"","hl":""},{"cat":"小直径","toss":"日抛","series":"少女漫","name":"她的梨涡","color":"","dia":"14.2","tint":"13.4","bc":"","hl":""},{"cat":"小直径","toss":"日抛","series":"少女漫","name":"小黑环pro","color":"","dia":"14.2","tint":"13.74","bc":"","hl":""},{"cat":"小直径","toss":"日抛","series":"少女漫","name":"小棕环pro","color":"","dia":"14.2","tint":"13.6","bc":"","hl":""},{"cat":"小直径","toss":"日抛","series":"少女漫","name":"绿野仙棕","color":"","dia":"14","tint":"13.4","bc":"","hl":""},{"cat":"小直径","toss":"日抛","series":"初音未来","name":"追光引力","color":"","dia":"14.2","tint":"13.6","bc":"","hl":""},{"cat":"小直径","toss":"日抛","series":"初音未来","name":"萌主契约","color":"","dia":"14.2","tint":"13.8","bc":"","hl":""},{"cat":"小直径","toss":"日抛","series":"初音未来","name":"水色唱片","color":"","dia":"14.2","tint":"13.9","bc":"","hl":""},{"cat":"小直径","toss":"日抛","series":"人鱼","name":"银河引力","color":"","dia":"14.2","tint":"13.3","bc":"","hl":""},{"cat":"小直径","toss":"日抛","series":"人鱼","name":"珊珊来信","color":"","dia":"14.2","tint":"14.2","bc":"","hl":""},{"cat":"小直径","toss":"日抛","series":"人鱼","name":"松果沙滩","color":"","dia":"14.2","tint":"13.8","bc":"","hl":""},{"cat":"小直径","toss":"半年抛","series":"女高","name":"白月光","color":"","dia":"14.2","tint":"13.5","bc":"","hl":""},{"cat":"小直径","toss":"半年抛","series":"女高","name":"她的梨涡","color":"","dia":"14.2","tint":"13.4","bc":"","hl":""},{"cat":"小直径","toss":"半年抛","series":"女高","name":"黑莓缪斯","color":"","dia":"14.2","tint":"13.67","bc":"","hl":""},{"cat":"小直径","toss":"半年抛","series":"女高","name":"国民初恋","color":"","dia":"14.2","tint":"13.3","bc":"","hl":""},{"cat":"小直径","toss":"半年抛","series":"女高","name":"元气女高","color":"","dia":"14.2","tint":"13.4","bc":"","hl":""},{"cat":"小直径","toss":"半年抛","series":"女高","name":"汪汪队","color":"","dia":"14.2","tint":"13.7","bc":"","hl":""},{"cat":"小直径","toss":"半年抛","series":"女高","name":"栗栗在逃","color":"","dia":"14.2","tint":"13.6","bc":"","hl":""},{"cat":"小直径","toss":"半年抛","series":"女高","name":"小狗心事","color":"","dia":"14.2","tint":"13.74","bc":"","hl":""},{"cat":"小直径","toss":"半年抛","series":"女高","name":"甜宠学妹","color":"","dia":"14.2","tint":"12.9","bc":"","hl":""},{"cat":"小直径","toss":"半年抛","series":"女高","name":"桃气闪闪","color":"","dia":"14.2","tint":"13.7","bc":"","hl":""},{"cat":"小直径","toss":"半年抛","series":"女高","name":"摩卡奶茶","color":"","dia":"14.2","tint":"13.6","bc":"","hl":""},{"cat":"小直径","toss":"半年抛","series":"女高","name":"蓝朋友","color":"","dia":"14.2","tint":"13.5","bc":"","hl":""},{"cat":"超薄","toss":"日抛","series":"人鱼","name":"黑礁芝麻","color":"黑","dia":"14.5","tint":"13.8","bc":"8.7","hl":""},{"cat":"超薄","toss":"日抛","series":"人鱼","name":"椰奶可可","color":"棕","dia":"14.5","tint":"13.6","bc":"8.7","hl":""},{"cat":"超薄","toss":"日抛","series":"人鱼","name":"橘色浪花","color":"棕","dia":"14.5","tint":"13.8","bc":"8.7","hl":""},{"cat":"满着色","toss":"日抛","series":"初音未来","name":"琥珀音符","color":"","dia":"14.5","tint":"14.5","bc":"","hl":""},{"cat":"满着色","toss":"日抛","series":"初音未来","name":"珊珊来信","color":"","dia":"14.2","tint":"14.2","bc":"","hl":""},{"cat":"满着色","toss":"日抛","series":"初音未来","name":"巡游节拍","color":"","dia":"14.5","tint":"14.5","bc":"","hl":""},{"cat":"满着色","toss":"半年抛","series":"初音未来","name":"薄荷微光","color":"","dia":"14.5","tint":"14.5","bc":"","hl":"不定位，满着色"},{"cat":"满着色","toss":"半年抛","series":"初音未来","name":"全息悸动","color":"","dia":"14.5","tint":"14.5","bc":"","hl":"满着色定位片"},{"cat":"满着色","toss":"半年抛","series":"少女漫","name":"超大咩咩棕","color":"","dia":"14.5","tint":"14.5","bc":"","hl":"定轴高光+满着色"},{"cat":"满着色","toss":"半年抛","series":"少女漫","name":"超大宝宝棕","color":"","dia":"14.5","tint":"14.5","bc":"","hl":""},{"cat":"满着色","toss":"半年抛","series":"少女漫","name":"超大椰椰灰","color":"","dia":"14.5","tint":"14.5","bc":"","hl":""},{"cat":"满着色","toss":"半年抛","series":"女高","name":"窗外樱花","color":"","dia":"14.5","tint":"14.5","bc":"","hl":""},{"cat":"大基弧","toss":"日抛","series":"人鱼","name":"黑礁芝麻","color":"黑","dia":"14.5","tint":"13.8","bc":"8.7","hl":""},{"cat":"大基弧","toss":"日抛","series":"人鱼","name":"椰奶可可","color":"棕","dia":"14.5","tint":"13.6","bc":"8.7","hl":""},{"cat":"大基弧","toss":"日抛","series":"人鱼","name":"橘色浪花","color":"棕","dia":"14.5","tint":"13.8","bc":"8.7","hl":""},{"cat":"大基弧","toss":"半年抛","series":"随便花","name":"冷雾茶黑","color":"黑","dia":"14.5","tint":"14.2","bc":"8.9","hl":""},{"cat":"大基弧","toss":"半年抛","series":"女高","name":"甜断记忆","color":"棕","dia":"14.5","tint":"13.9","bc":"8.9","hl":""},{"cat":"大基弧","toss":"半年抛","series":"女高","name":"汪汪队","color":"黑","dia":"14.2","tint":"13.7","bc":"8.7","hl":""},{"cat":"小基弧","toss":"日抛","series":"","name":"绿野仙踪","color":"棕","dia":"14","tint":"13.4","bc":"","hl":"双高光"}];
+  const CATS = ["定轴","小直径","超薄","满着色","大基弧","小基弧"];
+  let fCat = CATS[0], fToss = '', fSeries = '', q = '';
+
+  const $ = id => document.getElementById(id);
+  function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function base(){ // 受 类别 + 搜索 影响的数据
+    return DATA.filter(x => x.cat === fCat
+      && (!q || (x.name + ' ' + x.series + ' ' + x.color).toLowerCase().includes(q)));
+  }
+
+  function renderChips(){
+    // 一级：类别
+    $('lv1').innerHTML = CATS.map(c => {
+      const n = DATA.filter(x => x.cat === c).length;
+      return '<button class="chip lv1 ' + (fCat === c ? 'on' : '') + '" data-cat="' + c + '">' + c + '<span class="n">' + n + '</span></button>';
+    }).join('');
+    // 二级：抛型（当前类别下）
+    const b = base();
+    const t1 = b.filter(x => x.toss === '日抛').length, t2 = b.filter(x => x.toss === '半年抛').length;
+    $('lv2').innerHTML =
+      '<button class="chip lv2 ' + (!fToss ? 'on' : '') + '" data-toss="">全部<span class="n">' + b.length + '</span></button>' +
+      '<button class="chip lv2 ' + (fToss === '日抛' ? 'on' : '') + '" data-toss="日抛">日抛<span class="n">' + t1 + '</span></button>' +
+      '<button class="chip lv2 ' + (fToss === '半年抛' ? 'on' : '') + '" data-toss="半年抛">半年抛<span class="n">' + t2 + '</span></button>';
+    // 三级：系列（当前类别+抛型下）
+    const pool = b.filter(x => !fToss || x.toss === fToss);
+    const ser = [...new Set(pool.map(x => x.series).filter(Boolean))];
+    $('lv3').innerHTML =
+      '<button class="chip lv3 ' + (!fSeries ? 'on' : '') + '" data-series="">全部<span class="n">' + pool.length + '</span></button>' +
+      ser.map(s => {
+        const n = pool.filter(x => x.series === s).length;
+        return '<button class="chip lv3 ' + (fSeries === s ? 'on' : '') + '" data-series="' + esc(s) + '">' + esc(s) + '<span class="n">' + n + '</span></button>';
+      }).join('');
+    $('lv1').querySelectorAll('[data-cat]').forEach(el => el.onclick = () => { fCat = el.dataset.cat; fToss = ''; fSeries = ''; render(); });
+    $('lv2').querySelectorAll('[data-toss]').forEach(el => el.onclick = () => { fToss = el.dataset.toss; fSeries = ''; render(); });
+    $('lv3').querySelectorAll('[data-series]').forEach(el => el.onclick = () => { fSeries = el.dataset.series; render(); });
+  }
+
+  function render(){
+    renderChips();
+    const list = base().filter(x => (!fToss || x.toss === fToss) && (!fSeries || x.series === fSeries));
+    $('crumb').innerHTML = '<b>' + fCat + '</b>' + (fToss ? ' <span style="color:#cbd5e1">›</span> ' + fToss : '') +
+      (fSeries ? ' <span style="color:#cbd5e1">›</span> ' + esc(fSeries) : '') +
+      ' <span class="tag">共 ' + list.length + ' 款</span>';
+    $('grid').innerHTML = list.length ? list.map(x => {
+      const meta = [];
+      if (x.series) meta.push(x.series);
+      if (x.dia) meta.push('直径 ' + x.dia);
+      if (x.tint) meta.push('着色 ' + x.tint);
+      if (x.bc) meta.push('基弧 ' + x.bc);
+      if (x.hl) meta.push(x.hl);
+      // 编码展示规则：
+      // 定轴类别：日抛 = D+花名+6片装，半年抛 = D+花名
+      // 其他类别：日抛 = 花名+6片装，半年抛 = 原花名
+      const code = x.cat === '定轴'
+        ? 'D' + x.name + (x.toss === '日抛' ? '6片装' : '')
+        : x.name + (x.toss === '日抛' ? '6片装' : '');
+      return '<div class="item" title="' + esc(meta.join(' · ')) + '">' + esc(code) +
+             '<small>' + esc([x.series, x.dia ? 'Φ' + x.dia : ''].filter(Boolean).join(' · ')) + '</small></div>';
+    }).join('') : '<div class="empty">该筛选下暂无花色</div>';
+  }
+
+  $('q').addEventListener('input', e => { q = e.target.value.trim().toLowerCase(); fSeries = ''; render(); });
+  render();
+</script>
+</body>
+</html>
