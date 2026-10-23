@@ -33,10 +33,10 @@ function build(sheet) {
   qs.forEach((q, i) => { q.no = i + 1; });
   const total = qs.reduce((n, q) => n + q.points, 0);
   const m = String(title).match(/试卷(.)/);
-  const CN = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6 };
-  const num = m ? (CN[m[1]] || m[1]) : 'x';
+  // ⚠️ key 必须保持中文（exam-一…），quiz_results.quiz_key 历史记录全存的中文，换数字会导致成绩页映射失配
+  const key = m ? m[1] : 'x';
   const meta = {
-    key: 'exam-' + num,
+    key: 'exam-' + key,
     title: title,
     subtitle: '客服考试 · ' + title,
     intro: intro,
