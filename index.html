@@ -291,7 +291,7 @@ body {
 
 .page { display: none; padding: 32px 40px; }
 .page.active { display: block; }
-#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active, #page-price-quiz.active, #page-quiz-results.active { display: flex; height: 100vh; overflow: hidden; }
+#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active, #page-price-quiz.active, #page-quiz-results.active, #page-huaming.active { display: flex; height: 100vh; overflow: hidden; }
 
 /* Header */
 .page-header { margin-bottom: 28px; }
@@ -2004,6 +2004,7 @@ body {
     <div class="nav-item" data-page="daily" title="汇报"><span class="icon">🌙</span><span>汇报</span></div>
     <div class="nav-item" data-page="ranking" title="客服排名"><span class="icon">🏆</span><span>客服排名</span></div>
     <div class="nav-section">常用资料</div>
+    <div class="nav-item" data-page="huaming" title="花名速查（定轴/普通）"><span class="icon">🌸</span><span>花名速查</span></div>
     <div class="nav-item" data-page="price-miyang" title="弥生价格速查"><span class="icon">💰</span><span>弥生价</span></div>
     <div class="nav-item" data-page="price-jiyang" title="极氧价格速查"><span class="icon">💰</span><span>极氧价</span></div>
     <div class="nav-item" data-page="training" title="培训资料"><span class="icon">📚</span><span>培训资料</span></div>
@@ -3475,6 +3476,9 @@ body {
   </div>
 
   <!-- ===== 舆情转接登记 ===== -->
+  <div class="page" id="page-huaming" style="padding:0;overflow:hidden;flex-direction:column;">
+    <iframe id="huaming-iframe" src="about:blank" data-src="huaming.html?v=20261023a" style="flex:1;border:none;width:100%;"></iframe>
+  </div>
   <div class="page" id="page-diversion" style="padding:0;overflow:hidden;flex-direction:column;">
     <iframe id="diversion-iframe" src="about:blank" data-src="diversion.html?v=20261023a" style="flex:1;border:none;width:100%;"></iframe>
   </div>
@@ -10567,6 +10571,14 @@ function switchPage(page) {
     if (gifIframe && gifIframe.getAttribute('data-src') && gifIframe.src !== gifIframe.getAttribute('data-src')) {
       gifIframe.src = gifIframe.getAttribute('data-src');
       gifIframe.removeAttribute('data-src');
+    }
+  }
+  if (page === 'huaming') {
+    // 花名速查：延迟加载 iframe（首次点击才加载）
+    const hmIframe = document.getElementById('huaming-iframe');
+    if (hmIframe && hmIframe.getAttribute('data-src') && hmIframe.src !== hmIframe.getAttribute('data-src')) {
+      hmIframe.src = hmIframe.getAttribute('data-src');
+      hmIframe.removeAttribute('data-src');
     }
   }
   if (page === 'diversion') {
