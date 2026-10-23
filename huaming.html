@@ -66,6 +66,19 @@
 
   function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+  // 排序：定轴在前、普通在后；同系列排一起（系列按首次出现顺序）
+  function sortList(list){
+    const seriesOrder = new Map();
+    list.forEach(x => { const s = x.series || ''; if (!seriesOrder.has(s)) seriesOrder.set(s, seriesOrder.size); });
+    return [...list].sort((a, b) => {
+      const ka = a.kind === '定轴' ? 0 : 1, kb = b.kind === '定轴' ? 0 : 1;
+      if (ka !== kb) return ka - kb;
+      const sa = a.series || '', sb = b.series || '';
+      if (sa !== sb) return seriesOrder.get(sa) - seriesOrder.get(sb);
+      return 0;
+    });
+  }
+
   function render(){
     const q = qInput.value.trim().toLowerCase();
     const list = DATA.filter(x =>
@@ -75,15 +88,16 @@
     );
     cntEl.textContent = list.length + ' / ' + DATA.length;
     if (!list.length) { grid.innerHTML = '<div class="empty">🔍 没找到匹配的花色，换个关键词试试～</div>'; return; }
+    const sorted = sortList(list);
     const itemHtml = x => '<div class="item ' + (x.kind === '定轴' ? 'dz' : '') + '">' + esc(x.name) + '</div>';
-    if (fToss) { grid.innerHTML = '<div class="sec-grid">' + list.map(itemHtml).join('') + '</div>'; return; }
+    if (fToss) { grid.innerHTML = '<div class="sec-grid">' + sorted.map(itemHtml).join('') + '</div>'; return; }
     // 未选抛型时按抛型分组：半年抛一段、日抛一段（日抛编码都带 6 片装）
     const groups = [];
     ['半年抛','日抛'].forEach(t => {
-      const g = list.filter(x => x.toss === t);
+      const g = sortList(list.filter(x => x.toss === t));
       if (g.length) groups.push({ title: t, items: g });
     });
-    const rest = list.filter(x => x.toss !== '半年抛' && x.toss !== '日抛');
+    const rest = sortList(list.filter(x => x.toss !== '半年抛' && x.toss !== '日抛'));
     if (rest.length) groups.push({ title: '其他', items: rest });
     grid.innerHTML = groups.map(g =>
       '<div class="sec-title">' + g.title + '<span>' + g.items.length + ' 款' + (g.title === '日抛' ? ' · 编码带 6片装' : '') + '</span></div>' +
