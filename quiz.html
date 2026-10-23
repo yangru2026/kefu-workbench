@@ -177,6 +177,19 @@ async function refreshUnlock() {
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const LETTER = i => String.fromCharCode(65 + i);
+// 该题的正确答案文字（提交时随明细存库，成绩页直接显示，不再靠题号回查题库）
+function ansTextOf(q){
+  try {
+    if (q.type === 'single' || q.type === 'judge')
+      return (q.type === 'judge' ? '' : LETTER(q.answer) + '. ') + (q.options[q.answer] || '');
+    if (q.type === 'multi')
+      return q.answer.slice().sort((a, b) => a - b).map(i => LETTER(i) + '. ' + q.options[i]).join('\u3000');
+    if (q.type === 'match')
+      return (q.pairs || []).map(p => p.left + '\u2192' + LETTER(q.rightOptions.indexOf(p.right))).join('\u3000');
+    if (q.type === 'text') return q.answer || '';
+  } catch (e) { return ''; }
+  return '';
+}
 
 function renderTabs(){
   $('paperTabs').innerHTML = PAPERS.map((p, i) => {
@@ -386,10 +399,12 @@ async function reportResult(name) {
     self_score: sum(selfRows),
     self_total: selfRows.reduce((n, r) => n + r.full, 0),
     duration_sec: Math.round((Date.now() - START_TS) / 1000),
-    detail: rows.map(r => ({ no: r.no, sec: r.section,
-      stem: (QUIZ.questions.find(q => q.no === r.no) || {}).stem || '',
-      explain: (QUIZ.questions.find(q => q.no === r.no) || {}).explain || '',
-      ans: r.ans || '', got: r.got, full: r.full, kind: r.kind })),
+    detail: rows.map(r => { const q = QUIZ.questions.find(q => q.no === r.no) || {}; return {
+      no: r.no, sec: r.section,
+      stem: q.stem || '',
+      explain: q.explain || '',
+      correct: ansTextOf(q),
+      ans: r.ans || '', got: r.got, full: r.full, kind: r.kind }; }),
     user_agent: (navigator.userAgent || '').slice(0, 200)
   };
   btn.disabled = true; btn.textContent = '📤 正在提交…';
