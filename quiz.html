@@ -151,9 +151,11 @@ const MANUAL_GRADE = () => QUIZ.meta.key === 'exam-五';
 /* ============ 顺序解锁：上一份没交卷，后面试卷看不了 ============ */
 let doneKeys = new Set();   // 该考生已交卷的 quiz_key
 let unlockMax = 0;          // 已解锁到的最大试卷下标（0 = 只解锁第一份）
+let isExamAdmin = false;    // 管理员不锁卷（页面加载时自动检测）
 function calcUnlock() {
   unlockMax = 0;
   while (unlockMax < PAPERS.length - 1 && doneKeys.has(PAPERS[unlockMax].meta.key)) unlockMax++;
+  if (isExamAdmin) unlockMax = PAPERS.length - 1;   // 管理员可看全部试卷
 }
 // 填了姓名就去查她考过哪几份卷，算出解锁进度
 async function refreshUnlock() {
@@ -494,6 +496,28 @@ $('btnSubmit').addEventListener('click', async () => {
 });
 $('btnReset').addEventListener('click', () => location.reload());
 renderTabs(); renderMeta(); buildPaper();
+
+/* 管理员不锁卷：主工作台与本页同域，登录态存在 localStorage，读 role=admin 即解锁全部试卷 */
+(async function detectExamAdmin() {
+  try {
+    const raw = localStorage.getItem('sb-icfgireprowcqwdodfqx-auth-token');
+    if (!raw) return;
+    const ses = JSON.parse(raw);
+    const at = ses && ses.access_token;
+    const uid = ses && ses.user && ses.user.id;
+    if (!at || !uid) return;
+    const res = await fetch(SUPA_URL + '/rest/v1/profiles?select=role&id=eq.' + uid, {
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + at }
+    });
+    const arr = await res.json();
+    if (Array.isArray(arr) && arr[0] && arr[0].role === 'admin') {
+      isExamAdmin = true;
+      calcUnlock();
+      renderTabs();
+      console.log('管理员身份：全部试卷已解锁');
+    }
+  } catch (e) { console.warn('管理员检测跳过', e); }
+})();
 /* 姓名填入后查她考过哪几份卷，恢复解锁进度 */
 $('examinee').addEventListener('change', refreshUnlock);
 try {
