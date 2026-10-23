@@ -27,15 +27,19 @@
   .wrap{width:100%;max-width:1080px;margin:0 auto;padding:14px 16px 50px;flex:1;}
   .legend{font-size:12px;color:var(--muted);margin:0 2px 10px;}
   .legend .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 4px 0 2px;vertical-align:middle;}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+  .grid{display:block;}
+  .sec-title{font-size:14px;font-weight:800;margin:14px 2px 8px;display:flex;align-items:center;gap:8px;}
+  .sec-title::before{content:'';width:4px;height:14px;border-radius:2px;background:var(--primary);display:inline-block;}
+  .sec-title span{font-size:11.5px;font-weight:600;color:var(--muted);background:#f1f5f9;border-radius:10px;padding:2px 9px;}
+  .sec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
   .item{background:#fff;border:1px solid var(--border);border-radius:9px;padding:8px 12px;
         font-size:14px;font-weight:600;word-break:break-all;line-height:1.4;transition:all .12s;}
   .item:hover{border-color:var(--primary);box-shadow:0 2px 8px rgba(16,185,119,.12);}
   .item.dz{background:var(--dz-bg);border-color:#fed7aa;color:var(--dz);}
   .item.dz:hover{border-color:#fb923c;box-shadow:0 2px 8px rgba(249,115,22,.18);}
-  .empty{grid-column:1/-1;text-align:center;padding:44px 0;color:var(--muted);font-size:14px;}
+  .empty{text-align:center;padding:44px 0;color:var(--muted);font-size:14px;}
   .foot{text-align:center;font-size:11.5px;color:#94a3b8;padding:16px 0 0;}
-  @media (max-width:560px){ .grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));} }
+  @media (max-width:560px){ .sec-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));} }
 </style>
 </head>
 <body>
@@ -47,7 +51,7 @@
     <span class="cnt" id="cnt"></span>
   </div>
   <div class="wrap">
-    <p class="legend"><span class="dot" style="background:#fb923c;"></span>橙色 = 定轴款（花名以 D 开头）　<span class="dot" style="background:#cbd5e1;"></span>白色 = 普通款</p>
+    <p class="legend"><span class="dot" style="background:#fb923c;"></span>橙色 = 定轴款（花名以 D 开头）　<span class="dot" style="background:#cbd5e1;"></span>白色 = 普通款　｜　日抛编码都带 <b>6片装</b></p>
     <div class="grid" id="grid"></div>
     <div class="foot">尤赫售前客服工作台 · 花名速查</div>
   </div>
@@ -67,9 +71,21 @@
       (!q || [x.name, x.color, x.series].join(' ').toLowerCase().includes(q))
     );
     cntEl.textContent = list.length + ' / ' + DATA.length;
-    grid.innerHTML = list.length ? list.map(x =>
-      '<div class="item ' + (x.kind === '定轴' ? 'dz' : '') + '">' + esc(x.name) + '</div>'
-    ).join('') : '<div class="empty">🔍 没找到匹配的花色，换个关键词试试～</div>';
+    if (!list.length) { grid.innerHTML = '<div class="empty">🔍 没找到匹配的花色，换个关键词试试～</div>'; return; }
+    // 按抛型分组：半年抛一段、日抛一段（日抛编码都带 6 片装）
+    const groups = [];
+    ['半年抛','日抛'].forEach(t => {
+      const g = list.filter(x => x.toss === t);
+      if (g.length) groups.push({ title: t, items: g });
+    });
+    const rest = list.filter(x => x.toss !== '半年抛' && x.toss !== '日抛');
+    if (rest.length) groups.push({ title: '其他', items: rest });
+    grid.innerHTML = groups.map(g =>
+      '<div class="sec-title">' + g.title + '<span>' + g.items.length + ' 款' + (g.title === '日抛' ? ' · 编码带 6片装' : '') + '</span></div>' +
+      '<div class="sec-grid">' + g.items.map(x =>
+        '<div class="item ' + (x.kind === '定轴' ? 'dz' : '') + '">' + esc(x.name) + '</div>'
+      ).join('') + '</div>'
+    ).join('');
   }
 
   document.querySelectorAll('.chip[data-kind]').forEach(c =>
