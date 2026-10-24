@@ -291,7 +291,7 @@ body {
 
 .page { display: none; padding: 32px 40px; }
 .page.active { display: block; }
-#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active, #page-price-quiz.active, #page-quiz-results.active, #page-huaming.active { display: flex; height: 100vh; overflow: hidden; }
+#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active, #page-price-quiz.active, #page-quiz-results.active, #page-huaming.active, #page-restock.active { display: flex; height: 100vh; overflow: hidden; }
 
 /* Header */
 .page-header { margin-bottom: 28px; }
@@ -2004,6 +2004,7 @@ body {
     <div class="nav-item" data-page="daily" title="汇报"><span class="icon">🌙</span><span>汇报</span></div>
     <div class="nav-item" data-page="ranking" title="客服排名"><span class="icon">🏆</span><span>客服排名</span></div>
     <div class="nav-item" data-page="huaming" title="特殊花色速查（定轴/小直径/超薄/满着色/大基弧/小基弧）"><span class="icon">🌸</span><span>特殊花色</span></div>
+    <div class="nav-item" data-page="restock" title="缺货补货动态（补货中/已入库/不补清单）"><span class="icon">📦</span><span>补货动态</span></div>
     <div class="nav-section">常用资料</div>
     <div class="nav-item" data-page="price-miyang" title="弥生价格速查"><span class="icon">💰</span><span>弥生价</span></div>
     <div class="nav-item" data-page="price-jiyang" title="极氧价格速查"><span class="icon">💰</span><span>极氧价</span></div>
@@ -3478,6 +3479,9 @@ body {
   <!-- ===== 舆情转接登记 ===== -->
   <div class="page" id="page-huaming" style="padding:0;overflow:hidden;flex-direction:column;">
     <iframe id="huaming-iframe" src="about:blank" data-src="special.html?v=20261023c" style="flex:1;border:none;width:100%;"></iframe>
+  </div>
+  <div class="page" id="page-restock" style="padding:0;overflow:hidden;flex-direction:column;">
+    <iframe id="restock-iframe" src="about:blank" data-src="restock.html?v=20261024a" style="flex:1;border:none;width:100%;"></iframe>
   </div>
   <div class="page" id="page-diversion" style="padding:0;overflow:hidden;flex-direction:column;">
     <iframe id="diversion-iframe" src="about:blank" data-src="diversion.html?v=20261023a" style="flex:1;border:none;width:100%;"></iframe>
@@ -10576,11 +10580,19 @@ function switchPage(page) {
     }
   }
   if (page === 'huaming') {
-    // 花名速查：延迟加载 iframe（首次点击才加载）
+    // 特殊花色：延迟加载 iframe（首次点击才加载）
     const hmIframe = document.getElementById('huaming-iframe');
     if (hmIframe && hmIframe.getAttribute('data-src') && hmIframe.src !== hmIframe.getAttribute('data-src')) {
       hmIframe.src = hmIframe.getAttribute('data-src');
       hmIframe.removeAttribute('data-src');
+    }
+  }
+  if (page === 'restock') {
+    // 补货动态：延迟加载 iframe（首次点击才加载）
+    const rsIframe = document.getElementById('restock-iframe');
+    if (rsIframe && rsIframe.getAttribute('data-src') && rsIframe.src !== rsIframe.getAttribute('data-src')) {
+      rsIframe.src = rsIframe.getAttribute('data-src');
+      rsIframe.removeAttribute('data-src');
     }
   }
   if (page === 'diversion') {

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>补货动态</title>
+<style>
+  :root{ --primary:#10b981; --primary-dark:#059669; --primary-light:rgba(16,185,129,.1);
+         --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f7f9f8;
+         --wait:#ea580c; --wait-bg:#fff7ed; --wait-bd:#fed7aa;
+         --done:#0d9488; --done-bg:#f0fdfa; --done-bd:#99f6e4;
+         --no:#64748b; --no-bg:#f8fafc; --no-bd:#e2e8f0; }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+       background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+  .topbar{display:flex;align-items:center;gap:10px;padding:12px 18px;background:#fff;
+          border-bottom:1px solid var(--border);flex-wrap:wrap;position:sticky;top:0;z-index:10;}
+  .topbar h1{font-size:17px;font-weight:800;letter-spacing:.5px;}
+  .badge{font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;background:var(--primary-light);color:var(--primary-dark);}
+  .badge.admin{background:#fff7ed;color:#c2410c;}
+  .badge.ro{background:#f1f5f9;color:#64748b;}
+  .sp{flex:1;}
+  .search{position:relative;min-width:200px;}
+  .search input{width:100%;padding:8px 12px 8px 32px;border:1.5px solid var(--border);border-radius:9px;font-size:13.5px;font-family:inherit;outline:none;background:var(--bg);}
+  .search input:focus{border-color:var(--primary);background:#fff;}
+  .search .ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--muted);}
+  .btn{border:none;border-radius:9px;padding:9px 16px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:filter .15s;}
+  .btn:hover{filter:brightness(.94);}
+  .btn.g{background:var(--primary);color:#fff;}
+  .btn.o{background:#fff;border:1.5px solid var(--border);color:#334155;}
+  .wrap{width:100%;max-width:1080px;margin:0 auto;padding:16px 18px 60px;flex:1;}
+  .sec{margin-bottom:22px;}
+  .sec-title{font-size:14.5px;font-weight:800;display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .sec-title::before{content:'';width:4px;height:15px;border-radius:2px;display:inline-block;}
+  .sec.wait .sec-title{color:var(--wait);} .sec.wait .sec-title::before{background:var(--wait);}
+  .sec.done .sec-title{color:var(--done);} .sec.done .sec-title::before{background:var(--done);}
+  .sec.no .sec-title{color:var(--no);} .sec.no .sec-title::before{background:var(--no);}
+  .sec-title span{font-size:11.5px;font-weight:600;color:var(--muted);background:#f1f5f9;border-radius:10px;padding:2px 9px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:9px;}
+  .item{border-radius:10px;padding:10px 12px;border:1.5px solid;display:flex;flex-direction:column;gap:5px;}
+  .wait .item{background:var(--wait-bg);border-color:var(--wait-bd);}
+  .done .item{background:var(--done-bg);border-color:var(--done-bd);}
+  .no .item{background:var(--no-bg);border-color:var(--no-bd);}
+  .item .row1{display:flex;align-items:center;gap:8px;}
+  .item .name{font-size:14.5px;font-weight:700;flex:1;word-break:break-all;line-height:1.4;}
+  .item .date{font-size:12px;font-weight:800;color:var(--wait);white-space:nowrap;}
+  .done .item .date{color:var(--done);}
+  .item .toss{font-size:10.5px;font-weight:700;border-radius:6px;padding:1px 6px;white-space:nowrap;}
+  .item .toss.hy{background:#eff6ff;color:#2563eb;}
+  .item .toss.da{background:#fef3c7;color:#b45309;}
+  .item .note{font-size:11.5px;color:var(--muted);line-height:1.5;word-break:break-all;}
+  .item .ops{display:flex;gap:6px;}
+  .item .ops button{border:none;background:#fff;border:1px solid var(--border);border-radius:6px;
+                    font-size:11px;padding:3px 9px;cursor:pointer;font-family:inherit;color:#475569;}
+  .item .ops button:hover{border-color:var(--primary);color:var(--primary-dark);}
+  .empty{color:var(--muted);font-size:13px;background:#fff;border:1px dashed var(--border);border-radius:10px;padding:18px;text-align:center;}
+  /* 弹窗表单 */
+  .mask{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99;display:none;align-items:center;justify-content:center;}
+  .mask.show{display:flex;}
+  .modal{background:#fff;border-radius:14px;width:min(400px,calc(100vw - 36px));padding:20px 22px;}
+  .modal h3{font-size:16px;font-weight:800;margin-bottom:14px;}
+  .modal label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 5px;}
+  .modal input,.modal select{width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:14px;font-family:inherit;outline:none;}
+  .modal input:focus,.modal select:focus{border-color:var(--primary);}
+  .modal .btns{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+  .toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%) translateY(20px);background:#1e293b;color:#fff;
+         padding:10px 20px;border-radius:10px;font-size:13.5px;opacity:0;pointer-events:none;transition:all .25s;z-index:200;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .authmask{position:fixed;inset:0;background:var(--bg);z-index:50;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--muted);font-size:14px;}
+  .authmask.active{display:flex;}
+  @media (max-width:560px){ .grid{grid-template-columns:1fr 1fr;} }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>📦 补货动态</h1>
+    <span class="badge" id="roleBadge">…</span>
+    <div class="sp"></div>
+    <div class="search"><span class="ico">🔍</span><input id="q" placeholder="搜花名" autocomplete="off"></div>
+    <button class="btn o" id="btnCopy" style="display:none;">📋 复制公告</button>
+    <button class="btn g" id="btnAdd" style="display:none;">＋ 登记</button>
+  </div>
+  <div class="wrap">
+    <div class="sec wait" id="secWait">
+      <div class="sec-title">🕐 补货中<span id="cntWait">0</span></div>
+      <div class="grid" id="gridWait"></div>
+    </div>
+    <div class="sec done" id="secDone">
+      <div class="sec-title">✅ 已入库<span id="cntDone">0</span></div>
+      <div class="grid" id="gridDone"></div>
+    </div>
+    <div class="sec no" id="secNo">
+      <div class="sec-title">🚫 不补清单<span id="cntNo">0</span></div>
+      <div class="grid" id="gridNo"></div>
+    </div>
+  </div>
+
+  <div class="mask" id="formMask">
+    <div class="modal">
+      <h3 id="formTitle">登记补货</h3>
+      <label>抛型</label>
+      <select id="fToss"><option value="半年抛">半年抛</option><option value="日抛">日抛</option></select>
+      <label>花名</label>
+      <input id="fName" placeholder="如：她的梨涡（不用带 D 和 6片装）" autocomplete="off">
+      <label>状态</label>
+      <select id="fStatus">
+        <option value="restocking">补货中（等采购回复到货时间）</option>
+        <option value="done">已入库（客服可查收）</option>
+        <option value="no">不补（潜仓不补）</option>
+      </select>
+      <label id="fDateLabel">预计到货日期</label>
+      <input id="fDate" placeholder="如：10.26 / 12-10号左右" autocomplete="off">
+      <label>备注（可选）</label>
+      <input id="fNote" placeholder="如：全度数 / 光哥说的" autocomplete="off">
+      <div class="btns">
+        <button class="btn o" id="fCancel">取消</button>
+        <button class="btn g" id="fSave">保存</button>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <div class="authmask" id="authMask">🔒 请先在工作台登录后查看</div>
+
+<script src="vendor/supabase.min.js?v=2"></script>
+<script>
+'use strict';
+const SUPABASE_URL = 'https://icfgireprowcqwdodfqx.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljZmdpcmVwcm93Y3F3ZG9kZnF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0ODMwNjEsImV4cCI6MjEwODA1OTA2MX0.T8yex8pjNBE0ch3vPKL3xPQPOqw3ExS4mwRsjT2FhzE';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let items = [];
+let isAdmin = false;
+let editingId = null;
+
+const $ = id => document.getElementById(id);
+function esc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer); t._timer = setTimeout(()=>t.classList.remove('show'), 1800);
+}
+function todayMd(){
+  const d = new Date();
+  return (d.getMonth()+1) + '.' + d.getDate();
+}
+function etaKey(x){
+  const m = String(x||'').match(/(\d{1,2})\s*[.\-/月]\s*(\d{1,2})/);
+  return m ? (Number(m[1])*100 + Number(m[2])) : 99999;
+}
+
+/* ==================== 数据 ==================== */
+async function load(){
+  const { data, error } = await sb.from('restock_items').select('*');
+  if (error) { toast('读取失败：' + error.message); return; }
+  items = (data||[]).slice().sort((a,b)=> new Date(b.updated_at||0) - new Date(a.updated_at||0));
+  render();
+}
+
+function filtered(){
+  const q = $('q').value.trim().toLowerCase();
+  if (!q) return items;
+  return items.filter(x => (x.name + ' ' + (x.note||'') + ' ' + (x.eta_date||'')).toLowerCase().includes(q));
+}
+
+function cardHtml(x){
+  const dateTxt = x.status==='restocking' ? (x.eta_date ? '预计 ' + x.eta_date : '等采购回复')
+                : x.status==='done' ? (x.eta_date ? x.eta_date + ' 入库' : '已入库')
+                : '不补';
+  return '<div class="item" data-id="' + x.id + '">' +
+    '<div class="row1"><span class="toss ' + (x.toss==='日抛'?'da':'hy') + '">' + esc(x.toss) + '</span>' +
+    '<span class="name">' + esc(x.name) + '</span>' +
+    '<span class="date">' + esc(dateTxt) + '</span></div>' +
+    (x.note ? '<div class="note">' + esc(x.note) + '</div>' : '') +
+    (isAdmin ? '<div class="ops"><button data-act="edit">✏️ 编辑</button><button data-act="del">🗑️ 删除</button></div>' : '') +
+  '</div>';
+}
+
+function render(){
+  const list = filtered();
+  const g1 = list.filter(x=>x.status==='restocking');
+  const g2 = list.filter(x=>x.status==='done');
+  const g3 = list.filter(x=>x.status==='no');
+  g1.sort((a,b)=> etaKey(a.eta_date) - etaKey(b.eta_date));
+  $('cntWait').textContent = g1.length + ' 款';
+  $('cntDone').textContent = g2.length + ' 款';
+  $('cntNo').textContent = g3.length + ' 款';
+  $('gridWait').innerHTML = g1.length ? g1.map(cardHtml).join('') : '<div class="empty">暂无补货中的花色 🎉</div>';
+  $('gridDone').innerHTML = g2.length ? g2.map(cardHtml).join('') : '<div class="empty">暂无入库记录</div>';
+  $('gridNo').innerHTML = g3.length ? g3.map(cardHtml).join('') : '<div class="empty">暂无不补花色</div>';
+  document.querySelectorAll('.item .ops button').forEach(b => b.addEventListener('click', onOp));
+}
+
+function onOp(e){
+  const id = e.target.closest('.item').dataset.id;
+  const x = items.find(v=>v.id===id);
+  if (!x) return;
+  if (e.target.dataset.act === 'edit') openForm(x);
+  if (e.target.dataset.act === 'del') delItem(x);
+}
+
+async function delItem(x){
+  if (!confirm('确定删除「' + x.name + '」这条补货记录吗？')) return;
+  const { error } = await sb.from('restock_items').delete().eq('id', x.id);
+  if (error) { toast('删除失败：' + error.message); return; }
+  toast('已删除'); load();
+}
+
+/* ==================== 表单 ==================== */
+function openForm(x){
+  editingId = x ? x.id : null;
+  $('formTitle').textContent = x ? '编辑补货记录' : '登记补货';
+  $('fToss').value = x ? x.toss : '半年抛';
+  $('fName').value = x ? x.name : '';
+  $('fStatus').value = x ? x.status : 'restocking';
+  $('fDate').value = x ? (x.eta_date||'') : '';
+  $('fNote').value = x ? (x.note||'') : '';
+  syncDateLabel();
+  $('formMask').classList.add('show');
+  setTimeout(()=>{ try{ $('fName').focus(); }catch(e){} }, 60);
+}
+function syncDateLabel(){
+  $('fDateLabel').textContent = $('fStatus').value === 'done' ? '入库日期' : '预计到货日期';
+}
+async function save(){
+  const name = $('fName').value.trim();
+  if (!name) { toast('请填花名'); return; }
+  const status = $('fStatus').value;
+  let eta = $('fDate').value.trim();
+  if (status === 'done' && !eta) eta = todayMd();
+  const row = { toss: $('fToss').value, name, status, eta_date: eta, note: $('fNote').value.trim(), updated_at: new Date().toISOString() };
+  let error;
+  if (editingId) {
+    ({ error } = await sb.from('restock_items').update(row).eq('id', editingId));
+  } else {
+    ({ error } = await sb.from('restock_items').insert(row));
+  }
+  if (error) { toast('保存失败：' + error.message); return; }
+  $('formMask').classList.remove('show');
+  toast('已保存 ✅');
+  load();
+}
+
+/* ==================== 复制公告 ==================== */
+function buildNotice(){
+  const list = filtered();
+  const wait = list.filter(x=>x.status==='restocking').sort((a,b)=>etaKey(a.eta_date)-etaKey(b.eta_date));
+  const no   = list.filter(x=>x.status==='no');
+  const hy = wait.filter(x=>x.toss==='半年抛');
+  const da = wait.filter(x=>x.toss==='日抛');
+  const L = [];
+  L.push('📣 补货动态（' + todayMd() + ' 更新）');
+  if (hy.length){
+    L.push('');
+    L.push('半年抛缺货到货预计时效：');
+    hy.forEach(x=> L.push(x.name + (x.eta_date ? ' 预计' + x.eta_date + '到货' : ' 到货时间待定')));
+  }
+  if (da.length){
+    L.push('');
+    L.push('日抛缺货到货预计时效：');
+    da.forEach(x=> L.push(x.name + '6片装' + (x.eta_date ? ' 预计' + x.eta_date + '到货' : ' 到货时间待定')));
+  }
+  if (no.length){
+    L.push('');
+    L.push('潜仓不补缺货花色：');
+    no.forEach(x=> L.push(x.name + (x.toss==='日抛' ? '-6片装' : '')));
+  }
+  return L.join('\n');
+}
+async function copyNotice(){
+  const txt = buildNotice();
+  try { await navigator.clipboard.writeText(txt); toast('公告已复制，去群里粘贴即可 📋'); }
+  catch(e){
+    const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta);
+    ta.select(); try{ document.execCommand('copy'); toast('公告已复制，去群里粘贴即可 📋'); }catch(_){ toast('复制失败，请手动复制'); }
+    document.body.removeChild(ta);
+  }
+}
+
+/* ==================== 初始化 ==================== */
+(async function init(){
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    const user = session && session.user;
+    if (!user){
+      $('roleBadge').className = 'badge ro'; $('roleBadge').textContent = '🔒 未登录';
+      $('authMask').classList.add('active'); return;
+    }
+    let role = user.app_metadata && user.app_metadata.role;
+    try{
+      const { data:p } = await sb.from('profiles').select('role,name,real_name').eq('id', user.id).single();
+      if (p) role = p.role;
+    }catch(e){ console.warn('profiles load', e); }
+    isAdmin = (role === 'admin');
+    if (isAdmin){
+      $('roleBadge').className = 'badge admin'; $('roleBadge').textContent = '👑 管理员 · 可登记';
+      $('btnAdd').style.display = ''; $('btnCopy').style.display = '';
+    } else {
+      $('roleBadge').className = 'badge ro'; $('roleBadge').textContent = '📖 只读查看';
+    }
+    await load();
+  }catch(e){
+    console.warn(e);
+    toast('初始化失败，请刷新重试');
+  }
+})();
+
+$('btnAdd').addEventListener('click', ()=>openForm(null));
+$('fCancel').addEventListener('click', ()=>$('formMask').classList.remove('show'));
+$('fSave').addEventListener('click', save);
+$('fStatus').addEventListener('change', syncDateLabel);
+$('btnCopy').addEventListener('click', copyNotice);
+$('q').addEventListener('input', render);
+</script>
+</body>
+</html>
