@@ -53,6 +53,20 @@
   .item .ops button{border:none;background:#fff;border:1px solid var(--border);border-radius:6px;
                     font-size:11px;padding:3px 9px;cursor:pointer;font-family:inherit;color:#475569;}
   .item .ops button:hover{border-color:var(--primary);color:var(--primary-dark);}
+  .item .ckwrap{display:flex;align-items:flex-start;}
+  .item .ckwrap input{width:16px;height:16px;accent-color:var(--primary);cursor:pointer;}
+  .item .main{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0;}
+  #batchBar{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1e293b;color:#fff;
+            border-radius:12px;padding:10px 16px;display:none;align-items:center;gap:10px;flex-wrap:wrap;
+            box-shadow:0 10px 30px rgba(15,23,42,.35);z-index:90;}
+  #batchBar.show{display:flex;}
+  #batchBar .n{font-size:13px;font-weight:700;margin-right:2px;}
+  #batchBar button{border:none;border-radius:8px;padding:7px 13px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+  #batchBar .b-done{background:#0d9488;color:#fff;}
+  #batchBar .b-eta{background:#ea580c;color:#fff;}
+  #batchBar .b-no{background:#64748b;color:#fff;}
+  #batchBar .b-del{background:#dc2626;color:#fff;}
+  #batchBar .b-cancel{background:#fff;color:#334155;}
   .empty{color:var(--muted);font-size:13px;background:#fff;border:1px dashed var(--border);border-radius:10px;padding:18px;text-align:center;}
   /* 弹窗表单 */
   .mask{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99;display:none;align-items:center;justify-content:center;}
@@ -78,6 +92,7 @@
     <div class="sp"></div>
     <div class="search"><span class="ico">🔍</span><input id="q" placeholder="搜花名" autocomplete="off"></div>
     <button class="btn o" id="btnCopy" style="display:none;">📋 复制公告</button>
+    <button class="btn o" id="btnSelAll" style="display:none;">☑️ 全选</button>
     <button class="btn g" id="btnAdd" style="display:none;">＋ 登记</button>
   </div>
   <div class="wrap">
@@ -100,8 +115,8 @@
       <h3 id="formTitle">登记补货</h3>
       <label>抛型</label>
       <select id="fToss"><option value="半年抛">半年抛</option><option value="日抛">日抛</option></select>
-      <label>花名</label>
-      <input id="fName" placeholder="如：她的梨涡（不用带 D 和 6片装）" autocomplete="off">
+      <label>花名（可批量：一行一个，直接从采购消息里粘贴）</label>
+      <textarea id="fName" rows="4" placeholder="如：&#10;冰岛日记&#10;窗外樱花&#10;我喜欢你" style="resize:vertical;" autocomplete="off"></textarea>
       <label>状态</label>
       <select id="fStatus">
         <option value="restocking">补货中（等采购回复到货时间）</option>
@@ -115,6 +130,26 @@
       <div class="btns">
         <button class="btn o" id="fCancel">取消</button>
         <button class="btn g" id="fSave">保存</button>
+      </div>
+    </div>
+  </div>
+  <div id="batchBar">
+    <span class="n" id="batchN">已选 0 条</span>
+    <button class="b-done" id="bDone">✅ 设为已入库</button>
+    <button class="b-eta" id="bEta">🕐 改到货时间</button>
+    <button class="b-no" id="bNo">🚫 设为不补</button>
+    <button class="b-del" id="bDel">🗑️ 删除</button>
+    <button class="b-cancel" id="bCancel">取消选择</button>
+  </div>
+
+  <div class="mask" id="dateMask">
+    <div class="modal">
+      <h3>批量修改到货时间</h3>
+      <label>到货时间（应用到选中的 <span id="dateCnt">0</span> 条）</label>
+      <input id="batchDate" placeholder="如：10.26 / 12-10号左右" autocomplete="off">
+      <div class="btns">
+        <button class="btn o" id="dateCancel">取消</button>
+        <button class="btn g" id="dateApply">应用</button>
       </div>
     </div>
   </div>
@@ -166,11 +201,16 @@ function cardHtml(x){
                 : x.status==='done' ? (x.eta_date ? x.eta_date + ' 入库' : '已入库')
                 : '不补';
   return '<div class="item" data-id="' + x.id + '">' +
-    '<div class="row1"><span class="toss ' + (x.toss==='日抛'?'da':'hy') + '">' + esc(x.toss) + '</span>' +
-    '<span class="name">' + esc(x.name) + '</span>' +
-    '<span class="date">' + esc(dateTxt) + '</span></div>' +
-    (x.note ? '<div class="note">' + esc(x.note) + '</div>' : '') +
-    (isAdmin ? '<div class="ops"><button data-act="edit">✏️ 编辑</button><button data-act="del">🗑️ 删除</button></div>' : '') +
+    '<div style="display:flex;gap:8px;align-items:flex-start;">' +
+      (isAdmin ? '<label class="ckwrap"><input type="checkbox" data-ck="' + x.id + '"' + (selected.has(x.id)?' checked':'') + '></label>' : '') +
+      '<div class="main">' +
+        '<div class="row1"><span class="toss ' + (x.toss==='日抛'?'da':'hy') + '">' + esc(x.toss) + '</span>' +
+        '<span class="name">' + esc(x.name) + '</span>' +
+        '<span class="date">' + esc(dateTxt) + '</span></div>' +
+        (x.note ? '<div class="note">' + esc(x.note) + '</div>' : '') +
+        (isAdmin ? '<div class="ops"><button data-act="edit">✏️ 编辑</button><button data-act="del">🗑️ 删除</button></div>' : '') +
+      '</div>' +
+    '</div>' +
   '</div>';
 }
 
@@ -186,7 +226,46 @@ function render(){
   $('gridWait').innerHTML = g1.length ? g1.map(cardHtml).join('') : '<div class="empty">暂无补货中的花色 🎉</div>';
   $('gridDone').innerHTML = g2.length ? g2.map(cardHtml).join('') : '<div class="empty">暂无入库记录</div>';
   $('gridNo').innerHTML = g3.length ? g3.map(cardHtml).join('') : '<div class="empty">暂无不补花色</div>';
+  // 清掉已不存在的选中项
+  [...selected].forEach(id => { if (!list.some(x=>x.id===id)) selected.delete(id); });
+  updateBatchBar();
+  document.querySelectorAll('.item [data-ck]').forEach(ck => ck.addEventListener('change', onCk));
   document.querySelectorAll('.item .ops button').forEach(b => b.addEventListener('click', onOp));
+}
+
+/* ==================== 批量操作 ==================== */
+const selected = new Set();
+function onCk(e){
+  if (e.target.checked) selected.add(e.target.dataset.ck);
+  else selected.delete(e.target.dataset.ck);
+  updateBatchBar();
+}
+function updateBatchBar(){
+  const bar = $('batchBar');
+  if (!isAdmin || !selected.size) { bar.classList.remove('show'); return; }
+  $('batchN').textContent = '已选 ' + selected.size + ' 条';
+  bar.classList.add('show');
+}
+async function batchUpdate(patch){
+  const ids = [...selected];
+  for (const id of ids){
+    const { error } = await sb.from('restock_items').update(Object.assign({ updated_at: new Date().toISOString() }, patch)).eq('id', id);
+    if (error) { toast('批量操作失败：' + error.message); return; }
+  }
+  selected.clear();
+  toast('已更新 ' + ids.length + ' 条 ✅');
+  load();
+}
+async function batchDelete(){
+  if (!confirm('确定删除选中的 ' + selected.size + ' 条记录吗？')) return;
+  const ids = [...selected];
+  for (const id of ids){
+    const { error } = await sb.from('restock_items').delete().eq('id', id);
+    if (error) { toast('删除失败：' + error.message); return; }
+  }
+  selected.clear();
+  toast('已删除 ' + ids.length + ' 条');
+  load();
 }
 
 function onOp(e){
@@ -221,21 +300,31 @@ function syncDateLabel(){
   $('fDateLabel').textContent = $('fStatus').value === 'done' ? '入库日期' : '预计到货日期';
 }
 async function save(){
-  const name = $('fName').value.trim();
-  if (!name) { toast('请填花名'); return; }
+  const raw = $('fName').value.trim();
+  if (!raw) { toast('请填花名'); return; }
   const status = $('fStatus').value;
   let eta = $('fDate').value.trim();
   if (status === 'done' && !eta) eta = todayMd();
-  const row = { toss: $('fToss').value, name, status, eta_date: eta, note: $('fNote').value.trim(), updated_at: new Date().toISOString() };
+  // 批量：一行一个，兼容 、，, 分隔；自动去掉 D 前缀和 6片装/片装 后缀；
+  // 过滤标题/说明行（半年抛、日抛、缺货、物流、预计、入库、潜仓等），并跳过已有的同抛型同名花色
+  const isNoise = s => /^(半年抛|日抛)$/.test(s) || /(缺货|潜仓|预计|物流|入库|延误|到货|义乌|全度数|查收)/.test(s);
+  const names = [...new Set(raw.split(/[\n\r]+|、|，|,/).map(s => s.trim()
+      .replace(/^D(?=[\u4e00-\u9fa5A-Za-z])/,'').replace(/-?6?片装$/,'').replace(/-?片装$/,''))
+    .filter(Boolean))]
+    .filter(n => !isNoise(n))
+    .filter(n => !items.some(x => x.toss === $('fToss').value && x.name === n));
+  if (!names.length) { toast('没识别到花名'); return; }
   let error;
   if (editingId) {
-    ({ error } = await sb.from('restock_items').update(row).eq('id', editingId));
+    ({ error } = await sb.from('restock_items').update({ toss: $('fToss').value, name: names[0], status, eta_date: eta, note: $('fNote').value.trim(), updated_at: new Date().toISOString() }).eq('id', editingId));
   } else {
-    ({ error } = await sb.from('restock_items').insert(row));
+    const now = new Date().toISOString();
+    const rows = names.map(n => ({ toss: $('fToss').value, name: n, status, eta_date: eta, note: $('fNote').value.trim(), updated_at: now }));
+    ({ error } = await sb.from('restock_items').insert(rows));
   }
   if (error) { toast('保存失败：' + error.message); return; }
   $('formMask').classList.remove('show');
-  toast('已保存 ✅');
+  toast(editingId ? '已保存 ✅' : '已登记 ' + names.length + ' 条 ✅');
   load();
 }
 
@@ -292,7 +381,7 @@ async function copyNotice(){
     isAdmin = (role === 'admin');
     if (isAdmin){
       $('roleBadge').className = 'badge admin'; $('roleBadge').textContent = '👑 管理员 · 可登记';
-      $('btnAdd').style.display = ''; $('btnCopy').style.display = '';
+      $('btnAdd').style.display = ''; $('btnCopy').style.display = ''; $('btnSelAll').style.display = '';
     } else {
       $('roleBadge').className = 'badge ro'; $('roleBadge').textContent = '📖 只读查看';
     }
@@ -304,6 +393,24 @@ async function copyNotice(){
 })();
 
 $('btnAdd').addEventListener('click', ()=>openForm(null));
+$('btnSelAll').addEventListener('click', ()=>{
+  const list = filtered();
+  const allOn = list.every(x=>selected.has(x.id)) && list.length;
+  if (allOn) selected.clear(); else list.forEach(x=>selected.add(x.id));
+  render();
+});
+$('bDone').addEventListener('click', ()=> batchUpdate({ status:'done', eta_date: todayMd() }));
+$('bNo').addEventListener('click', ()=> batchUpdate({ status:'no' }));
+$('bEta').addEventListener('click', ()=>{ $('dateCnt').textContent = selected.size; $('batchDate').value=''; $('dateMask').classList.add('show'); });
+$('dateCancel').addEventListener('click', ()=>$('dateMask').classList.remove('show'));
+$('dateApply').addEventListener('click', ()=>{
+  const d = $('batchDate').value.trim();
+  if (!d) { toast('请填时间'); return; }
+  $('dateMask').classList.remove('show');
+  batchUpdate({ eta_date: d }); // 只改时间，不动状态
+});
+$('bDel').addEventListener('click', batchDelete);
+$('bCancel').addEventListener('click', ()=>{ selected.clear(); render(); });
 $('fCancel').addEventListener('click', ()=>$('formMask').classList.remove('show'));
 $('fSave').addEventListener('click', save);
 $('fStatus').addEventListener('change', syncDateLabel);
