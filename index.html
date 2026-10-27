@@ -10,6 +10,8 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%236C5CE7'/%3E%3Ccircle cx='50' cy='50' r='26' fill='none' stroke='%23fff' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='12' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://yangru2026.github.io" crossorigin>
 <link rel="dns-prefetch" href="https://yangru2026.github.io">
+<link rel="preconnect" href="https://yangru-tools.oss-cn-hangzhou.aliyuncs.com" crossorigin>
+<link rel="dns-prefetch" href="https://yangru-tools.oss-cn-hangzhou.aliyuncs.com">
 <link rel="preconnect" href="https://icfgireprowcqwdodfqx.supabase.co" crossorigin>
 <link rel="dns-prefetch" href="https://icfgireprowcqwdodfqx.supabase.co">
 <script>
@@ -12275,20 +12277,27 @@ function toLargeImageUrl(url) {
 //    而该域名国内直连极慢（实测 12s 超时失败）→ 首屏 20 张卡片图全部卡死。
 //    改走同源 GitHub Pages（Fastly CDN，实测 0.5~1.7s）后：
 //      ① 不再有跨域 301 中转；② 与页面同源，可被 Service Worker 缓存 → 二次访问秒开。
+// ⚠️ 2026-10-27 第三次调整（前两次见下方注释）：GitHub Pages 与旧 Supabase 两条路都断了——
+//    ① GitHub Pages 国内直连不稳定（实测频繁 SSL 握手超时，290KB~750KB 原图尤甚）；
+//    ② 旧 Supabase 项目 ienmejlx… 因 egress/storage 三重超限被停服（HTTP 402），
+//       198 条花色里有 45 条的图片 URL 仍指向它，彻底拉不到。
+//    现将全部静态图片迁到阿里云 OSS（国内直连、与排名数据同一 bucket），
+//    卡片走 thumb（~34KB webp）、灯箱走 hd（~150KB webp）。
+const OSS_IMG_BASE = 'https://yangru-tools.oss-cn-hangzhou.aliyuncs.com/';
 function toCdnUrl(url) {
   if (!url) return '';
-  // 已是目标源 / Supabase Storage：原样返回
-  if (url.includes('yangru2026.github.io') || url.includes('supabase.co')) return url;
-  // 历史数据里存了 jsDelivr 仓库地址 → 还原成同源
+  // Supabase Storage：原样返回（交给 toStorageRender 处理）
+  if (url.includes('supabase.co')) return url;
+  // 历史数据里存了 jsDelivr / GitHub Pages 仓库地址 → 先还原成相对路径，再统一走 OSS
   if (url.includes('cdn.jsdelivr.net/gh/yangru2026/kefu-workbench@main/')) {
-    return url.replace(/^https?:\/\/cdn\.jsdelivr\.net\/gh\/yangru2026\/kefu-workbench@main\//, 'https://yangru2026.github.io/kefu-workbench/');
+    url = url.replace(/^https?:\/\/cdn\.jsdelivr\.net\/gh\/yangru2026\/kefu-workbench@main\//, '');
+  } else if (url.includes('yangru2026.github.io/kefu-workbench/')) {
+    url = url.replace(/^https?:\/\/yangru2026\.github\.io\/kefu-workbench\//, '');
   }
   // 其它 jsDelivr（npm 包等）保持不动
   if (url.includes('cdn.jsdelivr.net')) return url;
-  // 相对路径（images/patterns/...）→ 同源绝对地址
-  if (!url.startsWith('http')) {
-    return 'https://yangru2026.github.io/kefu-workbench/' + url.replace(/^\.?\/?/, '');
-  }
+  // 相对路径（images/patterns/...）→ OSS 绝对地址
+  if (!url.startsWith('http')) return OSS_IMG_BASE + url.replace(/^\.?\/?/, '');
   return url;
 }
 
@@ -12303,10 +12312,14 @@ function toStorageRender(url, width, quality) {
   return url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/')
     + '?width=' + width + '&quality=' + (quality || 72) + '&format=webp&resize=contain';
 }
-// 卡片主图专用：Storage 原图缩到 400px；其它图（同源缩略图等）原样返回
+// 卡片主图：Storage 原图缩到 400px；仓库相对路径图 → OSS 缩略图（.../thumb/xxx.webp，约 34KB）
 function toThumbUrl(url) {
   const u = toCdnUrl(url);
-  return toStorageRender(u, 400, 72) || u;
+  const r = toStorageRender(u, 400, 72);
+  if (r) return r;
+  const m = u.match(/^(.*\/)patterns\/([^\/]+?)(?:\.(?:jpg|jpeg|png|webp))?$/i);
+  if (m) return addCacheBuster(m[1] + 'patterns/thumb/' + m[2] + '.webp');
+  return u;
 }
 
 // ── 图片加载失败自动重试（应对 GitHub Pages 国内间歇性不通）──────────────
@@ -12373,9 +12386,9 @@ async function precachePatternThumbs() {
 function toDirectUrl(url) {
   if (!url) return '';
   if (url.includes('cdn.jsdelivr.net/gh/yangru2026/kefu-workbench@main/')) {
-    return url.replace(/^https?:\/\/cdn\.jsdelivr\.net\/gh\/yangru2026\/kefu-workbench@main\//, 'https://yangru2026.github.io/kefu-workbench/');
+    return toCdnUrl(url);   // 2026-10-27：改走阿里云 OSS
   }
-  return url;
+  return toCdnUrl(url);
 }
 
 // 给图片 URL 加版本号，避免浏览器/CDN 缓存返回旧资源
