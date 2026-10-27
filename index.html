@@ -10,8 +10,8 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%236C5CE7'/%3E%3Ccircle cx='50' cy='50' r='26' fill='none' stroke='%23fff' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='12' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://yangru2026.github.io" crossorigin>
 <link rel="dns-prefetch" href="https://yangru2026.github.io">
-<link rel="preconnect" href="https://icfgireprowcqwdodfqx.supabase.co" crossorigin>
-<link rel="dns-prefetch" href="https://icfgireprowcqwdodfqx.supabase.co">
+<link rel="preconnect" href="https://ienmejlxukhrxjjxvfqf.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://ienmejlxukhrxjjxvfqf.supabase.co">
 <script>
 // ==================== 库加载器（本地优先，CDN 兜底） ====================
 // 避免 CDN 不稳定导致 supabase/xlsx 加载失败 → 页面所有数据“消失”
@@ -183,7 +183,7 @@ body {
 
 /* Sidebar */
 .sidebar {
-  width: 260px;
+  width: 220px;
   background: var(--sidebar-bg);
   color: var(--sidebar-text);
   display: flex;
@@ -240,10 +240,6 @@ body {
 .nav-section:first-of-type { padding-top: 6px; }
 .nav-item {
   flex: 0 0 calc(50% - 3px);
-  min-width: 0;   /* ★ 必须有：flex 项默认 min-width:auto，浏览器字号偏大时 4 字菜单的
-                     min-content 会超过半宽 → 项被撑宽 → 双列塌成单排（2026-10-09 实锤，
-                     茹姐端复现：快捷工具等 4 字项全单排、弥生价/极氧价 3 字项仍两列）。
-                     加 0 后无论字号/字体怎么变都锁定两列，文字超宽走 ellipsis。 */
   box-sizing: border-box; position: relative;
   display: flex; align-items: center; gap: 4px;
   padding: 6px 8px; cursor: pointer;
@@ -253,7 +249,7 @@ body {
 .nav-item:hover { background: var(--sidebar-hover); color: var(--primary-dark); }
 .nav-item.active { background: rgba(16,185,129,0.12); color: #065F46; box-shadow: inset 0 0 0 1px rgba(16,185,129,0.45); }
 .nav-item .icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
-.nav-item > span:nth-child(2) { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-item > span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nav-item .badge { position: absolute; top: -3px; right: -3px; margin-left: 0; background: var(--primary); color: #fff; font-size: 9px; line-height: 1.5; padding: 0 4px; border-radius: 8px; min-width: 7px; text-align: center; box-shadow: 0 0 0 1px var(--sidebar-bg); }
 
 .sidebar-footer {
@@ -284,27 +280,19 @@ body {
 
 /* Main */
 .main {
-  margin-left: 260px;
+  margin-left: 220px;
   flex: 1;
   min-height: 100vh;
 }
 
 .page { display: none; padding: 32px 40px; }
 .page.active { display: block; }
-#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active, #page-price-quiz.active, #page-quiz-results.active, #page-huaming.active, #page-restock.active { display: flex; height: 100vh; overflow: hidden; }
+#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active { display: flex; height: 100vh; overflow: hidden; }
 
 /* Header */
 .page-header { margin-bottom: 28px; }
 .page-header h1 { font-size: 26px; font-weight: 700; color: var(--text); }
 .page-header p { color: var(--text-secondary); margin-top: 6px; font-size: 14px; }
-
-/* 管理板块磁贴 */
-.admin-hub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
-.admin-tile { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px 18px; cursor: pointer; transition: all .15s; }
-.admin-tile:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(16,185,129,.12); }
-.admin-tile .at-ico { font-size: 28px; line-height: 1; }
-.admin-tile .at-name { font-size: 15px; font-weight: 700; color: var(--text); margin-top: 10px; }
-.admin-tile .at-desc { font-size: 12.5px; color: var(--text-secondary); margin-top: 4px; line-height: 1.5; }
 
 /* 首页全员通知横幅 */
 .global-notice-banner {
@@ -1825,9 +1813,6 @@ body {
 .t-response     .rk-tile-bg { background:#A66BE8; }
 /* ★ 最差的那一行用红色条（用户 2026-09-23：「数据最低的红色数据条」） */
 .rk-tile-row.bot .rk-tile-bg { background:#E5484D !important; }
-/* ★ 当期无数据的行（2026-10-10）：排在有效值后面、整行淡化、显示「—」，保证编制内人人都在卡里 */
-.rk-tile-row.na { opacity:.45; }
-.rk-tile-row.na .rk-tile-vl { font-weight:500; color:var(--text-secondary); }
 .rk-tile-row.bot .rk-tile-vl { color:#C62A2F; }
 .rk-tile-row.bot .rk-tile-rk { color:#E5484D; }
 /* 第一名数值用主题色强调 */
@@ -1999,24 +1984,29 @@ body {
     <div class="nav-item" data-page="patterns" title="花色素材"><span class="icon">🎨</span><span>花色素材</span></div>
     <div class="nav-item" data-page="tools" title="快捷工具"><span class="icon">🛠</span><span>快捷工具</span></div>
     <div class="nav-item" data-page="gift" title="赠品编码查询"><span class="icon">🎁</span><span>赠品编码</span></div>
-    <div class="nav-item" data-page="diversion" title="工作表格（飞书）"><span class="icon">📋</span><span>工作表格</span></div>
+    <div class="nav-item" data-page="diversion" title="舆情转接登记"><span class="icon">🔄</span><span>舆情转接</span></div>
     <div class="nav-item" data-page="voc" title="客户之声"><span class="icon">📣</span><span>客户之声</span><span class="badge" id="voc-todo-badge" style="display:none;"></span></div>
     <div class="nav-item" data-page="daily" title="汇报"><span class="icon">🌙</span><span>汇报</span></div>
     <div class="nav-item" data-page="ranking" title="客服排名"><span class="icon">🏆</span><span>客服排名</span></div>
-    <div class="nav-item" data-page="huaming" title="特殊花色速查（定轴/小直径/超薄/满着色/大基弧/小基弧）"><span class="icon">🌸</span><span>特殊花色</span></div>
-    <div class="nav-item" data-page="restock" title="缺货补货动态（补货中/已入库/不补清单）"><span class="icon">📦</span><span>补货动态</span></div>
     <div class="nav-section">常用资料</div>
     <div class="nav-item" data-page="price-miyang" title="弥生价格速查"><span class="icon">💰</span><span>弥生价</span></div>
     <div class="nav-item" data-page="price-jiyang" title="极氧价格速查"><span class="icon">💰</span><span>极氧价</span></div>
     <div class="nav-item" data-page="training" title="培训资料"><span class="icon">📚</span><span>培训资料</span></div>
     <div class="nav-item" data-page="rules" title="平台规则"><span class="icon">📏</span><span>平台规则</span></div>
-    <div class="nav-item" data-page="price-quiz" title="客服考试试卷（试卷一 / 试卷二）"><span class="icon">📝</span><span>客服考试</span></div>
-    <div class="nav-item admin-only-nav" data-page="quiz-results" title="考核成绩（仅管理员，查看新客服交卷分数）" style="display:none;"><span class="icon">📝</span><span>考核成绩</span></div>
     <div class="nav-item" data-page="licenses" title="查验证明"><span class="icon">📜</span><span>查验证明</span></div>
     <div class="nav-item" data-page="sop" title="新人SOP"><span class="icon">📄</span><span>新人SOP</span></div>
     <div class="nav-item" data-page="quiz" title="知识测验"><span class="icon">⭐</span><span>知识测验</span></div>
-    <div class="nav-section">管理</div>
-    <div class="nav-item admin-only-nav" data-page="admin" title="管理板块（排班/审批/售前数据/质检/成员等，仅管理员）" style="display:none;"><span class="icon">🧭</span><span>管理板块</span></div>
+    <div class="nav-section">运营管理</div>
+    <div class="nav-item" data-page="schedule" title="排班表"><span class="icon">📅</span><span>排班表</span></div>
+    <div class="nav-item" data-page="requests" title="申请审批"><span class="icon">📝</span><span>申请审批</span><span class="badge" id="req-pending-badge" style="display:none;"></span></div>
+    <div class="nav-item" data-page="presale" title="售前数据"><span class="icon">📈</span><span>售前数据</span></div>
+    <div class="nav-item" data-page="qc" title="质检工具"><span class="icon">🔍</span><span>质检工具</span></div>
+    <div class="nav-item qc-admin-nav" data-page="qc-report" title="质检报告" style="display:none;"><span class="icon">📊</span><span>质检报告</span></div>
+    <div class="nav-item admin-only-nav" data-page="checklist" title="售前固定工作清单（打卡+提醒）" style="display:none;"><span class="icon">✅</span><span>工作清单</span></div>
+    <div class="nav-section">账号</div>
+    <div class="nav-item admin-only-nav" data-page="members" title="成员管理" style="display:none;"><span class="icon">👥</span><span>成员管理</span></div>
+    <div class="nav-item admin-only-nav" data-page="staff-info" title="客服信息" style="display:none;"><span class="icon">👥</span><span>客服信息</span></div>
+    <div class="nav-item admin-only-nav" data-page="templates" title="模板管理" style="display:none;"><span class="icon">⚙️</span><span>模板管理</span></div>
     <div class="nav-item" id="nav-login" data-page="login" title="登录/注册"><span class="icon">🔐</span><span>登录注册</span></div>
     <div class="nav-item" id="nav-logout" data-page="logout" title="退出登录" style="display:none;"><span class="icon">🚪</span><span>退出登录</span></div>
   </nav>
@@ -2801,21 +2791,6 @@ body {
   </div>
 
   <!-- ===== 成员管理 ===== -->
-  <div class="page" id="page-admin">
-    <div class="page-header"><h1>🧭 管理板块</h1><p>运营与账号管理入口合集 · 仅管理员可见</p></div>
-    <div class="admin-hub-grid">
-      <div class="admin-tile" onclick="switchPage('schedule')"><div class="at-ico">📅</div><div class="at-name">排班表</div><div class="at-desc">客服排班与班次安排</div></div>
-      <div class="admin-tile" onclick="switchPage('requests')"><div class="at-ico">📝</div><div class="at-name">申请审批</div><div class="at-desc">加班/调休等申请处理<span class="badge" id="req-pending-badge" style="display:none;position:static;margin-left:6px;"></span></div></div>
-      <div class="admin-tile" onclick="switchPage('presale')"><div class="at-ico">📈</div><div class="at-name">售前数据</div><div class="at-desc">售前业绩与月度看板</div></div>
-      <div class="admin-tile" onclick="switchPage('qc')"><div class="at-ico">🔍</div><div class="at-name">质检工具</div><div class="at-desc">登记与跟踪质检记录</div></div>
-      <div class="admin-tile" onclick="switchPage('qc-report')"><div class="at-ico">📊</div><div class="at-name">质检报告</div><div class="at-desc">质检汇总与导出</div></div>
-      <div class="admin-tile" onclick="switchPage('checklist')"><div class="at-ico">✅</div><div class="at-name">工作清单</div><div class="at-desc">售前固定工作打卡</div></div>
-      <div class="admin-tile" onclick="switchPage('members')"><div class="at-ico">👥</div><div class="at-name">成员管理</div><div class="at-desc">邀请成员 · 授权管理员 · 清退恢复</div></div>
-      <div class="admin-tile" onclick="switchPage('staff-info')"><div class="at-ico">🗂</div><div class="at-name">客服信息</div><div class="at-desc">客服资料与加班调休</div></div>
-      <div class="admin-tile" onclick="switchPage('templates')"><div class="at-ico">⚙️</div><div class="at-name">模板管理</div><div class="at-desc">话术与回复模板维护</div></div>
-    </div>
-  </div>
-
   <div class="page" id="page-members">
     <div class="page-header"><h1>👥 成员管理</h1><p>邀请新成员 · 管理角色/组别 · 离职清退与恢复</p></div>
     <div class="card">
@@ -2935,13 +2910,9 @@ body {
     <div class="page-header"><h1>👥 客服信息管理</h1><p>管理客服真实姓名、入职日期、花名、手机号、岗位、加班调休（按小时累计）</p></div>
     <div class="staff-toolbar" style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
       <input type="text" id="staff-search" placeholder="🔍 搜索姓名/花名/手机号..." oninput="filterStaff()" style="flex:1;min-width:200px;padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--card-bg);color:var(--text);">
-      <div id="staff-group-tabs" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-      <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text-secondary);white-space:nowrap;cursor:pointer;">
-        <input type="checkbox" id="staff-show-offboarded" onchange="toggleOffboarded()" style="accent-color:var(--primary);"> 显示已清退
-      </label>
       <button class="collab-btn" id="collab-staff-btn" onclick="openCollabPanel('staff-info')" style="display:none;">👥 协作者</button>
-      <button class="btn-sm outline" onclick="copyAllStaff()">📋 复制</button>
-      <button class="btn-sm outline" onclick="exportStaffCSV()">📥 导出</button>
+      <button class="btn-sm outline" onclick="copyAllStaff()">📋 复制全部</button>
+      <button class="btn-sm outline" onclick="exportStaffCSV()">📥 导出CSV</button>
       <button class="btn-sm outline" onclick="loadStaffInfo()">🔄 刷新</button>
     </div>
     <div class="ranking-table-wrap">
@@ -3255,8 +3226,7 @@ body {
     .pfeed-desc { font-size:13.5px; color:#334155; line-height:1.65; margin-top:8px; white-space:pre-wrap; word-break:break-word; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
     .pfeed-desc.expanded { -webkit-line-clamp:unset; display:block; }
     .pfeed-desc-toggle { border:none; background:none; color:#5f7d50; font-size:12.5px; cursor:pointer; padding:2px 0; font-family:inherit; font-weight:600; }
-    .pfeed-imgs { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; margin-top:10px; }
-    .pfeed-imgs.onlyfew { grid-template-columns:repeat(3,1fr); }
+    .pfeed-imgs { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:10px; }
     .pfeed-img { position:relative; aspect-ratio:1/1; border-radius:10px; overflow:hidden; background:#f1f5f9; cursor:zoom-in; }
     .pfeed-img img { width:100%; height:100%; object-fit:cover; display:block; }
     .pfeed-img .more-mask { position:absolute; inset:0; background:rgba(0,0,0,.45); color:#fff; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; }
@@ -3274,7 +3244,6 @@ body {
     @media (max-width:600px) {
       .pfeed-card { padding:12px; }
       .pfeed-imgs { gap:4px; }
-      .pfeed-imgs:not(.onlyfew) { grid-template-columns:repeat(4,1fr); }
       .pfeed-title { font-size:15px; }
     }
   </style>
@@ -3468,43 +3437,27 @@ body {
       <span class="qc-topbar-title">🔍 客服聊天记录质检工具</span>
       <span class="qc-topbar-user" id="qc-user-badge">管理员模式下可增删改</span>
     </div>
-    <iframe id="qc-iframe" src="about:blank" data-src="qc-v2.html?v=20261020c" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write"></iframe>
+    <iframe id="qc-iframe" src="about:blank" data-src="qc-v2.html?v=20260921a" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write"></iframe>
   </div>
 
   <!-- ===== 赠品编码查询 ===== -->
   <div class="page" id="page-gift" style="padding:0;overflow:hidden;flex-direction:column;">
-    <iframe id="gift-iframe" src="about:blank" data-src="gift.html?v=20261020c" style="flex:1;border:none;width:100%;"></iframe>
+    <iframe id="gift-iframe" src="about:blank" data-src="gift.html?v=20260912a" style="flex:1;border:none;width:100%;"></iframe>
   </div>
 
   <!-- ===== 舆情转接登记 ===== -->
-  <div class="page" id="page-huaming" style="padding:0;overflow:hidden;flex-direction:column;">
-    <iframe id="huaming-iframe" src="about:blank" data-src="special.html?v=20261023c" style="flex:1;border:none;width:100%;"></iframe>
-  </div>
-  <div class="page" id="page-restock" style="padding:0;overflow:hidden;flex-direction:column;">
-    <iframe id="restock-iframe" src="about:blank" data-src="restock.html?v=20261024b" style="flex:1;border:none;width:100%;"></iframe>
-  </div>
   <div class="page" id="page-diversion" style="padding:0;overflow:hidden;flex-direction:column;">
-    <iframe id="diversion-iframe" src="about:blank" data-src="diversion.html?v=20261023a" style="flex:1;border:none;width:100%;"></iframe>
+    <iframe id="diversion-iframe" src="about:blank" data-src="diversion.html?v=20260912g" style="flex:1;border:none;width:100%;"></iframe>
   </div>
 
   <!-- ===== 平台规则 ===== -->
   <div class="page" id="page-rules" style="padding:0;overflow:hidden;flex-direction:column;">
-    <iframe id="rules-iframe" src="about:blank" data-src="rules.html?v=20261020c" style="flex:1;border:none;width:100%;"></iframe>
-  </div>
-
-  <!-- ===== 弥生花色与价格考核试卷 ===== -->
-  <div class="page" id="page-price-quiz" style="padding:0;overflow:hidden;flex-direction:column;">
-    <iframe id="price-quiz-iframe" src="about:blank" data-src="quiz.html?v=20261023c" style="flex:1;border:none;width:100%;"></iframe>
-  </div>
-
-  <!-- ===== 考核成绩（仅管理员） ===== -->
-  <div class="page" id="page-quiz-results" style="padding:0;overflow:hidden;flex-direction:column;">
-    <iframe id="quiz-results-iframe" src="about:blank" data-src="quiz-results.html?v=20261023b" style="flex:1;border:none;width:100%;"></iframe>
+    <iframe id="rules-iframe" src="about:blank" data-src="rules.html?v=20260912c" style="flex:1;border:none;width:100%;"></iframe>
   </div>
 
   <!-- ===== 售前工作清单（打卡+提醒，仅管理员） ===== -->
   <div class="page" id="page-checklist" style="padding:0;overflow:hidden;flex-direction:column;">
-    <iframe id="checklist-iframe" src="about:blank" data-src="checklist.html?v=20261020c" style="flex:1;border:none;width:100%;"></iframe>
+    <iframe id="checklist-iframe" src="about:blank" data-src="checklist.html?v=20260922a" style="flex:1;border:none;width:100%;"></iframe>
   </div>
 
   <style>
@@ -3733,8 +3686,8 @@ body {
 
 <script>
 // ==================== SUPABASE CONFIG ====================
-const SUPABASE_URL = 'https://icfgireprowcqwdodfqx.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_LF-obMSRD7DFsY0AcjYZuQ_53P6UlQ8';
+const SUPABASE_URL = 'https://ienmejlxukhrxjjxvfqf.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_emFn7uMsZYdIk0lmLCxP3A_2V4gL68s';
 // 若 Supabase 库已内联加载，则直接使用；否则后续 waitForSupabaseLib 会兜底赋值
 var supabase = window.supabase || null;
 let currentUser = null;
@@ -3833,10 +3786,9 @@ function kefuCacheSet(table, data) {
 }
 
 
-// ==================== 客服信息管理（2026-09-22 重建 / 2026-10-22 增强） ====================
-var staffInfoData = [];          // 当前加载到的客服列表（在职；勾选"显示已清退"时含已清退）
-var staffInfoAllData = [];       // 数据库原始全量（含已清退）
-var staffInfoFiltered = [];      // 搜索/组别过滤后的列表
+// ==================== 客服信息管理（2026-09-22 重建） ====================
+var staffInfoData = [];          // 当前加载到的客服列表
+var staffInfoFiltered = [];      // 搜索过滤后的列表
 var currentOTStaff = null;       // 抽屉当前操作的客服
 var currentOTRecords = [];       // 抽屉当前客服的加班/调休记录
 
@@ -3897,13 +3849,9 @@ async function loadStaffInfo() {
     if (error) throw error;
     if (lastErr && !data) throw lastErr;
 
-    // 勾选"显示已清退"时不做过滤，全部展示（已清退的行灰显）
-    const showOff = !!(document.getElementById('staff-show-offboarded') && document.getElementById('staff-show-offboarded').checked);
-    const all = data || [];
-    staffInfoAllData = all;
-    staffInfoData = showOff ? all.slice() : all.filter(p => p.status !== 'disabled' && !p.left_at);
+    // 只显示"在职"：有 left_at 或 status=disabled 的视为已离职，不显示
+    staffInfoData = (data || []).filter(p => p.status !== 'disabled' && !p.left_at);
     staffInfoFiltered = staffInfoData.slice();
-    renderStaffTabs();
     renderStaffTable();
   } catch (e) {
     console.error('客服信息加载失败:', e);
@@ -3940,30 +3888,12 @@ function waitForLib(ms) {
   });
 }
 
-// 组别徽章颜色
-function groupChip(gn) {
-  const g = (gn || '').trim();
-  const map = { 'A组': '#3B82F6', 'B组': '#EF4444', 'C组': '#10B981' };
-  const c = map[g];
-  if (!g) return '<span style="font-size:12px;color:var(--text-muted);">未分组</span>';
-  if (!c) return '<span style="font-size:12px;font-weight:600;color:var(--text);">' + escHtml(g) + '</span>';
-  return '<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:' + c + ';">'
-    + '<span style="width:8px;height:8px;border-radius:50%;background:' + c + ';display:inline-block;"></span>' + escHtml(g) + '</span>';
-}
-// 手机号显示清洗：非 11 位手机号（如迁移残留的邮箱串）不展示
-function fmtPhone(p) {
-  const s = (p || '').trim();
-  return /^1\d{10}$/.test(s) ? '<span style="font-family:monospace;">' + s + '</span>' : '<span style="color:var(--text-muted);">-</span>';
-}
-function isOffboarded(s) { return s.status === 'disabled' || !!s.left_at; }
-
 // 渲染表格
 function renderStaffTable() {
   const tbody = document.getElementById('staff-tbody');
   const countEl = document.getElementById('staff-count');
   if (!tbody) return;
   const editable = canEdit('staff-info');
-  const isAdmin = isFullAdmin();
 
   if (!staffInfoFiltered.length) {
     tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">'
@@ -3972,132 +3902,49 @@ function renderStaffTable() {
     return;
   }
 
+  const groupOrder = { 'A组': 1, 'B组': 2, 'C组': 3 };
   const rows = staffInfoFiltered.map(s => {
     const remain = calcOTRemain(s);
     const remainColor = remain > 0 ? 'var(--primary)' : 'var(--text-muted)';
-    const off = isOffboarded(s);
-    const nameHtml = (s.name || '-')
-      + (s.role === 'admin'
+    const nameHtml = (s.name || '-') + (s.role === 'admin'
       ? ' <span style="font-size:11px;color:#fff;background:#6C5CE7;border-radius:4px;padding:1px 5px;vertical-align:middle;">管理员</span>' : '')
       + (s.role === 'leader'
       ? ' <span style="font-size:11px;color:#fff;background:#F59E0B;border-radius:4px;padding:1px 5px;vertical-align:middle;">组长</span>' : '');
-    const rowStyle = off ? ' style="opacity:.45;"' : '';
-    let ops = '<button class="btn-sm outline" onclick="openOTDrawer(\'' + s.id + '\')" title="加班调休明细">📋 明细</button>';
-    if (editable && !off) ops += ' <button class="btn-sm outline" onclick="openStaffDetail(\'' + s.id + '\')" title="编辑资料">✏️ 编辑</button>';
-    if (isAdmin && !off) ops += ' <button class="btn-sm outline" onclick="offboardStaff(\'' + s.id + '\')" title="清退：移出列表" style="color:#EF4444;">🗑 清退</button>';
-    if (isAdmin && off) ops += ' <button class="btn-sm outline" onclick="restoreStaff(\'' + s.id + '\')" title="恢复为在职">♻️ 恢复</button>';
-    return '<tr' + rowStyle + '>'
+    return '<tr>'
       + '<td style="font-weight:600;">' + nameHtml + '</td>'
       + '<td>' + (escHtml(s.real_name) || '<span style="color:var(--text-muted);">-</span>') + '</td>'
-      + '<td>' + fmtPhone(s.phone) + '</td>'
+      + '<td style="font-family:monospace;">' + (escHtml(s.phone) || '-') + '</td>'
       + '<td>' + (escHtml(s.hire_date) || '<span style="color:var(--text-muted);">-</span>') + '</td>'
       + '<td>' + (escHtml(s.position) || '-') + '</td>'
-      + '<td>' + groupChip(s.group_name) + '</td>'
+      + '<td>' + (escHtml(s.group_name) || '-') + '</td>'
       + '<td style="text-align:center;">' + fmtH(s.overtime) + '</td>'
       + '<td style="text-align:center;">' + fmtH(s.compensatory_leave) + '</td>'
       + '<td style="text-align:center;font-weight:700;color:' + remainColor + ';">' + fmtH(remain) + '</td>'
-      + '<td style="white-space:nowrap;">' + ops + '</td>'
+      + '<td style="white-space:nowrap;">'
+      +   '<button class="btn-sm outline" onclick="openOTDrawer(\'' + s.id + '\')" title="加班调休明细">📋 明细</button>'
+      +   (editable ? ' <button class="btn-sm outline" onclick="openStaffDetail(\'' + s.id + '\')" title="编辑资料">✏️ 编辑</button>' : '')
+      + '</td>'
       + '</tr>';
   }).join('');
 
   tbody.innerHTML = rows;
-  const offCnt = staffInfoAllData.filter(isOffboarded).length;
-  const activeCnt = staffInfoData.filter(s => !isOffboarded(s)).length;
-  if (countEl) countEl.textContent = '共 ' + activeCnt + ' 人在职'
-    + (offCnt ? '，已清退 ' + offCnt + ' 人' : '')
+  if (countEl) countEl.textContent = '共 ' + staffInfoData.length + ' 人在职'
     + (staffInfoFiltered.length !== staffInfoData.length ? '，匹配 ' + staffInfoFiltered.length + ' 人' : '');
 }
 
-// ===== 分组 Tab =====
-var staffGroupTab = '';   // ''=全部 / 'A组' / 'B组' / 'C组' / '__none__'=未分组
-var STAFF_GROUPS = ['A组', 'B组', 'C组'];
-function setStaffGroupTab(g) { staffGroupTab = g; renderStaffTabs(); filterStaff(); }
-
-function renderStaffTabs() {
-  const box = document.getElementById('staff-group-tabs');
-  if (!box) return;
-  const cnt = (pred) => staffInfoData.filter(pred).length;
-  const items = [{ key: '', label: '全部', n: cnt(() => true), color: 'var(--primary)' }];
-  STAFF_GROUPS.forEach(g => {
-    items.push({ key: g, label: g, n: cnt(s => (s.group_name || '').trim() === g), color: g === 'A组' ? '#3B82F6' : (g === 'B组' ? '#EF4444' : '#10B981') });
-  });
-  items.push({ key: '__none__', label: '未分组', n: cnt(s => !(s.group_name || '').trim()), color: '#9CA3AF' });
-
-  box.innerHTML = items.map(it => {
-    const on = staffGroupTab === it.key;
-    return '<button onclick="setStaffGroupTab(\'' + it.key + '\')" style="padding:6px 14px;border-radius:999px;cursor:pointer;font-size:13px;font-family:inherit;'
-      + 'border:1px solid ' + (on ? it.color : 'var(--border)') + ';'
-      + 'background:' + (on ? it.color : 'transparent') + ';'
-      + 'color:' + (on ? '#fff' : 'var(--text-secondary)') + ';'
-      + 'font-weight:' + (on ? '600' : '400') + ';">'
-      + it.label + ' <span style="opacity:.85;font-size:12px;">' + it.n + '</span></button>';
-  }).join('');
-}
-
-// 搜索 + 组别过滤
+// 搜索过滤
 function filterStaff() {
   const kw = (document.getElementById('staff-search').value || '').trim().toLowerCase();
-  const gv = staffGroupTab;
-  let list = staffInfoData.slice();
-  if (gv === '__none__') list = list.filter(s => !(s.group_name || '').trim());
-  else if (gv) list = list.filter(s => (s.group_name || '').trim() === gv);
-  if (kw) {
-    list = list.filter(s =>
+  if (!kw) {
+    staffInfoFiltered = staffInfoData.slice();
+  } else {
+    staffInfoFiltered = staffInfoData.filter(s =>
       (s.name || '').toLowerCase().includes(kw)
       || (s.real_name || '').toLowerCase().includes(kw)
       || (s.phone || '').toLowerCase().includes(kw)
     );
   }
-  staffInfoFiltered = list;
   renderStaffTable();
-}
-
-// 切换"显示已清退"
-function toggleOffboarded() {
-  const showOff = !!(document.getElementById('staff-show-offboarded') && document.getElementById('staff-show-offboarded').checked);
-  staffInfoData = showOff ? staffInfoAllData.slice() : staffInfoAllData.filter(p => p.status !== 'disabled' && !p.left_at);
-  renderStaffTabs();
-  filterStaff();
-}
-
-// 清退客服（软删除：移出列表，加班/调休历史保留，可恢复）
-async function offboardStaff(id) {
-  if (!isFullAdmin()) { showToast('⛔ 仅管理员可清退客服'); return; }
-  const s = staffInfoData.find(x => x.id === id) || staffInfoAllData.find(x => x.id === id);
-  if (!s) { showToast('未找到该客服'); return; }
-  if (!confirm('确定清退「' + (s.name || s.real_name || s.phone) + '」吗？\n\n· 将从客服信息列表移出\n· 该账号将无法登录工作台\n· 加班/调休历史记录保留，可随时恢复')) return;
-  try {
-    const { data: upRows, error } = await supabase.from('profiles')
-      .update({ status: 'disabled', left_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-      .eq('id', id).select('id');
-    if (error) throw error;
-    if (!upRows || !upRows.length) { showToast('❌ 没删掉：当前账号没有清退权限'); return; }
-    showToast('✅ 已清退「' + (s.name || '') + '」');
-    await loadStaffInfo();
-  } catch (e) {
-    console.error('清退失败:', e);
-    showToast('清退失败：' + (e.message || '未知错误'));
-  }
-}
-
-// 恢复已清退客服
-async function restoreStaff(id) {
-  if (!isFullAdmin()) { showToast('⛔ 仅管理员可恢复客服'); return; }
-  const s = staffInfoAllData.find(x => x.id === id);
-  if (!s) { showToast('未找到该客服'); return; }
-  if (!confirm('恢复「' + (s.name || s.real_name || s.phone) + '」为在职？')) return;
-  try {
-    const { data: upRows, error } = await supabase.from('profiles')
-      .update({ status: 'active', left_at: null, updated_at: new Date().toISOString() })
-      .eq('id', id).select('id');
-    if (error) throw error;
-    if (!upRows || !upRows.length) { showToast('❌ 没恢复成功：当前账号没有权限'); return; }
-    showToast('✅ 已恢复「' + (s.name || '') + '」');
-    await loadStaffInfo();
-  } catch (e) {
-    console.error('恢复失败:', e);
-    showToast('恢复失败：' + (e.message || '未知错误'));
-  }
 }
 
 // 复制全部（制表符分隔，方便粘进 Excel）
@@ -4158,86 +4005,43 @@ function exportStaffCSV() {
 
 // ===== 编辑客服资料 =====
 function openStaffDetail(id) {
-  const s = staffInfoData.find(x => x.id === id) || staffInfoAllData.find(x => x.id === id);
+  const s = staffInfoData.find(x => x.id === id);
   if (!s) { showToast('未找到该客服'); return; }
   const val = (v) => (v === null || v === undefined) ? '' : String(v);
-  const curGroup = (val(s.group_name)).trim();
-  const groupOpts = ['', 'A组', 'B组', 'C组']
-    .map(g => '<option value="' + g + '"' + (g === curGroup ? ' selected' : '') + '>' + (g || '未分组') + '</option>')
-    .join('');
-  const isAdmin = isFullAdmin();
   const html = ''
     + '<div class="form-row"><label>花名</label><input type="text" id="sd-name" value="' + escHtml(val(s.name)) + '"></div>'
     + '<div class="form-row"><label>真实姓名</label><input type="text" id="sd-real" value="' + escHtml(val(s.real_name)) + '" placeholder="选填"></div>'
-    + '<div class="form-row"><label>手机号</label><input type="tel" id="sd-phone" value="' + escHtml(/^1\d{10}$/.test(val(s.phone)) ? val(s.phone) : '') + '" maxlength="11" placeholder="11位手机号（登录账号）"></div>'
+    + '<div class="form-row"><label>手机号</label><input type="tel" id="sd-phone" value="' + escHtml(val(s.phone)) + '" maxlength="11"></div>'
     + '<div class="form-row"><label>入职日期</label><input type="date" id="sd-hire" value="' + escHtml(val(s.hire_date)) + '"></div>'
     + '<div class="form-row"><label>岗位</label><input type="text" id="sd-position" value="' + escHtml(val(s.position)) + '" placeholder="如：售前客服"></div>'
-    + '<div class="form-row"><label>组别</label><select id="sd-group" style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--card-bg);color:var(--text);">' + groupOpts + '</select></div>'
+    + '<div class="form-row"><label>组别</label><input type="text" id="sd-group" value="' + escHtml(val(s.group_name)) + '" placeholder="如：A组"></div>'
     + '<div class="form-row"><label>累计加班(h)</label><input type="number" id="sd-ot" value="' + escHtml(fmtH(s.overtime)) + '" step="0.5" min="0"></div>'
-    + '<div class="form-row"><label>已调休(h)</label><input type="number" id="sd-lv" value="' + escHtml(fmtH(s.compensatory_leave)) + '" step="0.5" min="0"></div>'
-    + (isAdmin
-      ? '<div style="border-top:1px dashed var(--border);margin:10px 0;padding-top:10px;">'
-      + '<div class="form-row"><label>重置密码</label><div style="flex:1;display:flex;gap:8px;">'
-      + '<input type="text" id="sd-newpwd" placeholder="输入新密码（至少6位），留空不修改" style="flex:1;" autocomplete="new-password">'
-      + '<button class="btn-sm" onclick="adminResetPwd(\'' + s.id + '\')">🔑 重置</button></div></div>'
-      + '<div style="font-size:12px;color:var(--text-muted);padding-left:110px;">登录不上/忘记密码时用。重置后把新密码告诉该客服即可登录。</div></div>'
-      : '');
+    + '<div class="form-row"><label>已调休(h)</label><input type="number" id="sd-lv" value="' + escHtml(fmtH(s.compensatory_leave)) + '" step="0.5" min="0"></div>';
   showStaffEditModal('编辑客服资料 - ' + (s.name || ''), html, async () => {
     const patch = {
       name: document.getElementById('sd-name').value.trim(),
       real_name: document.getElementById('sd-real').value.trim() || null,
-      phone: document.getElementById('sd-phone').value.trim() || null,
+      phone: document.getElementById('sd-phone').value.trim(),
       hire_date: document.getElementById('sd-hire').value || null,
       position: document.getElementById('sd-position').value.trim() || null,
-      group_name: document.getElementById('sd-group').value || null,
+      group_name: document.getElementById('sd-group').value.trim() || null,
       overtime: parseFloat(document.getElementById('sd-ot').value) || 0,
       compensatory_leave: parseFloat(document.getElementById('sd-lv').value) || 0,
       updated_at: new Date().toISOString()
     };
     if (!patch.name) { showToast('花名不能为空'); return false; }
-    if (patch.phone && !/^1\d{10}$/.test(patch.phone)) { showToast('手机号格式不对（11位数字）'); return false; }
     try {
-      // .select() 让 PostgREST 回传被更新的行。若权限（RLS）把这次更新挡掉，PostgreSQL 是
-      // "0 行被更新且不报错"，旧写法会误弹「✅ 已保存」但实际没改上；这里显式识别，给出准确提示。
-      const { data: upRows, error } = await supabase.from('profiles').update(patch).eq('id', id).select('id');
+      const { error } = await supabase.from('profiles').update(patch).eq('id', id);
       if (error) throw error;
-      if (!upRows || !upRows.length) {
-        showToast('❌ 没改上：当前账号没有修改该客服的权限（或该记录已不存在）');
-        return false;
-      }
-      // 回读一次，把"库里真实存的值"报给她，避免再出现"看着改了其实没写进去"
-      let stored = patch.group_name || '';
-      try {
-        const re = await supabase.from('profiles').select('group_name,updated_at').eq('id', id).maybeSingle();
-        if (re && re.data) stored = re.data.group_name || '';
-      } catch (e) {}
-      showToast('✅ 已保存，库中组别：' + (stored || '未分组'));
+      showToast('✅ 已保存');
       await loadStaffInfo();
       return true;
     } catch (e) {
       console.error(e);
-      showToast('保存失败：' + ((e && e.message) ? e.message : e));
+      showToast('保存失败：' + e.message);
       return false;
     }
   });
-}
-
-// 管理员重置客服登录密码（走 Edge Function，服务端校验管理员身份）
-async function adminResetPwd(id) {
-  const input = document.getElementById('sd-newpwd');
-  const pwd = input ? input.value.trim() : '';
-  if (!pwd || pwd.length < 6) { showToast('请输入至少 6 位的新密码'); return; }
-  try {
-    if (!supabase || !supabase.functions || typeof supabase.functions.invoke !== 'function') throw new Error('数据服务未就绪');
-    const { data, error } = await supabase.functions.invoke('admin-set-password', { body: { user_id: id, password: pwd } });
-    if (error) throw error;
-    if (data && data.error) throw new Error(data.error);
-    showToast('✅ 密码已重置，请把新密码告诉该客服');
-    if (input) input.value = '';
-  } catch (e) {
-    console.error('重置密码失败:', e);
-    showToast('重置失败：' + (e.message || '未知错误'));
-  }
 }
 function closeStaffDetail() { closeStaffEditModal(); }
 
@@ -4247,9 +4051,8 @@ async function saveStaffInfo(id, patch) {
     if (!supabase || typeof supabase.from !== 'function') throw new Error('数据服务未就绪');
     if (!id) throw new Error('缺少客服 id');
     const payload = Object.assign({}, patch, { updated_at: new Date().toISOString() });
-    const { data: upRows, error } = await supabase.from('profiles').update(payload).eq('id', id).select('id');
+    const { error } = await supabase.from('profiles').update(payload).eq('id', id);
     if (error) throw error;
-    if (!upRows || !upRows.length) throw new Error('当前账号没有修改该客服的权限（或该记录已不存在）');
     const idx = staffInfoData.findIndex(x => x.id === id);
     if (idx >= 0) Object.assign(staffInfoData[idx], payload);
     renderStaffTable();
@@ -4261,23 +4064,6 @@ async function saveStaffInfo(id, patch) {
   }
 }
 
-// 遮罩防误关（动态弹窗版）：在输入框里拖动选择文字、鼠标拖出弹窗边界才松手时，
-// 浏览器会把 click 派发到 mousedown/mouseup 的共同祖先——恰好是遮罩本身，
-// 被误判成"点空白"→ 弹窗关闭，用户视角就是"改到一半闪退"。
-// 只有「按下点就在遮罩上 + 松手位置几乎没移动」才算真点空白。
-// 静态弹窗走 installMaskSafeClose()，动态创建的遮罩（如 sd-modal-overlay）用这个函数绑定。
-function bindMaskSafeClose(overlay, onClose) {
-  if (!overlay || overlay._maskSafe) return;
-  overlay._maskSafe = true;
-  let down = null;
-  overlay.addEventListener('mousedown', e => { down = { x: e.clientX, y: e.clientY, onMask: e.target === overlay }; });
-  overlay.addEventListener('click', e => {
-    if (e.target !== overlay || !down || !down.onMask) return;
-    if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) return;
-    onClose();
-  });
-}
-
 // 通用编辑弹窗（复用 accts-modal 的样式类）
 function showStaffEditModal(title, bodyHtml, onSave) {
   let ov = document.getElementById('sd-modal-overlay');
@@ -4285,10 +4071,9 @@ function showStaffEditModal(title, bodyHtml, onSave) {
     ov = document.createElement('div');
     ov.id = 'sd-modal-overlay';
     ov.className = 'accts-overlay';
+    ov.onclick = closeStaffEditModal;
     document.body.appendChild(ov);
   }
-  // 不再用裸 ov.onclick 关弹窗（会把"拖动选中花名"误判成点空白 → 改名改到一半弹窗消失）
-  bindMaskSafeClose(ov, closeStaffEditModal);
   let box = document.getElementById('sd-modal');
   if (!box) {
     box = document.createElement('div');
@@ -4655,8 +4440,6 @@ function updateAuthUI() {
     // 加载协作者数据（异步，加载完后 refreshAdminUI 会自动更新权限）
     if (typeof loadPageCollaborators === 'function') loadPageCollaborators();
     if (typeof subscribeCollaborators === 'function') subscribeCollaborators();
-    // 特殊花色速查弹窗提醒（每次登录会话显示一次，需手动关闭）
-    if (typeof spMaybeShowNotice === 'function') spMaybeShowNotice();
   } else {
     nameEl.textContent = '未登录';
     userEl.style.cursor = 'pointer';
@@ -4757,40 +4540,18 @@ function refreshAdminUI() {
   }
 }
 
-// 登录/注册前确保客户端就绪（防止 SDK 慢加载时点击登录报 signInWithPassword undefined）
-async function ensureSupabaseClient(maxMs = 10000) {
-  const t0 = Date.now();
-  while (!(supabase && typeof supabase.from === 'function' && supabase.auth && typeof supabase.auth.signInWithPassword === 'function')) {
-    if (Date.now() - t0 > maxMs) return false;
-    try { await initSupabase(); } catch (e) { /* 忽略，循环重试 */ }
-    if (supabase && typeof supabase.from === 'function' && supabase.auth) break;
-    await new Promise(r => setTimeout(r, 250));
-  }
-  return true;
-}
-
 async function signUp(name, phone, password) {
-  if (!(await ensureSupabaseClient())) { showToast('数据服务还没连接上，请等几秒再点，或刷新页面重试'); return false; }
   const { data, error } = await supabase.auth.signUp({
     email: phone + '@youhu.app',
     password: password,
     options: { data: { name: name, phone: phone } }
   });
-  if (error) {
-    const msg = error.message || '';
-    if (/already registered/i.test(msg)) {
-      showToast('该手机号已注册过，直接登录即可；忘记密码请联系管理员重置');
-    } else {
-      showToast('注册失败：' + msg);
-    }
-    return false;
-  }
+  if (error) { showToast('注册失败：' + error.message); return false; }
   showToast('注册成功！请登录');
   return true;
 }
 
 async function signIn(phone, password) {
-  if (!(await ensureSupabaseClient())) { showToast('数据服务还没连接上，请等几秒再点，或刷新页面重试'); return false; }
   console.log('[signIn] calling signInWithPassword for', phone);
   const { data, error } = await supabase.auth.signInWithPassword({
     email: phone + '@youhu.app',
@@ -4798,20 +4559,7 @@ async function signIn(phone, password) {
   });
   if (error) {
     console.log('[signIn] auth error', error.message);
-    const msg = error.message || '';
-    let tip;
-    if (/Invalid login credentials/i.test(msg)) {
-      tip = '手机号或密码不正确。忘记密码请联系管理员（杨茹）在工作台-客服信息里重置';
-    } else if (/Email not confirmed/i.test(msg)) {
-      tip = '账号还没验证完成，请联系管理员处理（已可找管理员直接重开）';
-    } else if (/rate|too many/i.test(msg)) {
-      tip = '尝试次数太多，请等 1 分钟后再试';
-    } else if (/signups not allowed/i.test(msg)) {
-      tip = '当前未开放注册，请联系管理员开通账号';
-    } else {
-      tip = msg;
-    }
-    showToast('登录失败：' + tip);
+    showToast('登录失败：' + error.message);
     return false;
   }
   if (!data || !data.user) {
@@ -5370,7 +5118,7 @@ function onPpNoteInput(key, el) {
 
 // ---------- 从飞书同步 ----------
 const FEISHU_SYNC_CONFIG = {
-  edgeFunctionUrl: 'https://icfgireprowcqwdodfqx.supabase.co/functions/v1/feishu-sync',
+  edgeFunctionUrl: 'https://ienmejlxukhrxjjxvfqf.supabase.co/functions/v1/feishu-sync',
   authToken: 'sync_1786182307_8d204d969f0b99fd'
 };
 
@@ -5533,10 +5281,7 @@ const RK_GROUP_SHOPS = {
 //   必须「组名 + 客服名」成对匹配 —— 售前1组另有一位正式客服「小雷」，只按名字删会误伤。
 //   加人时照抄一行即可；想让某个人重新回到榜单，删掉对应行。
 const RK_EXCLUDE_STAFF = [
-  { group: '售前3组', name: '小雷（练手）' },
-  // ★2026-10-10（茹姐）：C组 10月考核 9 人＝小火/小咪/小恬/小溪/小贴/小江/小熊/小喜/小雪，
-  //   「小猫（三组新人）」是借小猫账号的展示行（每日明细里保留），不进排名页。
-  { group: '售前3组', name: '小猫（三组新人）' }
+  { group: '售前3组', name: '小雷（练手）' }
 ];
 // ★ 2026-09-23：用户要求「🎯💰😊⏱️ 所有页面的图标都删掉」→ 排名页不再用图标，
 //   指标靠「文字名 + 主题色」区分。icon 字段保留为空串，方便以后想恢复时填回去。
@@ -5605,8 +5350,30 @@ function rkWeekday(d) {
   return isNaN(dt.getTime()) ? '' : '周' + '日一二三四五六'[dt.getDay()];
 }
 
-// 拉取所有明细行（ranking_daily 是手工同步的小表，一次全取）
+// 拉取所有明细行
+// ★2026-10-27：Supabase 因超配额 402 停服（10/20 起所有接口都返回 402），排名数据改由
+//   「阿里云 OSS 静态 JSON」分发（每日 11:00 跑批后自动上传，见 upload_ranking_oss.py）。
+//   这里优先读 OSS，读不到再回退 Supabase，两条路都通才稳。
+const RK_JSON_URL = 'https://yangru-tools.oss-cn-hangzhou.aliyuncs.com/ranking/ranking_daily.json';
 async function rkLoadRows() {
+  // ① 首选：阿里云 OSS 静态 JSON（不依赖 Supabase，国内打开也快）
+  try {
+    const _ctrl = new AbortController();
+    const _timer = setTimeout(() => _ctrl.abort(), 15000);
+    const _resp = await fetch(RK_JSON_URL + '?t=' + Date.now(), { cache: 'no-store', signal: _ctrl.signal });
+    clearTimeout(_timer);
+    if (_resp.ok) {
+      const _j = await _resp.json();
+      const _rows = (_j && Array.isArray(_j.rows)) ? _j.rows : (Array.isArray(_j) ? _j : null);
+      if (_rows && _rows.length) {
+        window.__rkSource = 'oss';
+        return _rows;
+      }
+    }
+  } catch (e) {
+    console.warn('[排名] OSS 数据读取失败，回退 Supabase：', e && e.message);
+  }
+  // ② 回退：Supabase ranking_daily
   // ★ 关键加固：页面首次打开时 supabase 库可能还在下载，
   //   直接调 supabase.from 会抛 "supabase.from is not a function"。
   //   这里和「客服信息」页一样，先等库就绪（最多 30 秒）。
@@ -5634,6 +5401,7 @@ async function rkLoadRows() {
     if (batch.length < PAGE) break;
     if (from > 20000) break; // 安全上限
   }
+  window.__rkSource = 'supabase';
   return all;
 }
 
@@ -5649,8 +5417,8 @@ function rkReload(manual) {
   }).catch(e => {
     console.warn('排名数据加载失败:', e && e.message);
     rkEmpty('加载失败：' + (e && e.message ? e.message : '未知错误') +
-            '<br><span style="font-size:12px;color:var(--text-secondary);">表 ranking_daily 可能还没建，或同步脚本还没跑。' +
-            '<br>可点上方「↻ 刷新」重试。</span>');
+            '<br><span style="font-size:12px;color:var(--text-secondary);">排名数据现在来自阿里云（每日 11:00 自动更新），' +
+            '两条通道都取不到才会这样。<br>可点上方「↻ 刷新」重试。</span>');
   }).finally(() => {
     const b = document.querySelector('.rk-refresh');
     if (b) { b.disabled = false; b.textContent = '↻ 刷新'; }
@@ -6354,9 +6122,6 @@ function rkTilesOne(list, metric, scopeNote, opts) {
   const m = metric;
   // 筛选有效值
   const valid = list.filter(r => r[m.key] !== null && r[m.key] !== undefined && isFinite(r[m.key]));
-  // ★2026-10-10（茹姐）：每张卡的名单要齐 —— 编制内的人当期没这项数据（休息/没询单/平台无评价）
-  //   也要出现在卡里，排在有效值后面显示「—」，不能整行消失（否则「B组5个人只列4个」看不懂）。
-  const noval = list.filter(r => !(r[m.key] !== null && r[m.key] !== undefined && isFinite(r[m.key])));
   const cls = 'rk-tile t-' + m.key + (opts.single ? ' t-single' : '');
   // ★ 2026-09-23：用户要求去掉图标，指标名加大，靠主题色 + 文字区分
   const head =
@@ -6368,18 +6133,14 @@ function rkTilesOne(list, metric, scopeNote, opts) {
       '<div class="rk-tile-sub">' + m.tip + (scopeNote ? '　·　' + scopeNote : '') + '</div>' +
     '</div>';
 
-  if (!valid.length && !noval.length) {
+  if (!valid.length) {
     return '<div class="' + cls + '">' + head +
       '<div class="rk-tile-empty">暂无数据</div></div>';
   }
 
   // ── 单人模式：一块 = 一个人在这项指标上的数值（大字号显示）──
   if (opts.single) {
-    const r = valid[0] || noval[0];
-    if (!r) {
-      return '<div class="' + cls + '">' + head +
-        '<div class="rk-tile-empty">暂无数据</div></div>';
-    }
+    const r = valid[0];
     return '<div class="' + cls + '">' + head +
       '<div class="rk-single-body">' +
         '<div class="rk-single-vl">' + rkFmt(r[m.key], m.fmt) + '</div>' +
@@ -6432,16 +6193,8 @@ function rkTilesOne(list, metric, scopeNote, opts) {
       '</div>';
   }).join('');
 
-  // ★2026-10-10：当期无数据的人追加在末尾（无名次、无横条、显示「—」、整行淡化）
-  const restRows = noval.map(r =>
-    '<div class="rk-tile-row na" title="' + rkEsc(r.name) + '　' + m.label + ' 当期无数据">' +
-      '<span class="rk-tile-rk"></span>' +
-      '<span class="rk-tile-nm">' + rkEsc(r.name) + '</span>' +
-      '<span class="rk-tile-vl">—</span>' +
-    '</div>').join('');
-
   return '<div class="' + cls + '">' + head +
-    '<div class="rk-tile-list">' + rows + restRows + '</div>' +
+    '<div class="rk-tile-list">' + rows + '</div>' +
     '</div>';
 }
 
@@ -10015,7 +9768,6 @@ function subscribePatternCategories() {
 function buildPatternTree(flatData) {
   const tree = { brands: {} };
   flatData.forEach(p => {
-    if (!p.brand || !String(p.brand).trim()) return;   // 品牌为空的脏数据不进树，避免顶部出现空白品牌标签
     if (!tree.brands[p.brand]) tree.brands[p.brand] = {};
     if (!tree.brands[p.brand][p.type]) tree.brands[p.brand][p.type] = [];
     tree.brands[p.brand][p.type].push({
@@ -10477,17 +10229,6 @@ function exportQcReportExcel() {
 function switchPage(page) {
   // 退出登录：不是真实页面，直接走退出流程
   if (page === 'logout') { signOut(); return; }
-  // 管理板块门禁：仅管理员可进（含全部子页面），其他人一律拦截回首页
-  const ADMIN_PAGES = ['admin', 'schedule', 'requests', 'presale', 'qc', 'qc-report', 'checklist', 'members', 'staff-info', 'templates'];
-  if (ADMIN_PAGES.indexOf(page) !== -1 && !isFullAdmin()) {
-    showToast('⛔ 管理板块仅管理员可进入');
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-    document.querySelector('.nav-item[data-page="home"]')?.classList.add('active');
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById('page-home')?.classList.add('active');
-    currentPage = 'home';
-    return;
-  }
   // 品牌价格速查别名：price-miyang / price-jiyang → 共用价格速查页，锁定各自品牌
   const PP_ALIAS = { 'price-miyang': '弥生', 'price-jiyang': '极氧' };
   if (PP_ALIAS[page]) {
@@ -10509,8 +10250,6 @@ function switchPage(page) {
   }
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
-  // 管理板块子页面：高亮侧边栏的「管理板块」入口
-  if (ADMIN_PAGES.indexOf(page) !== -1) document.querySelector('.nav-item[data-page="admin"]')?.classList.add('active');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('page-' + page);
   if (el) el.classList.add('active');
@@ -10579,22 +10318,6 @@ function switchPage(page) {
       gifIframe.removeAttribute('data-src');
     }
   }
-  if (page === 'huaming') {
-    // 特殊花色：延迟加载 iframe（首次点击才加载）
-    const hmIframe = document.getElementById('huaming-iframe');
-    if (hmIframe && hmIframe.getAttribute('data-src') && hmIframe.src !== hmIframe.getAttribute('data-src')) {
-      hmIframe.src = hmIframe.getAttribute('data-src');
-      hmIframe.removeAttribute('data-src');
-    }
-  }
-  if (page === 'restock') {
-    // 补货动态：延迟加载 iframe（首次点击才加载）
-    const rsIframe = document.getElementById('restock-iframe');
-    if (rsIframe && rsIframe.getAttribute('data-src') && rsIframe.src !== rsIframe.getAttribute('data-src')) {
-      rsIframe.src = rsIframe.getAttribute('data-src');
-      rsIframe.removeAttribute('data-src');
-    }
-  }
   if (page === 'diversion') {
     // 舆情转接登记：延迟加载 iframe（首次点击才加载）
     const divIframe = document.getElementById('diversion-iframe');
@@ -10603,28 +10326,12 @@ function switchPage(page) {
       divIframe.removeAttribute('data-src');
     }
   }
-  if (page === 'price-quiz') {
-    // 花色与价格考核试卷：延迟加载 iframe（首次点击才加载）
-    const quizIframe = document.getElementById('price-quiz-iframe');
-    if (quizIframe && quizIframe.getAttribute('data-src') && quizIframe.src !== quizIframe.getAttribute('data-src')) {
-      quizIframe.src = quizIframe.getAttribute('data-src');
-      quizIframe.removeAttribute('data-src');
-    }
-  }
   if (page === 'rules') {
     // 平台规则：延迟加载 iframe（首次点击才加载）
     const rulesIframe = document.getElementById('rules-iframe');
     if (rulesIframe && rulesIframe.getAttribute('data-src') && rulesIframe.src !== rulesIframe.getAttribute('data-src')) {
       rulesIframe.src = rulesIframe.getAttribute('data-src');
       rulesIframe.removeAttribute('data-src');
-    }
-  }
-  if (page === 'quiz-results') {
-    // 考核成绩（仅管理员）：延迟加载 iframe（首次点击才加载）
-    const qrIframe = document.getElementById('quiz-results-iframe');
-    if (qrIframe && qrIframe.getAttribute('data-src') && qrIframe.src !== qrIframe.getAttribute('data-src')) {
-      qrIframe.src = qrIframe.getAttribute('data-src');
-      qrIframe.removeAttribute('data-src');
     }
   }
   if (page === 'checklist') {
@@ -12122,7 +11829,7 @@ function renderPatterns() {
     const MAX_IMGS = 6;
     const shownImgs = images.slice(0, MAX_IMGS);
     const imgsHtml = images.length
-      ? `<div class="pfeed-imgs${images.length === 1 ? ' onlyfew' : ''}">` + shownImgs.map((im, i) =>
+      ? `<div class="pfeed-imgs">` + shownImgs.map((im, i) =>
           `<div class="pfeed-img" onclick="openLightbox(window._lbImages['${lbKey}'])">` +
           `<img src="${escapeHtml(im.thumb)}" loading="lazy" decoding="async" onerror="retryImg(this)" alt="${escapeHtml(p.name)}"${fpAttr}>` +
           (i === MAX_IMGS - 1 && images.length > MAX_IMGS ? `<div class="more-mask">+${images.length - MAX_IMGS}</div>` : '') +
@@ -12838,28 +12545,6 @@ function renderPatternPricePage() {
         if (noneList.length) {
           html += '<div class="pp-sub-title">📦 未标价格档<span class="pp-count">' + noneList.length + ' 款</span></div><div class="pp-tiercards pp-opt-grid">';
           html += dimCard(def, '__none__', opt.noneLabel, noneList, true);
-          html += '</div>';
-        }
-      } else if (def.dim === 'series') {
-        // 系列按抛型分块：日抛系列 / 半年抛系列 / 混合·其他——同价格档分块逻辑，纯系列排一起好找（杨茹 2026-09-30）
-        const cards = opt.list.map(v => ({ v: v, list: items.filter(p => opt.get(p) === v) }));
-        const singleType = list => { const ts = [...new Set(list.map(p => p._type || '').filter(Boolean))]; return ts.length === 1 ? ts[0] : ''; };
-        const sBlocks = [
-          { icon: '☀️', name: '日抛系列', list: cards.filter(c => singleType(c.list) === '日抛') },
-          { icon: '🌙', name: '半年抛系列', list: cards.filter(c => singleType(c.list) === '半年抛') }
-        ];
-        const sUsed = new Set([].concat(sBlocks[0].list, sBlocks[1].list).map(c => c.v));
-        const sRest = cards.filter(c => !sUsed.has(c.v));
-        const sBlockHtml = b => b.list.length
-          ? '<div class="pp-sub-title">' + b.icon + ' ' + b.name + '<span class="pp-count">' + b.list.reduce((n, c) => n + c.list.length, 0) + ' 款</span></div>'
-            + '<div class="pp-tiercards pp-opt-grid">' + b.list.map(c => dimCard(def, c.v, c.v, c.list, false)).join('') + '</div>'
-          : '';
-        html += sBlockHtml(sBlocks[0]) + sBlockHtml(sBlocks[1]);
-        if (sRest.length) html += sBlockHtml({ icon: '🧩', name: '混合 / 未标抛型', list: sRest });
-        const sNone = items.filter(p => !opt.get(p));
-        if (sNone.length) {
-          html += '<div class="pp-sub-title">📦 未填系列<span class="pp-count">' + sNone.length + ' 款</span></div><div class="pp-tiercards pp-opt-grid">';
-          html += dimCard(def, '__none__', opt.noneLabel, sNone, true);
           html += '</div>';
         }
       } else {
@@ -14318,8 +14003,17 @@ function copyScriptStyle(btn) {
 // 修复：移除各输入型弹窗 overlay 的 inline onclick，改为
 //       「按下点在遮罩上 + 松手位置未拖动」才算真点空白，才允许关闭。
 function installMaskSafeClose() {
-  // 统一实现见上方 bindMaskSafeClose()：静态弹窗与动态弹窗共用同一套防误关逻辑，避免两份实现漂移
-  function safeBind(overlay, onClose) { return bindMaskSafeClose(overlay, onClose); }
+  function safeBind(overlay, onClose) {
+    if (!overlay || overlay._maskSafe) return;
+    overlay._maskSafe = true;
+    let down = null;
+    overlay.addEventListener('mousedown', e => { down = { x: e.clientX, y: e.clientY, onMask: e.target === overlay }; });
+    overlay.addEventListener('click', e => {
+      if (e.target !== overlay || !down || !down.onMask) return;
+      if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) return;
+      onClose();
+    });
+  }
   ['mod-script','mod-training','mod-train-detail','mod-script-detail','mod-pattern',
    'mod-penalty-standard','mod-lic-preview','mod-lic-edit','mod-factory-edit',
    'mod-cs-quick','mod-cs-options','mod-cs-filter','mod-cs-archive','mod-cs-paste',
@@ -15899,36 +15593,15 @@ function renderMembers() {
 }
 
 function updateMemberRole(sel) { updateMember(sel.dataset.id, { role: sel.value }); }
-function updateMemberGroup(inp) {
-  var v = (inp.value || '').trim();
-  var m = membersData.find(function (x) { return x.id === inp.dataset.id; });
-  if (m) {
-    var old = m.group_name || '';
-    if (!old && !v) return;   // 原本就没组、这次也没填 → 不发请求
-    if (old && !v && !confirm('确定清空「' + (m.name || '') + '」的组别吗？\n清空后该客服不归任何组（排名/分组统计都会受影响）。')) {
-      inp.value = old;        // 取消 → 立刻回显原值
-      return;
-    }
-  }
-  updateMember(inp.dataset.id, { group_name: v || null });
-}
+function updateMemberGroup(inp) { updateMember(inp.dataset.id, { group_name: inp.value.trim() }); }
 
 async function updateMember(id, patch) {
   try {
-    // .select() 让 PostgREST 回传被更新的行。若权限（RLS）把这次更新挡掉，PostgreSQL 是
-    // "0 行被更新且不报错"，不带 select 会假报「已更新」，用户切页/刷新后又变回旧值，
-    // 看起来就像"改了之后自动清空"。这里显式识别并回滚到库里的真值。
-    var { data: upRows, error } = await supabase.from('profiles').update(patch).eq('id', id).select('id');
+    var { error } = await supabase.from('profiles').update(patch).eq('id', id);
     if (error) { showToast('更新失败：' + error.message); loadMembers(); return; }
-    if (!upRows || !upRows.length) {
-      showToast('❌ 没改上：当前账号没有修改该成员的权限（请把这条提示发给小布）');
-      loadMembers();
-      return;
-    }
     showToast('已更新');
     var m = membersData.find(function (x) { return x.id === id; });
     if (m) Object.assign(m, patch);
-    renderMembers();   // 回显真值，避免界面停留在假成功
     // 若改的是当前登录者，刷新侧边栏显示
     if (currentUser && id === currentUser.id && currentProfile) {
       Object.assign(currentProfile, patch);
@@ -15940,12 +15613,8 @@ async function updateMember(id, patch) {
 async function offboardMember(id) {
   if (!confirm('确认清退该成员？\n清退后其账号将被禁用、无法登录（可随时恢复）。')) return;
   try {
-    // .select('id') 用于识别「0 行被更新」：RLS 挡掉时不报错但也没改上，
-    // 不加会把没清退成功报成「已清退」（和改组别同类坑）
-    var { data: upRows, error } = await supabase.from('profiles')
-      .update({ status: 'disabled', left_at: new Date().toISOString() }).eq('id', id).select('id');
+    var { error } = await supabase.from('profiles').update({ status: 'disabled', left_at: new Date().toISOString() }).eq('id', id);
     if (error) { showToast('清退失败：' + error.message); return; }
-    if (!upRows || !upRows.length) { showToast('❌ 清退没生效：当前账号没有该操作权限（请把这条提示发给小布）'); return; }
     showToast('已清退');
     var m = membersData.find(function (x) { return x.id === id; });
     if (m) { m.status = 'disabled'; m.left_at = new Date().toISOString(); }
@@ -15955,10 +15624,8 @@ async function offboardMember(id) {
 
 async function restoreMember(id) {
   try {
-    var { data: upRows, error } = await supabase.from('profiles')
-      .update({ status: 'active', left_at: null }).eq('id', id).select('id');
+    var { error } = await supabase.from('profiles').update({ status: 'active', left_at: null }).eq('id', id);
     if (error) { showToast('恢复失败：' + error.message); return; }
-    if (!upRows || !upRows.length) { showToast('❌ 恢复没生效：当前账号没有该操作权限（请把这条提示发给小布）'); return; }
     showToast('已恢复');
     var m = membersData.find(function (x) { return x.id === id; });
     if (m) { m.status = 'active'; m.left_at = null; }
@@ -16142,73 +15809,7 @@ async function applyInviteClaim() {
 }
 </script>
 
-<!-- 特殊花色速查 弹窗提醒（每个登录会话一次，手动关闭） -->
-<style>
-  #spNoticeMask{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99999;display:none;align-items:center;justify-content:center;}
-  #spNoticeMask.show{display:flex;}
-  #spNoticeCard{background:#fff;border-radius:16px;width:min(420px,calc(100vw - 40px));padding:26px 26px 22px;
-                box-shadow:0 20px 60px rgba(15,23,42,.25);text-align:center;}
-  #spNoticeCard .ico{font-size:40px;line-height:1;}
-  #spNoticeCard h3{font-size:18px;font-weight:800;margin:12px 0 8px;color:#1e293b;}
-  #spNoticeCard p{font-size:13.5px;color:#64748b;line-height:1.8;margin:0 0 18px;}
-  #spNoticeCard p b{color:#059669;}
-  #spNoticeCard .btns{display:flex;gap:10px;justify-content:center;}
-  #spNoticeCard button{border:none;border-radius:10px;padding:10px 22px;font-size:14px;font-weight:700;
-                       cursor:pointer;font-family:inherit;transition:filter .15s;}
-  #spNoticeCard button:hover{filter:brightness(.94);}
-  #spNoticeGo{background:#10b981;color:#fff;}
-  #spNoticeOk{background:#eef2f6;color:#475569;}
-</style>
-<div id="spNoticeMask" role="dialog" aria-modal="true">
-  <div id="spNoticeCard">
-    <div class="ico">🌸</div>
-    <h3>新功能上线：特殊花色速查</h3>
-    <p>工作台已上线「<b>特殊花色</b>」速查：定轴 / 小直径 / 超薄 / 满着色 / 大基弧 / 小基弧<br>以及 <b>39.9 三幅可选</b>花色，花名、编码一秒查到，建议大家点开看一看～</p>
-    <div class="btns">
-      <button id="spNoticeGo">去看一看</button>
-      <button id="spNoticeOk">我知道了</button>
-    </div>
-  </div>
-</div>
-<script>
-  function spMaybeShowNotice() {
-    var mask = document.getElementById('spNoticeMask');
-    if (!mask || mask.classList.contains('show')) return;
-    var shown = false;
-    try { shown = sessionStorage.getItem('spNoticeClosed') === '1'; } catch (e) {}
-    if (shown) return;
-    mask.classList.add('show');
-  }
-  function spCloseNotice(goPage) {
-    var mask = document.getElementById('spNoticeMask');
-    if (mask) mask.classList.remove('show');
-    try { sessionStorage.setItem('spNoticeClosed', '1'); } catch (e) {}
-    if (goPage && typeof switchPage === 'function') switchPage('huaming');
-  }
-  (function () {
-    var mask = document.getElementById('spNoticeMask');
-    if (!mask) return;
-    document.getElementById('spNoticeGo').addEventListener('click', function () { spCloseNotice(true); });
-    document.getElementById('spNoticeOk').addEventListener('click', function () { spCloseNotice(false); });
-    // 故意不提供点遮罩/ESC 关闭：必须手动点按钮
-    // 兜底轮询：万一 updateAuthUI 路径没触发，检测到已登录（侧栏名字非「未登录」）也弹
-    var spPollN = 0;
-    var spPoll = setInterval(function () {
-      spPollN++;
-      try {
-        var m = document.getElementById('spNoticeMask');
-        if (!m) { clearInterval(spPoll); return; }
-        if (m.classList.contains('show')) { clearInterval(spPoll); return; }
-        var nameEl = document.getElementById('visitor-name');
-        var name = nameEl ? (nameEl.textContent || '').trim() : '';
-        if (name && name !== '未登录') { spMaybeShowNotice(); clearInterval(spPoll); }
-      } catch (e) { }
-      if (spPollN > 40) clearInterval(spPoll);
-    }, 1500);
-  })();
-</script>
-
-<script src="app.js?v=20261022a"></script>
+<script src="app.js?v=20260916a"></script>
 
 <!-- Pattern Editor Modal -->
 <div class="modal-overlay" id="mod-pattern"undefined>
@@ -16889,285 +16490,3 @@ function renderVOC() {
   const me = document.getElementById('voc-month');
   if (me && !me.value) me.value = vocMonthNow();
   const name = (currentProfile && (currentProfile.name || currentProfile.real_name)) || (currentUser && currentUser.email) || '未登录';
-  const team = (currentProfile && currentProfile.group_name) || '-';
-  const nl = document.getElementById('voc-staff-label'); if (nl) nl.textContent = name;
-  const tl = document.getElementById('voc-team-label'); if (tl) tl.textContent = team;
-  renderVOCList();
-  updateVOCStatus();
-}
-
-function renderVOCList() {
-  const wrap = document.getElementById('voc-list');
-  const empty = document.getElementById('voc-list-empty');
-  if (!wrap) return;
-  const kw = (document.getElementById('voc-search')?.value || '').toLowerCase().trim();
-  const brandFilter = (document.getElementById('voc-brand-filter')?.value || '');
-  let rows = vocData.slice();
-  if (brandFilter) rows = rows.filter(r => (r.brand || '') === brandFilter);
-  if (kw) rows = rows.filter(r =>
-    (r.raw_text || '').toLowerCase().includes(kw) ||
-    (r.topic || '').toLowerCase().includes(kw) ||
-    (r.scene || '').toLowerCase().includes(kw) ||
-    (r.brand || '').toLowerCase().includes(kw) ||
-    (r.staff_name || '').toLowerCase().includes(kw) ||
-    (r.customer_tag || '').toLowerCase().includes(kw)
-  );
-  if (rows.length === 0) {
-    wrap.innerHTML = '';
-    if (empty) empty.style.display = (vocData.length === 0) ? 'block' : 'none';
-    return;
-  }
-  if (empty) empty.style.display = 'none';
-  const isAdmin = isFullAdmin();
-  wrap.innerHTML = rows.map(r => {
-    const dt = r.created_at ? new Date(r.created_at) : null;
-    const dtStr = dt ? (dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0') + ' ' + String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0')) : '-';
-    const scene = r.scene ? `<span class="voc-tag voc-tag-scene">${vocEsc(r.scene)}</span>` : '';
-    const topic = r.topic ? `<span class="voc-tag voc-tag-topic">${vocEsc(r.topic)}</span>` : '';
-    const brand = r.brand ? `<span class="voc-tag" style="background:#fdeefb;color:#a64ca6;">🏷 ${vocEsc(r.brand)}</span>` : '';
-    const tag = r.customer_tag ? `<span class="voc-tag" style="background:#eef2f7;color:#586b82;">@${vocEsc(r.customer_tag)}</span>` : '';
-    const delBtn = isAdmin ? `<button class="voc-del" onclick="deleteVOC(${r.id})" title="删除">🗑</button>` : '';
-    return `<div class="voc-item">
-      <div class="voc-item-head">
-        <span class="voc-meta">${vocEsc(r.staff_name || '')} · ${vocEsc(r.team || '')} · ${dtStr}</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${brand}${scene}${topic}${tag}${delBtn}</div>
-      </div>
-      <div class="voc-raw">${vocEsc(r.raw_text || '')}</div>
-    </div>`;
-  }).join('');
-}
-
-async function submitVOC() {
-  if (!supabase) { showToast('⚠️ 系统未就绪'); return; }
-  if (!currentProfile && !currentUser) { showToast('⚠️ 请先登录'); return; }
-  const ta = document.getElementById('voc-raw');
-  const raw = (ta?.value || '').trim();
-  if (!raw) { showToast('⚠️ 请先录入客户原话'); if (ta) ta.focus(); return; }
-  const name = (currentProfile && (currentProfile.name || currentProfile.real_name)) || (currentUser && currentUser.email) || '未知';
-  // 每日基础目标 5 条：达到后允许继续录入，仅做提醒
-  const todayCount = getVOCTodayCount(name);
-  const reachedLimit = todayCount >= VOC_DAILY_LIMIT;
-  const scene = document.getElementById('voc-scene')?.value || '';
-  const topic = document.getElementById('voc-topic')?.value || '';
-  const brand = document.getElementById('voc-brand')?.value || '';
-  // 品牌 / 场景 / 主题 必选
-  if (!brand) { showToast('⚠️ 请先选择「品牌」'); return; }
-  if (!scene) { showToast('⚠️ 请先选择「来源场景」'); return; }
-  if (!topic) { showToast('⚠️ 请先选择「主题」'); return; }
-  const tag = (document.getElementById('voc-tag')?.value || '').trim();
-  const team = (currentProfile && currentProfile.group_name) || '';
-  const rec = { raw_text: raw, scene, topic, brand, staff_name: name, team, customer_tag: tag, record_month: vocMonthNow() };
-  try {
-    const { data, error } = await supabase.from('customer_voice').insert([rec]).select();
-    if (error) { showToast('⚠️ 保存失败：' + error.message); return; }
-    showToast(reachedLimit ? ('✅ 已保存 · 今日已达 ' + VOC_DAILY_LIMIT + ' 条基础目标，可继续录入') : '✅ 已保存客户原话');
-    ta.value = '';
-    const tagEl = document.getElementById('voc-tag'); if (tagEl) tagEl.value = '';
-    const brandEl = document.getElementById('voc-brand'); if (brandEl) brandEl.value = '';
-    vocManualEdit = false;
-    clearVOCDraft();
-    hideVOCParseHits();
-    loadVOCFromDB(true);
-  } catch (e) { showToast('⚠️ 保存异常'); console.error(e); }
-}
-
-async function deleteVOC(id) {
-  if (!confirm('确定删除这条客户之声记录吗？此操作不可恢复。')) return;
-  if (!supabase) return;
-  try {
-    const { error } = await supabase.from('customer_voice').delete().eq('id', id);
-    if (error) { showToast('⚠️ 删除失败：' + error.message); return; }
-    showToast('🗑 已删除');
-    loadVOCFromDB(true);
-    if (vocSummaryCache && vocSummaryCache.month === getVOCMonthPrefix()) generateVOCSummary();
-  } catch (e) { showToast('⚠️ 删除异常'); console.error(e); }
-}
-
-let vocAnalysisDim = 'topic';
-let vocAnalysisData = null;
-
-async function generateVOCSummary() {
-  const month = getVOCMonthPrefix();
-  if (!supabase) { showToast('⚠️ 系统未就绪'); return; }
-  await loadVOCFromDB(true);
-  const rows = vocData.filter(r => (r.record_month || (r.created_at || '').slice(0, 7)) === month);
-  const sumEl = document.getElementById('voc-summary');
-  const xb = document.getElementById('voc-export-xlsx');
-  const tb = document.getElementById('voc-export-txt');
-  if (rows.length === 0) {
-    sumEl.innerHTML = `📭 <b>${month}</b> 暂无客户之声记录。`;
-    if (xb) xb.style.display = 'none';
-    if (tb) tb.style.display = 'none';
-    vocSummaryCache = null; vocAnalysisData = null;
-    return;
-  }
-  const sceneCount = {}, topicCount = {}, brandCount = {};
-  rows.forEach(r => {
-    if (r.scene) sceneCount[r.scene] = (sceneCount[r.scene] || 0) + 1;
-    if (r.topic) topicCount[r.topic] = (topicCount[r.topic] || 0) + 1;
-    const b = r.brand || '未分类';
-    brandCount[b] = (brandCount[b] || 0) + 1;
-  });
-  const picks = rows.filter(r => r.topic).sort((a, b) => (b.raw_text || '').length - (a.raw_text || '').length).slice(0, 8);
-  const sample = (picks.length ? picks : rows.slice(0, 8)).map(r => ({ text: r.raw_text, scene: r.scene, topic: r.topic, staff: r.staff_name, brand: r.brand }));
-  vocSummaryCache = { month, rows, stats: { sceneCount, topicCount, brandCount, topScenes: Object.entries(sceneCount).sort((a, b) => b[1] - a[1]), topTopics: Object.entries(topicCount).sort((a, b) => b[1] - a[1]), topBrands: Object.entries(brandCount).sort((a, b) => b[1] - a[1]), sample } };
-  vocAnalysisData = { month, rows };
-  if (xb) xb.style.display = '';
-  if (tb) tb.style.display = '';
-  renderVOCAnalysis();
-}
-
-const VOC_DIM_LABEL = { topic: '主题', brand: '品牌', scene: '场景', staff: '客服' };
-
-function setVOCAnalysisDim(dim) {
-  vocAnalysisDim = dim;
-  document.querySelectorAll('#voc-dim-tabs .voc-dim-tab').forEach(b => b.classList.toggle('active', b.getAttribute('data-dim') === dim));
-  renderVOCAnalysis();
-}
-
-function toggleVOCDetail(id) {
-  const d = document.getElementById(id);
-  if (d) d.classList.toggle('open');
-}
-
-function getVOCGrain() {
-  const el = document.querySelector('input[name="voc-grain"]:checked');
-  return (el && el.value) || 'big';
-}
-
-function computeVOCSmallFreq(rows, dim) {
-  const freq = {};
-  rows.forEach(r => {
-    const res = parseVOC(r.raw_text || '', r.team || '');
-    const hits = dim === 'topic' ? res.hits.topic : dim === 'brand' ? res.hits.brand : dim === 'scene' ? res.hits.scene : res.hits.topic;
-    if (!hits.length) { (freq['（未命中关键词）'] = freq['（未命中关键词）'] || []).push(r); return; }
-    hits.forEach(h => (freq[h] = freq[h] || []).push(r));
-  });
-  return freq;
-}
-
-function renderVOCAnalysis() {
-  const el = document.getElementById('voc-summary');
-  if (!el) return;
-  if (!vocAnalysisData) { el.innerHTML = '选择月份后点击「生成分析」，自动统计本月反馈的高频主题 / 品牌 / 场景，可一键切换「大类 / 小类」并导出 Excel。'; return; }
-  const month = vocAnalysisData.month, rows = vocAnalysisData.rows;
-  const grain = getVOCGrain();
-  const dim = vocAnalysisDim;
-  const dimLabel = VOC_DIM_LABEL[dim];
-  const total = rows.length;
-  if (grain === 'big') {
-    const map = {};
-    rows.forEach(r => { const k = dim === 'staff' ? (r.staff_name || '未知') : (r[dim] || '未分类'); (map[k] = map[k] || []).push(r); });
-    const entries = Object.entries(map).sort((a, b) => b[1].length - a[1].length);
-    let html = `<div style="margin-bottom:10px;font-size:13px;color:var(--text-secondary);">${month} · 共 <b style="color:var(--text);">${total}</b> 条 · 按 <b style="color:var(--text);">${dimLabel}</b> 大类分布（点击任意一行展开明细）</div>`;
-    html += entries.map(([k, list], i) => {
-      const pct = Math.round(list.length / total * 100);
-      return `<div class="voc-analysis-row"><div class="voc-analysis-head" onclick="toggleVOCDetail('big-${i}')"><span style="min-width:96px;font-weight:600;color:var(--text);">${vocEsc(k)}</span><div style="flex:1;height:10px;background:#eef1ee;border-radius:6px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#10B981,#9bb585);border-radius:6px;"></div></div><span style="min-width:104px;text-align:right;color:var(--text-secondary);">${list.length} 条 · ${pct}%</span><span style="color:var(--text-secondary);font-size:12px;">▾</span></div><div class="voc-analysis-detail" id="big-${i}">${list.map(r => `<div class="voc-sample">“${vocEsc(r.raw_text || '')}” ${r.brand ? `<span class="voc-tag" style="background:#fdeefb;color:#a64ca6;">🏷 ${vocEsc(r.brand)}</span>` : ''} ${r.scene ? `<span class="voc-tag voc-tag-scene">${vocEsc(r.scene)}</span>` : ''} ${r.topic ? `<span class="voc-tag voc-tag-topic">${vocEsc(r.topic)}</span>` : ''}</div>`).join('')}</div></div>`;
-    }).join('');
-    el.innerHTML = html;
-  } else {
-    const freq = computeVOCSmallFreq(rows, dim);
-    const entries = Object.entries(freq).sort((a, b) => b[1].length - a[1].length);
-    let html = `<div style="margin-bottom:10px;font-size:13px;color:var(--text-secondary);">${month} · 共 <b style="color:var(--text);">${total}</b> 条 · 按 <b style="color:var(--text);">${dimLabel}</b> 下的细类关键词拆分（高频反馈一目了然，点击展开明细）</div>`;
-    html += entries.map(([k, list], i) => {
-      const pct = Math.round(list.length / total * 100);
-      const capped = list.slice(0, 50);
-      return `<div class="voc-analysis-row"><div class="voc-analysis-head" onclick="toggleVOCDetail('small-${i}')"><span style="min-width:130px;font-weight:600;color:var(--text);">${vocEsc(k)}</span><div style="flex:1;height:10px;background:#eef1ee;border-radius:6px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#9b7bb5,#b89bcf);border-radius:6px;"></div></div><span style="min-width:104px;text-align:right;color:var(--text-secondary);">${list.length} 条 · ${pct}%</span><span style="color:var(--text-secondary);font-size:12px;">▾</span></div><div class="voc-analysis-detail" id="small-${i}">${capped.map(r => `<div class="voc-sample">“${vocEsc(r.raw_text || '')}” ${r.brand ? `<span class="voc-tag" style="background:#fdeefb;color:#a64ca6;">🏷 ${vocEsc(r.brand)}</span>` : ''} ${r.scene ? `<span class="voc-tag voc-tag-scene">${vocEsc(r.scene)}</span>` : ''} ${r.topic ? `<span class="voc-tag voc-tag-topic">${vocEsc(r.topic)}</span>` : ''}</div>`).join('')}${list.length > 50 ? `<div style="font-size:12px;color:var(--text-secondary);padding:4px 0;">… 其余 ${list.length - 50} 条已省略，可导出 Excel 查看全部</div>` : ''}</div></div>`;
-    }).join('');
-    el.innerHTML = html;
-  }
-}
-
-function exportVOCSummaryXLSX() {
-  if (!vocAnalysisData) { showToast('⚠️ 请先生成分析'); return; }
-  if (!window.XLSX) { showToast('⚠️ 导出组件加载中，请稍候重试'); return; }
-  const month = vocAnalysisData.month, rows = vocAnalysisData.rows;
-  const grain = getVOCGrain();
-  const dim = vocAnalysisDim;
-  const dimLabel = VOC_DIM_LABEL[dim];
-  const total = rows.length;
-  let statRows, detail;
-  if (grain === 'big') {
-    const map = {};
-    rows.forEach(r => { const k = dim === 'staff' ? (r.staff_name || '未知') : (r[dim] || '未分类'); (map[k] = map[k] || []).push(r); });
-    const entries = Object.entries(map).sort((a, b) => b[1].length - a[1].length);
-    statRows = [['客户之声分析（大类）', month], ['分析维度', dimLabel], ['反馈总条数', total], []];
-    statRows.push(['分类标签', '条数', '占比']);
-    entries.forEach(([k, list]) => statRows.push([k, list.length, Math.round(list.length / total * 100) + '%']));
-    detail = [];
-    entries.forEach(([k, list]) => list.forEach(r => detail.push({ '分类标签': k, '品牌': r.brand || '', '来源场景': r.scene || '', '主题': r.topic || '', '客服': r.staff_name || '', '客户原话': r.raw_text || '' })));
-  } else {
-    const freq = computeVOCSmallFreq(rows, dim);
-    const entries = Object.entries(freq).sort((a, b) => b[1].length - a[1].length);
-    statRows = [['客户之声分析（小类）', month], ['分析维度', dimLabel], ['反馈总条数', total], []];
-    statRows.push(['细类关键词', '条数', '占比']);
-    entries.forEach(([k, list]) => statRows.push([k, list.length, Math.round(list.length / total * 100) + '%']));
-    detail = [];
-    entries.forEach(([k, list]) => list.forEach(r => detail.push({ '细类关键词': k, '品牌': r.brand || '', '来源场景': r.scene || '', '主题': r.topic || '', '客服': r.staff_name || '', '客户原话': r.raw_text || '' })));
-  }
-  try {
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(statRows), '统计');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detail), '明细');
-    const safe = month.replace(/[^0-9]/g, '');
-    XLSX.writeFile(wb, `客户之声_${dimLabel}_${grain === 'big' ? '大类' : '小类'}_${safe}.xlsx`);
-    showToast('✅ 已导出 Excel');
-  } catch (e) { showToast('⚠️ 导出失败'); console.error(e); }
-}
-
-function exportVOCSummaryTXT() {
-  if (!vocAnalysisData) { showToast('⚠️ 请先生成分析'); return; }
-  const month = vocAnalysisData.month, rows = vocAnalysisData.rows;
-  const grain = getVOCGrain();
-  const dim = vocAnalysisDim;
-  const dimLabel = VOC_DIM_LABEL[dim];
-  const total = rows.length;
-  let groups;
-  if (grain === 'big') {
-    const map = {};
-    rows.forEach(r => { const k = dim === 'staff' ? (r.staff_name || '未知') : (r[dim] || '未分类'); (map[k] = map[k] || []).push(r); });
-    groups = Object.entries(map).sort((a, b) => b[1].length - a[1].length);
-  } else {
-    groups = Object.entries(computeVOCSmallFreq(rows, dim)).sort((a, b) => b[1].length - a[1].length);
-  }
-  let out = `客户之声 · 分析导出（${grain === 'big' ? '大类' : '小类'} · ${dimLabel}）\n月份：${month}\n反馈总条数：${total}\n\n`;
-  out += `【${dimLabel}分布 / TOP】\n`;
-  groups.forEach(([k, list]) => out += `  ${k}：${list.length} 条（${Math.round(list.length / total * 100)}%）\n`);
-  out += `\n【全部明细】\n`;
-  let n = 0;
-  groups.forEach(([k, list]) => list.forEach(r => { n++; out += `${n}. [${k}] ${[r.brand, r.scene, r.topic].filter(Boolean).join('/')} ${r.staff_name || ''}：${r.raw_text}\n`; }));
-  const blob = new Blob([out], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `客户之声_${dimLabel}_${grain === 'big' ? '大类' : '小类'}_${month.replace(/[^0-9]/g, '')}.txt`;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  showToast('✅ 已导出月报');
-}
-
-</script>
-
-<!-- 二维码库：本地优先，CDN 兜底 -->
-<script>
-(function () {
-  if (window.qrcode) return;
-  var urls = [
-    'vendor/qrcode.min.js',
-    'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js',
-    'https://unpkg.com/qrcode-generator@1.4.4/qrcode.js'
-  ];
-  var i = 0;
-  function tryLoad() {
-    if (window.qrcode) return;
-    if (i >= urls.length) { console.warn('二维码库加载失败（邀请二维码将不可用，不影响复制链接）'); return; }
-    var s = document.createElement('script');
-    s.src = urls[i++];
-    s.onload = function () { if (!window.qrcode) tryLoad(); };
-    s.onerror = tryLoad;
-    document.head.appendChild(s);
-  }
-  tryLoad();
-})();
-</script>
-</body>
-</html>
