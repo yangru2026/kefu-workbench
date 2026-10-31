@@ -2057,6 +2057,7 @@ body {
     <div class="nav-item" data-page="voc" title="客户之声"><span class="icon">📣</span><span>客户之声</span><span class="badge" id="voc-todo-badge" style="display:none;"></span></div>
     <div class="nav-item" data-page="daily" title="汇报"><span class="icon">🌙</span><span>汇报</span></div>
     <div class="nav-item" data-page="ranking" title="客服排名"><span class="icon">🏆</span><span>客服排名</span></div>
+    <div class="nav-item" data-page="qc" title="质检（客服看自己的质检记录与扣罚，组长/管理员看全员统计）"><span class="icon">🧪</span><span>质检</span></div>
     <div class="nav-item" data-page="huaming" title="特殊花色速查（定轴/小直径/超薄/满着色/大基弧/小基弧）"><span class="icon">🌸</span><span>特殊花色</span></div>
     <div class="nav-item" data-page="restock" title="缺货补货动态（补货中/已入库/不补清单）"><span class="icon">📦</span><span>补货动态</span></div>
     <div class="nav-item" data-page="requests" title="申请审批（换班/加班/调休申请，管理员审批后自动生效）"><span class="icon">📝</span><span>申请审批</span></div>
@@ -2862,7 +2863,7 @@ body {
       <div class="admin-tile" onclick="switchPage('schedule')"><div class="at-ico">📅</div><div class="at-name">排班表</div><div class="at-desc">客服排班与班次安排</div></div>
       <div class="admin-tile" onclick="switchPage('requests')"><div class="at-ico">📝</div><div class="at-name">申请审批</div><div class="at-desc">加班/调休等申请处理<span class="badge" id="req-pending-badge" style="display:none;position:static;margin-left:6px;"></span></div></div>
       <div class="admin-tile" onclick="switchPage('presale')"><div class="at-ico">📈</div><div class="at-name">售前数据</div><div class="at-desc">售前业绩与月度看板</div></div>
-      <div class="admin-tile" onclick="switchPage('qc')"><div class="at-ico">🔍</div><div class="at-name">质检工具</div><div class="at-desc">登记与跟踪质检记录</div></div>
+      <div class="admin-tile" onclick="switchPage('qc')"><div class="at-ico">🧪</div><div class="at-name">质检统计</div><div class="at-desc">飞书登记 · 全员统计</div></div>
       <div class="admin-tile" onclick="switchPage('qc-report')"><div class="at-ico">📊</div><div class="at-name">质检报告</div><div class="at-desc">质检汇总与导出</div></div>
       <div class="admin-tile" onclick="switchPage('checklist')"><div class="at-ico">✅</div><div class="at-name">工作清单</div><div class="at-desc">售前固定工作打卡</div></div>
       <div class="admin-tile" onclick="switchPage('members')"><div class="at-ico">👥</div><div class="at-name">成员管理</div><div class="at-desc">邀请成员 · 授权管理员 · 清退恢复</div></div>
@@ -3549,13 +3550,13 @@ body {
     <div class="tool-list" id="tool-list"></div>
   </div>
 
-  <!-- ===== 质检工具 ===== -->
+  <!-- ===== 质检（2026-10-31 重做：飞书登记 → 工作台统计；客服看本人，组长/管理员看全员） ===== -->
   <div class="page" id="page-qc" style="padding:0;overflow:hidden;flex-direction:column;">
     <div class="qc-topbar">
-      <span class="qc-topbar-title">🔍 客服聊天记录质检工具</span>
-      <span class="qc-topbar-user" id="qc-user-badge">管理员模式下可增删改</span>
+      <span class="qc-topbar-title">🧪 质检统计</span>
+      <span class="qc-topbar-user" id="qc-user-badge"></span>
     </div>
-    <iframe id="qc-iframe" src="about:blank" data-src="qc-v2.html?v=20261020c" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write"></iframe>
+    <iframe id="qc-iframe" src="about:blank" data-src="qc-stats.html?v=20261031a" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write"></iframe>
   </div>
 
   <!-- ===== 赠品编码查询 ===== -->
@@ -10646,7 +10647,7 @@ function switchPage(page) {
   // 管理板块门禁：仅管理员可进（含全部子页面），其他人一律拦截回首页
   // ⚠️ 2026-10-31：「申请审批(requests)」已挪到客服常用菜单，普通客服也要能进去提交申请，
   //    故从门禁名单移除；页面内部已按角色区分（客服只看自己的申请、无通过/拒绝按钮）
-  const ADMIN_PAGES = ['admin', 'schedule', 'presale', 'qc', 'qc-report', 'checklist', 'members', 'staff-info', 'templates'];
+  const ADMIN_PAGES = ['admin', 'schedule', 'presale', 'qc-report', 'checklist', 'members', 'staff-info', 'templates'];
   if (ADMIN_PAGES.indexOf(page) !== -1 && !isFullAdmin()) {
     showToast('⛔ 管理板块仅管理员可进入');
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
@@ -10813,9 +10814,9 @@ function switchPage(page) {
     const isQc = !!(currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'leader'));
     const role = currentProfile && currentProfile.role;
     let badgeText;
-    if (role === 'admin') badgeText = '👑 管理员模式 · ' + (currentUser.email || currentUser.phone);
-    else if (role === 'leader') badgeText = '🛡️ 组长模式 · 可录入/删除质检';
-    else badgeText = '📖 只读模式';
+    if (role === 'admin') badgeText = '👑 管理员 · 全员统计';
+    else if (role === 'leader') badgeText = '🛡️ 组长 · 全员统计';
+    else badgeText = '🙋 ' + ((currentProfile && currentProfile.name) || '我') + ' · 我的质检';
     document.getElementById('qc-user-badge').textContent = badgeText;
     notifyQcIframe(isQc);
   }
