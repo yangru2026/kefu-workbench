@@ -1,12 +1,26 @@
 # 尤赫客服工作台 - 项目记忆
 
 ## 概况
-- 前端：原生单文件 HTML → GitHub Pages https://yangru2026.github.io/kefu-workbench/
-- 后端：Supabase `ienmejlxukhrxjjxvfqf`；仓库 `yangru2026/kefu-workbench`（main）
+- 前端：原生单文件 HTML → **双托管**（同一仓库 push 两边都自动更新）：
+  - **主：Cloudflare Pages https://kefu-workbench-c9x.pages.dev**（2026-10-31 上线，首字节 0.65–1.3s，二次访问 ~0.8s）
+  - 备：GitHub Pages https://yangru2026.github.io/kefu-workbench/（首字节 1.4–2.7s，偶发抖到 12s；备用保留）
+  - ⚠️ Pages 会把 `xxx.html` 308 到 `/xxx`（pretty URL 不可关），功能正常；双跑期间**不要**把 iframe 路径改成无 `.html`（GH Pages 上会 404）。
+- 后端：Supabase **`icfgireprowcqwdodfqx`**（youhe-workbench，2026-10-20 迁移）；旧项目 `ienmejlxukhrxjjxvfqf` 已停用仅留档。仓库 `yangru2026/kefu-workbench`（main）
 - 茹姐会在 Supabase SQL Editor 手动跑 SQL
 - 主题：翡翠绿 #10B981 + 白底浅色侧边栏 + 冷白底 #F7F9F8（index.html `:root`）。
   换侧边栏底色先 `grep var(--sidebar-bg)`，配 `color:#fff` 的组件要同步改。
   qc.html / qc-v2 / cs-qc 等独立质检页仍是旧绿主题（未同步）。
+
+## 性能基线（2026-10-31 改造，改前端必看）
+- `sw.js` = **kefu-sw-v3**：页面 HTML 也进 SW 缓存（network-first + 1.8s 超时回退缓存），
+  同源 js/css/json 走 SWR，vendor cache-first（**不再预缓存 xlsx**），images 用固定 `kefu-sw-img-v1`。
+- 体积账：index.html 947KB / app.js 185KB / supabase 207KB / xlsx 861KB。
+  xlsx 改为「首屏后 6s + requestIdleCallback」再加载；导出功能里已有 `window.XLSX` 判空提示。
+- index.html 末尾 `prefetchSubPages()`：load 后 2.5s 空闲预热 restock/huaming/qc/gift/diversion 五个 iframe，
+  切页靠 SW 缓存秒开。新加子页记得加进 want 列表。
+- 实测（限速 180ms/1.4Mbps 模拟国内）：冷启 10.6s → SW 命中后 **105ms**，切子页 111~118ms。
+- ⚠️ 发布新版本后：用户第 1 次刷新装新 SW，**第 2 次起才命中 HTML 缓存**；
+  且网络慢时可能先看到旧页面 → 让茹姐 `Ctrl+Shift+R` 强刷（绕过 SW）。
 
 ## 功能一览（新页面 = 独立 html + index.html iframe 接入 + admin-only-nav 控权限）
 | 模块 | 文件 | 表 |
@@ -47,6 +61,8 @@
    `cp /c/temp/kefu_src/index.html index.html` 再提交；推前 `git fetch`。
    一致性校验：`git rev-parse HEAD:index.html` 对比 GitHub commits API 的 `files[].sha`
    （**trees API 有缓存，别用**）。
+   ⚠️ **所有冒烟脚本的 `SRC='C:/temp/kefu_src'` 都从 kefu_src 读文件**——改完 workspace 的 index.html 后
+   务必先 `cp workspace/index.html /c/temp/kefu_src/index.html` 再跑冒烟，否则测的是旧版会误报（2026-10-31 续做时踩过：报 `popupAcquire/dailyRemindCheck is not defined`，其实是 kefu_src 没同步）。
 2. **iframe 子页高度坑**：`.page.active{display:block}` 会让 inline `flex-direction:column` 失效 → iframe 塌成 150px。
    加子页必须：① `#page-xxx.active{display:flex;height:100vh;overflow:hidden;}`
    ② 容器 `style="padding:0;overflow:hidden;flex-direction:column;"` ③ 懒加载分支
@@ -98,6 +114,35 @@
 - ⚠️ **推送后必须复核** `git rev-parse origin/main`（commit+push 同串时输出易截断，曾误判已推送）。
 - ⚠️ 本地 git 对象库有损坏，`git log -S` 可能漏提交 → 追历史用 GitHub API 拉 raw 比对。
 - 沙箱 bash 缺 coreutils：`export PATH=.../PortableGit/versions/1.2.0/{usr,mingw64}/bin:$PATH`。
+
+## ⚠️ 写库必读：exec-sql.js 的项目 ref
+- `outputs/exec-sql.js` 默认项目 = **新库 icfgireprowcqwdodfqx**（2026-10-31 已改，原来写死旧库 ienmejlx…）。
+  操作旧库须显式 `SBP_REF=ienmejlxukhrxjjxvfqf`。踩过的坑：11 月班表插进旧库后 REST 查不到，白排查半小时。
+- **排查「SQL 能查到、REST 查不到」**：先核对是不是同一项目（脚本 ref），再模拟 anon 身份
+  （`BEGIN; SET LOCAL role anon; SELECT count(*) …; ROLLBACK;`）区分 RLS 与项目错位。
+- `schedule_data.id` 是 bigint + 序列，但**序列值落后于已有数据**（迁移遗留）→ 插入报
+  `duplicate key (id)=(1)`。修法：`SELECT setval('schedule_data_id_seq',(SELECT COALESCE(MAX(id),1) FROM schedule_data));`
+- `jsonb_object_length()` **不存在**，数 jsonb 键用 `(SELECT count(*) FROM jsonb_object_keys(x))`。
+
+## 排班表（组长质检提醒的数据源）
+- `schedule_data`：`month_key` + `staff_name` + `group_name` + `schedule` jsonb（键 '1'~'31'，值 早/中/晚/休/调）。
+  线上只有 2026-08 旧数据；**2026-11 已于 2026-10-31 导入 21 人 × 30 天**（A5/B7/C8/分流1），
+  源数据落 `outputs/data/duty-2026-11.{csv,json,sql}`，解析脚本 `outputs/parse-duty-2026-11.js`。
+- ⚠️ **班表里写的是真名**（马雷旭），账号花名是「小雷」→ 弹窗匹配必须 name→real_name 兜底。
+- 组长（role=leader）3 人：小雷(A/马雷旭)、小念(B)、小暖(A)；管理员杨茹不弹。
+
+## 弹窗调度器（多弹窗排队，2026-10-31 上线）
+- 全局同一时刻只显示一个自动弹窗，其余按优先级排队轮转。优先级：**qcGate 100 > 日报 daily 80 > 组长质检 duty 60 > 公告 notice 40**。
+- 机制：`window.__popupQueue` + `window.__activePopup` + `popupAcquire(id,prio)`（返回 true=抢到可渲染 / false=排队中别渲染）+ `popupRelease(id)`（关闭后 setTimeout 400ms 触发队列下一个最高优先级）+ `POPUP_RETRY{...}` 各自重跑。
+- 已接入：renderQcGate / dutyRemindCheck / dailyRemindCheck / spMaybeShowNotice（关闭都接 popupRelease）。
+- 改弹窗逻辑必看：新弹窗要先 `if(!popupAcquire('id',prio)) return;`，关闭时 `popupRelease('id')`，并在 `POPUP_RETRY` 登记重试体，否则会和别的弹窗叠遮罩。
+- 冒烟 `outputs/smoke-popup-daily.js`（13 项）：验证 qcGate→daily→duty→notice 依次激活归位、无 pageerror。
+
+## 日报定时提醒（按班次，2026-10-31 上线）
+- 触发时刻：`DAILY_REMIND_T={'早':'15:30','中':'20:30','晚':'23:30'}`；读 schedule_data 本人当日班次（getMyTodayShift，name→real_name 兜底）。
+- 规则：休/调/无班次静默跳过；**管理员(role=admin)不弹**；当天已交日报（daily_reports 有记录 / localStorage `dailyRemind_<date>.done`）不弹；一天最多 4 次；「稍后提醒」10 分钟后再来；到点前挂定时器到点再查。
+- 弹窗 `#daily-remind-modal`（z-index 99997），正文含**班次时间**（如早班 8:00–16:30）+「下班前提交今日日报」+「📝 去填日报」→ switchPage('daily')。
+- ⚠️ 弹窗正文显示班次时间，**不含触发时刻 15:30**（15:30 只是触发点，不在弹窗里）。
 
 ## 其他项目
 - 辽哥健身房小程序：`fitness-miniapp/`，AppID `wx4d7fb2ba6a586905`，主体认证完成，ICP 备案待推进。

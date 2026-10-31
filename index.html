@@ -10275,6 +10275,40 @@ async function loadVisitorStats() {
 let currentPage = 'home';
 let currentFilter = '全部';
 
+/* ==================== 弹窗调度器（2026-10-31：多弹窗不再打架） ====================
+   全局同一时刻只显示一个自动弹窗，其余按优先级排队；优先级：qcGate 100 > 日报提醒 80 > 组长质检 60 > 公告 40。
+   用法：显示前 popupAcquire(id, prio)（false=排队中，别渲染）；关闭时 popupRelease(id)。 */
+window.__popupQueue = window.__popupQueue || [];
+window.__activePopup = window.__activePopup || null;
+const POPUP_RETRY = {
+  qcGate: () => { try { qcGateCheck(); } catch (e) {} },
+  daily:  () => { try { dailyRemindCheck(); } catch (e) {} },
+  duty:   () => { try { dutyRemindCheck(); } catch (e) {} },
+  notice: () => { try { spMaybeShowNotice(); } catch (e) {} }
+};
+function popupAcquire(id, prio){
+  if (window.__activePopup === id) return true;          // 自己已激活（刷新内容场景）
+  if (window.__activePopup){
+    const q = window.__popupQueue;
+    const i = q.findIndex(x => x.id === id);
+    if (i >= 0) q.splice(i, 1);
+    q.push({ id, prio });
+    q.sort((a, b) => b.prio - a.prio);
+    return false;
+  }
+  window.__activePopup = id;
+  return true;
+}
+function popupRelease(id){
+  if (window.__activePopup !== id) return;               // 不是自己（或从未激活）→ 忽略
+  window.__activePopup = null;
+  const q = window.__popupQueue;
+  if (q.length){
+    const n = q.shift();
+    setTimeout(() => { try { (POPUP_RETRY[n.id] || function(){} )(); } catch (e) {} }, 400);
+  }
+}
+
 /* 侧边栏分组折叠（2026-10-31 重做，参照售后工作台样式）：点组标题收起/展开，状态存 localStorage */
 function toggleNavGroup(head){
   const g = head.parentElement;
@@ -16458,11 +16492,15 @@ async function applyInviteClaim() {
     var shown = false;
     try { shown = sessionStorage.getItem('spNoticeClosed') === '1'; } catch (e) {}
     if (shown) return;
+    if (typeof popupAcquire === 'function' && !popupAcquire('notice', 40)) return;   // 排队：别的弹窗在前
     mask.classList.add('show');
   }
   function spCloseNotice(goPage) {
     var mask = document.getElementById('spNoticeMask');
-    if (mask) mask.classList.remove('show');
+    if (mask && mask.classList.contains('show')) {
+      mask.classList.remove('show');
+      if (typeof popupRelease === 'function') popupRelease('notice');                 // 轮到排队的下一个
+    }
     try { sessionStorage.setItem('spNoticeClosed', '1'); } catch (e) {}
     if (goPage && typeof switchPage === 'function') switchPage('huaming');
   }
@@ -16511,7 +16549,7 @@ async function qcGateCheck(){
     if (error) { console.warn('[qcGate] 读取失败（表未建属正常）:', error.message); return; }
     qcGateRows = data || [];
     if (qcGateRows.length) renderQcGate();
-    else { closeQcGate(); dutyRemindCheck(); }
+    else { closeQcGate(); dutyRemindCheck(); dailyRemindCheck(); }
   }catch(e){ console.warn('[qcGate]', e); }
 }
 window.qcGateReload = qcGateCheck;
@@ -16526,32 +16564,35 @@ const DUTY_SHIFT_TEXT = {
 };
 let dutyRemindDone = false;
 
+/* 查本人今日班次（花名查不到就用真实姓名再查，班表里可能写真名，如「小雷」=「马雷旭」）。返回 '早/中/晚/休/调' 或 null */
+async function getMyTodayShift(){
+  if (!window.supabase || typeof supabase.from !== 'function') return null;
+  if (!currentProfile || !currentProfile.name) return null;
+  const today = new Date();
+  const mk = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0');
+  const dayKey = String(today.getDate());
+  const nameKeys = [currentProfile.name, currentProfile.real_name]
+    .filter((v, i, a) => v && a.indexOf(v) === i);
+  for (const nm of nameKeys){
+    const { data, error } = await supabase.from('schedule_data')
+      .select('schedule').eq('month_key', mk).eq('staff_name', nm).maybeSingle();
+    if (error) { console.warn('[shift] 排班读取失败（表未建/无权限属正常）:', error.message); return null; }
+    if (data && data.schedule && data.schedule[dayKey]) return String(data.schedule[dayKey]);
+  }
+  return null;
+}
+
 async function dutyRemindCheck(){
   try{
     if (dutyRemindDone) return;
-    if (!window.supabase || typeof supabase.from !== 'function') return;
     if (!currentProfile || !currentProfile.name) return;
     if (currentProfile.role !== 'leader') return;                 // 只提醒组长
-    const gate = document.getElementById('qc-gate-modal');
-    if (gate && gate.style.display === 'flex') return;            // 质检弹窗在显示，等它关掉再弹
-    const today = new Date();
-    const sk = 'dutyRemind_' + today.getFullYear() + '-' + (today.getMonth()+1) + '-' + today.getDate();
+    const sk = 'dutyRemind_' + new Date().toDateString();
     if (sessionStorage.getItem(sk)) return;
-    const mk = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0');
-    const dayKey = String(today.getDate());
-    // 花名查不到就用真实姓名再查一次（班表里写的是真名，如「小雷」=「马雷旭」）
-    const nameKeys = [currentProfile.name, currentProfile.real_name]
-      .filter((v, i, a) => v && a.indexOf(v) === i);
-    let sched = null;
-    for (const nm of nameKeys){
-      const { data, error } = await supabase.from('schedule_data')
-        .select('schedule').eq('month_key', mk).eq('staff_name', nm).maybeSingle();
-      if (error) { console.warn('[duty] 排班读取失败（表未建/无权限属正常）:', error.message); return; }
-      if (data && data.schedule && data.schedule[dayKey]) { sched = data.schedule; break; }
-    }
-    const shift = String((sched && sched[dayKey]) || '');
+    const shift = await getMyTodayShift();
     const d = shift && DUTY_SHIFT_TEXT[shift.includes('早') ? '早' : (shift.includes('中') ? '中' : '')];
-    if (!d){ sessionStorage.setItem(sk, '1'); return; }           // 晚班/休/调或无班次 → 不提醒
+    if (!d){ sessionStorage.setItem(sk, '1'); return; }           // 晚班/休/调/无班次 → 不提醒
+    if (!popupAcquire('duty', 60)) return;                        // 有别的弹窗在前面 → 排队等轮转
     sessionStorage.setItem(sk, '1');
     dutyRemindDone = true;
     renderDutyRemind(d);
@@ -16588,6 +16629,81 @@ window.dutyRemindGo = dutyRemindGo;
 window.dutyRemindClose = dutyRemindClose;
 window.dutyRemindCheck = dutyRemindCheck;
 
+/* ==================== 日报定时提醒（2026-10-31 茹姐：按班次定时催交日报） ====================
+   早班 15:30 / 中班 20:30 / 晚班 23:30 提醒；已交不弹；到点时没开页面，登录后补弹；
+   一天最多提醒 4 次，「稍后提醒」10 分钟后再来；管理员不提醒。 */
+const DAILY_REMIND_T = { '早': '15:30', '中': '20:30', '晚': '23:30' };
+const DAILY_REMIND_MAX = 4;
+let dailyRemindTimer = null;
+
+async function dailyRemindCheck(){
+  try{
+    if (!window.supabase || typeof supabase.from !== 'function') return;
+    if (!currentProfile || !currentProfile.id || !currentProfile.name) return;
+    if (currentProfile.role === 'admin') return;                  // 管理员不提醒
+    const today = new Date();
+    const dateStr = today.toISOString().slice(0,10);
+    const sk = 'dailyRemind_' + dateStr;
+    let st = {};
+    try { st = JSON.parse(localStorage.getItem(sk) || '{}'); } catch(e) {}
+    if (st.done) return;
+    const shift = await getMyTodayShift();
+    if (!shift || !DAILY_REMIND_T[shift]) return;                 // 休/调/无班次不提醒
+    const hm = DAILY_REMIND_T[shift].split(':').map(Number);
+    const due = new Date(); due.setHours(hm[0], hm[1], 0, 0);
+    const { data: rep } = await supabase.from('daily_reports')
+      .select('id').eq('user_id', currentProfile.id).eq('report_date', dateStr).maybeSingle();
+    if (rep){ st.done = true; try{ localStorage.setItem(sk, JSON.stringify(st)); }catch(e){} return; }
+    if (Date.now() < due.getTime()){                              // 未到点：挂定时器到点再查
+      if (dailyRemindTimer) clearTimeout(dailyRemindTimer);
+      dailyRemindTimer = setTimeout(() => { dailyRemindCheck(); }, due.getTime() - Date.now() + 1500);
+      return;
+    }
+    if ((st.count || 0) >= DAILY_REMIND_MAX) return;              // 一天最多催 4 次
+    if (!popupAcquire('daily', 80)) return;                       // 有别的弹窗在前面 → 排队等轮转
+    st.count = (st.count || 0) + 1;
+    try{ localStorage.setItem(sk, JSON.stringify(st)); }catch(e){}
+    renderDailyRemind(shift, st.count);
+  }catch(e){ console.warn('[dailyRemind]', e); }
+}
+
+function renderDailyRemind(shift, count){
+  const overlay = document.getElementById('daily-remind-modal');
+  if (!overlay) return;
+  const d = DUTY_SHIFT_TEXT[shift] || {};
+  overlay.innerHTML =
+    '<div style="background:#fff;border-radius:14px;max-width:430px;width:92%;padding:22px 22px 18px;box-shadow:0 20px 60px rgba(0,0,0,.25);">'
+    + '<div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:10px;">📝 日报提交提醒</div>'
+    + '<div style="border:1px solid var(--border);border-left:3px solid #b45309;border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fffbeb;">'
+    +   '<div style="font-size:13.5px;font-weight:700;color:var(--text);">您今日为「' + (d.name || shift + '班') + '」' + (d.time ? '（' + d.time + '）' : '') + '</div>'
+    +   '<div style="font-size:13px;color:var(--text);margin-top:6px;">请在<b style="color:#b45309;">下班前提交今日日报</b></div>'
+    + '</div>'
+    + '<div style="font-size:12.5px;color:var(--text-secondary);line-height:1.7;margin-bottom:14px;">日报里的店铺数据当天填最准，别攒到第二天～' + (count > 1 ? '<span style="color:#94a3b8;">（已提醒 ' + count + ' 次）</span>' : '') + '</div>'
+    + '<div style="display:flex;gap:10px;justify-content:center;">'
+    +   '<button class="btn-sm primary" style="padding:9px 20px;" onclick="dailyRemindGo()">📝 去填日报</button>'
+    +   '<button class="btn-sm" style="padding:9px 20px;" onclick="dailyRemindSnooze()">⏰ 10分钟后再提醒</button>'
+    + '</div></div>';
+  overlay.style.display = 'flex';
+}
+function dailyRemindGo(){
+  popupRelease('daily');
+  dailyRemindClose();
+  switchPage('daily');
+}
+function dailyRemindSnooze(){
+  popupRelease('daily');
+  dailyRemindClose();
+  setTimeout(() => { dailyRemindCheck(); }, 10 * 60 * 1000);
+}
+function dailyRemindClose(){
+  const o = document.getElementById('daily-remind-modal');
+  if (o){ o.style.display = 'none'; o.innerHTML = ''; }
+}
+window.dailyRemindGo = dailyRemindGo;
+window.dailyRemindSnooze = dailyRemindSnooze;
+window.dailyRemindClose = dailyRemindClose;
+window.dailyRemindCheck = dailyRemindCheck;
+
 function qcGateSevBadge(sev){
   const cls = sev === '严重需整改' ? '#dc2626' : sev === '严重问题' ? '#ea580c' : '#0d9488';
   const bg  = sev === '严重需整改' ? '#fef2f2' : sev === '严重问题' ? '#fff7ed' : '#ecfdf5';
@@ -16599,6 +16715,7 @@ function qcEscQ(s){
 }
 
 function renderQcGate(){
+  if (!popupAcquire('qcGate', 100)) return;   // 有更高优先级弹窗在前 → 排队，关闭后自动轮到
   qcGateOpen = true;
   const sevCount = qcGateRows.filter(r => r.severity === '严重问题' || r.severity === '严重需整改').length;
   const list = qcGateRows.map(r =>
@@ -16653,9 +16770,11 @@ window.qcPendingCount = function(){ return window.__qcPendingCount | 0; };
 
 function closeQcGate(){
   qcGateOpen = false;
+  popupRelease('qcGate');
   const overlay = document.getElementById('qc-gate-modal');
   if (overlay){ overlay.style.display = 'none'; overlay.innerHTML = ''; }
   setTimeout(dutyRemindCheck, 600);   // 质检弹窗关掉后，轮到组长班次提醒
+  setTimeout(dailyRemindCheck, 700);  // 以及日报定时提醒（有调度器排队，不会同时弹）
 }
 
 async function qcGateConfirmOne(id){
@@ -16684,6 +16803,7 @@ async function qcGateRpc(ids){
 </script>
 <div id="qc-gate-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:100000;align-items:center;justify-content:center;"></div>
 <div id="duty-remind-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:99998;align-items:center;justify-content:center;"></div>
+<div id="daily-remind-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:99997;align-items:center;justify-content:center;"></div>
 
 <script src="app.js?v=20261031c"></script>
 
