@@ -3563,7 +3563,7 @@ body {
       <span class="qc-topbar-title">🧪 质检统计</span>
       <span class="qc-topbar-user" id="qc-user-badge"></span>
     </div>
-    <iframe id="qc-iframe" src="about:blank" data-src="qc-stats.html?v=20261031h" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write"></iframe>
+    <iframe id="qc-iframe" src="about:blank" data-src="qc-stats.html?v=20261031i" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write"></iframe>
   </div>
 
   <!-- ===== 赠品编码查询 ===== -->
@@ -10863,7 +10863,7 @@ window.onQcIframeLoad = function() {
 
 // ===== 质检登记（飞书表格）入口：组长/管理员专用 =====
 // 飞书文档禁止被 iframe 嵌入（会被 X-Frame-Options 拦），所以一律新窗口打开。
-var QC_REGISTER_URL = 'https://feishu.doubao.com/base/GIlpb2g4JaAdC4sjcgPcnBtSnbh?table=tblMHaYX5PoPFigD&view=vew0QlfW6Q';
+var QC_REGISTER_URL = 'https://yow5cuygtx.feishu.cn/base/GIlpb2g4JaAdC4sjcgPcnBtSnbh?table=tblMHaYX5PoPFigD&view=vew0QlfW6Q';
 function openQcRegister() {
   if (!isQcRole()) { showToast('⛔ 质检登记仅组长 / 管理员可用'); return; }
   window.open(QC_REGISTER_URL, '_blank', 'noopener');
