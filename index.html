@@ -16465,10 +16465,75 @@ async function qcGateCheck(){
     if (error) { console.warn('[qcGate] 读取失败（表未建属正常）:', error.message); return; }
     qcGateRows = data || [];
     if (qcGateRows.length) renderQcGate();
-    else hideQcGate();
+    else { closeQcGate(); dutyRemindCheck(); }
   }catch(e){ console.warn('[qcGate]', e); }
 }
 window.qcGateReload = qcGateCheck;
+
+/* ==================== 组长质检登记提醒（2026-10-31 茹姐：按当日班次弹，晚班不提醒） ====================
+   规则（质检客服排班）：早班 8:00-16:30 质检 16:00-16:30（算加班可调休）；
+   中班 13:00-21:00 质检 20:30-21:00；晚班 16:00-24:00 无需质检 → 不提醒。
+   数据源：schedule_data（排班表体系，schedule[日]=早/中/晚/休/调）。只对组长（role=leader）弹，每天一次。 */
+const DUTY_SHIFT_TEXT = {
+  '早': { name: '早班', time: '8:00 – 16:30', slot: '16:00 – 16:30', extra: '质检算加班，可调休' },
+  '中': { name: '中班', time: '13:00 – 21:00', slot: '20:30 – 21:00', extra: '' }
+};
+let dutyRemindDone = false;
+
+async function dutyRemindCheck(){
+  try{
+    if (dutyRemindDone) return;
+    if (!window.supabase || typeof supabase.from !== 'function') return;
+    if (!currentProfile || !currentProfile.name) return;
+    if (currentProfile.role !== 'leader') return;                 // 只提醒组长
+    const gate = document.getElementById('qc-gate-modal');
+    if (gate && gate.style.display === 'flex') return;            // 质检弹窗在显示，等它关掉再弹
+    const today = new Date();
+    const sk = 'dutyRemind_' + today.getFullYear() + '-' + (today.getMonth()+1) + '-' + today.getDate();
+    if (sessionStorage.getItem(sk)) return;
+    const mk = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0');
+    const dayKey = String(today.getDate());
+    const { data, error } = await supabase.from('schedule_data')
+      .select('schedule').eq('month_key', mk).eq('staff_name', currentProfile.name).maybeSingle();
+    if (error) { console.warn('[duty] 排班读取失败（表未建/无权限属正常）:', error.message); return; }
+    const shift = String((data && data.schedule && data.schedule[dayKey]) || '');
+    const d = shift && DUTY_SHIFT_TEXT[shift.includes('早') ? '早' : (shift.includes('中') ? '中' : '')];
+    if (!d){ sessionStorage.setItem(sk, '1'); return; }           // 晚班/休/调或无班次 → 不提醒
+    sessionStorage.setItem(sk, '1');
+    dutyRemindDone = true;
+    renderDutyRemind(d);
+  }catch(e){ console.warn('[duty]', e); }
+}
+
+function renderDutyRemind(d){
+  const overlay = document.getElementById('duty-remind-modal');
+  if (!overlay) return;
+  overlay.innerHTML =
+    '<div style="background:#fff;border-radius:14px;max-width:430px;width:92%;padding:22px 22px 18px;box-shadow:0 20px 60px rgba(0,0,0,.25);">'
+    + '<div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:10px;">📋 今日质检登记提醒</div>'
+    + '<div style="border:1px solid var(--border);border-left:3px solid var(--primary,#10b981);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#f8fffb;">'
+    +   '<div style="font-size:13.5px;font-weight:700;color:var(--text);">您今日为「' + d.name + '」（' + d.time + '）</div>'
+    +   '<div style="font-size:13px;color:var(--text);margin-top:6px;">质检时段：<b style="color:#b45309;">' + d.slot + '</b></div>'
+    +   (d.extra ? '<div style="font-size:12px;color:var(--text-secondary);margin-top:3px;">（' + d.extra + '）</div>' : '')
+    + '</div>'
+    + '<div style="font-size:12.5px;color:var(--text-secondary);line-height:1.7;margin-bottom:14px;">请在质检时段内完成<b style="color:var(--text);">当日质检录入登记</b>，登记好质检记录后客服才能在工作台确认。</div>'
+    + '<div style="display:flex;gap:10px;justify-content:center;">'
+    +   '<button class="btn-sm primary" style="padding:9px 20px;" onclick="dutyRemindGo()">📝 去登记质检</button>'
+    +   '<button class="btn-sm" style="padding:9px 20px;" onclick="dutyRemindClose()">知道了</button>'
+    + '</div></div>';
+  overlay.style.display = 'flex';
+}
+function dutyRemindGo(){
+  dutyRemindClose();
+  window.open(QC_REGISTER_URL, '_blank', 'noopener');
+}
+function dutyRemindClose(){
+  const overlay = document.getElementById('duty-remind-modal');
+  if (overlay){ overlay.style.display = 'none'; overlay.innerHTML = ''; }
+}
+window.dutyRemindGo = dutyRemindGo;
+window.dutyRemindClose = dutyRemindClose;
+window.dutyRemindCheck = dutyRemindCheck;
 
 function qcGateSevBadge(sev){
   const cls = sev === '严重需整改' ? '#dc2626' : sev === '严重问题' ? '#ea580c' : '#0d9488';
@@ -16537,6 +16602,7 @@ function closeQcGate(){
   qcGateOpen = false;
   const overlay = document.getElementById('qc-gate-modal');
   if (overlay){ overlay.style.display = 'none'; overlay.innerHTML = ''; }
+  setTimeout(dutyRemindCheck, 600);   // 质检弹窗关掉后，轮到组长班次提醒
 }
 
 async function qcGateConfirmOne(id){
@@ -16564,6 +16630,7 @@ async function qcGateRpc(ids){
 }
 </script>
 <div id="qc-gate-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:100000;align-items:center;justify-content:center;"></div>
+<div id="duty-remind-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:99998;align-items:center;justify-content:center;"></div>
 
 <script src="app.js?v=20261031c"></script>
 

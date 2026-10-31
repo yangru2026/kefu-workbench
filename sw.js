@@ -9,7 +9,7 @@
  *   - vendor 库：cache-first；但不再预缓存 xlsx（861KB，导出时才用，改成用时再拉）。
  *   - images/：stale-while-revalidate（缓存名固定，升级不清空）。
  */
-const VERSION = 'kefu-sw-v5';
+const VERSION = 'kefu-sw-v6';
 const LIB_CACHE = VERSION + '-lib';
 const PAGE_CACHE = VERSION + '-page';
 const IMG_CACHE = 'kefu-sw-img-v1';   // 固定名：升级 SW 不清空已缓存花色图
