@@ -33,6 +33,16 @@
       });
     });
   }
+  // ⚠️ 2026-10-31 修复「supabase.from is not a function」（改组别保存失败、过几天又变回未分组的元凶）：
+  // initSupabase 会把 window.supabase 覆盖成"客户端实例"（只有 .from，没有 .createClient）。
+  // 旧代码所有"库是否就绪"的判断都只认 .createClient → 客户端就绪后被误判成"库没加载"，
+  // 自动恢复机制把 vendor/supabase.min.js 再注一次 → UMD 库把客户端整个覆盖 → 之后的保存全部报
+  // "supabase.from is not a function"。这里统一改为：库(有 createClient)或客户端(有 from)任一就绪即算就绪，
+  // 客户端就绪后绝不再注入库脚本。
+  function sbReady() {
+    var s = window.supabase;
+    return !!s && (typeof s.createClient === 'function' || typeof s.from === 'function');
+  }
   function loadScript(src, cb, timeout) {
     var s = document.createElement('script');
     var done = false;
@@ -74,14 +84,14 @@
       'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js',
       'https://registry.npmmirror.com/@supabase/supabase-js/2.112.3/files/dist/umd/supabase.min.js'
     ];
-    // 若已就绪，直接跳过后续加载
-    if (window.supabase && window.supabase.createClient) { window.__SUPABASE_LIB_OK = true; return; }
+    // 若已就绪，直接跳过后续加载（库或客户端任一就绪都算）
+    if (sbReady()) { window.__SUPABASE_LIB_OK = true; return; }
     if (window.__SUPABASE_LIB_OK) return;
     if (i >= urls.length) {
       window.__SUPABASE_LIB_FAILED = true;
       // 暴露重试入口：网络恢复后由自动恢复机制重启加载器
       window.__retrySupabaseLoad = function () {
-        if (window.supabase && window.supabase.createClient) { window.__SUPABASE_LIB_OK = true; return; }
+        if (sbReady()) { window.__SUPABASE_LIB_OK = true; return; }
         window.__SUPABASE_LIB_FAILED = false;
         loadSupabase(0);
       };
@@ -89,12 +99,12 @@
       // 关键新增：所有源都失败后自动退避重试，不必等用户手动刷新。
       // 重试时只打本地 vendor（公共 CDN 在国内基本不通，重试它们只会拖慢自愈）。
       autoRecover('supabase', function () { window.__retrySupabaseLoad(); },
-        function () { return !!(window.supabase && window.supabase.createClient); },
+        function () { return sbReady(); },
         function () { loadSupabaseLocal(); });
       return;
     }
     loadScript(urls[i], function (err) {
-      if (!err && window.supabase && window.supabase.createClient) {
+      if (!err && sbReady()) {
         window.__SUPABASE_LIB_OK = true;
         return;
       }
@@ -104,9 +114,9 @@
   })(0);
   // 只加载本地 vendor 源（用于网络恢复后的快速重试）
   function loadSupabaseLocal() {
-    if (window.supabase && window.supabase.createClient) return;
+    if (sbReady()) return;
     loadScript('vendor/supabase.min.js?v=2&r=' + Date.now(), function (err) {
-      if (!err && window.supabase && window.supabase.createClient) {
+      if (!err && sbReady()) {
         window.__SUPABASE_LIB_OK = true;
         window.__SUPABASE_LIB_FAILED = false;
       }
@@ -3857,7 +3867,10 @@ function scheduleSupabaseRecover() {
   _sbRecoverTimer = setInterval(function () {
     try {
       if (supabase && typeof supabase.from === 'function') { clearInterval(_sbRecoverTimer); _sbRecoverTimer = null; return; }
-      if (!(window.supabase && window.supabase.createClient)) {
+      // 客户端(有.from)或库(有.createClient)任一就绪都算到位；注意不能只认 .createClient，
+      // 否则客户端就绪后会被误判"库没加载"而重新注入库脚本、把客户端覆盖掉（2026-10-31 修复）
+      var sNow = window.supabase;
+      if (!(sNow && (typeof sNow.createClient === 'function' || typeof sNow.from === 'function'))) {
         // 库还没到位：若加载器已全部失败，重启一轮加载
         if (window.__SUPABASE_LIB_FAILED && typeof window.__retrySupabaseLoad === 'function') window.__retrySupabaseLoad();
         return;
@@ -3876,6 +3889,14 @@ function withTimeout(promise, ms, label) {
     const timer = setTimeout(() => reject(new Error((label || '操作') + '超时')), ms);
     promise.then(v => { clearTimeout(timer); resolve(v); }, e => { clearTimeout(timer); reject(e); });
   });
+}
+
+// 保存/写入前的客户端自检：若全局 supabase 被退化成 UMD 库对象（历史覆盖事故的兜底），
+// 就地重新初始化，避免直接报 "supabase.from is not a function"
+async function ensureSb() {
+  if (supabase && typeof supabase.from === 'function') return true;
+  try { await initSupabase(); } catch (e) {}
+  return !!(supabase && typeof supabase.from === 'function');
 }
 
 // ==================== 启动加载动画 ====================
@@ -4210,6 +4231,7 @@ async function offboardStaff(id) {
   if (!s) { showToast('未找到该客服'); return; }
   if (!confirm('确定清退「' + (s.name || s.real_name || s.phone) + '」吗？\n\n· 将从客服信息列表移出\n· 该账号将无法登录工作台\n· 加班/调休历史记录保留，可随时恢复')) return;
   try {
+    if (!(await ensureSb())) { showToast('数据服务还没连接上，请稍候再试'); return; }
     const { data: upRows, error } = await supabase.from('profiles')
       .update({ status: 'disabled', left_at: new Date().toISOString(), updated_at: new Date().toISOString() })
       .eq('id', id).select('id');
@@ -4230,6 +4252,7 @@ async function restoreStaff(id) {
   if (!s) { showToast('未找到该客服'); return; }
   if (!confirm('恢复「' + (s.name || s.real_name || s.phone) + '」为在职？')) return;
   try {
+    if (!(await ensureSb())) { showToast('数据服务还没连接上，请稍候再试'); return; }
     const { data: upRows, error } = await supabase.from('profiles')
       .update({ status: 'active', left_at: null, updated_at: new Date().toISOString() })
       .eq('id', id).select('id');
@@ -4340,6 +4363,8 @@ function openStaffDetail(id) {
     if (!patch.name) { showToast('花名不能为空'); return false; }
     if (patch.phone && !/^1\d{10}$/.test(patch.phone)) { showToast('手机号格式不对（11位数字）'); return false; }
     try {
+      // 兜底：客户端被库覆盖时就地重建（2026-10-31）
+      if (!(await ensureSb())) { showToast('数据服务还没连接上，请等几秒再保存'); return false; }
       // .select() 让 PostgREST 回传被更新的行。若权限（RLS）把这次更新挡掉，PostgreSQL 是
       // "0 行被更新且不报错"，旧写法会误弹「✅ 已保存」但实际没改上；这里显式识别，给出准确提示。
       const { data: upRows, error } = await supabase.from('profiles').update(patch).eq('id', id).select('id');
@@ -4387,7 +4412,7 @@ function closeStaffDetail() { closeStaffEditModal(); }
 // 兼容旧调用名：保存客服资料（按 id 更新）
 async function saveStaffInfo(id, patch) {
   try {
-    if (!supabase || typeof supabase.from !== 'function') throw new Error('数据服务未就绪');
+    if (!(await ensureSb())) throw new Error('数据服务未就绪');
     if (!id) throw new Error('缺少客服 id');
     const payload = Object.assign({}, patch, { updated_at: new Date().toISOString() });
     const { data: upRows, error } = await supabase.from('profiles').update(payload).eq('id', id).select('id');
@@ -4499,7 +4524,7 @@ function renderOTSummary() {
 // 加载该客服的加班/调休记录（真实表结构：overtime_records / compensatory_leave_records，字段 profile_id/date/hours）
 async function loadOTRecords(staffId) {
   try {
-    if (!supabase || typeof supabase.from !== 'function') throw new Error('数据服务未就绪');
+    if (!(await ensureSb())) throw new Error('数据服务未就绪');
     const [otQ, lvQ] = await Promise.all([
       withTimeout(supabase.from('overtime_records').select('*').eq('profile_id', staffId).order('date', { ascending: false }), 12000, '加班记录'),
       withTimeout(supabase.from('compensatory_leave_records').select('*').eq('profile_id', staffId).order('date', { ascending: false }), 12000, '调休记录')
@@ -4579,7 +4604,7 @@ async function saveOTRecord(type) {
   if (!hours || hours <= 0) { showToast('请输入有效小时数'); return; }
 
   try {
-    if (!supabase || typeof supabase.from !== 'function') throw new Error('数据服务未就绪');
+    if (!(await ensureSb())) throw new Error('数据服务未就绪');
 
     // 调休不能超过剩余可调
     if (!isOT) {
@@ -4615,7 +4640,7 @@ async function deleteOTRecord(recId, type) {
   if (!r) { showToast('未找到记录'); return; }
   if (!confirm('确定删除这条 ' + fmtH(r.hours) + ' 小时记录吗？合计将同步扣减。')) return;
   try {
-    if (!supabase || typeof supabase.from !== 'function') throw new Error('数据服务未就绪');
+    if (!(await ensureSb())) throw new Error('数据服务未就绪');
     const table = (r.record_type === 'leave') ? 'compensatory_leave_records' : 'overtime_records';
     const { error: e1 } = await supabase.from(table).delete().eq('id', recId);
     if (e1) throw e1;
