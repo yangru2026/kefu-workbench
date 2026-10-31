@@ -202,7 +202,7 @@ const readOK = {};      // 展开后多久才允许点确认（防止不点开�
 
 const SEV_CLASS = { '一般提醒':'s1', '严重问题':'s2', '严重需整改':'s3' };
 // 质检登记表（飞书）：飞书禁止被 iframe 嵌入，只能新窗口打开
-const REGISTER_URL = 'https://yow5cuygtx.feishu.cn/wiki/RIogwW6NIi95CNkl2ZRcwvF4nVh?sheet=47e42c';
+const REGISTER_URL = 'https://feishu.doubao.com/base/GIlpb2g4JaAdC4sjcgPcnBtSnbh?table=tblMHaYX5PoPFigD&view=vew0QlfW6Q';
 const fmtMoney = n => (Math.round((Number(n)||0)*100)/100).toFixed(2).replace(/\.00$/,'');
 const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }

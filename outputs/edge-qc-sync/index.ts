@@ -54,11 +54,14 @@ async function tenantToken(): Promise<string> {
   return j.tenant_access_token as string;
 }
 
-// wiki 节点 → 多维表格 app_token
+// wiki 节点 → 多维表格 app_token（现在用的是普通多维表格，直接给 app_token；这两个不是密钥，写死默认值）
+const QC_APP_TOKEN = 'GIlpb2g4JaAdC4sjcgPcnBtSnbh';   // https://feishu.doubao.com/base/<这里>?table=...
+const QC_TABLE_ID  = 'tblMHaYX5PoPFigD';               // ?table=<这里>
+
 async function resolveAppToken(tk: string): Promise<string> {
-  const direct = Deno.env.get('FEISHU_QC_APP_TOKEN');
-  if (direct) return direct;
-  const node = Deno.env.get('FEISHU_QC_WIKI_NODE');
+  const direct = Deno.env.get('FEISHU_QC_APP_TOKEN') || QC_APP_TOKEN;
+  if (direct && !/^wik/.test(direct)) return direct;
+  const node = Deno.env.get('FEISHU_QC_WIKI_NODE') || direct;
   if (!node) throw new Error('缺 FEISHU_QC_APP_TOKEN 或 FEISHU_QC_WIKI_NODE');
   const r = await fetch(`${FEISHU}/wiki/v2/spaces/get_node?token=${node}&obj_type=wiki`, {
     headers: { Authorization: `Bearer ${tk}` },
@@ -174,9 +177,9 @@ Deno.serve(async (req: Request) => {
 
     const tk = await tenantToken();
     const appToken = await resolveAppToken(tk);
-    const tableId = Deno.env.get('FEISHU_QC_TABLE_ID')!;
-    if (!tableId) return json({ error: '缺 FEISHU_QC_TABLE_ID（链接 ?sheet= 后面那串）' }, 500);
-    const attachField = Deno.env.get('FEISHU_QC_ATTACH_FIELD') || '截图';
+    const tableId = Deno.env.get('FEISHU_QC_TABLE_ID') || QC_TABLE_ID;
+    if (!tableId) return json({ error: '缺 FEISHU_QC_TABLE_ID（链接 ?table= 后面那串）' }, 500);
+    const attachField = Deno.env.get('FEISHU_QC_ATTACH_FIELD') || '问题截图';
 
     // 分页拉全表
     const all: any[] = [];

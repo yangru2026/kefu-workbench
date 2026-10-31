@@ -86,9 +86,9 @@ Deno.serve(async (req: Request) => {
 
     // 3) 现场向飞书要临时地址
     const tk = await tenantToken();
-    const appToken = Deno.env.get('FEISHU_QC_APP_TOKEN')!;
-    const tableId = Deno.env.get('FEISHU_QC_TABLE_ID')!;
-    const field = Deno.env.get('FEISHU_QC_ATTACH_FIELD') || '截图';
+    const appToken = Deno.env.get('FEISHU_QC_APP_TOKEN') || 'GIlpb2g4JaAdC4sjcgPcnBtSnbh';
+    const tableId = Deno.env.get('FEISHU_QC_TABLE_ID') || 'tblMHaYX5PoPFigD';
+    const field = Deno.env.get('FEISHU_QC_ATTACH_FIELD') || '问题截图';
     const r = await fetch(`${FEISHU}/bitable/v1/apps/${appToken}/tables/${tableId}/records/${id}`, {
       headers: { Authorization: `Bearer ${tk}` },
     });
