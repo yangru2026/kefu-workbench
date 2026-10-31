@@ -38,6 +38,10 @@ const RECS = (() => {
       amount: (sev === '一般提醒' || pendingNoMoney) ? 0 : AMTS[(i % 4) + 2],
       detail: ['回复客户时用了"应该可以"等不确定表述', '首响超过 30 秒未回复', '未按话术确认度数', '漏发注意事项', '客户催单未及时安抚', '承诺了无法保证的发货时效'][i % 6],
       note: i % 4 === 0 ? '已当面提醒' : null,
+      // 正确做法：一半记录有（客服视角重点展示），一半没填
+      guidance: i % 2 === 0 ? '按话术先确认度数和抛型，再报价格；不确定的回「我帮您查一下」' : null,
+      // 客服确认：i%4===0 的已确认，其余待确认（用于验证确认按钮/已确认态）
+      staff_confirmed_at: i % 4 === 0 ? '2026-10-30T09:00:00Z' : null,
       // 证据三种情况：飞书附件（走 qc-evidence 代取）/ 文本链接（直接打开）/ 没有（显示 —）
       evidence: i % 5 === 0 ? null
         : (i % 3 === 0 ? '附件×1' : 'https://yow5cuygtx.feishu.cn/file/qc-shot-' + i)
@@ -119,7 +123,14 @@ async function run(browser, role, name, qcFail) {
         .every(a => !/qc-evidence/.test(a.getAttribute('href') || '') || /[?&]t=/.test(a.getAttribute('href') || '')),
       mineRows: document.querySelectorAll('#panel-mine table.tb tbody tr').length,
       mineEvLinks: document.querySelectorAll('#panel-mine table.tb tbody a.ev').length,
-      mineTip: !!document.querySelector('#panel-mine .mine-tip'),
+      mineConfirmBtns: document.querySelectorAll('#panel-mine table.tb tbody .cfm-btn').length,
+      mineConfirmedTags: document.querySelectorAll('#panel-mine table.tb tbody .cfm.done').length,
+      mineGuidance: document.querySelectorAll('#panel-mine table.tb tbody .gd').length,
+      mineNoQcNameCol: !/质检人/.test((document.querySelector('#panel-mine table.tb thead') || {}).textContent || ''),
+      mineNoAmountCol: !/扣罚/.test((document.querySelector('#panel-mine table.tb thead') || {}).textContent || ''),
+      mineWarn: (document.querySelector('#panel-mine .mine-warn') || {}).innerText || '',
+      detailGuidance: document.querySelectorAll('#panel-detail table.tb tbody .gd').length,
+      detailConfirmBtns: document.querySelectorAll('#panel-detail table.tb tbody .cfm-btn').length,
       mineShown: document.getElementById('panel-mine').style.display !== 'none',
       registerBtn: document.getElementById('btnRegister').style.display !== 'none',
       pendingShown: document.getElementById('pendingBox').style.display !== 'none',
@@ -182,7 +193,13 @@ async function run(browser, role, name, qcFail) {
     admin_proxy_links: admin.st.proxyLinks === RECS.filter(r => /^附件/.test(r.evidence || '')).length,
     admin_proxy_token: admin.st.proxyHasToken === true,                       // 代取链接必须带身份 token
     staff_sees_evidence: staff.st.mineEvLinks === evMine && evMine > 0,       // 客服自己也点得到截图
-    staff_evidence_tip: staff.st.mineTip === true,
+    staff_no_qc_name_col: staff.st.mineNoQcNameCol === true,                  // 客服看不到质检人
+    staff_no_amount_col: staff.st.mineNoAmountCol === true,                   // 扣罚次要：客服列表不放钱
+    staff_confirm_btns: staff.st.mineConfirmBtns === RECS.filter(r => r.staff_name === '小柚' && !r.staff_confirmed_at).length,
+    staff_confirmed_tags: staff.st.mineConfirmedTags === RECS.filter(r => r.staff_name === '小柚' && !!r.staff_confirmed_at).length,
+    staff_guidance_blocks: staff.st.mineGuidance > 0,                          // 正确做法醒目展示
+    staff_pending_warn: /还没确认/.test(staff.st.mineWarn) && /日报/.test(staff.st.mineWarn),
+    admin_guidance_col: admin.st.detailGuidance > 0 && admin.st.detailConfirmBtns > 0,
     no_mask_element: broken.st.noMaskElement === true,                       // 模态弹窗已彻底移除
     broken_shows_dismissable_bar: broken.st.errShown === true && /SQL/.test(broken.st.errText),
     no_page_errors: admin.errs.concat(staff.errs, broken.errs).length === 0

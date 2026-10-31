@@ -105,6 +105,23 @@
   a.ev:hover{background:#e0f2fe;border-color:#7dd3fc;}
   .mine-tip{font-size:12px;color:#0369a1;background:#f0f9ff;border:1px solid #bae6fd;
             border-radius:8px;padding:8px 11px;margin-bottom:10px;}
+  /* 正确做法：质检的教学重点，客服视角要醒目 */
+  .gd{margin-top:7px;background:#ecfdf5;border:1px solid #a7f3d0;border-left:3px solid #10b981;
+      border-radius:8px;padding:7px 10px;font-size:12.5px;line-height:1.65;color:#065f46;}
+  .gd span{display:inline-block;font-size:10.5px;font-weight:800;color:#047857;background:#d1fae5;
+           border-radius:5px;padding:1px 7px;margin-right:7px;vertical-align:1px;}
+  .gd.adm{display:block;background:#f0fdf4;border-color:#bbf7d0;}
+  /* 客服确认 */
+  .cfm.done{font-size:11px;font-weight:700;color:#059669;background:#ecfdf5;border:1px solid #a7f3d0;
+            border-radius:6px;padding:2px 8px;white-space:nowrap;}
+  .cfm-btn{font-size:11.5px;font-weight:800;color:#fff;background:#10b981;border:none;border-radius:6px;
+           padding:5px 11px;cursor:pointer;white-space:nowrap;}
+  .cfm-btn:hover{background:#059669;}
+  .cfm-btn.all{background:#fff;color:#b45309;border:1px solid #fcd34d;margin-left:10px;padding:4px 12px;}
+  .cfm-btn.all:hover{background:#fffbeb;}
+  /* 待确认提醒（客服视角顶部） */
+  .mine-warn{font-size:12.5px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;
+             border-radius:8px;padding:9px 12px;margin-bottom:10px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;}
   .empty{color:var(--muted);text-align:center;padding:34px 12px;font-size:13px;}
   .empty b{color:var(--text);}
   .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#1e293b;color:#fff;
@@ -284,15 +301,27 @@ function renderPending(){
 
 function renderKpis(){
   const total = rows.length;
+  if (!isMgr){
+    // 客服视角：质检是学怎么做得对，扣罚次要 → KPI 不放钱，突出「待确认」
+    const pend = rows.filter(r => !r.staff_confirmed_at).length;
+    const sev3 = rows.filter(r => r.severity === '严重需整改').length;
+    $('kpis').innerHTML = [
+      card(pend ? 'd' : 'a', pend ? '⏳' : '✅', '待我确认', pend, '条'),
+      card('a','📋','我被质检', total, '次'),
+      card('c','🔥','严重需整改', sev3, '次'),
+      card('b','📅','近一次', (rows[0] && rows[0].qc_date ? rows[0].qc_date.slice(5) : '-'), '')
+    ].join('');
+    return;
+  }
   const money = rows.reduce((s,r)=>s+(Number(r.amount)||0),0);
   const people = new Set(rows.map(r=>r.staff_name).filter(Boolean)).size;
   const sev3 = rows.filter(r => r.severity === '严重需整改').length;
   const avg = people ? money / people : 0;
   $('kpis').innerHTML = [
-    card('a','📋', isMgr ? '质检次数' : '我被质检', total, '次'),
-    card('b','💰', isMgr ? '扣罚合计' : '我的扣罚', fmtMoney(money), '元'),
-    card('c','👥', isMgr ? '涉及客服' : '严重需整改', isMgr ? people : sev3, isMgr ? '人' : '次'),
-    card('d','📊', isMgr ? '人均扣罚' : '近一次', isMgr ? fmtMoney(avg) : (rows[0] && rows[0].qc_date ? rows[0].qc_date.slice(5) : '-'), isMgr ? '元' : '')
+    card('a','📋','质检次数', total, '次'),
+    card('b','💰','扣罚合计', fmtMoney(money), '元'),
+    card('c','👥','涉及客服', people, '人'),
+    card('d','📊','人均扣罚', fmtMoney(avg), '元')
   ].join('');
 }
 function card(cls, ico, label, val, unit){
@@ -362,7 +391,7 @@ function filteredDetail(){
     if (fType && (r.issue_type||'未分类') !== fType) return false;
     if (fSev && (r.severity||'') !== fSev) return false;
     if (fKw){
-      const t = ((r.detail||'') + ' ' + (r.note||'') + ' ' + (r.staff_name||'')).toLowerCase();
+      const t = ((r.detail||'') + ' ' + (r.guidance||'') + ' ' + (r.note||'') + ' ' + (r.staff_name||'')).toLowerCase();
       if (t.indexOf(fKw.toLowerCase()) < 0) return false;
     }
     return true;
@@ -415,9 +444,9 @@ function renderDetail(){
   const list = filteredDetail();
   const body = !list.length ? emptyBox('没有符合条件的记录')
     : '<div class="tb-wrap"><table class="tb"><thead><tr>'
-      + '<th style="width:88px;">日期</th><th style="width:80px;">客服</th><th style="width:110px;">问题类型</th>'
-      + '<th style="width:92px;">严重度</th><th style="width:64px;">扣罚</th><th>问题描述</th>'
-      + '<th style="width:62px;">证据</th><th style="width:70px;">质检人</th>'
+      + '<th style="width:88px;">日期</th><th style="width:76px;">客服</th><th style="width:104px;">问题类型</th>'
+      + '<th style="width:88px;">严重度</th><th style="width:60px;">扣罚</th><th>问题描述</th><th>正确做法</th>'
+      + '<th style="width:56px;">证据</th><th style="width:64px;">质检人</th><th style="width:88px;">客服确认</th>'
       + '</tr></thead><tbody>'
       + list.map(r =>
         '<tr>'
@@ -427,8 +456,10 @@ function renderDetail(){
         + '<td><span class="sev '+(SEV_CLASS[r.severity]||'s1')+'">'+esc(r.severity||'-')+'</span></td>'
         + '<td class="amt">'+(Number(r.amount)?('¥'+fmtMoney(r.amount)):'-')+'</td>'
         + '<td class="det">'+esc(r.detail||'')+(r.note?'<br><span style="color:#94a3b8;">备注：'+esc(r.note)+'</span>':'')+'</td>'
+        + '<td class="det">'+(String(r.guidance||'').trim() ? '<span class="gd adm">'+esc(r.guidance)+'</span>' : '<span style="color:#cbd5e1;">—</span>')+'</td>'
         + '<td>'+evCell(r)+'</td>'
         + '<td>'+esc(r.qc_name||'-')+'</td>'
+        + '<td>'+confirmCell(r)+'</td>'
         + '</tr>').join('')
       + '</tbody></table></div>'
       + '<div style="margin-top:10px;font-size:12px;color:var(--muted);">共 '+list.length+' 条</div>';
@@ -449,28 +480,59 @@ function renderDetail(){
   $('btnExport').onclick = exportCsv;
 }
 
+/* 客服确认：只能确认自己花名的记录（RPC 里二次校验），确认后才能提交日报 */
+async function qcConfirm(ids){
+  if (!ids || !ids.length) return;
+  try{
+    const { data, error } = await sb.rpc('qc_confirm_staff', { p_ids: ids, p_note: null });
+    if (error) throw error;
+    toast('已确认 ' + (data || 0) + ' 条');
+    qcGateRefresh();
+    await load();
+  }catch(e){
+    console.warn(e);
+    toast('确认失败：' + (e.message || e) + '（若提示函数不存在，请先在 Supabase 跑 v4 SQL）');
+  }
+}
+window.qcConfirm = qcConfirm;
+function qcGateRefresh(){ try{ if (window.parent && window.parent !== window && window.parent.qcGateReload) window.parent.qcGateReload(); }catch(e){} }
+
 function renderMine(){
-  const money = rows.reduce((s,r)=>s+(Number(r.amount)||0),0);
+  const pending = rows.filter(r => !r.staff_confirmed_at);
+  const pendIds = pending.map(r => r.id);
+  const notice = pending.length
+    ? '<div class="mine-warn">⏳ 你有 <b>' + pending.length + '</b> 条质检还没确认，看完「正确做法」点「我已知晓」。<b>不确认完，日报提交不了。</b>'
+      + '<button class="cfm-btn all" onclick="qcConfirm(' + esc(JSON.stringify(pendIds)) + ')">✓ 全部已知晓</button></div>'
+    : '<div class="mine-tip">✅ 全部已确认，保持得对的做法，日报可以正常提交</div>';
   const body = !rows.length ? emptyBox('这段时间没有你的质检记录 👍')
     : '<div class="tb-wrap"><table class="tb"><thead><tr>'
-      + '<th style="width:88px;">日期</th><th style="width:110px;">问题类型</th><th style="width:92px;">严重度</th>'
-      + '<th style="width:64px;">扣罚</th><th>问题描述</th><th style="width:62px;">证据</th><th style="width:80px;">质检人</th>'
+      + '<th style="width:88px;">日期</th><th style="width:104px;">问题类型</th><th style="width:88px;">严重度</th>'
+      + '<th>问题与正确做法</th><th style="width:60px;">证据</th><th style="width:96px;">确认</th>'
       + '</tr></thead><tbody>'
       + rows.map(r =>
         '<tr>'
         + '<td>'+(r.qc_date||'-')+'</td>'
         + '<td>'+esc(r.issue_type||'-')+'</td>'
         + '<td><span class="sev '+(SEV_CLASS[r.severity]||'s1')+'">'+esc(r.severity||'-')+'</span></td>'
-        + '<td class="amt">'+(Number(r.amount)?('¥'+fmtMoney(r.amount)):'-')+'</td>'
-        + '<td class="det">'+esc(r.detail||'')+(r.note?'<br><span style="color:#94a3b8;">备注：'+esc(r.note)+'</span>':'')+'</td>'
+        + '<td class="det">'+esc(r.detail||'')+guidanceBlock(r)+(r.note?'<br><span style="color:#94a3b8;">备注：'+esc(r.note)+'</span>':'')+'</td>'
         + '<td>'+evCell(r)+'</td>'
-        + '<td>'+esc(r.qc_name||'-')+'</td>'
+        + '<td>'+confirmCell(r)+'</td>'
         + '</tr>').join('')
       + '</tbody></table></div>';
-  $('panel-mine').innerHTML = '<h3>🙋 我的质检记录 <span class="hint">共 '+rows.length+' 条 · 扣罚合计 ¥'+fmtMoney(money)+'</span></h3>'
-    + (rows.some(r => evCount(r))
-        ? '<div class="mine-tip">📷 点「证据」里的按钮可在新窗口打开当时的截图原图</div>' : '')
-    + body;
+  $('panel-mine').innerHTML = '<h3>🙋 我的质检 <span class="hint">重点看「正确做法」，照着做就不会再犯</span></h3>' + notice + body;
+}
+
+function guidanceBlock(r){
+  const g = String(r.guidance || '').trim();
+  if (!g) return '';
+  return '<div class="gd"><span>✔ 正确做法</span>' + esc(g) + '</div>';
+}
+function confirmCell(r){
+  if (r.staff_confirmed_at){
+    const d = String(r.staff_confirmed_at).slice(5, 10);
+    return '<span class="cfm done">已确认 ' + esc(d) + '</span>';
+  }
+  return '<button class="cfm-btn" onclick="qcConfirm([\'' + esc(r.id) + '\'])">我已知晓</button>';
 }
 
 function emptyBox(msg){

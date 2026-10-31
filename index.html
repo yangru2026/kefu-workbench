@@ -3563,7 +3563,7 @@ body {
       <span class="qc-topbar-title">🧪 质检统计</span>
       <span class="qc-topbar-user" id="qc-user-badge"></span>
     </div>
-    <iframe id="qc-iframe" src="about:blank" data-src="qc-stats.html?v=20261031e" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write"></iframe>
+    <iframe id="qc-iframe" src="about:blank" data-src="qc-stats.html?v=20261031f" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write"></iframe>
   </div>
 
   <!-- ===== 赠品编码查询 ===== -->
@@ -4703,6 +4703,7 @@ async function initSupabase() {
         }
         updateAuthUI();
         startNotificationPolling();
+        qcGateCheck();
       }
     } catch (se) {
       console.warn('获取会话超时或失败', se.message);
@@ -4739,6 +4740,7 @@ async function initSupabase() {
         }
         updateAuthUI();
         startNotificationPolling();
+        qcGateCheck();
         if (document.getElementById('page-login').classList.contains('active')) {
           switchPage('home');
         }
@@ -16431,7 +16433,108 @@ async function applyInviteClaim() {
   })();
 </script>
 
-<script src="app.js?v=20261031b"></script>
+<!-- ==================== 质检确认门禁（qcGate） ==================== -->
+<script>
+/* 客服登录后：有未确认的质检记录就弹窗，列出问题+正确做法，必须点「我已知晓」确认完才能关。
+   不点遮罩关闭、没有 ✕；确认完才能提交日报（日报提交前还会再查一遍）。 */
+let qcGateRows = [];
+let qcGateOpen = false;
+
+async function qcGateCheck(){
+  try{
+    if (!window.supabase || typeof supabase.from !== 'function') return;
+    if (!currentProfile || !currentProfile.name) return;
+    if (currentProfile.role === 'admin') return;   // 茹姐自己不弹
+    const { data, error } = await supabase.from('qc_records')
+      .select('id,qc_date,issue_type,severity,detail,guidance,evidence,staff_confirmed_at')
+      .eq('staff_name', currentProfile.name)
+      .is('staff_confirmed_at', null)
+      .order('qc_date', { ascending: false });
+    if (error) { console.warn('[qcGate] 读取失败（表未建属正常）:', error.message); return; }
+    qcGateRows = data || [];
+    if (qcGateRows.length) renderQcGate();
+    else hideQcGate();
+  }catch(e){ console.warn('[qcGate]', e); }
+}
+window.qcGateReload = qcGateCheck;
+
+function qcGateSevBadge(sev){
+  const cls = sev === '严重需整改' ? '#dc2626' : sev === '严重问题' ? '#ea580c' : '#0d9488';
+  const bg  = sev === '严重需整改' ? '#fef2f2' : sev === '严重问题' ? '#fff7ed' : '#ecfdf5';
+  return '<span style="font-size:11px;font-weight:800;color:' + cls + ';background:' + bg + ';border-radius:6px;padding:2px 8px;white-space:nowrap;">'
+    + qcEscQ(sev || '一般提醒') + '</span>';
+}
+function qcEscQ(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderQcGate(){
+  qcGateOpen = true;
+  const sevCount = qcGateRows.filter(r => r.severity === '严重问题' || r.severity === '严重需整改').length;
+  const list = qcGateRows.map(r =>
+    '<div style="border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:9px;'
+    + (r.severity === '严重需整改' ? 'border-left:3px solid #dc2626;background:#fffafa;' : '') + '">'
+    + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+    + '<b style="font-size:13px;color:var(--text);">' + qcEscQ(r.qc_date || '') + '</b>'
+    + qcGateSevBadge(r.severity)
+    + '<span style="font-size:12px;color:var(--text-secondary);">' + qcEscQ(r.issue_type || '') + '</span>'
+    + '<span style="flex:1;"></span>'
+    + '<button class="btn-sm primary" style="padding:4px 12px;" onclick="qcGateConfirmOne(\'' + qcEscQ(r.id) + '\')">我已知晓</button>'
+    + '</div>'
+    + '<div style="font-size:12.5px;color:#475569;margin-top:7px;line-height:1.6;">' + qcEscQ(r.detail || '') + '</div>'
+    + (String(r.guidance || '').trim()
+        ? '<div style="margin-top:7px;background:#ecfdf5;border:1px solid #a7f3d0;border-left:3px solid #10b981;border-radius:8px;padding:7px 10px;font-size:12.5px;line-height:1.65;color:#065f46;"><span style="display:inline-block;font-size:10.5px;font-weight:800;color:#047857;background:#d1fae5;border-radius:5px;padding:1px 7px;margin-right:7px;">✔ 正确做法</span>' + qcEscQ(r.guidance) + '</div>'
+        : '<div style="margin-top:7px;font-size:11.5px;color:#94a3b8;">（组长还没填正确做法，先确认收到）</div>')
+    + '</div>').join('');
+  const overlay = document.getElementById('qc-gate-modal');
+  overlay.innerHTML =
+    '<div style="background:#fff;border-radius:14px;max-width:520px;width:92%;max-height:86vh;display:flex;flex-direction:column;padding:22px 22px 18px;box-shadow:0 20px 60px rgba(0,0,0,.25);">'
+    + '<div style="display:flex;align-items:center;gap:9px;margin-bottom:4px;">'
+    + '<div style="font-size:17px;font-weight:800;color:var(--text);">🧪 质检待确认</div>'
+    + '<span style="font-size:12px;font-weight:800;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:2px 9px;">' + qcGateRows.length + ' 条</span>'
+    + (sevCount ? '<span style="font-size:12px;font-weight:800;color:#dc2626;">含严重问题 ' + sevCount + ' 条</span>' : '')
+    + '</div>'
+    + '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:11px;">质检是为了帮你把活干对——看完每条的「正确做法」再确认。全部确认后才能提交日报。</div>'
+    + '<div style="flex:1;overflow:auto;">' + list + '</div>'
+    + '<div style="margin-top:12px;text-align:center;">'
+    + '<button class="btn-sm primary" style="padding:8px 22px;" onclick="qcGateConfirmAll()">✓ 全部已知晓（' + qcGateRows.length + '）</button>'
+    + '</div></div>';
+  overlay.style.display = 'flex';
+}
+
+function closeQcGate(){
+  qcGateOpen = false;
+  const overlay = document.getElementById('qc-gate-modal');
+  if (overlay){ overlay.style.display = 'none'; overlay.innerHTML = ''; }
+}
+
+async function qcGateConfirmOne(id){
+  await qcGateRpc([id]);
+}
+async function qcGateConfirmAll(){
+  await qcGateRpc(qcGateRows.map(r => r.id));
+}
+async function qcGateRpc(ids){
+  try{
+    const { data, error } = await supabase.rpc('qc_confirm_staff', { p_ids: ids, p_note: null });
+    if (error) throw error;
+    const done = new Set(ids);
+    qcGateRows = qcGateRows.filter(r => !done.has(r.id));
+    if (!qcGateRows.length){
+      closeQcGate();
+      if (typeof showToast === 'function') showToast('质检已全部确认，日报可以正常提交了');
+    } else {
+      renderQcGate();
+    }
+  }catch(e){
+    console.warn('[qcGate] 确认失败', e);
+    if (typeof showToast === 'function') showToast('确认失败：' + (e.message || e) + '（可能需要先跑 v4 SQL）');
+  }
+}
+</script>
+<div id="qc-gate-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:100000;align-items:center;justify-content:center;"></div>
+
+<script src="app.js?v=20261031c"></script>
 
 <!-- Pattern Editor Modal -->
 <div class="modal-overlay" id="mod-pattern"undefined>

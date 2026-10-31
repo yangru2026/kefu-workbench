@@ -455,8 +455,42 @@ function renderDailyReportCard(r) {
   `;
 }
 
+/* 日报门禁：①有未确认的质检记录 ②客户之声今日不足 5 条 → 拦截
+   返回 null=放行；字符串=拦截原因。检查本身出错时不拦截（避免网络抖动卡死日报）。 */
+async function dailyGateReason() {
+  try {
+    if (!currentProfile || !currentProfile.name) return null;
+    const name = currentProfile.name;
+    if (currentProfile.role === 'admin') return null;   // 管理员不受门禁
+    // ① 质检未确认
+    const { data: qc, error } = await supabase.from('qc_records')
+      .select('id').eq('staff_name', name).is('staff_confirmed_at', null);
+    if (!error && qc && qc.length) {
+      return { type: 'qc', n: qc.length, msg: '你还有 ' + qc.length + ' 条质检没确认，先去「质检」页看完正确做法点「我已知晓」' };
+    }
+    // ② 客户之声今日 5 条（直接查表，不依赖 vocData 是否已加载）
+    if (typeof getVOCTodayCount === 'function' && typeof VOC_DAILY_LIMIT !== 'undefined') {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: voc, error: verr } = await supabase.from('customer_voice')
+        .select('id').eq('staff_name', name).gte('created_at', today);
+      const c = verr ? getVOCTodayCount(name) : ((voc || []).length);
+      if (c < VOC_DAILY_LIMIT) {
+        return { type: 'voc', n: VOC_DAILY_LIMIT - c, msg: '今天的客户之声还没录满 ' + VOC_DAILY_LIMIT + ' 条（已录 ' + c + ' 条），先去「客户之声」补齐' };
+      }
+    }
+    return null;
+  } catch (e) { console.warn('[dailyGate]', e); return null; }
+}
+
+function dailyGateShow(reason) {
+  showToast(reason.msg);
+  if (reason.type === 'qc' && typeof qcGateCheck === 'function') qcGateCheck();   // 弹出质检确认弹窗
+}
+
 async function openDailyForm() {
   if (!currentUser) { showToast('请先登录'); switchPage('login'); return; }
+  const gate = await dailyGateReason();
+  if (gate) { dailyGateShow(gate); return; }
   document.getElementById('daily-form-area').style.display = '';
   document.getElementById('daily-track-area').style.display = 'none';
   document.getElementById('daily-result-area').style.display = 'none';
@@ -717,6 +751,8 @@ function renderDailyResult(content) {
 
 async function submitDaily() {
   if (!currentUser) return;
+  const gate = await dailyGateReason();
+  if (gate) { dailyGateShow(gate); return; }
   const today = new Date().toISOString().slice(0, 10);
   const tbody = document.getElementById('daily-shop-tbody');
   const shops = [];
