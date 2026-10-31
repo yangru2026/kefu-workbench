@@ -92,8 +92,15 @@ function toDate(v: any): string | null {
   if (v == null || v === '') return null;
   if (typeof v === 'number') return ymd(v);
   const s = text(v);
+  // 2026-11-01 / 2026.11.1 / 2026年11月1日
   const m = s.match(/(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})/);
   if (m) return `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
+  // 11月1日 / 11-1 / 11.1 —— 没写年份按当前年补
+  const m2 = s.match(/^(?:(\d{4})[-/.年])?(\d{1,2})[-/.月](\d{1,2})日?$/);
+  if (m2) {
+    const y = m2[1] ? Number(m2[1]) : new Date().getFullYear();
+    return `${y}-${String(m2[2]).padStart(2, '0')}-${String(m2[3]).padStart(2, '0')}`;
+  }
   const n = Number(s);
   return Number.isFinite(n) && n > 1e11 ? ymd(n) : null;
 }

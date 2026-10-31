@@ -293,11 +293,13 @@ function renderAll(){
   }
 }
 
-/* 待定扣罚：严重问题但金额还是 0/空 → 等管理员定金额（质检员只报问题，不填钱） */
+/* 待定扣罚：严重问题但金额还是 0/空 → 等管理员定金额（质检员只报问题，不填钱）
+   注：扣罚以茹姐的扣罚表为主——如果这张质检表里压根没有金额（全部为 0），就不弹这个提醒 */
 function renderPending(){
   const box = $('pendingBox');
+  const hasAnyAmount = rows.some(r => (Number(r.amount) || 0) > 0);
   const list = rows.filter(r => (Number(r.amount) || 0) === 0 && r.severity && r.severity !== '一般提醒');
-  if (!list.length){ box.style.display = 'none'; box.innerHTML = ''; return; }
+  if (!list.length || !hasAnyAmount){ box.style.display = 'none'; box.innerHTML = ''; return; }
   const names = [...new Set(list.map(r => r.staff_name).filter(Boolean))].slice(0, 6).join('、');
   box.style.display = '';
   box.innerHTML = '<span>⚠️ 有 <b>' + list.length + '</b> 条严重问题还没定扣罚金额</span>'
