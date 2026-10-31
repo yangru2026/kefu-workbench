@@ -3563,7 +3563,7 @@ body {
       <span class="qc-topbar-title">🧪 质检统计</span>
       <span class="qc-topbar-user" id="qc-user-badge"></span>
     </div>
-    <iframe id="qc-iframe" src="about:blank" data-src="qc-stats.html?v=20261031f" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write"></iframe>
+    <iframe id="qc-iframe" src="about:blank" data-src="qc-stats.html?v=20261031g" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write"></iframe>
   </div>
 
   <!-- ===== 赠品编码查询 ===== -->
@@ -10653,6 +10653,16 @@ function exportQcReportExcel() {
 function switchPage(page) {
   // 退出登录：不是真实页面，直接走退出流程
   if (page === 'logout') { signOut(); return; }
+  // 质检硬门禁：还有没确认的质检记录时，不允许离开质检页（管理员豁免；无记录=不锁）
+  if (page !== 'qc' && window.__qcPendingCount > 0 && !(currentProfile && currentProfile.role === 'admin')) {
+    showToast('⚠️ 还有 ' + window.__qcPendingCount + ' 条质检没点开看完确认，确认完才能离开质检页');
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    document.querySelector('.nav-item[data-page="qc"]')?.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-qc')?.classList.add('active');
+    currentPage = 'qc';
+    return;
+  }
   // 管理板块门禁：仅管理员可进（含全部子页面），其他人一律拦截回首页
   // ⚠️ 2026-10-31：「申请审批(requests)」已挪到客服常用菜单，普通客服也要能进去提交申请，
   //    故从门禁名单移除；页面内部已按角色区分（客服只看自己的申请、无通过/拒绝按钮）
@@ -16439,12 +16449,14 @@ async function applyInviteClaim() {
    不点遮罩关闭、没有 ✕；确认完才能提交日报（日报提交前还会再查一遍）。 */
 let qcGateRows = [];
 let qcGateOpen = false;
+let qcGateDismissed = false;   // 用户点过「去质检页查看」后不再重复弹（锁导航由 pending 计数接管）
 
 async function qcGateCheck(){
   try{
     if (!window.supabase || typeof supabase.from !== 'function') return;
-    if (!currentProfile || !currentProfile.name) return;
+    if (!currentProfile || !currentProfile.name){ qcGateDismissed = false; return; }
     if (currentProfile.role === 'admin') return;   // 茹姐自己不弹
+    if (qcGateDismissed) return;
     const { data, error } = await supabase.from('qc_records')
       .select('id,qc_date,issue_type,severity,detail,guidance,evidence,staff_confirmed_at')
       .eq('staff_name', currentProfile.name)
@@ -16472,35 +16484,54 @@ function renderQcGate(){
   qcGateOpen = true;
   const sevCount = qcGateRows.filter(r => r.severity === '严重问题' || r.severity === '严重需整改').length;
   const list = qcGateRows.map(r =>
-    '<div style="border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:9px;'
+    '<div style="display:flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid var(--border);border-radius:9px;margin-bottom:7px;'
     + (r.severity === '严重需整改' ? 'border-left:3px solid #dc2626;background:#fffafa;' : '') + '">'
-    + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
-    + '<b style="font-size:13px;color:var(--text);">' + qcEscQ(r.qc_date || '') + '</b>'
+    + '<b style="font-size:12.5px;color:var(--text);">' + qcEscQ(r.qc_date || '') + '</b>'
     + qcGateSevBadge(r.severity)
     + '<span style="font-size:12px;color:var(--text-secondary);">' + qcEscQ(r.issue_type || '') + '</span>'
-    + '<span style="flex:1;"></span>'
-    + '<button class="btn-sm primary" style="padding:4px 12px;" onclick="qcGateConfirmOne(\'' + qcEscQ(r.id) + '\')">我已知晓</button>'
-    + '</div>'
-    + '<div style="font-size:12.5px;color:#475569;margin-top:7px;line-height:1.6;">' + qcEscQ(r.detail || '') + '</div>'
-    + (String(r.guidance || '').trim()
-        ? '<div style="margin-top:7px;background:#ecfdf5;border:1px solid #a7f3d0;border-left:3px solid #10b981;border-radius:8px;padding:7px 10px;font-size:12.5px;line-height:1.65;color:#065f46;"><span style="display:inline-block;font-size:10.5px;font-weight:800;color:#047857;background:#d1fae5;border-radius:5px;padding:1px 7px;margin-right:7px;">✔ 正确做法</span>' + qcEscQ(r.guidance) + '</div>'
-        : '<div style="margin-top:7px;font-size:11.5px;color:#94a3b8;">（组长还没填正确做法，先确认收到）</div>')
     + '</div>').join('');
   const overlay = document.getElementById('qc-gate-modal');
   overlay.innerHTML =
-    '<div style="background:#fff;border-radius:14px;max-width:520px;width:92%;max-height:86vh;display:flex;flex-direction:column;padding:22px 22px 18px;box-shadow:0 20px 60px rgba(0,0,0,.25);">'
-    + '<div style="display:flex;align-items:center;gap:9px;margin-bottom:4px;">'
+    '<div style="background:#fff;border-radius:14px;max-width:470px;width:92%;max-height:86vh;display:flex;flex-direction:column;padding:22px 22px 18px;box-shadow:0 20px 60px rgba(0,0,0,.25);">'
+    + '<div style="display:flex;align-items:center;gap:9px;margin-bottom:4px;flex-wrap:wrap;">'
     + '<div style="font-size:17px;font-weight:800;color:var(--text);">🧪 质检待确认</div>'
     + '<span style="font-size:12px;font-weight:800;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:2px 9px;">' + qcGateRows.length + ' 条</span>'
     + (sevCount ? '<span style="font-size:12px;font-weight:800;color:#dc2626;">含严重问题 ' + sevCount + ' 条</span>' : '')
     + '</div>'
-    + '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:11px;">质检是为了帮你把活干对——看完每条的「正确做法」再确认。全部确认后才能提交日报。</div>'
+    + '<div style="font-size:12px;color:var(--text-secondary);line-height:1.7;margin-bottom:12px;">质检是帮你把活干对——每条要点开看完「正确做法」才能确认。<b style="color:#b45309;">确认完才能离开质检页、才能提交日报。</b></div>'
     + '<div style="flex:1;overflow:auto;">' + list + '</div>'
-    + '<div style="margin-top:12px;text-align:center;">'
-    + '<button class="btn-sm primary" style="padding:8px 22px;" onclick="qcGateConfirmAll()">✓ 全部已知晓（' + qcGateRows.length + '）</button>'
+    + '<div style="margin-top:14px;text-align:center;">'
+    + '<button class="btn-sm primary" style="padding:9px 26px;" onclick="qcGateGoPage()">去质检页逐条查看 →</button>'
     + '</div></div>';
   overlay.style.display = 'flex';
 }
+
+/* 弹窗不放「确认」按钮：必须跳到质检页，逐条点开详情后才能确认 */
+function qcGateGoPage(){
+  qcGateDismissed = true;
+  closeQcGate();
+  switchPage('qc');
+  qcGateFocusFirst();
+}
+/* 等 iframe 加载完，滚到第一条待确认 */
+function qcGateFocusFirst(){
+  let tries = 0;
+  const tick = setInterval(() => {
+    tries++;
+    const f = document.getElementById('qc-iframe');
+    try{
+      if (f && f.contentWindow && typeof f.contentWindow.qcFocusPending === 'function'){
+        f.contentWindow.qcFocusPending();
+        clearInterval(tick);
+      }
+    }catch(e){}
+    if (tries > 40) clearInterval(tick);
+  }, 250);
+}
+
+/* 质检 iframe 上报「还有几条没确认」，父页据此锁导航 */
+window.qcSetPending = function(n){ window.__qcPendingCount = Math.max(0, n | 0); };
+window.qcPendingCount = function(){ return window.__qcPendingCount | 0; };
 
 function closeQcGate(){
   qcGateOpen = false;

@@ -117,6 +117,11 @@
   .cfm-btn{font-size:11.5px;font-weight:800;color:#fff;background:#10b981;border:none;border-radius:6px;
            padding:5px 11px;cursor:pointer;white-space:nowrap;}
   .cfm-btn:hover{background:#059669;}
+  .cfm-btn.o{background:#fff;color:#0369a1;border:1px solid #bae6fd;}
+  .cfm-btn.o:hover{background:#f0f9ff;}
+  .cfm-btn.off{background:#e2e8f0;color:#94a3b8;cursor:not-allowed;}
+  .cfm-btn.ghost{background:#fff;color:#64748b;border:1px solid #e2e8f0;}
+  .cfm-btn.ghost:hover{background:#f8fafc;}
   .cfm-btn.all{background:#fff;color:#b45309;border:1px solid #fcd34d;margin-left:10px;padding:4px 12px;}
   .cfm-btn.all:hover{background:#fffbeb;}
   /* 待确认提醒（客服视角顶部） */
@@ -192,6 +197,8 @@ let isMgr = false;          // admin / leader
 let rows = [];              // 当前时间范围内的记录
 let tab = 'rank';
 let fStaff = '', fType = '', fSev = '', fKw = '';
+const expanded = {};    // 客服视角：哪条已展开查看
+const readOK = {};      // 展开后多久才允许点确认（防止不点开就确认）
 
 const SEV_CLASS = { '一般提醒':'s1', '严重问题':'s2', '严重需整改':'s3' };
 // 质检登记表（飞书）：飞书禁止被 iframe 嵌入，只能新窗口打开
@@ -486,6 +493,7 @@ async function qcConfirm(ids){
   try{
     const { data, error } = await sb.rpc('qc_confirm_staff', { p_ids: ids, p_note: null });
     if (error) throw error;
+    (ids || []).forEach(id => { delete expanded[id]; delete readOK[id]; });
     toast('已确认 ' + (data || 0) + ' 条');
     qcGateRefresh();
     await load();
@@ -499,27 +507,87 @@ function qcGateRefresh(){ try{ if (window.parent && window.parent !== window && 
 
 function renderMine(){
   const pending = rows.filter(r => !r.staff_confirmed_at);
-  const pendIds = pending.map(r => r.id);
+  reportPending(pending.length);
   const notice = pending.length
-    ? '<div class="mine-warn">⏳ 你有 <b>' + pending.length + '</b> 条质检还没确认，看完「正确做法」点「我已知晓」。<b>不确认完，日报提交不了。</b>'
-      + '<button class="cfm-btn all" onclick="qcConfirm(' + esc(JSON.stringify(pendIds)) + ')">✓ 全部已知晓</button></div>'
-    : '<div class="mine-tip">✅ 全部已确认，保持得对的做法，日报可以正常提交</div>';
+    ? '<div class="mine-warn">⏳ 还有 <b>' + pending.length + '</b> 条没看：逐条点「展开查看」，看完才能点「我已知晓」。<b>没确认完不能离开本页、不能提交日报。</b></div>'
+    : '<div class="mine-tip">✅ 全部确认完成，可以离开本页、提交日报了</div>';
   const body = !rows.length ? emptyBox('这段时间没有你的质检记录 👍')
     : '<div class="tb-wrap"><table class="tb"><thead><tr>'
       + '<th style="width:88px;">日期</th><th style="width:104px;">问题类型</th><th style="width:88px;">严重度</th>'
-      + '<th>问题与正确做法</th><th style="width:60px;">证据</th><th style="width:96px;">确认</th>'
+      + '<th>问题与正确做法</th><th style="width:60px;">证据</th><th style="width:104px;">查看 / 确认</th>'
       + '</tr></thead><tbody>'
-      + rows.map(r =>
-        '<tr>'
-        + '<td>'+(r.qc_date||'-')+'</td>'
-        + '<td>'+esc(r.issue_type||'-')+'</td>'
-        + '<td><span class="sev '+(SEV_CLASS[r.severity]||'s1')+'">'+esc(r.severity||'-')+'</span></td>'
-        + '<td class="det">'+esc(r.detail||'')+guidanceBlock(r)+(r.note?'<br><span style="color:#94a3b8;">备注：'+esc(r.note)+'</span>':'')+'</td>'
-        + '<td>'+evCell(r)+'</td>'
-        + '<td>'+confirmCell(r)+'</td>'
-        + '</tr>').join('')
+      + rows.map(r => mineRow(r)).join('')
       + '</tbody></table></div>';
-  $('panel-mine').innerHTML = '<h3>🙋 我的质检 <span class="hint">重点看「正确做法」，照着做就不会再犯</span></h3>' + notice + body;
+  $('panel-mine').innerHTML = '<h3>🙋 我的质检 <span class="hint">每条都要点开看完「正确做法」才算数</span></h3>' + notice + body;
+}
+
+/* 未点开前只显示这句，避免不点也能看到内容、直接形式化确认 */
+function mineRow(r){
+  const open = !!expanded[r.id];
+  const confirmed = !!r.staff_confirmed_at;
+  const id = esc(r.id);
+  const head = '<tr' + (open ? ' style="background:#f8fbff;"' : '') + '>'
+    + '<td>' + (r.qc_date || '-') + '</td>'
+    + '<td>' + esc(r.issue_type || '-') + '</td>'
+    + '<td><span class="sev ' + (SEV_CLASS[r.severity] || 's1') + '">' + esc(r.severity || '-') + '</span></td>'
+    + '<td class="det" style="color:' + (open ? '#475569' : '#94a3b8') + ';">'
+    + (open ? (esc(r.detail || '') || '（无描述）') : '🔒 点「展开查看」看问题和正确做法')
+    + '</td>'
+    + '<td>' + (open ? evCell(r) : '<span style="color:#cbd5e1;">—</span>') + '</td>'
+    + '<td>' + (confirmed
+        ? '<span class="cfm done">已确认 ' + esc(String(r.staff_confirmed_at).slice(5, 10)) + '</span>'
+        : (open
+            ? confirmBtn(r)
+            : '<button class="cfm-btn o" onclick="qcExpand(\'' + id + '\')">展开查看</button>'))
+    + '</td></tr>';
+  if (!open) return head;
+  return head + '<tr><td colspan="6" style="padding:0 10px 12px;background:#f8fbff;">'
+    + '<div style="border:1px solid #e2e8f0;border-radius:9px;padding:10px 12px;background:#fff;">'
+    + '<div style="font-size:12.5px;color:#475569;line-height:1.65;">' + esc(r.detail || '（无描述）') + '</div>'
+    + guidanceBlock(r)
+    + (String(r.evidence || '').trim() ? '<div style="margin-top:8px;font-size:11.5px;color:#64748b;">证据截图：' + evCell(r) + '（点开看当时的聊天记录）</div>' : '')
+    + (r.note ? '<div style="margin-top:7px;font-size:11.5px;color:#94a3b8;">备注：' + esc(r.note) + '</div>' : '')
+    + '<div style="margin-top:9px;display:flex;align-items:center;gap:10px;">'
+    + (confirmed ? '<span class="cfm done">已确认</span>' : confirmBtn(r))
+    + '<button class="cfm-btn ghost" onclick="qcCollapse(\'' + id + '\')">收起</button>'
+    + (readReady(r) ? '' : '<span style="font-size:11.5px;color:#94a3b8;">看清楚再确认（还有 ' + readLeft(r) + ' 秒）</span>')
+    + '</div></div></td></tr>';
+}
+
+function readReady(r){ return (readOK[r.id] || 0) <= Date.now(); }
+function readLeft(r){ return Math.max(0, Math.ceil(((readOK[r.id] || 0) - Date.now()) / 1000)); }
+function confirmBtn(r){
+  const ok = readReady(r);
+  return '<button class="cfm-btn' + (ok ? '' : ' off') + '"' + (ok ? (' onclick="qcConfirm([\'' + esc(r.id) + '\'])">我已知晓</button>') : ' disabled>我已知晓</button>');
+}
+function qcExpand(id){
+  expanded[id] = true;
+  readOK[id] = Date.now() + 3000;      // 展开后停留 3 秒才出现可点的确认（防止手快连点）
+  renderMine();
+  setTimeout(() => { try{ renderMine(); }catch(e){} }, 3100);
+}
+function qcCollapse(id){ delete expanded[id]; renderMine(); }
+window.qcExpand = qcExpand; window.qcCollapse = qcCollapse;
+
+/* 供父页「去质检页」后定位第一条待确认 */
+window.qcFocusPending = function(){
+  const first = rows.find(r => !r.staff_confirmed_at);
+  if (!first) return;
+  expanded[first.id] = true;
+  readOK[first.id] = Date.now() + 3000;
+  renderMine();
+  setTimeout(() => { try{ renderMine(); }catch(e){} }, 3100);
+  const el = document.querySelector('#panel-mine table.tb tbody tr');
+  if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+};
+
+/* 把自己还有几条没确认告诉父页 → 父页锁导航 */
+function reportPending(n){
+  try{
+    if (window.parent && window.parent !== window && typeof window.parent.qcSetPending === 'function'){
+      window.parent.qcSetPending(n);
+    }
+  }catch(e){}
 }
 
 function guidanceBlock(r){

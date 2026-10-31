@@ -123,7 +123,9 @@ async function run(browser, role, name, qcFail) {
         .every(a => !/qc-evidence/.test(a.getAttribute('href') || '') || /[?&]t=/.test(a.getAttribute('href') || '')),
       mineRows: document.querySelectorAll('#panel-mine table.tb tbody tr').length,
       mineEvLinks: document.querySelectorAll('#panel-mine table.tb tbody a.ev').length,
-      mineConfirmBtns: document.querySelectorAll('#panel-mine table.tb tbody .cfm-btn').length,
+      mineExpandBtns: document.querySelectorAll('#panel-mine table.tb tbody .cfm-btn.o').length,
+      mineConfirmBtns: [...document.querySelectorAll('#panel-mine table.tb tbody .cfm-btn')]
+        .filter(b => !/o|ghost|off/.test(b.className.replace('cfm-btn', ''))).length,
       mineConfirmedTags: document.querySelectorAll('#panel-mine table.tb tbody .cfm.done').length,
       mineGuidance: document.querySelectorAll('#panel-mine table.tb tbody .gd').length,
       mineNoQcNameCol: !/质检人/.test((document.querySelector('#panel-mine table.tb thead') || {}).textContent || ''),
@@ -157,9 +159,28 @@ async function run(browser, role, name, qcFail) {
     await page.screenshot({ path: ROOT + '/outputs/shot-qc-stats-trend.png', fullPage: true });
   } else {
     await page.screenshot({ path: ROOT + '/outputs/shot-qc-stats-staff.png', fullPage: true });
+    // 折叠态：只有「展开查看」，看不到问题/正确做法，也没有可直接点的确认
+    shots.extra = await page.evaluate(() => ({
+      expand: document.querySelectorAll('#panel-mine .cfm-btn.o').length,
+      gd: document.querySelectorAll('#panel-mine .gd').length,
+      cfm: document.querySelectorAll('#panel-mine .cfm-btn:not(.o):not(.ghost)').length
+    }));
+    // 逐条点开所有「展开查看」→ 有正确做法的出现，且确认按钮先禁用（3 秒阅读）
+    await page.evaluate(() => {
+      let bs = [...document.querySelectorAll('#panel-mine .cfm-btn.o')];
+      bs.forEach(b => b.click());
+    });
+    await sleep(250);
+    const after = await page.evaluate(() => ({
+      gd: document.querySelectorAll('#panel-mine .gd').length,
+      offBtn: document.querySelectorAll('#panel-mine .cfm-btn.off').length,
+      ev: document.querySelectorAll('#panel-mine table.tb tbody a.ev').length
+    }));
+    shots.extra.after = after;
+    await page.screenshot({ path: ROOT + '/outputs/shot-qc-stats-staff-expanded.png', fullPage: true });
   }
   await page.close();
-  return { st, errs };
+  return { st, errs, extra: shots.extra };
 }
 
 (async () => {
@@ -192,13 +213,15 @@ async function run(browser, role, name, qcFail) {
     admin_evidence_links: admin.st.detailEvLinks === evAll,                  // 有链接的记录才出按钮
     admin_proxy_links: admin.st.proxyLinks === RECS.filter(r => /^附件/.test(r.evidence || '')).length,
     admin_proxy_token: admin.st.proxyHasToken === true,                       // 代取链接必须带身份 token
-    staff_sees_evidence: staff.st.mineEvLinks === evMine && evMine > 0,       // 客服自己也点得到截图
+    staff_sees_evidence_after_expand: staff.extra.after.ev > 0,
     staff_no_qc_name_col: staff.st.mineNoQcNameCol === true,                  // 客服看不到质检人
     staff_no_amount_col: staff.st.mineNoAmountCol === true,                   // 扣罚次要：客服列表不放钱
-    staff_confirm_btns: staff.st.mineConfirmBtns === RECS.filter(r => r.staff_name === '小柚' && !r.staff_confirmed_at).length,
+    staff_confirm_btns: staff.st.mineConfirmBtns === 0,                       // 折叠态没有可直接点的确认
     staff_confirmed_tags: staff.st.mineConfirmedTags === RECS.filter(r => r.staff_name === '小柚' && !!r.staff_confirmed_at).length,
-    staff_guidance_blocks: staff.st.mineGuidance > 0,                          // 正确做法醒目展示
-    staff_pending_warn: /还没确认/.test(staff.st.mineWarn) && /日报/.test(staff.st.mineWarn),
+    staff_pending_warn: /不能离开/.test(staff.st.mineWarn) && /日报/.test(staff.st.mineWarn),
+    staff_collapsed_hides_detail: staff.extra.expand === RECS.filter(r => r.staff_name === '小柚' && !r.staff_confirmed_at).length
+      && staff.extra.gd === 0 && staff.extra.cfm === 0,
+    staff_expand_then_confirm: staff.extra.after.gd > 0 && staff.extra.after.offBtn >= 1,
     admin_guidance_col: admin.st.detailGuidance > 0 && admin.st.detailConfirmBtns > 0,
     no_mask_element: broken.st.noMaskElement === true,                       // 模态弹窗已彻底移除
     broken_shows_dismissable_bar: broken.st.errShown === true && /SQL/.test(broken.st.errText),

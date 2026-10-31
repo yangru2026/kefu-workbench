@@ -104,16 +104,24 @@ const json = o => ({ status: 200, contentType: 'application/json', headers: { 'A
   // 确认前：日报应被质检门禁拦住
   await page.screenshot({ path: ROOT + '/outputs/shot-qc-gate-modal.png' });
   const gateBefore = await page.evaluate(() => dailyGateReason().then(r => r && r.type));
+  const noConfirmInModal = await page.evaluate(() => !/我已知晓/.test((document.getElementById('qc-gate-modal') || {}).innerText || ''));
+  const hasGoBtn = await page.evaluate(() => /去质检页逐条查看/.test((document.getElementById('qc-gate-modal') || {}).innerText || ''));
 
-  // 点「全部已知晓」
-  await page.evaluate(() => qcGateConfirmAll());
-  await sleep(1200);
-  const closedAfter = await page.evaluate(() => {
-    const el = document.getElementById('qc-gate-modal');
-    return !!el && el.style.display === 'none';
-  });
+  // 点「去质检页逐条查看」→ 关弹窗并切到质检页
+  await page.evaluate(() => qcGateGoPage());
+  await sleep(1500);
+  const goResult = await page.evaluate(() => ({
+    closed: (document.getElementById('qc-gate-modal') || {}).style.display === 'none',
+    page: currentPage
+  }));
 
-  // 确认后：qc 清空 → 门禁转到客户之声（2 条 < 5）
+  // 质检页还在加载时，也不允许离开（父页锁）
+  const lockWhenPending = await page.evaluate(() => { qcSetPending(2); switchPage('home'); return currentPage; });
+  const unlockWhenZero = await page.evaluate(() => { qcSetPending(0); switchPage('home'); return currentPage; });
+  await page.evaluate(() => { switchPage('qc'); qcSetPending(2); });
+
+  // 确认后（模拟 qc_records 清空）：门禁转到客户之声（2 条 < 5）
+  qcCleared = true;
   const gateAfterQc = await page.evaluate(() => dailyGateReason().then(r => r && r.type));
   // 补满客户之声（mock 服务端改为 5 条）→ 放行
   vocCount = 5;
@@ -121,12 +129,14 @@ const json = o => ({ status: 200, contentType: 'application/json', headers: { 'A
 
   const checks = {
     modal_shown_on_login: modalVisible === true,
-    modal_lists_guidance: hasGuidance === true,
     modal_marks_severe: hasSevMark === true,
     modal_no_close_btn: noCloseBtn === true,
+    modal_no_confirm_button: noConfirmInModal === true,        // 弹窗里不给「我已知晓」，防形式化
+    modal_has_go_page_btn: hasGoBtn === true,
     daily_blocked_by_qc: gateBefore === 'qc',
-    rpc_called: rpcCalls >= 1,
-    modal_closed_after_confirm: closedAfter === true,
+    goto_qc_page: goResult.closed === true && goResult.page === 'qc',
+    cannot_leave_when_pending: lockWhenPending === 'qc',        // 没确认完离不开质检页
+    can_leave_when_clear: unlockWhenZero === 'home',
     daily_then_blocked_by_voc: gateAfterQc === 'voc',
     daily_open_after_voc_done: gateAfterVoc === null,
     no_page_errors: errs.length === 0
