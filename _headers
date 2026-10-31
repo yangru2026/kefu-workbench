@@ -1,0 +1,16 @@
+# Cloudflare Pages 缓存与安全头（2026-10-31 为迁移准备）
+# HTML 走协商缓存，让 Service Worker 自己管离线缓存；静态资源带 ?v= 版本号可长缓存。
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Cache-Control: public, max-age=0, must-revalidate
+
+/sw.js
+  Cache-Control: no-cache
+
+/vendor/*
+  Cache-Control: public, max-age=604800
+
+/images/*
+  Cache-Control: public, max-age=604800

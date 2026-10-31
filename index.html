@@ -8,8 +8,6 @@
 <meta http-equiv="Expires" content="0">
 <title>尤赫售前客服工作台</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%236C5CE7'/%3E%3Ccircle cx='50' cy='50' r='26' fill='none' stroke='%23fff' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='12' fill='%23fff'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://yangru2026.github.io" crossorigin>
-<link rel="dns-prefetch" href="https://yangru2026.github.io">
 <link rel="preconnect" href="https://yangru-tools.oss-cn-hangzhou.aliyuncs.com" crossorigin>
 <link rel="dns-prefetch" href="https://yangru-tools.oss-cn-hangzhou.aliyuncs.com">
 <link rel="preconnect" href="https://icfgireprowcqwdodfqx.supabase.co" crossorigin>
@@ -16493,10 +16491,17 @@ async function dutyRemindCheck(){
     if (sessionStorage.getItem(sk)) return;
     const mk = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0');
     const dayKey = String(today.getDate());
-    const { data, error } = await supabase.from('schedule_data')
-      .select('schedule').eq('month_key', mk).eq('staff_name', currentProfile.name).maybeSingle();
-    if (error) { console.warn('[duty] 排班读取失败（表未建/无权限属正常）:', error.message); return; }
-    const shift = String((data && data.schedule && data.schedule[dayKey]) || '');
+    // 花名查不到就用真实姓名再查一次（班表里写的是真名，如「小雷」=「马雷旭」）
+    const nameKeys = [currentProfile.name, currentProfile.real_name]
+      .filter((v, i, a) => v && a.indexOf(v) === i);
+    let sched = null;
+    for (const nm of nameKeys){
+      const { data, error } = await supabase.from('schedule_data')
+        .select('schedule').eq('month_key', mk).eq('staff_name', nm).maybeSingle();
+      if (error) { console.warn('[duty] 排班读取失败（表未建/无权限属正常）:', error.message); return; }
+      if (data && data.schedule && data.schedule[dayKey]) { sched = data.schedule; break; }
+    }
+    const shift = String((sched && sched[dayKey]) || '');
     const d = shift && DUTY_SHIFT_TEXT[shift.includes('早') ? '早' : (shift.includes('中') ? '中' : '')];
     if (!d){ sessionStorage.setItem(sk, '1'); return; }           // 晚班/休/调或无班次 → 不提醒
     sessionStorage.setItem(sk, '1');
