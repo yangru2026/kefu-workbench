@@ -1,9 +1,9 @@
 -- ============================================================
--- 质检重做 · 一步到位 SQL（2026-10-31）
--- 作用：删掉旧结构的 qc_records 表 + 重建新结构 + 配好权限
---       （旧数据本来就要全部清空，所以直接删表重建，不用分两步跑）
+-- 质检重做 · 一步到位 SQL（v2，2026-10-31）
+-- 修正：去掉「直接删 storage 表」的段落 —— Supabase 已禁止用 SQL 删 storage（42501 保护），
+--       qc-images 截图桶在旧项目，要去 Supabase 网页 Storage 界面手动删，不走 SQL。
 -- 执行环境：【新项目 youhe-workbench（icfgireprowcqwdodfqx）】SQL Editor
--- 跑完后：回工作台刷新「质检」页即可（数据等飞书同步接上后出现）
+-- 可重复执行（幂等）：跑几次都没关系
 -- ============================================================
 
 -- 1) 删除旧表（连带旧 RLS 策略）
@@ -38,10 +38,9 @@ CREATE POLICY "qc_read" ON public.qc_records
     OR staff_name = (SELECT p2.name FROM public.profiles p2 WHERE p2.id = auth.uid())
   );
 
--- 4) 顺带清掉可能残留的质检截图 bucket（如果之前没跑过清空 SQL，这里补上）
-DELETE FROM storage.objects WHERE bucket_id = 'qc-images';
-DELETE FROM storage.buckets  WHERE id = 'qc-images';
-
--- 5) 校验：应返回 qc_records 一行、且包含 qc_date / amount / staff_name 等列
+-- 4) 校验：应返回 11 行，包含 qc_date / staff_name / amount / severity 等列
 SELECT column_name, data_type FROM information_schema.columns
 WHERE table_schema = 'public' AND table_name = 'qc_records' ORDER BY ordinal_position;
+
+-- 5) 再查一下有没有残留的旧 bucket（有的话去 Storage 界面手动删，SQL 删不了）
+SELECT id, name FROM storage.buckets WHERE id LIKE '%qc%';
