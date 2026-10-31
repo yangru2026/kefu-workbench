@@ -170,6 +170,7 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const $ = id => document.getElementById(id);
 let me = { id:null, name:'', role:'staff' };
+let accessToken = '';       // 打开截图时带给后端函数做身份校验（浏览器直接导航带不了 header）
 let isMgr = false;          // admin / leader
 let rows = [];              // 当前时间范围内的记录
 let tab = 'rank';
@@ -200,6 +201,7 @@ function rangeOf(key){
     const user = session && session.user;
     if (!user){ $('roleBadge').textContent = '🔒 未登录'; return; }
     me.id = user.id;
+    accessToken = session.access_token || '';
     try{
       const { data:p } = await sb.from('profiles').select('role,name').eq('id', user.id).single();
       if (p){ me.role = p.role || 'staff'; me.name = p.name || ''; }
@@ -367,7 +369,12 @@ function filteredDetail(){
   });
 }
 
-/* ---------- 证据截图：只在页面渲染链接，图片本身留在飞书/外链，不占工作台存储 ---------- */
+/* ---------- 证据截图：图片本体留在飞书，工作台只出按钮，不占存储 ----------
+   两种来源都支持：
+   1) 飞书表填了图片链接（文本）→ 直接新窗口打开
+   2) 飞书表用「附件」列拖了图 → 同步时把 evidence 写成「附件×N」，
+      点按钮走后端 qc-evidence 现场向飞书要一次临时地址再跳转（图片不落工作台） */
+const EVIDENCE_PROXY = 'https://icfgireprowcqwdodfqx.supabase.co/functions/v1/qc-evidence';
 const EV_KEYS = ['evidence','evidence_url','screenshot','screenshot_url','截图链接','截图','image_url','attach_url'];
 function evUrls(r){
   let v = '';
@@ -376,13 +383,23 @@ function evUrls(r){
   // 支持一格填多个链接（换行 / 空格 / 逗号 / 顿号分隔）
   return v.split(/[\s,，;；、]+/).filter(x => /^https?:\/\//i.test(x)).slice(0, 6);
 }
+function evHasAttach(r){ return /^附件/.test(String((r && r.evidence) || '')); }
+function evCount(r){ return evUrls(r).length + (evHasAttach(r) ? 1 : 0); }
 function evCell(r){
   const urls = evUrls(r);
-  if (!urls.length) return '<span style="color:#cbd5e1;">—</span>';
-  return urls.map((u,i) =>
-    '<a class="ev" href="'+esc(u)+'" target="_blank" rel="noopener noreferrer" title="在新窗口打开截图">'
-    + '📷' + (urls.length > 1 ? ' ' + (i+1) : '') + '</a>'
-  ).join(' ');
+  if (urls.length){
+    return urls.map((u,i) =>
+      '<a class="ev" href="'+esc(u)+'" target="_blank" rel="noopener noreferrer" title="在新窗口打开截图">'
+      + '图' + (urls.length > 1 ? ' ' + (i+1) : '') + '</a>'
+    ).join(' ');
+  }
+  if (evHasAttach(r)){
+    const id = r.feishu_record_id || r.id || '';
+    return '<a class="ev" href="'+EVIDENCE_PROXY+'?id='+encodeURIComponent(id)
+      + '&t=' + encodeURIComponent(accessToken)
+      + '" target="_blank" rel="noopener noreferrer" title="在新窗口打开截图">图 查看</a>';
+  }
+  return '<span style="color:#cbd5e1;">—</span>';
 }
 
 function renderDetail(){
@@ -451,7 +468,7 @@ function renderMine(){
         + '</tr>').join('')
       + '</tbody></table></div>';
   $('panel-mine').innerHTML = '<h3>🙋 我的质检记录 <span class="hint">共 '+rows.length+' 条 · 扣罚合计 ¥'+fmtMoney(money)+'</span></h3>'
-    + (rows.some(r => evUrls(r).length)
+    + (rows.some(r => evCount(r))
         ? '<div class="mine-tip">📷 点「证据」里的按钮可在新窗口打开当时的截图原图</div>' : '')
     + body;
 }
@@ -466,7 +483,7 @@ function exportCsv(){
   if (!list.length){ toast('没有可导出的记录'); return; }
   const head = ['日期','客服','问题类型','严重度','扣罚金额','问题描述','备注','证据链接','质检人'];
   const esc2 = v => { const s = (v==null?'':String(v)); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
-  const lines = [head.join(',')].concat(list.map(r => [r.qc_date,r.staff_name,r.issue_type,r.severity,r.amount,r.detail,r.note,evUrls(r).join(' '),r.qc_name].map(esc2).join(',')));
+  const lines = [head.join(',')].concat(list.map(r => [r.qc_date,r.staff_name,r.issue_type,r.severity,r.amount,r.detail,r.note,(evUrls(r).concat(evHasAttach(r)?['附件']:[])).join(' '),r.qc_name].map(esc2).join(',')));
   const blob = new Blob(['\ufeff'+lines.join('\r\n')], { type:'text/csv;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);

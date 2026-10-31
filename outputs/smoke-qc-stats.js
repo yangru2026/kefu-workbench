@@ -38,8 +38,9 @@ const RECS = (() => {
       amount: (sev === '一般提醒' || pendingNoMoney) ? 0 : AMTS[(i % 4) + 2],
       detail: ['回复客户时用了"应该可以"等不确定表述', '首响超过 30 秒未回复', '未按话术确认度数', '漏发注意事项', '客户催单未及时安抚', '承诺了无法保证的发货时效'][i % 6],
       note: i % 4 === 0 ? '已当面提醒' : null,
-      // 截图链接：每 3 条留 1 条空的，验证「有链接给按钮 / 没链接显示 —」
-      evidence: i % 3 === 0 ? null : 'https://yow5cuygtx.feishu.cn/file/qc-shot-' + i
+      // 证据三种情况：飞书附件（走 qc-evidence 代取）/ 文本链接（直接打开）/ 没有（显示 —）
+      evidence: i % 5 === 0 ? null
+        : (i % 3 === 0 ? '附件×1' : 'https://yow5cuygtx.feishu.cn/file/qc-shot-' + i)
     });
   }
   return out;
@@ -112,6 +113,10 @@ async function run(browser, role, name, qcFail) {
       typeRows: document.querySelectorAll('#panel-type .type-row').length,
       detailRows: document.querySelectorAll('#panel-detail table.tb tbody tr').length,
       detailEvLinks: document.querySelectorAll('#panel-detail table.tb tbody a.ev').length,
+      proxyLinks: [...document.querySelectorAll('#panel-detail table.tb tbody a.ev')]
+        .filter(a => /functions\/v1\/qc-evidence/.test(a.getAttribute('href') || '')).length,
+      proxyHasToken: [...document.querySelectorAll('#panel-detail table.tb tbody a.ev')]
+        .every(a => !/qc-evidence/.test(a.getAttribute('href') || '') || /[?&]t=/.test(a.getAttribute('href') || '')),
       mineRows: document.querySelectorAll('#panel-mine table.tb tbody tr').length,
       mineEvLinks: document.querySelectorAll('#panel-mine table.tb tbody a.ev').length,
       mineTip: !!document.querySelector('#panel-mine .mine-tip'),
@@ -174,6 +179,8 @@ async function run(browser, role, name, qcFail) {
     admin_pending_notice: admin.st.pendingShown === true && /还没定扣罚/.test(admin.st.pendingText),
     staff_no_register_btn: staff.st.registerBtn === false && staff.st.pendingShown === false,
     admin_evidence_links: admin.st.detailEvLinks === evAll,                  // 有链接的记录才出按钮
+    admin_proxy_links: admin.st.proxyLinks === RECS.filter(r => /^附件/.test(r.evidence || '')).length,
+    admin_proxy_token: admin.st.proxyHasToken === true,                       // 代取链接必须带身份 token
     staff_sees_evidence: staff.st.mineEvLinks === evMine && evMine > 0,       // 客服自己也点得到截图
     staff_evidence_tip: staff.st.mineTip === true,
     no_mask_element: broken.st.noMaskElement === true,                       // 模态弹窗已彻底移除
