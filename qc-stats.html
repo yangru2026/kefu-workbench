@@ -184,6 +184,14 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- 加载占位：HTML/数据没到之前不再是白屏 -->
+<div id="boot" style="position:fixed;inset:0;background:#fff;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
+  <div style="width:34px;height:34px;border:3px solid #d1fae5;border-top-color:#10b981;border-radius:50%;animation:qcbootspin .8s linear infinite;"></div>
+  <div style="font-size:13px;font-weight:700;color:#334155;">质检统计加载中…</div>
+  <div style="font-size:11.5px;color:#94a3b8;">第一次打开要几秒，之后有缓存就是秒开</div>
+</div>
+<style>@keyframes qcbootspin{to{transform:rotate(360deg)}}</style>
+
 <script src="vendor/supabase.min.js?v=2"></script>
 <script>
 const SUPABASE_URL = 'https://icfgireprowcqwdodfqx.supabase.co';
@@ -219,11 +227,15 @@ function rangeOf(key){
 }
 
 /* ---------- 初始化 ---------- */
+function qcHideBoot(){ const b = document.getElementById('boot'); if (b) b.remove(); }
+function qcTimeout(p, ms, tag){
+  return Promise.race([ p, new Promise((_, rej) => setTimeout(() => rej(new Error(tag + ' 超时')), ms)) ]);
+}
 (async function init(){
   try{
-    const { data:{ session } } = await sb.auth.getSession();
+    const { data:{ session } } = await qcTimeout(sb.auth.getSession(), 8000, '登录检查');
     const user = session && session.user;
-    if (!user){ $('roleBadge').textContent = '🔒 未登录'; return; }
+    if (!user){ $('roleBadge').textContent = '🔒 未登录'; qcHideBoot(); return; }
     me.id = user.id;
     accessToken = session.access_token || '';
     try{
@@ -238,6 +250,8 @@ function rangeOf(key){
     await load();
   }catch(e){
     console.warn(e); toast('初始化失败，请刷新重试');
+  }finally{
+    qcHideBoot();   // 无论成功失败都撤掉加载占位，绝不白屏
   }
 })();
 
