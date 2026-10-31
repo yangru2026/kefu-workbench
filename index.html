@@ -1481,6 +1481,48 @@ body {
 .staff-badge.leave { background:#e8f5e9; color:#27ae60; }
 .staff-btn-row { display:flex; gap:6px; justify-content:center; }
 
+/* ===== 客服信息页（2026-10-31 重做：档案 / 加班调休 两区） ===== */
+.staff-bar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; background:var(--card-bg); border:1px solid var(--border); border-radius:14px; padding:12px 16px; margin-bottom:18px; }
+.staff-search { flex:1; min-width:200px; padding:9px 14px; border:1px solid var(--border); border-radius:10px; font-size:14px; font-family:inherit; background:var(--bg); color:var(--text); }
+.staff-search:focus { outline:none; border-color:var(--primary); background:#fff; box-shadow:0 0 0 3px rgba(16,185,129,.10); }
+.staff-tabs { display:flex; gap:6px; flex-wrap:wrap; }
+.staff-bar-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-left:auto; }
+.staff-off { display:flex; align-items:center; gap:5px; font-size:13px; color:var(--text-secondary); white-space:nowrap; cursor:pointer; }
+.staff-off input { accent-color:var(--primary); }
+.staff-sec { background:var(--card-bg); border:1px solid var(--border); border-radius:14px; padding:16px 18px 4px; margin-bottom:18px; box-shadow:0 1px 3px rgba(31,41,55,.03); }
+.staff-sec-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+.ssh-title { display:flex; align-items:center; gap:8px; font-size:16px; font-weight:700; color:var(--text); }
+.ssh-title .ssh-ico { font-size:17px; }
+.ssh-title .ssh-sub { font-size:12px; font-weight:400; color:var(--text-muted); margin-left:2px; }
+.staff-count { font-size:12px; color:var(--text-secondary); }
+.ot-legend { display:flex; gap:14px; font-size:12px; color:var(--text-secondary); }
+.ot-legend span { display:flex; align-items:center; gap:5px; }
+.ot-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+.staff-table-wrap { overflow-x:auto; padding-bottom:10px; }
+.staff-table { width:100%; border-collapse:collapse; font-size:14px; min-width:820px; }
+.staff-table thead th { padding:10px 12px; font-size:12.5px; font-weight:600; color:var(--text-secondary); background:#F8FAF9; border-bottom:1px solid var(--border); text-align:center; white-space:nowrap; }
+.staff-table thead th.col-left { text-align:left; padding-left:14px; border-radius:10px 0 0 10px; }
+.staff-table thead th:last-child { border-radius:0 10px 10px 0; }
+.staff-table td { padding:12px; text-align:center; border-bottom:1px solid var(--border-soft); color:var(--text); }
+.staff-table td.col-left { text-align:left; padding-left:14px; }
+.staff-table tbody tr:last-child td { border-bottom:none; }
+.staff-table tbody tr:hover td { background:#FAFCFB; }
+.staff-empty { text-align:center !important; padding:36px 10px !important; color:var(--text-secondary) !important; font-size:13px; }
+.staff-name { display:flex; align-items:center; gap:10px; }
+.staff-av { width:30px; height:30px; border-radius:9px; flex:0 0 30px; display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#fff; }
+.staff-nm { font-weight:600; font-size:14px; }
+.staff-tag { font-size:10.5px; color:#fff; border-radius:5px; padding:1px 5px; margin-left:4px; vertical-align:1px; }
+.staff-hire .tenure { display:block; font-size:11.5px; color:var(--text-muted); margin-top:2px; }
+.staff-hours { font-weight:700; font-size:15px; font-variant-numeric:tabular-nums; }
+.staff-hours.ot { color:#F59E0B; }
+.staff-hours.lv { color:#3B82F6; }
+.staff-hours.remain { color:#10B981; }
+.staff-hours.zero { color:var(--text-muted); font-weight:600; }
+.staff-hours.neg { color:#EF4444; }
+@media (max-width: 768px) {
+  .staff-bar-right { margin-left:0; }
+}
+
 /* ===== 加班调休抽屉 ===== */
 .ot-drawer-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.35); z-index:999; opacity:0; pointer-events:none; transition:opacity .25s; }
 .ot-drawer-overlay.show { opacity:1; pointer-events:auto; }
@@ -2932,40 +2974,72 @@ body {
     </div>
   </div>
 
-  <!-- ===== 客服信息管理 ===== -->
+  <!-- ===== 客服信息（2026-10-31 重做：客服档案 / 加班调休 两区分开） ===== -->
   <div class="page" id="page-staff-info">
-    <div class="page-header"><h1>👥 客服信息管理</h1><p>管理客服真实姓名、入职日期、花名、手机号、岗位、加班调休（按小时累计）</p></div>
-    <div class="staff-toolbar" style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
-      <input type="text" id="staff-search" placeholder="🔍 搜索姓名/花名/手机号..." oninput="filterStaff()" style="flex:1;min-width:200px;padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--card-bg);color:var(--text);">
-      <div id="staff-group-tabs" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-      <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text-secondary);white-space:nowrap;cursor:pointer;">
-        <input type="checkbox" id="staff-show-offboarded" onchange="toggleOffboarded()" style="accent-color:var(--primary);"> 显示已清退
-      </label>
-      <button class="collab-btn" id="collab-staff-btn" onclick="openCollabPanel('staff-info')" style="display:none;">👥 协作者</button>
-      <button class="btn-sm outline" onclick="copyAllStaff()">📋 复制</button>
-      <button class="btn-sm outline" onclick="exportStaffCSV()">📥 导出</button>
-      <button class="btn-sm outline" onclick="loadStaffInfo()">🔄 刷新</button>
+    <div class="page-header"><h1>👥 客服信息</h1><p>资料与时长分开看：上方是客服档案，下方是加班调休</p></div>
+
+    <div class="staff-bar">
+      <input type="text" id="staff-search" class="staff-search" placeholder="🔍 搜索姓名 / 花名 / 手机号" oninput="filterStaff()">
+      <div id="staff-group-tabs" class="staff-tabs"></div>
+      <div class="staff-bar-right">
+        <label class="staff-off"><input type="checkbox" id="staff-show-offboarded" onchange="toggleOffboarded()"> 显示已清退</label>
+        <button class="collab-btn" id="collab-staff-btn" onclick="openCollabPanel('staff-info')" style="display:none;">👥 协作者</button>
+        <button class="btn-sm outline" onclick="copyAllStaff()">📋 复制</button>
+        <button class="btn-sm outline" onclick="exportStaffCSV()">📥 导出</button>
+        <button class="btn-sm outline" onclick="loadStaffInfo()">🔄 刷新</button>
+      </div>
     </div>
-    <div class="ranking-table-wrap">
-      <table class="ranking-table" style="min-width:1000px;">
-        <thead><tr>
-          <th>花名</th>
-          <th>真实姓名</th>
-          <th>手机号</th>
-          <th>入职日期</th>
-          <th>岗位</th>
-          <th>组别</th>
-          <th style="width:80px;">累计加班(h)</th>
-          <th style="width:80px;">已调休(h)</th>
-          <th style="width:90px;">剩余可调(h)</th>
-          <th style="width:120px;">操作</th>
-        </tr></thead>
-        <tbody id="staff-tbody">
-          <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">加载中...</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div style="margin-top:12px;font-size:12px;color:var(--text-secondary);text-align:right;" id="staff-count"></div>
+
+    <!-- 区一：客服档案 -->
+    <section class="staff-sec">
+      <div class="staff-sec-head">
+        <div class="ssh-title"><span class="ssh-ico">📇</span>客服档案<span class="ssh-sub">花名 · 联系方式 · 岗位 · 入职</span></div>
+        <div class="staff-count" id="staff-count"></div>
+      </div>
+      <div class="staff-table-wrap">
+        <table class="staff-table">
+          <thead><tr>
+            <th class="col-left" style="width:190px;">花名</th>
+            <th>真实姓名</th>
+            <th>手机号</th>
+            <th>岗位</th>
+            <th>组别</th>
+            <th style="width:150px;">入职日期</th>
+            <th style="width:190px;">操作</th>
+          </tr></thead>
+          <tbody id="staff-tbody">
+            <tr><td colspan="7" class="staff-empty">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 区二：加班调休 -->
+    <section class="staff-sec">
+      <div class="staff-sec-head">
+        <div class="ssh-title"><span class="ssh-ico">⏰</span>加班调休<span class="ssh-sub">按小时累计，点「明细」登记或删除</span></div>
+        <div class="ot-legend">
+          <span><i class="ot-dot" style="background:#F59E0B;"></i>累计加班</span>
+          <span><i class="ot-dot" style="background:#3B82F6;"></i>已调休</span>
+          <span><i class="ot-dot" style="background:#10B981;"></i>剩余可调</span>
+        </div>
+      </div>
+      <div class="staff-table-wrap">
+        <table class="staff-table">
+          <thead><tr>
+            <th class="col-left" style="width:190px;">花名</th>
+            <th style="width:110px;">组别</th>
+            <th>累计加班 (h)</th>
+            <th>已调休 (h)</th>
+            <th>剩余可调 (h)</th>
+            <th style="width:130px;">明细</th>
+          </tr></thead>
+          <tbody id="ot-tbody">
+            <tr><td colspan="6" class="staff-empty">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </div>
 
   <!-- 加班调休详情抽屉 -->
@@ -3862,13 +3936,15 @@ async function loadStaffInfo() {
   const tbody = document.getElementById('staff-tbody');
   const countEl = document.getElementById('staff-count');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">加载中...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7" class="staff-empty">加载中...</td></tr>';
 
   // 先给出"加载中"反馈，而不是一上来就显示"加载异常"
   if (tbody) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">'
+    tbody.innerHTML = '<tr><td colspan="7" class="staff-empty">'
       + '<span class="sd-spin"></span>正在加载客服信息…</td></tr>';
   }
+  const otBody = document.getElementById('ot-tbody');
+  if (otBody) otBody.innerHTML = '<tr><td colspan="6" class="staff-empty"><span class="sd-spin"></span>正在加载…</td></tr>';
   try {
     // 关键加固：等 supabase 库就绪（最多 30 秒）。首次进入页面时库可能还在下载，
     // 原先直接抛「数据服务未就绪」是「加载异常」的直接触发点。
@@ -3923,9 +3999,10 @@ async function loadStaffInfo() {
     renderStaffTable();
   } catch (e) {
     console.error('客服信息加载失败:', e);
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--danger);">加载异常：'
+    tbody.innerHTML = '<tr><td colspan="7" class="staff-empty" style="color:var(--danger) !important;">加载异常：'
       + escHtml(e.message || '未知错误')
       + ' <a href="javascript:loadStaffInfo()" style="color:var(--primary);text-decoration:underline;">重试</a></td></tr>';
+    if (otBody) otBody.innerHTML = '<tr><td colspan="6" class="staff-empty">加载异常</td></tr>';
     if (countEl) countEl.textContent = '';
     // 自动恢复：3 秒后自动重试一次，网络恢复即自愈
     if (!window.__staffAutoRetry) {
@@ -3973,7 +4050,39 @@ function fmtPhone(p) {
 }
 function isOffboarded(s) { return s.status === 'disabled' || !!s.left_at; }
 
-// 渲染表格
+// 入职时长：根据入职日期算「已入职 X 年 X 个月」
+function tenureText(hireDate) {
+  if (!hireDate) return '';
+  var d = new Date(String(hireDate).slice(0, 10) + 'T00:00:00');
+  if (isNaN(d.getTime())) return '';
+  var now = new Date();
+  var months = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+  if (now.getDate() < d.getDate()) months--;
+  if (months < 0) return '';
+  if (months < 1) {
+    var days = Math.floor((now.getTime() - d.getTime()) / 86400000);
+    return '已入职 ' + (days < 1 ? 1 : days) + ' 天';
+  }
+  var y = Math.floor(months / 12), m = months % 12;
+  if (y < 1) return '已入职 ' + months + ' 个月';
+  return '已入职 ' + y + ' 年' + (m ? ' ' + m + ' 个月' : '');
+}
+
+// 花名前的彩色方块（按组别配色）
+function staffAvatar(s) {
+  var g = (s.group_name || '').trim();
+  var color = g === 'A组' ? '#3B82F6' : (g === 'B组' ? '#EF4444' : (g === 'C组' ? '#10B981' : '#9CA3AF'));
+  var ch = String(s.name || s.real_name || '?').trim().slice(0, 1) || '?';
+  return '<span class="staff-av" style="background:' + color + ';">' + escHtml(ch) + '</span>';
+}
+function staffNameCell(s) {
+  var tags = (s.role === 'admin' ? '<span class="staff-tag" style="background:#6C5CE7;">管理员</span>' : '')
+    + (s.role === 'leader' ? '<span class="staff-tag" style="background:#F59E0B;">组长</span>' : '');
+  return '<div class="staff-name">' + staffAvatar(s)
+    + '<span class="staff-nm">' + escHtml(s.name || '-') + tags + '</span></div>';
+}
+
+// 区一：客服档案表
 function renderStaffTable() {
   const tbody = document.getElementById('staff-tbody');
   const countEl = document.getElementById('staff-count');
@@ -3982,46 +4091,64 @@ function renderStaffTable() {
   const isAdmin = isFullAdmin();
 
   if (!staffInfoFiltered.length) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">'
+    tbody.innerHTML = '<tr><td colspan="7" class="staff-empty">'
       + (staffInfoData.length ? '没有匹配的客服' : '暂无数据') + '</td></tr>';
     if (countEl) countEl.textContent = staffInfoData.length ? ('匹配 ' + staffInfoFiltered.length + ' 人') : '';
+    renderOTTable();
     return;
   }
 
-  const rows = staffInfoFiltered.map(s => {
-    const remain = calcOTRemain(s);
-    const remainColor = remain > 0 ? 'var(--primary)' : 'var(--text-muted)';
+  tbody.innerHTML = staffInfoFiltered.map(s => {
     const off = isOffboarded(s);
-    const nameHtml = (s.name || '-')
-      + (s.role === 'admin'
-      ? ' <span style="font-size:11px;color:#fff;background:#6C5CE7;border-radius:4px;padding:1px 5px;vertical-align:middle;">管理员</span>' : '')
-      + (s.role === 'leader'
-      ? ' <span style="font-size:11px;color:#fff;background:#F59E0B;border-radius:4px;padding:1px 5px;vertical-align:middle;">组长</span>' : '');
-    const rowStyle = off ? ' style="opacity:.45;"' : '';
-    let ops = '<button class="btn-sm outline" onclick="openOTDrawer(\'' + s.id + '\')" title="加班调休明细">📋 明细</button>';
-    if (editable && !off) ops += ' <button class="btn-sm outline" onclick="openStaffDetail(\'' + s.id + '\')" title="编辑资料">✏️ 编辑</button>';
-    if (isAdmin && !off) ops += ' <button class="btn-sm outline" onclick="offboardStaff(\'' + s.id + '\')" title="清退：移出列表" style="color:#EF4444;">🗑 清退</button>';
-    if (isAdmin && off) ops += ' <button class="btn-sm outline" onclick="restoreStaff(\'' + s.id + '\')" title="恢复为在职">♻️ 恢复</button>';
-    return '<tr' + rowStyle + '>'
-      + '<td style="font-weight:600;">' + nameHtml + '</td>'
+    let ops = '';
+    if (editable && !off) ops += '<button class="btn-sm outline" onclick="openStaffDetail(\'' + s.id + '\')" title="编辑资料">✏️ 编辑</button>';
+    if (isAdmin && !off) ops += '<button class="btn-sm outline" onclick="offboardStaff(\'' + s.id + '\')" title="清退：移出列表" style="color:#EF4444;">🗑 清退</button>';
+    if (isAdmin && off) ops += '<button class="btn-sm outline" onclick="restoreStaff(\'' + s.id + '\')" title="恢复为在职">♻️ 恢复</button>';
+    return '<tr' + (off ? ' style="opacity:.5;"' : '') + '>'
+      + '<td class="col-left">' + staffNameCell(s) + '</td>'
       + '<td>' + (escHtml(s.real_name) || '<span style="color:var(--text-muted);">-</span>') + '</td>'
       + '<td>' + fmtPhone(s.phone) + '</td>'
-      + '<td>' + (escHtml(s.hire_date) || '<span style="color:var(--text-muted);">-</span>') + '</td>'
-      + '<td>' + (escHtml(s.position) || '-') + '</td>'
+      + '<td>' + (escHtml(s.position) || '<span style="color:var(--text-muted);">-</span>') + '</td>'
       + '<td>' + groupChip(s.group_name) + '</td>'
-      + '<td style="text-align:center;">' + fmtH(s.overtime) + '</td>'
-      + '<td style="text-align:center;">' + fmtH(s.compensatory_leave) + '</td>'
-      + '<td style="text-align:center;font-weight:700;color:' + remainColor + ';">' + fmtH(remain) + '</td>'
-      + '<td style="white-space:nowrap;">' + ops + '</td>'
+      + '<td class="staff-hire">' + (escHtml(s.hire_date)
+        ? escHtml(s.hire_date) + '<span class="tenure">' + tenureText(s.hire_date) + '</span>'
+        : '<span style="color:var(--text-muted);">-</span>') + '</td>'
+      + '<td style="white-space:nowrap;">' + (ops || '<span style="color:var(--text-muted);">-</span>') + '</td>'
       + '</tr>';
   }).join('');
 
-  tbody.innerHTML = rows;
   const offCnt = staffInfoAllData.filter(isOffboarded).length;
   const activeCnt = staffInfoData.filter(s => !isOffboarded(s)).length;
   if (countEl) countEl.textContent = '共 ' + activeCnt + ' 人在职'
     + (offCnt ? '，已清退 ' + offCnt + ' 人' : '')
     + (staffInfoFiltered.length !== staffInfoData.length ? '，匹配 ' + staffInfoFiltered.length + ' 人' : '');
+
+  renderOTTable();
+}
+
+// 区二：加班调休表（与档案表同一份过滤结果，联动搜索/组别）
+function renderOTTable() {
+  const tbody = document.getElementById('ot-tbody');
+  if (!tbody) return;
+  if (!staffInfoFiltered.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="staff-empty">'
+      + (staffInfoData.length ? '没有匹配的客服' : '暂无数据') + '</td></tr>';
+    return;
+  }
+  tbody.innerHTML = staffInfoFiltered.map(s => {
+    const off = isOffboarded(s);
+    const ot = parseFloat(s.overtime) || 0;
+    const lv = parseFloat(s.compensatory_leave) || 0;
+    const remain = calcOTRemain(s);
+    return '<tr' + (off ? ' style="opacity:.5;"' : '') + '>'
+      + '<td class="col-left">' + staffNameCell(s) + '</td>'
+      + '<td>' + groupChip(s.group_name) + '</td>'
+      + '<td><span class="staff-hours ot' + (ot > 0 ? '' : ' zero') + '">' + fmtH(ot) + '</span></td>'
+      + '<td><span class="staff-hours lv' + (lv > 0 ? '' : ' zero') + '">' + fmtH(lv) + '</span></td>'
+      + '<td><span class="staff-hours remain' + (remain > 0 ? '' : ' zero') + '">' + fmtH(remain) + '</span></td>'
+      + '<td><button class="btn-sm outline" onclick="openOTDrawer(\'' + s.id + '\')">📋 明细</button></td>'
+      + '</tr>';
+  }).join('');
 }
 
 // ===== 分组 Tab =====
@@ -4364,11 +4491,9 @@ function renderOTSummary() {
   const ot = parseFloat(s.overtime) || 0;
   const lv = parseFloat(s.compensatory_leave) || 0;
   const remain = calcOTRemain(s);
-  el.innerHTML = '<div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center;">'
-    + '<div style="text-align:center;"><div style="font-size:12px;color:#9CA3AF;">累计加班</div><div style="font-size:20px;font-weight:700;">' + fmtH(ot) + ' h</div></div>'
-    + '<div style="text-align:center;"><div style="font-size:12px;color:#9CA3AF;">已调休</div><div style="font-size:20px;font-weight:700;">' + fmtH(lv) + ' h</div></div>'
-    + '<div style="text-align:center;"><div style="font-size:12px;color:#9CA3AF;">剩余可调</div><div style="font-size:20px;font-weight:700;color:#10B981;">' + fmtH(remain) + ' h</div></div>'
-    + '</div>';
+  el.innerHTML = '<div class="ot-stat ot-total"><div class="ot-stat-val">' + fmtH(ot) + ' h</div><div class="ot-stat-label">累计加班</div></div>'
+    + '<div class="ot-stat ot-used"><div class="ot-stat-val">' + fmtH(lv) + ' h</div><div class="ot-stat-label">已调休</div></div>'
+    + '<div class="ot-stat ot-remain"><div class="ot-stat-val">' + fmtH(remain) + ' h</div><div class="ot-stat-label">剩余可调</div></div>';
 }
 
 // 加载该客服的加班/调休记录（真实表结构：overtime_records / compensatory_leave_records，字段 profile_id/date/hours）
