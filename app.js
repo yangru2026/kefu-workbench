@@ -3575,10 +3575,14 @@ async function submitRequest() {
 async function loadRequests() {
   if (!supabase) return;
   try {
-    const { data, error } = await supabase
-      .from('cs_requests')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // ⚠️ 2026-10-31：申请审批页已开放给普通客服（从管理板块挪到客服常用菜单）。
+    // 非管理员只拉自己的申请，兼容任意 RLS 口径（不管云端是否限制 select 范围都能正常显示）。
+    let q = supabase.from('cs_requests').select('*');
+    const isAdmin = currentProfile && currentProfile.role === 'admin';
+    if (!isAdmin && currentProfile && currentProfile.id) {
+      q = q.eq('requester_id', currentProfile.id);
+    }
+    const { data, error } = await q.order('created_at', { ascending: false });
     if (error) { console.warn('申请加载失败:', error.message); return; }
     allRequests = data || [];
     updateReqBadge();

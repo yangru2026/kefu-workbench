@@ -2059,6 +2059,7 @@ body {
     <div class="nav-item" data-page="ranking" title="客服排名"><span class="icon">🏆</span><span>客服排名</span></div>
     <div class="nav-item" data-page="huaming" title="特殊花色速查（定轴/小直径/超薄/满着色/大基弧/小基弧）"><span class="icon">🌸</span><span>特殊花色</span></div>
     <div class="nav-item" data-page="restock" title="缺货补货动态（补货中/已入库/不补清单）"><span class="icon">📦</span><span>补货动态</span></div>
+    <div class="nav-item" data-page="requests" title="申请审批（换班/加班/调休申请，管理员审批后自动生效）"><span class="icon">📝</span><span>申请审批</span></div>
     <div class="nav-section">常用资料</div>
     <div class="nav-item" data-page="price-miyang" title="弥生价格速查"><span class="icon">💰</span><span>弥生价</span></div>
     <div class="nav-item" data-page="price-jiyang" title="极氧价格速查"><span class="icon">💰</span><span>极氧价</span></div>
@@ -10643,7 +10644,9 @@ function switchPage(page) {
   // 退出登录：不是真实页面，直接走退出流程
   if (page === 'logout') { signOut(); return; }
   // 管理板块门禁：仅管理员可进（含全部子页面），其他人一律拦截回首页
-  const ADMIN_PAGES = ['admin', 'schedule', 'requests', 'presale', 'qc', 'qc-report', 'checklist', 'members', 'staff-info', 'templates'];
+  // ⚠️ 2026-10-31：「申请审批(requests)」已挪到客服常用菜单，普通客服也要能进去提交申请，
+  //    故从门禁名单移除；页面内部已按角色区分（客服只看自己的申请、无通过/拒绝按钮）
+  const ADMIN_PAGES = ['admin', 'schedule', 'presale', 'qc', 'qc-report', 'checklist', 'members', 'staff-info', 'templates'];
   if (ADMIN_PAGES.indexOf(page) !== -1 && !isFullAdmin()) {
     showToast('⛔ 管理板块仅管理员可进入');
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
@@ -16384,7 +16387,7 @@ async function applyInviteClaim() {
   })();
 </script>
 
-<script src="app.js?v=20261031a"></script>
+<script src="app.js?v=20261031b"></script>
 
 <!-- Pattern Editor Modal -->
 <div class="modal-overlay" id="mod-pattern"undefined>
