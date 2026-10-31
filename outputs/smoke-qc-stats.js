@@ -56,7 +56,7 @@ const server = http.createServer((req, res) => {
 });
 const json = o => ({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(o) });
 
-async function run(browser, role, name) {
+async function run(browser, role, name, qcFail) {
   const page = await browser.newPage();
   await page.setViewport({ width: 1440, height: 960, deviceScaleFactor: 2 });
   const errs = [];
@@ -75,6 +75,7 @@ async function run(browser, role, name) {
     }
     if (u.includes('/rest/v1/profiles')) return req.respond(json({ id: 'u1', name: name, role: role }));
     if (u.includes('/rest/v1/qc_records')) {
+      if (qcFail) return req.respond({ status: 400, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ code: '42703', message: 'column qc_records.qc_date does not exist' }) });
       // 仿真 PostgREST 的 staff_name=eq.xxx 过滤（页面靠这个把客服限定成只看自己）
       const m2 = u.match(/staff_name=eq\.([^&]+)/);
       const list = m2 ? RECS.filter(r => r.staff_name === decodeURIComponent(m2[1])) : RECS;
@@ -113,7 +114,9 @@ async function run(browser, role, name) {
       registerBtn: document.getElementById('btnRegister').style.display !== 'none',
       pendingShown: document.getElementById('pendingBox').style.display !== 'none',
       pendingText: (document.getElementById('pendingBox').innerText || '').replace(/\s+/g, ' ').trim().slice(0, 60),
-      setupMask: document.getElementById('setupMask').classList.contains('show')
+      errShown: document.getElementById('errBar').style.display !== 'none',
+      errText: (document.getElementById('errBar').innerText || '').replace(/\s+/g, ' ').trim().slice(0, 80),
+      noMaskElement: !document.getElementById('setupMask')
     };
   });
 
@@ -148,6 +151,7 @@ async function run(browser, role, name) {
 
   const admin = await run(browser, 'admin', '杨茹');
   const staff = await run(browser, 'staff', '小柚');
+  const broken = await run(browser, 'admin', '杨茹', true);   // 模拟旧表结构（查询报错）
 
   const mineCount = RECS.filter(r => r.staff_name === '小柚').length;
   const checks = {
@@ -162,11 +166,12 @@ async function run(browser, role, name) {
     admin_register_btn: admin.st.registerBtn === true,
     admin_pending_notice: admin.st.pendingShown === true && /还没定扣罚/.test(admin.st.pendingText),
     staff_no_register_btn: staff.st.registerBtn === false && staff.st.pendingShown === false,
-    no_mask: !admin.st.setupMask && !staff.st.setupMask,
-    no_page_errors: admin.errs.concat(staff.errs).length === 0
+    no_mask_element: broken.st.noMaskElement === true,                       // 模态弹窗已彻底移除
+    broken_shows_dismissable_bar: broken.st.errShown === true && /SQL/.test(broken.st.errText),
+    no_page_errors: admin.errs.concat(staff.errs, broken.errs).length === 0
   };
-  fs.writeFileSync(ROOT + '/outputs/smoke-qc-stats.out', JSON.stringify({ admin: admin.st, staff: staff.st, mineCount, checks, errs: admin.errs.concat(staff.errs) }, null, 2), 'utf8');
-  console.log(JSON.stringify({ admin: admin.st, staff: staff.st, mineCount, checks }, null, 2));
+  fs.writeFileSync(ROOT + '/outputs/smoke-qc-stats.out', JSON.stringify({ admin: admin.st, staff: staff.st, broken: broken.st, mineCount, checks, errs: admin.errs.concat(staff.errs, broken.errs) }, null, 2), 'utf8');
+  console.log(JSON.stringify({ admin: admin.st, staff: staff.st, broken: broken.st, mineCount, checks }, null, 2));
   const ok = Object.keys(checks).every(k => checks[k]);
   console.log(ok ? 'QC_STATS_SMOKE_PASS' : 'QC_STATS_SMOKE_FAIL');
 
