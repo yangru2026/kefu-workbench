@@ -3902,6 +3902,20 @@ async function loadStaffInfo() {
     // 勾选"显示已清退"时不做过滤，全部展示（已清退的行灰显）
     const showOff = !!(document.getElementById('staff-show-offboarded') && document.getElementById('staff-show-offboarded').checked);
     const all = data || [];
+    // 加班/调休合计：按明细动态计算（overtime_records / compensatory_leave_records，字段 profile_id/date/hours）
+    try {
+      const [otR, lvR] = await Promise.all([
+        supabase.from('overtime_records').select('profile_id,hours'),
+        supabase.from('compensatory_leave_records').select('profile_id,hours')
+      ]);
+      if (otR.error) console.warn('加班明细读取:', otR.error.message);
+      if (lvR.error) console.warn('调休明细读取:', lvR.error.message);
+      const otAll = otR.data || [], lvAll = lvR.data || [];
+      all.forEach(p => {
+        p.overtime = Math.round(otAll.filter(r => r.profile_id === p.id).reduce((s, r) => s + (parseFloat(r.hours) || 0), 0) * 10) / 10;
+        p.compensatory_leave = Math.round(lvAll.filter(r => r.profile_id === p.id).reduce((s, r) => s + (parseFloat(r.hours) || 0), 0) * 10) / 10;
+      });
+    } catch (otE) { console.warn('加班合计计算失败:', otE.message); }
     staffInfoAllData = all;
     staffInfoData = showOff ? all.slice() : all.filter(p => p.status !== 'disabled' && !p.left_at);
     staffInfoFiltered = staffInfoData.slice();
@@ -4357,21 +4371,20 @@ function renderOTSummary() {
     + '</div>';
 }
 
-// 加载该客服的加班/调休记录
+// 加载该客服的加班/调休记录（真实表结构：overtime_records / compensatory_leave_records，字段 profile_id/date/hours）
 async function loadOTRecords(staffId) {
   try {
     if (!supabase || typeof supabase.from !== 'function') throw new Error('数据服务未就绪');
-    const { data, error } = await withTimeout(
-      supabase.from('overtime_records')
-        .select('*')
-        .eq('staff_id', staffId)
-        .order('record_date', { ascending: false }),
-      12000, '加班调休记录'
-    );
-    if (error) throw error;
-    currentOTRecords = data || [];
+    const [otQ, lvQ] = await Promise.all([
+      withTimeout(supabase.from('overtime_records').select('*').eq('profile_id', staffId).order('date', { ascending: false }), 12000, '加班记录'),
+      withTimeout(supabase.from('compensatory_leave_records').select('*').eq('profile_id', staffId).order('date', { ascending: false }), 12000, '调休记录')
+    ]);
+    if (otQ.error) console.warn('加班记录加载失败:', otQ.error.message);
+    if (lvQ.error) console.warn('调休记录加载失败:', lvQ.error.message);
+    currentOTRecords = (otQ.data || []).map(r => Object.assign({ record_type: 'overtime' }, r))
+      .concat((lvQ.data || []).map(r => Object.assign({ record_type: 'leave' }, r)));
   } catch (e) {
-    console.warn('加班调休记录加载失败（可能表不存在）:', e.message);
+    console.warn('加班调休记录加载失败:', e.message);
     currentOTRecords = [];
   }
   renderOTList('overtime');
@@ -4388,7 +4401,7 @@ function renderOTList(type) {
     return;
   }
   el.innerHTML = list.map(r => {
-    const d = r.record_date || (r.created_at ? String(r.created_at).slice(0, 10) : '');
+    const d = r.date || (r.created_at ? String(r.created_at).slice(0, 10) : '');
     return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border-soft);font-size:13px;">'
       + '<span style="color:var(--text-secondary);min-width:88px;">' + escHtml(d) + '</span>'
       + '<span style="font-weight:600;min-width:52px;">' + fmtH(r.hours) + ' h</span>'
@@ -4410,7 +4423,23 @@ function hideOTAddForm(type) {
   if (form) form.style.display = 'none';
 }
 
-// 保存一条加班/调休记录（同时累加到 profiles 的合计字段）
+// 按明细重算某客服的加班/调休合计（profiles 里的合计字段不再作为显示来源）
+function recomputeStaffOT(staffId) {
+  const ot = currentOTRecords.filter(r => (r.record_type || 'overtime') === 'overtime')
+    .reduce((s, r) => s + (parseFloat(r.hours) || 0), 0);
+  const lv = currentOTRecords.filter(r => r.record_type === 'leave')
+    .reduce((s, r) => s + (parseFloat(r.hours) || 0), 0);
+  const otH = Math.round(ot * 10) / 10, lvH = Math.round(lv * 10) / 10;
+  if (currentOTStaff && currentOTStaff.id === staffId) {
+    currentOTStaff.overtime = otH; currentOTStaff.compensatory_leave = lvH;
+  }
+  const idx = staffInfoData.findIndex(x => x.id === staffId);
+  if (idx >= 0) { staffInfoData[idx].overtime = otH; staffInfoData[idx].compensatory_leave = lvH; }
+  const idxAll = (staffInfoAllData || []).findIndex(x => x.id === staffId);
+  if (idxAll >= 0) { staffInfoAllData[idxAll].overtime = otH; staffInfoAllData[idxAll].compensatory_leave = lvH; }
+}
+
+// 保存一条加班/调休记录（写入各自明细表，合计由明细动态计算）
 async function saveOTRecord(type) {
   if (!currentOTStaff) { showToast('请先选择客服'); return; }
   const isOT = type === 'overtime';
@@ -4436,40 +4465,17 @@ async function saveOTRecord(type) {
       }
     }
 
-    // 1. 写明细
-    const rec = {
-      staff_id: currentOTStaff.id,
-      staff_name: currentOTStaff.name || '',
-      record_type: type,
-      record_date: date,
-      hours: hours,
-      note: note || null,
-      created_at: new Date().toISOString()
-    };
-    const { error: e1 } = await supabase.from('overtime_records').insert([rec]);
+    // 写入对应明细表（overtime_records = 加班，compensatory_leave_records = 调休）
+    const table = isOT ? 'overtime_records' : 'compensatory_leave_records';
+    const rec = { profile_id: currentOTStaff.id, date: date, hours: hours, note: note || null };
+    const { error: e1 } = await supabase.from(table).insert([rec]);
     if (e1) throw e1;
-
-    // 2. 累加到 profiles 合计
-    const otOld = parseFloat(currentOTStaff.overtime) || 0;
-    const lvOld = parseFloat(currentOTStaff.compensatory_leave) || 0;
-    const patch = {
-      overtime: isOT ? Math.round((otOld + hours) * 10) / 10 : otOld,
-      compensatory_leave: isOT ? lvOld : Math.round((lvOld + hours) * 10) / 10,
-      updated_at: new Date().toISOString()
-    };
-    const { error: e2 } = await supabase.from('profiles').update(patch).eq('id', currentOTStaff.id);
-    if (e2) throw e2;
-
-    // 3. 本地同步
-    currentOTStaff.overtime = patch.overtime;
-    currentOTStaff.compensatory_leave = patch.compensatory_leave;
-    const idx = staffInfoData.findIndex(x => x.id === currentOTStaff.id);
-    if (idx >= 0) { staffInfoData[idx].overtime = patch.overtime; staffInfoData[idx].compensatory_leave = patch.compensatory_leave; }
 
     dateEl.value = ''; hourEl.value = ''; noteEl.value = '';
     hideOTAddForm(type);
-    renderOTSummary();
     await loadOTRecords(currentOTStaff.id);
+    recomputeStaffOT(currentOTStaff.id);
+    renderOTSummary();
     renderStaffTable();
     showToast('✅ 已保存 ' + fmtH(hours) + ' 小时');
   } catch (e) {
@@ -4478,38 +4484,22 @@ async function saveOTRecord(type) {
   }
 }
 
-// 删除一条记录（同时从 profiles 合计里扣回）
+// 删除一条记录（合计由明细动态重算）
 async function deleteOTRecord(recId, type) {
   const r = currentOTRecords.find(x => String(x.id) === String(recId));
   if (!r) { showToast('未找到记录'); return; }
   if (!confirm('确定删除这条 ' + fmtH(r.hours) + ' 小时记录吗？合计将同步扣减。')) return;
   try {
     if (!supabase || typeof supabase.from !== 'function') throw new Error('数据服务未就绪');
-    const isOT = type === 'overtime';
-    const hours = parseFloat(r.hours) || 0;
-
-    const { error: e1 } = await supabase.from('overtime_records').delete().eq('id', recId);
+    const table = (r.record_type === 'leave') ? 'compensatory_leave_records' : 'overtime_records';
+    const { error: e1 } = await supabase.from(table).delete().eq('id', recId);
     if (e1) throw e1;
 
-    const otOld = parseFloat(currentOTStaff.overtime) || 0;
-    const lvOld = parseFloat(currentOTStaff.compensatory_leave) || 0;
-    const patch = {
-      overtime: isOT ? Math.max(0, Math.round((otOld - hours) * 10) / 10) : otOld,
-      compensatory_leave: isOT ? lvOld : Math.max(0, Math.round((lvOld - hours) * 10) / 10),
-      updated_at: new Date().toISOString()
-    };
-    const { error: e2 } = await supabase.from('profiles').update(patch).eq('id', currentOTStaff.id);
-    if (e2) throw e2;
-
-    currentOTStaff.overtime = patch.overtime;
-    currentOTStaff.compensatory_leave = patch.compensatory_leave;
-    const idx = staffInfoData.findIndex(x => x.id === currentOTStaff.id);
-    if (idx >= 0) { staffInfoData[idx].overtime = patch.overtime; staffInfoData[idx].compensatory_leave = patch.compensatory_leave; }
-
-    renderOTSummary();
     await loadOTRecords(currentOTStaff.id);
+    recomputeStaffOT(currentOTStaff.id);
+    renderOTSummary();
     renderStaffTable();
-    showToast('✅ 已删除');
+    showToast('已删除');
   } catch (e) {
     console.error(e);
     showToast('删除失败：' + (e.message || '未知错误'));
@@ -16244,7 +16234,7 @@ async function applyInviteClaim() {
   })();
 </script>
 
-<script src="app.js?v=20261022a"></script>
+<script src="app.js?v=20261031a"></script>
 
 <!-- Pattern Editor Modal -->
 <div class="modal-overlay" id="mod-pattern"undefined>

@@ -2924,7 +2924,7 @@ function renderOTDrawer() {
         + '<span class="ot-rec-date">' + (r.date || '-') + '</span>'
         + '<span class="ot-rec-hours">+' + roundH(r.hours) + 'h</span>'
         + '<span class="ot-rec-note">' + escapeHtml(r.note || '') + '</span>'
-        + (isAdmin ? '<button class="ot-rec-del" onclick="deleteOTRecord(\'overtime\',\'' + r.id + '\')" title="删除">🗑️</button>' : '')
+        + (isAdmin ? '<button class="ot-rec-del" onclick="legacy_deleteOTRecord(\'overtime\',\'' + r.id + '\')" title="删除">🗑️</button>' : '')
         + '</div>';
     }).join('');
   }
@@ -2941,7 +2941,7 @@ function renderOTDrawer() {
         + '<span class="ot-rec-date">' + (r.date || '-') + '</span>'
         + '<span class="ot-rec-hours" style="color:#3498db;">-' + roundH(r.hours) + 'h</span>'
         + '<span class="ot-rec-note">' + escapeHtml(r.note || '') + '</span>'
-        + (isAdmin ? '<button class="ot-rec-del" onclick="deleteOTRecord(\'leave\',\'' + r.id + '\')" title="删除">🗑️</button>' : '')
+        + (isAdmin ? '<button class="ot-rec-del" onclick="legacy_deleteOTRecord(\'leave\',\'' + r.id + '\')" title="删除">🗑️</button>' : '')
         + '</div>';
     }).join('');
   }
@@ -3003,7 +3003,7 @@ async function legacy_saveOTRecord(type) {
   legacy_renderStaffTable();
 }
 
-async function deleteOTRecord(type, recordId) {
+async function legacy_deleteOTRecord(type, recordId) {
   if (!supabase) return;
   if (!confirm('确定删除该条记录？')) return;
 
