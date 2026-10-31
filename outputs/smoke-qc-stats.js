@@ -37,7 +37,9 @@ const RECS = (() => {
       severity: sev,
       amount: (sev === '一般提醒' || pendingNoMoney) ? 0 : AMTS[(i % 4) + 2],
       detail: ['回复客户时用了"应该可以"等不确定表述', '首响超过 30 秒未回复', '未按话术确认度数', '漏发注意事项', '客户催单未及时安抚', '承诺了无法保证的发货时效'][i % 6],
-      note: i % 4 === 0 ? '已当面提醒' : null
+      note: i % 4 === 0 ? '已当面提醒' : null,
+      // 截图链接：每 3 条留 1 条空的，验证「有链接给按钮 / 没链接显示 —」
+      evidence: i % 3 === 0 ? null : 'https://yow5cuygtx.feishu.cn/file/qc-shot-' + i
     });
   }
   return out;
@@ -109,7 +111,10 @@ async function run(browser, role, name, qcFail) {
       trendCols: document.querySelectorAll('#panel-trend .tcol').length,
       typeRows: document.querySelectorAll('#panel-type .type-row').length,
       detailRows: document.querySelectorAll('#panel-detail table.tb tbody tr').length,
+      detailEvLinks: document.querySelectorAll('#panel-detail table.tb tbody a.ev').length,
       mineRows: document.querySelectorAll('#panel-mine table.tb tbody tr').length,
+      mineEvLinks: document.querySelectorAll('#panel-mine table.tb tbody a.ev').length,
+      mineTip: !!document.querySelector('#panel-mine .mine-tip'),
       mineShown: document.getElementById('panel-mine').style.display !== 'none',
       registerBtn: document.getElementById('btnRegister').style.display !== 'none',
       pendingShown: document.getElementById('pendingBox').style.display !== 'none',
@@ -154,6 +159,8 @@ async function run(browser, role, name, qcFail) {
   const broken = await run(browser, 'admin', '杨茹', true);   // 模拟旧表结构（查询报错）
 
   const mineCount = RECS.filter(r => r.staff_name === '小柚').length;
+  const evAll = RECS.filter(r => r.evidence).length;
+  const evMine = RECS.filter(r => r.staff_name === '小柚' && r.evidence).length;
   const checks = {
     admin_tabs_shown: admin.st.tabsShown === true,
     admin_kpi_4: admin.st.kpiCount === 4,
@@ -166,6 +173,9 @@ async function run(browser, role, name, qcFail) {
     admin_register_btn: admin.st.registerBtn === true,
     admin_pending_notice: admin.st.pendingShown === true && /还没定扣罚/.test(admin.st.pendingText),
     staff_no_register_btn: staff.st.registerBtn === false && staff.st.pendingShown === false,
+    admin_evidence_links: admin.st.detailEvLinks === evAll,                  // 有链接的记录才出按钮
+    staff_sees_evidence: staff.st.mineEvLinks === evMine && evMine > 0,       // 客服自己也点得到截图
+    staff_evidence_tip: staff.st.mineTip === true,
     no_mask_element: broken.st.noMaskElement === true,                       // 模态弹窗已彻底移除
     broken_shows_dismissable_bar: broken.st.errShown === true && /SQL/.test(broken.st.errText),
     no_page_errors: admin.errs.concat(staff.errs, broken.errs).length === 0

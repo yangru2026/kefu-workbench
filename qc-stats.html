@@ -99,6 +99,12 @@
   .sev{font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:6px;white-space:nowrap;}
   .sev.s1{background:#ecfdf5;color:#0d9488;} .sev.s2{background:#fff7ed;color:#ea580c;} .sev.s3{background:#fef2f2;color:#dc2626;}
   .amt{font-weight:800;color:#ea580c;font-variant-numeric:tabular-nums;}
+  /* 证据：只挂外链，图片不进工作台存储 */
+  a.ev{display:inline-block;font-size:11px;font-weight:800;color:#0369a1;background:#f0f9ff;
+       border:1px solid #bae6fd;border-radius:6px;padding:2px 6px;text-decoration:none;white-space:nowrap;}
+  a.ev:hover{background:#e0f2fe;border-color:#7dd3fc;}
+  .mine-tip{font-size:12px;color:#0369a1;background:#f0f9ff;border:1px solid #bae6fd;
+            border-radius:8px;padding:8px 11px;margin-bottom:10px;}
   .empty{color:var(--muted);text-align:center;padding:34px 12px;font-size:13px;}
   .empty b{color:var(--text);}
   .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#1e293b;color:#fff;
@@ -211,7 +217,8 @@ function rangeOf(key){
 
 async function load(){
   let q = sb.from('qc_records')
-    .select('id,qc_date,staff_name,qc_name,issue_type,severity,amount,detail,note')
+    // 用 * 而不是写死列名：飞书表以后加列（截图链接、扣罚确认人等）页面不会因缺列报错
+    .select('*')
     .order('qc_date', { ascending: false });
   const [from, to] = rangeOf($('rangeSel').value);
   if (from) q = q.gte('qc_date', from);
@@ -360,6 +367,24 @@ function filteredDetail(){
   });
 }
 
+/* ---------- 证据截图：只在页面渲染链接，图片本身留在飞书/外链，不占工作台存储 ---------- */
+const EV_KEYS = ['evidence','evidence_url','screenshot','screenshot_url','截图链接','截图','image_url','attach_url'];
+function evUrls(r){
+  let v = '';
+  for (const k of EV_KEYS){ if (r && r[k]){ v = String(r[k]); break; } }
+  if (!v) return [];
+  // 支持一格填多个链接（换行 / 空格 / 逗号 / 顿号分隔）
+  return v.split(/[\s,，;；、]+/).filter(x => /^https?:\/\//i.test(x)).slice(0, 6);
+}
+function evCell(r){
+  const urls = evUrls(r);
+  if (!urls.length) return '<span style="color:#cbd5e1;">—</span>';
+  return urls.map((u,i) =>
+    '<a class="ev" href="'+esc(u)+'" target="_blank" rel="noopener noreferrer" title="在新窗口打开截图">'
+    + '📷' + (urls.length > 1 ? ' ' + (i+1) : '') + '</a>'
+  ).join(' ');
+}
+
 function renderDetail(){
   const staffOpts = ['<option value="">全部客服</option>']
     .concat([...new Set(rows.map(r=>r.staff_name).filter(Boolean))].sort()
@@ -374,7 +399,8 @@ function renderDetail(){
   const body = !list.length ? emptyBox('没有符合条件的记录')
     : '<div class="tb-wrap"><table class="tb"><thead><tr>'
       + '<th style="width:88px;">日期</th><th style="width:80px;">客服</th><th style="width:110px;">问题类型</th>'
-      + '<th style="width:92px;">严重度</th><th style="width:64px;">扣罚</th><th>问题描述</th><th style="width:70px;">质检人</th>'
+      + '<th style="width:92px;">严重度</th><th style="width:64px;">扣罚</th><th>问题描述</th>'
+      + '<th style="width:62px;">证据</th><th style="width:70px;">质检人</th>'
       + '</tr></thead><tbody>'
       + list.map(r =>
         '<tr>'
@@ -384,6 +410,7 @@ function renderDetail(){
         + '<td><span class="sev '+(SEV_CLASS[r.severity]||'s1')+'">'+esc(r.severity||'-')+'</span></td>'
         + '<td class="amt">'+(Number(r.amount)?('¥'+fmtMoney(r.amount)):'-')+'</td>'
         + '<td class="det">'+esc(r.detail||'')+(r.note?'<br><span style="color:#94a3b8;">备注：'+esc(r.note)+'</span>':'')+'</td>'
+        + '<td>'+evCell(r)+'</td>'
         + '<td>'+esc(r.qc_name||'-')+'</td>'
         + '</tr>').join('')
       + '</tbody></table></div>'
@@ -410,7 +437,7 @@ function renderMine(){
   const body = !rows.length ? emptyBox('这段时间没有你的质检记录 👍')
     : '<div class="tb-wrap"><table class="tb"><thead><tr>'
       + '<th style="width:88px;">日期</th><th style="width:110px;">问题类型</th><th style="width:92px;">严重度</th>'
-      + '<th style="width:64px;">扣罚</th><th>问题描述</th><th style="width:80px;">质检人</th>'
+      + '<th style="width:64px;">扣罚</th><th>问题描述</th><th style="width:62px;">证据</th><th style="width:80px;">质检人</th>'
       + '</tr></thead><tbody>'
       + rows.map(r =>
         '<tr>'
@@ -419,10 +446,14 @@ function renderMine(){
         + '<td><span class="sev '+(SEV_CLASS[r.severity]||'s1')+'">'+esc(r.severity||'-')+'</span></td>'
         + '<td class="amt">'+(Number(r.amount)?('¥'+fmtMoney(r.amount)):'-')+'</td>'
         + '<td class="det">'+esc(r.detail||'')+(r.note?'<br><span style="color:#94a3b8;">备注：'+esc(r.note)+'</span>':'')+'</td>'
+        + '<td>'+evCell(r)+'</td>'
         + '<td>'+esc(r.qc_name||'-')+'</td>'
         + '</tr>').join('')
       + '</tbody></table></div>';
-  $('panel-mine').innerHTML = '<h3>🙋 我的质检记录 <span class="hint">共 '+rows.length+' 条 · 扣罚合计 ¥'+fmtMoney(money)+'</span></h3>' + body;
+  $('panel-mine').innerHTML = '<h3>🙋 我的质检记录 <span class="hint">共 '+rows.length+' 条 · 扣罚合计 ¥'+fmtMoney(money)+'</span></h3>'
+    + (rows.some(r => evUrls(r).length)
+        ? '<div class="mine-tip">📷 点「证据」里的按钮可在新窗口打开当时的截图原图</div>' : '')
+    + body;
 }
 
 function emptyBox(msg){
@@ -433,9 +464,9 @@ function emptyBox(msg){
 function exportCsv(){
   const list = filteredDetail();
   if (!list.length){ toast('没有可导出的记录'); return; }
-  const head = ['日期','客服','问题类型','严重度','扣罚金额','问题描述','备注','质检人'];
+  const head = ['日期','客服','问题类型','严重度','扣罚金额','问题描述','备注','证据链接','质检人'];
   const esc2 = v => { const s = (v==null?'':String(v)); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
-  const lines = [head.join(',')].concat(list.map(r => [r.qc_date,r.staff_name,r.issue_type,r.severity,r.amount,r.detail,r.note,r.qc_name].map(esc2).join(',')));
+  const lines = [head.join(',')].concat(list.map(r => [r.qc_date,r.staff_name,r.issue_type,r.severity,r.amount,r.detail,r.note,evUrls(r).join(' '),r.qc_name].map(esc2).join(',')));
   const blob = new Blob(['\ufeff'+lines.join('\r\n')], { type:'text/csv;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
