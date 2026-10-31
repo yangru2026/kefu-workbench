@@ -39,6 +39,13 @@
   .kpi.c .val{color:#2563eb;}
   .kpi.d .val{color:#7c3aed;}
 
+  /* 待定扣罚提示条 */
+  .notice{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff7ed;border:1px solid #fed7aa;
+          color:#9a3412;border-radius:12px;padding:11px 14px;margin-bottom:14px;font-size:13px;font-weight:600;}
+  .notice .sp2{flex:1;}
+  .notice button{border:none;border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:700;
+          background:#ea580c;color:#fff;cursor:pointer;font-family:inherit;}
+
   /* Tabs */
   .tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
   .tab{padding:8px 16px;border-radius:999px;border:1.5px solid var(--border);background:#fff;cursor:pointer;
@@ -108,6 +115,7 @@
 <div class="topbar">
   <h1>🧪 质检统计</h1>
   <span class="badge" id="roleBadge">加载中…</span>
+  <button class="btn o" id="btnRegister" style="display:none;">📝 去飞书登记</button>
   <div class="sp"></div>
   <div class="range">
     <select id="rangeSel">
@@ -126,6 +134,7 @@
 
 <div class="wrap">
   <div class="kpis" id="kpis"></div>
+  <div class="notice" id="pendingBox" style="display:none;"></div>
 
   <div class="tabs" id="tabs" style="display:none;">
     <button class="tab on" data-tab="rank">按人排名</button>
@@ -163,6 +172,8 @@ let tab = 'rank';
 let fStaff = '', fType = '', fSev = '', fKw = '';
 
 const SEV_CLASS = { '一般提醒':'s1', '严重问题':'s2', '严重需整改':'s3' };
+// 质检登记表（飞书）：飞书禁止被 iframe 嵌入，只能新窗口打开
+const REGISTER_URL = 'https://yow5cuygtx.feishu.cn/wiki/RIogwW6NIi95CNkl2ZRcwvF4nVh?sheet=47e42c';
 const fmtMoney = n => (Math.round((Number(n)||0)*100)/100).toFixed(2).replace(/\.00$/,'');
 const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
@@ -193,7 +204,7 @@ function rangeOf(key){
     $('roleBadge').className = 'badge' + (isMgr ? '' : ' own');
     $('roleBadge').textContent = me.role === 'admin' ? '👑 管理员 · 全员统计'
       : me.role === 'leader' ? '🛡️ 组长 · 全员统计' : '🙋 ' + (me.name || '我') + ' · 我的质检';
-    if (isMgr){ $('tabs').style.display = ''; }
+    if (isMgr){ $('tabs').style.display = ''; $('btnRegister').style.display = ''; }
     await load();
   }catch(e){
     console.warn(e); toast('初始化失败，请刷新重试');
@@ -224,6 +235,7 @@ async function load(){
 function renderAll(){
   renderKpis();
   if (isMgr){
+    renderPending();
     renderRank(); renderTrend(); renderType(); renderDetail();
     ['rank','trend','type','detail'].forEach(t => {
       $('panel-' + t).style.display = (t === tab ? '' : 'none');
@@ -232,8 +244,22 @@ function renderAll(){
   } else {
     ['rank','trend','type','detail'].forEach(t => { $('panel-' + t).style.display = 'none'; });
     $('panel-mine').style.display = '';
+    $('pendingBox').style.display = 'none';
     renderMine();
   }
+}
+
+/* 待定扣罚：严重问题但金额还是 0/空 → 等管理员定金额（质检员只报问题，不填钱） */
+function renderPending(){
+  const box = $('pendingBox');
+  const list = rows.filter(r => (Number(r.amount) || 0) === 0 && r.severity && r.severity !== '一般提醒');
+  if (!list.length){ box.style.display = 'none'; box.innerHTML = ''; return; }
+  const names = [...new Set(list.map(r => r.staff_name).filter(Boolean))].slice(0, 6).join('、');
+  box.style.display = '';
+  box.innerHTML = '<span>⚠️ 有 <b>' + list.length + '</b> 条严重问题还没定扣罚金额</span>'
+    + '<span style="font-weight:500;color:#b45309;">涉及：' + esc(names) + (list.length > 6 ? ' 等' : '') + '</span>'
+    + '<span class="sp2"></span>'
+    + '<button onclick="window.open(\'' + REGISTER_URL + '\',\'_blank\',\'noopener\')">去飞书登记扣罚 →</button>';
 }
 
 function renderKpis(){
@@ -420,6 +446,7 @@ $('rangeSel').addEventListener('change', () => {
 $('dFrom').addEventListener('change', load);
 $('dTo').addEventListener('change', load);
 $('btnRefresh').addEventListener('click', load);
+$('btnRegister').addEventListener('click', () => window.open(REGISTER_URL, '_blank', 'noopener'));
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
   tab = b.dataset.tab;
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b));

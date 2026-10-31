@@ -2064,6 +2064,7 @@ body {
     <div class="nav-item" data-page="daily" title="汇报"><span class="icon">🌙</span><span>汇报</span></div>
     <div class="nav-item" data-page="ranking" title="客服排名"><span class="icon">🏆</span><span>客服排名</span></div>
     <div class="nav-item" data-page="qc" title="质检（客服看自己的质检记录与扣罚，组长/管理员看全员统计）"><span class="icon">🧪</span><span>质检</span></div>
+    <div class="nav-item qc-admin-nav" onclick="openQcRegister()" title="质检登记（飞书表格，组长/管理员专用）" style="display:none;"><span class="icon">📝</span><span>质检登记</span></div>
     <div class="nav-item" data-page="huaming" title="特殊花色速查（定轴/小直径/超薄/满着色/大基弧/小基弧）"><span class="icon">🌸</span><span>特殊花色</span></div>
     <div class="nav-item" data-page="restock" title="缺货补货动态（补货中/已入库/不补清单）"><span class="icon">📦</span><span>补货动态</span></div>
     <div class="nav-item" data-page="requests" title="申请审批（换班/加班/调休申请，管理员审批后自动生效）"><span class="icon">📝</span><span>申请审批</span></div>
@@ -3562,7 +3563,7 @@ body {
       <span class="qc-topbar-title">🧪 质检统计</span>
       <span class="qc-topbar-user" id="qc-user-badge"></span>
     </div>
-    <iframe id="qc-iframe" src="about:blank" data-src="qc-stats.html?v=20261031a" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write"></iframe>
+    <iframe id="qc-iframe" src="about:blank" data-src="qc-stats.html?v=20261031b" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write"></iframe>
   </div>
 
   <!-- ===== 赠品编码查询 ===== -->
@@ -10847,6 +10848,16 @@ window.onQcIframeLoad = function() {
     notifyQcIframe(isQc);
   }
 };
+
+// ===== 质检登记（飞书表格）入口：组长/管理员专用 =====
+// 飞书文档禁止被 iframe 嵌入（会被 X-Frame-Options 拦），所以一律新窗口打开。
+var QC_REGISTER_URL = 'https://yow5cuygtx.feishu.cn/wiki/RIogwW6NIi95CNkl2ZRcwvF4nVh?sheet=47e42c';
+function openQcRegister() {
+  if (!isQcRole()) { showToast('⛔ 质检登记仅组长 / 管理员可用'); return; }
+  window.open(QC_REGISTER_URL, '_blank', 'noopener');
+}
+window.openQcRegister = openQcRegister;
+window.QC_REGISTER_URL = QC_REGISTER_URL;
 
 // ==================== DIOPTER CONVERTER (Full) ====================
 let currentBrand = '弥生';

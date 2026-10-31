@@ -26,6 +26,8 @@ const RECS = (() => {
     const d = new Date(today); d.setDate(today.getDate() - (i % 21));
     const staff = STAFF[i % STAFF.length === 0 ? 1 : i % STAFF.length];
     const sev = SEVS[i % 3 === 0 ? 0 : (i % 5 === 0 ? 2 : 1)];
+    // 造出「严重问题但还没定扣罚」的记录（金额 0），用于验证待定扣罚提示条
+    const pendingNoMoney = sev !== '一般提醒' && i % 7 === 0;
     out.push({
       id: 'rec' + i,
       qc_date: d.toISOString().slice(0, 10),
@@ -33,7 +35,7 @@ const RECS = (() => {
       qc_name: i % 2 ? '杨茹' : '小雷',
       issue_type: TYPES[i % TYPES.length],
       severity: sev,
-      amount: sev === '一般提醒' ? 0 : AMTS[(i % 4) + 2],
+      amount: (sev === '一般提醒' || pendingNoMoney) ? 0 : AMTS[(i % 4) + 2],
       detail: ['回复客户时用了"应该可以"等不确定表述', '首响超过 30 秒未回复', '未按话术确认度数', '漏发注意事项', '客户催单未及时安抚', '承诺了无法保证的发货时效'][i % 6],
       note: i % 4 === 0 ? '已当面提醒' : null
     });
@@ -108,6 +110,9 @@ async function run(browser, role, name) {
       detailRows: document.querySelectorAll('#panel-detail table.tb tbody tr').length,
       mineRows: document.querySelectorAll('#panel-mine table.tb tbody tr').length,
       mineShown: document.getElementById('panel-mine').style.display !== 'none',
+      registerBtn: document.getElementById('btnRegister').style.display !== 'none',
+      pendingShown: document.getElementById('pendingBox').style.display !== 'none',
+      pendingText: (document.getElementById('pendingBox').innerText || '').replace(/\s+/g, ' ').trim().slice(0, 60),
       setupMask: document.getElementById('setupMask').classList.contains('show')
     };
   });
@@ -154,6 +159,9 @@ async function run(browser, role, name) {
     admin_detail_all: admin.st.detailRows === RECS.length,
     staff_no_tabs: staff.st.tabsShown === false,
     staff_only_mine: staff.st.mineShown === true && staff.st.mineRows === mineCount,
+    admin_register_btn: admin.st.registerBtn === true,
+    admin_pending_notice: admin.st.pendingShown === true && /还没定扣罚/.test(admin.st.pendingText),
+    staff_no_register_btn: staff.st.registerBtn === false && staff.st.pendingShown === false,
     no_mask: !admin.st.setupMask && !staff.st.setupMask,
     no_page_errors: admin.errs.concat(staff.errs).length === 0
   };
