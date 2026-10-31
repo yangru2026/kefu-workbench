@@ -75,7 +75,7 @@ const json = o => ({ status: 200, contentType: 'application/json', headers: { 'A
       allVisible: gs.every(g => g.querySelector('.nav-group-body').style.display !== 'none')
     };
   });
-  const c1 = s1.groups === 3 && s1.names.join(',') === '客服常用,常用资料,管理' && s1.counts.join(',') === '15,9,3';
+  const c1 = s1.groups === 4 && s1.names.join(',') === '客服常用,质检,常用资料,管理' && s1.counts.join(',') === '13,2,9,3';
 
   // 2) 卡片样式
   const c2 = await page.evaluate(() => {
