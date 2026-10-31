@@ -124,7 +124,7 @@
   }
 
   // xlsx：本地 vendor → 国内镜像(npmmirror) → fastly/jsdelivr → unpkg
-  (function loadXlsx(i) {
+  function loadXlsx(i) {
     var urls = [
       'vendor/xlsx.full.min.js?v=2',
       'https://registry.npmmirror.com/xlsx/0.18.5/files/dist/xlsx.full.min.js',
@@ -143,7 +143,13 @@
       if (err) console.warn('xlsx 加载失败，尝试下一个源:', urls[i], err.message);
       setTimeout(function () { loadXlsx(i + 1); }, 300);
     }, LIB_TIMEOUT);
-  })(0);
+  }
+  // 2026-10-31 性能改造：xlsx 有 861KB，原来一进页面就抢首屏带宽 → 改为首屏之后、浏览器空闲时
+  // 再背景预热；导出 Excel 时若还没到就直接按需加载（exportXxx 里有 window.XLSX 判空提示）。
+  setTimeout(function () {
+    if (window.requestIdleCallback) window.requestIdleCallback(function () { loadXlsx(0); });
+    else loadXlsx(0);
+  }, 6000);
   function loadXlsxLocal() {
     if (window.XLSX) return;
     loadScript('vendor/xlsx.full.min.js?v=2&r=' + Date.now(), function () {}, LIB_TIMEOUT);
@@ -16006,6 +16012,32 @@ async function init() {
 }
 
 init();
+
+// ==================== 2026-10-31 性能：子页预热 ====================
+// 各子页面是 iframe 懒加载（首次点开才去境外 GitHub Pages 拉 HTML+JS，所以要等）。
+// 这里在首屏稳定后、浏览器空闲时，把常用子页预取进 Service Worker 缓存 → 之后点开就是秒开。
+function prefetchSubPages() {
+  try {
+    if (navigator.connection && navigator.connection.saveData) return;
+    var want = ['restock', 'huaming', 'qc', 'gift', 'diversion'];
+    var urls = [];
+    want.forEach(function (key) {
+      var f = document.getElementById(key + '-iframe');
+      var u = f && f.getAttribute('data-src');
+      if (u && u !== 'about:blank') urls.push(u);
+    });
+    urls.forEach(function (u, i) {
+      setTimeout(function () { fetch(u, { credentials: 'same-origin' }).catch(function () {}); }, i * 700);
+    });
+  } catch (e) {}
+}
+window.addEventListener('load', function () {
+  var run = function () { prefetchSubPages(); };
+  setTimeout(function () {
+    if (window.requestIdleCallback) { try { requestIdleCallback(run, { timeout: 5000 }); return; } catch (e) {} }
+    run();
+  }, 2500);
+});
 </script>
 
 <!-- ==================== 成员管理：邀请 / 角色组别 / 清退恢复 ==================== -->
