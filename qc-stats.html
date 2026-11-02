@@ -479,7 +479,9 @@ function renderDetail(){
         + '<td>'+esc(r.issue_type||'-')+'</td>'
         + '<td><span class="sev '+(SEV_CLASS[r.severity]||'s1')+'">'+esc(r.severity||'-')+'</span></td>'
         + '<td class="amt">'+(Number(r.amount)?('¥'+fmtMoney(r.amount)):'-')+'</td>'
-        + '<td class="det">'+esc(r.detail||'')+(r.note?'<br><span style="color:#94a3b8;">备注：'+esc(r.note)+'</span>':'')+'</td>'
+        + '<td class="det">'+esc(r.detail||'')+(r.note?'<br><span style="color:#94a3b8;">备注：'+esc(r.note)+'</span>':'')
+          +(custId(r)?'<br><span style="color:#64748b;font-size:11.5px;">客户ID：<code style="background:#f1f5f9;padding:1px 6px;border-radius:5px;font-family:ui-monospace,Consolas,monospace;">'+esc(custId(r))+'</code>'
+            +' <a href="javascript:void(0)" onclick="copyCustId(\''+esc(r.id)+'\')" style="color:#047857;font-size:11.5px;">复制</a></span>':'')+'</td>'
         + '<td class="det">'+(String(r.guidance||'').trim() ? '<span class="gd adm">'+esc(r.guidance)+'</span>' : '<span style="color:#cbd5e1;">—</span>')+'</td>'
         + '<td>'+evCell(r)+'</td>'
         + '<td>'+esc(r.qc_name||'-')+'</td>'
@@ -561,6 +563,7 @@ function mineRow(r){
   return head + '<tr><td colspan="6" style="padding:0 10px 12px;background:#f8fbff;">'
     + '<div style="border:1px solid #e2e8f0;border-radius:9px;padding:10px 12px;background:#fff;">'
     + '<div style="font-size:12.5px;color:#475569;line-height:1.65;">' + esc(r.detail || '（无描述）') + '</div>'
+    + custIdBlock(r)
     + guidanceBlock(r)
     + (String(r.evidence || '').trim() ? '<div style="margin-top:8px;font-size:11.5px;color:#64748b;">证据截图：' + evCell(r) + '（点开看当时的聊天记录）</div>' : '')
     + (r.note ? '<div style="margin-top:7px;font-size:11.5px;color:#94a3b8;">备注：' + esc(r.note) + '</div>' : '')
@@ -612,6 +615,44 @@ function guidanceBlock(r){
   if (!g) return '';
   return '<div class="gd"><span>✔ 正确做法</span>' + esc(g) + '</div>';
 }
+
+/* 2026-11-02 新增：客户ID（存于飞书原始行 raw['客户ID']）→ 客服复制去前端查完整聊天记录 */
+function custId(r){
+  const raw = r && r.raw;
+  if (!raw) return '';
+  const v = raw['客户ID'] || raw['客户Id'] || raw['买家ID'] || raw['customer_id'] || '';
+  return String(v || '').trim();
+}
+function copyCustId(id){
+  const r = rows.find(x => x.id === id);
+  const v = custId(r);
+  if (!v){ toast('这条记录没有客户ID'); return; }
+  const done = () => toast('✅ 已复制 ' + v + '，去前端粘贴查聊天记录');
+  const fail = () => toast('复制失败，请手动长按选择复制');
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(v).then(done).catch(() => fallbackCopy(v, done, fail));
+  } else fallbackCopy(v, done, fail);
+}
+function fallbackCopy(text, done, fail){
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    ok ? done() : fail();
+  }catch(e){ fail(); }
+}
+window.copyCustId = copyCustId;
+function custIdBlock(r){
+  const v = custId(r);
+  if (!v) return '';
+  return '<div style="margin-top:8px;font-size:12px;color:#334155;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+    + '<span>客户ID：</span>'
+    + '<code style="background:#f1f5f9;border:1px solid #e2e8f0;padding:2px 9px;border-radius:6px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;">' + esc(v) + '</code>'
+    + '<button onclick="copyCustId(\'' + esc(r.id) + '\')" style="border:1px solid #10b981;background:#ecfdf5;color:#047857;border-radius:6px;padding:3px 11px;font-size:11.5px;cursor:pointer;">📋 复制去前端查聊天</button>'
+    + '</div>';
+}
 function confirmCell(r){
   if (r.staff_confirmed_at){
     const d = String(r.staff_confirmed_at).slice(5, 10);
@@ -628,9 +669,9 @@ function emptyBox(msg){
 function exportCsv(){
   const list = filteredDetail();
   if (!list.length){ toast('没有可导出的记录'); return; }
-  const head = ['日期','客服','问题类型','严重度','扣罚金额','问题描述','备注','证据链接','质检人'];
+  const head = ['日期','客服','问题类型','严重度','扣罚金额','客户ID','问题描述','备注','证据链接','质检人'];
   const esc2 = v => { const s = (v==null?'':String(v)); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
-  const lines = [head.join(',')].concat(list.map(r => [r.qc_date,r.staff_name,r.issue_type,r.severity,r.amount,r.detail,r.note,(evUrls(r).concat(evHasAttach(r)?['附件']:[])).join(' '),r.qc_name].map(esc2).join(',')));
+  const lines = [head.join(',')].concat(list.map(r => [r.qc_date,r.staff_name,r.issue_type,r.severity,r.amount,custId(r),r.detail,r.note,(evUrls(r).concat(evHasAttach(r)?['附件']:[])).join(' '),r.qc_name].map(esc2).join(',')));
   const blob = new Blob(['\ufeff'+lines.join('\r\n')], { type:'text/csv;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
