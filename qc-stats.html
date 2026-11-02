@@ -145,6 +145,7 @@
   <h1>🧪 质检统计</h1>
   <span class="badge" id="roleBadge">加载中…</span>
   <button class="btn o" id="btnRegister" style="display:none;">📝 去飞书登记</button>
+  <button class="btn o" id="btnSync" style="display:none;" title="把飞书登记表拉进工作台（幂等，重复点没关系）">⟳ 同步飞书</button>
   <div class="sp"></div>
   <div class="range">
     <select id="rangeSel">
@@ -246,7 +247,7 @@ function qcTimeout(p, ms, tag){
     $('roleBadge').className = 'badge' + (isMgr ? '' : ' own');
     $('roleBadge').textContent = me.role === 'admin' ? '👑 管理员 · 全员统计'
       : me.role === 'leader' ? '🛡️ 组长 · 全员统计' : '🙋 ' + (me.name || '我') + ' · 我的质检';
-    if (isMgr){ $('tabs').style.display = ''; $('btnRegister').style.display = ''; }
+    if (isMgr){ $('tabs').style.display = ''; $('btnRegister').style.display = ''; $('btnSync').style.display = ''; }
     await load();
   }catch(e){
     console.warn(e); toast('初始化失败，请刷新重试');
@@ -652,6 +653,32 @@ $('dFrom').addEventListener('change', load);
 $('dTo').addEventListener('change', load);
 $('btnRefresh').addEventListener('click', load);
 $('btnRegister').addEventListener('click', () => window.open(REGISTER_URL, '_blank', 'noopener'));
+
+/* 2026-11-02 新增：手动触发一次飞书同步（走 qc-sync Edge Function，管理员 JWT 鉴权）
+   飞书登记完点一下即可进工作台；只更新有变化的部分，重复点没有副作用 */
+async function syncNow(){
+  const b = $('btnSync');
+  b.disabled = true; b.textContent = '⟳ 同步中…';
+  try{
+    const r = await fetch(SUPABASE_URL + '/functions/v1/qc-sync', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + accessToken },
+    });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.ok) {
+      toast('✅ 已同步 ' + (j.saved ?? 0) + ' 条（飞书共 ' + (j.fetched ?? 0) + ' 条）');
+      await load();
+    } else {
+      toast('⚠️ 同步失败：' + (j.error || ('HTTP ' + r.status)));
+      console.warn('qc-sync', r.status, j);
+    }
+  }catch(e){
+    toast('⚠️ 同步失败：' + e.message);
+  }finally{
+    b.disabled = false; b.textContent = '⟳ 同步飞书';
+  }
+}
+$('btnSync').addEventListener('click', syncNow);
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
   tab = b.dataset.tab;
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b));

@@ -199,7 +199,11 @@ Deno.serve(async (req: Request) => {
     }
 
     const evKeys = F.evidence_url;
-    const mapped = all.map((it) => mapRecord(it, attachField, evKeys)).filter((r) => r.id);
+    // 过滤飞书表下方预留的空白行（2026-11-02 实测：有只填日期的、也有全空的）：
+    // 一条真质检必然有「被质检客服」或「问题描述」之一，只填日期的不算
+    const mapped = all
+      .map((it) => mapRecord(it, attachField, evKeys))
+      .filter((r) => r.id && (r.staff_name || r.detail || r.issue_type));
 
     if (dry) {
       return json({
