@@ -10349,6 +10349,22 @@ let qcReportPhoneMap = {};  // phone -> profile（质检人手机号反查姓名
 let qcReportTimer = null;      // 30s 自动刷新定时器
 let qcReportLastUpdated = '';  // 上次更新时间
 
+/* 2026-11-02 修：表已改成飞书同步口径（qc_date / staff_name / qc_name / amount / staff_confirmed_at），
+   本页下游渲染与 Excel 导出仍按老字段名（date / staff / created_by / penalty_amount / status）写，
+   在这里一次性把新口径映射成老字段名，下游一行不用改、也不会再报 column "date" does not exist。 */
+function qcNormalizeRow(r) {
+  if (!r) return r;
+  const done = !!r.staff_confirmed_at || r.status === 'done';
+  return Object.assign({}, r, {
+    date: r.qc_date || r.date || '',
+    staff: r.staff_name || r.staff || '',
+    created_by: r.qc_name || r.created_by || '',
+    penalty_amount: (r.amount != null && r.amount !== '') ? Number(r.amount)
+      : (Number(r.penalty_amount) || 0),
+    status: done ? 'done' : 'pending',
+  });
+}
+
 function qcFmtDate(d) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -10421,9 +10437,9 @@ async function loadQcReportMonthOptions() {
   const thisYm = qcMonthStr(now);
   let firstYm = thisYm;
   try {
-    const { data } = await supabase.from('qc_records').select('date')
-      .order('date', { ascending: true }).limit(1);
-    if (data && data[0] && data[0].date) firstYm = String(data[0].date).slice(0, 7);
+    const { data } = await supabase.from('qc_records').select('qc_date')
+      .order('qc_date', { ascending: true }).limit(1);
+    if (data && data[0] && data[0].qc_date) firstYm = String(data[0].qc_date).slice(0, 7);
   } catch (e) {}
   if (firstYm > thisYm) firstYm = thisYm;
   const months = qcMonthList(firstYm, thisYm);
@@ -10486,11 +10502,11 @@ async function loadQcReport(silent) {
   const { data, error } = await supabase
     .from('qc_records')
     .select('*')
-    .gte('date', start)
-    .lte('date', end)
-    .order('date', { ascending: false });
+    .gte('qc_date', start)
+    .lte('qc_date', end)
+    .order('qc_date', { ascending: false });
   if (error) { if (!silent) showToast('⚠️ 加载失败：' + error.message); return; }
-  qcReportData = data || [];
+  qcReportData = (data || []).map(qcNormalizeRow);
   renderQcReport();
   renderQcRangeHint();
   // 更新「上次更新」时间
@@ -16069,11 +16085,11 @@ async function sweepQcShareAutoConfirm() {
         .insert({ user_id: uid, title: title, content: content, type: 'qc_confirm', is_read: false });
     };
     const markCoached = async (s) => {
-      const ids = (s.record_ids || []).map(Number).filter(n => !isNaN(n));
+      // 新表 id 是飞书 record_id（text），不能 Number 化；确认状态字段也换成 staff_confirmed_at
+      const ids = (s.record_ids || []).map(String).filter(Boolean);
       if (!ids.length) return;
-      const d = new Date(), p = n => String(n).padStart(2, '0');
       await supabase.from('qc_records')
-        .update({ status: 'done', coach_date: d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) })
+        .update({ staff_confirmed_at: new Date().toISOString() })
         .in('id', ids);
     };
     const fmtLeft = (ms) => {
