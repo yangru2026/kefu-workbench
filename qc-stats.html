@@ -448,7 +448,8 @@ function evCell(r){
   }
   if (evHasAttach(r)){
     const id = r.feishu_record_id || r.id || '';
-    return '<a class="ev" href="'+EVIDENCE_PROXY+'?id='+encodeURIComponent(id)
+    // 2026-11-02：改开同域查看器 qc-view.html（网关禁止 Edge Function 返回 HTML，查看器放工作台域名下）
+    return '<a class="ev" href="qc-view.html?id='+encodeURIComponent(id)
       + '&t=' + encodeURIComponent(accessToken)
       + '" target="_blank" rel="noopener noreferrer" title="在新窗口打开截图">图 查看</a>';
   }

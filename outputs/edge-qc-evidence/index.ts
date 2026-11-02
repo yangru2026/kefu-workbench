@@ -13,6 +13,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const FEISHU = 'https://open.feishu.cn/open-apis';
 
+const json = (b: unknown, s = 200) =>
+  new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
+
 function page(title: string, msg: string, status = 400) {
   const html = `<!doctype html><meta charset="utf-8">
 <div style="font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;max-width:520px;margin:56px auto;padding:0 20px;color:#0f172a;">
@@ -113,52 +116,23 @@ Deno.serve(async (req: Request) => {
       return page('飞书取图失败', '换临时直链没成功：' + why + '（多为应用缺云文档读权限，需加 drive:drive:readonly）。', 502);
     }
 
-    // 2026-11-02 v8：不直接输出图片 —— 长截图缩到一屏字太小且浏览器自带查看器不能缩放。
-    // 返回一个轻量查看器页：滚轮缩放 / 点图切换 原图100%⇄适应窗口 / 顶栏 ± 按钮 / 下载。
-    // 图片本体由浏览器直接加载飞书签名直链（服务端刚换的，无需再代理一遍，省边缘流量）。
-    const escAttr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const name = (att.name || '质检截图').replace(/[<>"'\\]/g, '');
-    const viewer = `<!doctype html><html lang="zh"><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escAttr(name)} · 质检截图</title>
-<style>
-html,body{margin:0;height:100%;background:#1b2230;overflow:hidden}
-#bar{position:fixed;top:0;left:0;right:0;z-index:9;display:flex;gap:8px;align-items:center;
- padding:8px 14px;background:#111827e6;color:#e5e7eb;font:13px/1 system-ui,'PingFang SC','Microsoft YaHei',sans-serif}
-#bar b{margin-right:4px;max-width:30vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#bar button,#bar a button{background:#374151;color:#fff;border:0;border-radius:6px;padding:5px 12px;
- font-size:13px;cursor:pointer}#bar button:hover{background:#4b5563}
-#pct{min-width:70px;text-align:center;color:#9ca3af}
-#tip{margin-left:auto;color:#6b7280;font-size:12px}
-#wrap{height:100%;overflow:auto;display:flex;justify-content:center;padding:46px 10px 20px;box-sizing:border-box}
-#im{cursor:zoom-in;transform-origin:top center;border-radius:4px;box-shadow:0 4px 24px #0008}
-#im.at{cursor:zoom-out}
-</style>
-<div id="bar"><b>${escAttr(name)}</b>
- <button onclick="fit()">适应窗口</button>
- <button onclick="set(z*1.25 || 1.25)">放大 ＋</button>
- <button onclick="set(z/1.25 || 0.8)">缩小 －</button>
- <span id="pct"></span>
- <a href="${escAttr(link)}" download="${escAttr(name)}"><button>下载原图</button></a>
- <span id="tip">滚轮缩放 · 点图片在 原图100% / 适应窗口 间切换</span>
-</div>
-<div id="wrap"><img id="im" src="${escAttr(link)}" alt="质检截图"></div>
-<script>
-var z=0,im=document.getElementById('im'),wrap=document.getElementById('wrap'),pct=document.getElementById('pct');
-function apply(){
- if(z===0){im.style.width='';im.style.maxWidth='100%';im.style.height='auto';pct.textContent='适应窗口';im.classList.remove('at');}
- else{im.style.maxWidth='none';im.style.width=Math.round(im.naturalWidth*z)+'px';im.style.height='auto';
-  pct.textContent=Math.round(z*100)+'%';im.classList.toggle('at',z>=1);}
-}
-function set(v){z=Math.min(6,Math.max(0.15,v));apply();}
-function fit(){z=0;apply();}
-im.onload=apply;
-wrap.onwheel=function(e){e.preventDefault();set(z===0?(e.deltaY<0?1:0.8):z*(e.deltaY<0?1.25:0.8));};
-im.onclick=function(){if(z===0)set(1);else if(z>=1)fit();else set(1);};
-<\/script>`;
-    return new Response(viewer, {
+    // 2026-11-02 v9：Supabase 网关会把 Edge Function 返回的 HTML 强制降级为 text/plain + sandbox
+    // （防钓鱼页托管），所以查看器网页不能由函数输出 —— 已搬到工作台同域的 qc-view.html：
+    //   ?json=1 → 返回 {ok,url,name} 给 qc-view.html 用（application/json 网关不管）
+    //   默认    → 后端取回图片字节、以 image/* 内联输出（浏览器直接导航也能显示）
+    if (url.searchParams.get('json') === '1') {
+      return json({ ok: true, url: link, name: att.name || '质检截图' });
+    }
+    const upstream = await fetch(link);
+    if (!upstream.ok || !upstream.body) {
+      return page('飞书取图失败', '下载截图没成功：HTTP ' + upstream.status, 502);
+    }
+    return new Response(upstream.body, {
       status: 200,
-      headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+      headers: {
+        'Content-Type': upstream.headers.get('content-type') || 'image/png',
+        'Cache-Control': 'private, max-age=600',
+      },
     });
   } catch (e) {
     return page('出错了', String((e as Error)?.message || e), 500);
