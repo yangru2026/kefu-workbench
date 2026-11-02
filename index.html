@@ -1977,6 +1977,31 @@ body {
 .rk-tgt-name { font-weight:600; }
 .rk-target-na { padding:8px 16px 12px; font-size:11px; color:var(--text-secondary); }
 @media (max-width:720px) { .rk-target-tr { font-size:12px; padding:6px 4px; gap:2px; } }
+/* ★ 个人达标分析（2026-11-02）：缺口榜 + 单人诊断卡 */
+.rk-target-tr.rk-pt { grid-template-columns:1.1fr 1.5fr 1fr 1.5fr 1fr 1.4fr; cursor:pointer; }
+.rk-target-tr.rk-pt:hover { background:#f0fdf8; }
+.rk-target-tr .rk-tgt-worst { font-size:11px; color:var(--text-secondary); }
+.rk-pbar { display:inline-block; width:100%; height:10px; background:#eef1f0; border-radius:6px; overflow:hidden; vertical-align:middle; }
+.rk-pbar i { display:block; height:100%; border-radius:6px; background:linear-gradient(90deg,#34d399,#10b981); transition:width .3s; }
+.rk-pbar i.bad { background:linear-gradient(90deg,#fbbf24,#ef4444); }
+.rk-pbar i.ok { background:linear-gradient(90deg,#34d399,#10b981); }
+.rk-person-target { margin:8px 10px 4px; padding:12px 14px; border:1px solid var(--border); border-radius:12px; background:#fbfefc; }
+.rk-pt-head { font-size:15px; font-weight:700; color:var(--text); display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
+.rk-pt-head .rk-sub { font-size:11px; font-weight:400; color:var(--text-secondary); }
+.rk-pt-row { display:grid; grid-template-columns:52px 1fr 110px 150px; align-items:center; gap:10px; padding:6px 0; font-size:13px; }
+.rk-pt-k { font-weight:600; color:var(--text); }
+.rk-pt-v i { font-style:normal; font-size:11px; color:var(--text-secondary); margin-left:2px; }
+.rk-pt-gap { text-align:right; font-size:13px; }
+.rk-pt-shops { margin-top:8px; border-top:1px dashed var(--border); padding-top:6px; }
+.rk-pt-shop { display:grid; grid-template-columns:1.2fr 1.4fr 1.4fr 1fr 1.2fr 1fr; align-items:center; gap:6px; padding:6px 2px; font-size:12px; border-bottom:1px dashed var(--border); }
+.rk-pt-shop:last-child { border-bottom:none; }
+.rk-pt-shop span i { font-style:normal; font-size:10px; color:var(--text-secondary); margin-left:2px; }
+.rk-pt-diag { margin-top:8px; padding:8px 12px; font-size:12px; color:var(--text); background:#fffbeb; border-radius:9px; border-left:3px solid #f59e0b; }
+.rk-pt-diag.ok { background:#f0fdf8; border-left-color:#10b981; }
+.rk-target-details { padding:6px 16px 12px; }
+.rk-target-details summary { font-size:12px; color:var(--text-secondary); cursor:pointer; user-select:none; padding:4px 0; }
+.rk-target-details summary:hover { color:var(--primary); }
+.rk-target-details[open] summary { margin-bottom:4px; }
 .rk-target-mask { position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px; }
 .rk-target-modal { background:#fff; border-radius:14px; width:min(560px,94vw); max-height:86vh; display:flex; flex-direction:column; overflow:hidden; }
 .rk-target-modal-head { display:flex; align-items:center; gap:8px; padding:14px 16px; font-size:15px; font-weight:700; border-bottom:1px solid var(--border); }
@@ -3808,9 +3833,6 @@ body {
 
     <div class="rk-meta" id="rk-meta"></div>
 
-    <!-- ★ 达标分析（2026-10-31）：各店/合计「还差几单达标」 -->
-    <div id="rk-targets"></div>
-
     <!-- ★ 图形化卡片磁贴区：一块一指标（用户 2026-09-23）—— 排名主视图 -->
     <div id="rk-tiles"></div>
 
@@ -3819,6 +3841,9 @@ body {
       <button class="rk-tool-btn" onclick="rkToggleAllShops(true)">▾ 展开全部店铺</button>
       <button class="rk-tool-btn" onclick="rkToggleAllShops(false)">▸ 收起全部店铺</button>
     </div>
+
+    <!-- ★ 个人达标分析（2026-11-02）：排名/数据在最上，个人「还差几单达标」分析在下面 -->
+    <div id="rk-targets"></div>
 
     <!-- 第八轮起停用：顶部冠军卡区（已并入磁贴） -->
     <div class="rk-cards" id="rk-cards" style="display:none;"></div>
@@ -6171,12 +6196,13 @@ function rkCurrentRows() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ★ 2026-10-31 达标分析：各店/合计「还差几个付款→转化率达标」「还差几个好评→满意度达标」
-//   口径（茹姐 2026-10-31 定）：
+// ★ 2026-10-31 达标分析 → 2026-11-02 重做为「个人达标分析」（茹姐：排名主要激励客服，
+//   客服个人看自己还差多少；排名/数据在最上，分析在下面）
+//   口径：
 //   · 时间 = 当月累计（ranking_daily 按 work_date 前缀归月求和）
-//   · 目标存 shop_targets 表（转化率预填复盘模板 9 月值；满意度全店统一 98%）
-//   · 考核店 12 家 + 全渠道合计行；其余店不考核
-//   · 管理员可在页面直接改目标（每月换目标不用改代码）
+//   · 个人转化目标 = 其所接各店的 shop_targets 转化率目标按询单加权；满意度统一 98%
+//   · 单人视图出诊断卡（进度条+分店明细+主因/对策）；排名视图出全组缺口榜（越接近达标越靠前）
+//   · 店铺达标总览折叠在底部；管理员可在页面直接改目标（每月换目标不用改代码）
 // ═══════════════════════════════════════════════════════════════
 let rkTargets = null;          // {店名: {shop_name,conv_target,sat_target,assessed,sort_order}}
 let rkTargetsTried = false;    // 只拉一次，失败就用内置兜底
@@ -6242,38 +6268,215 @@ function rkTargetStats(month) {
   return map;
 }
 
+// ── 当月累计 + 本组 + 排除支援号 的原始行（个人达标分析统一数据源）──
+function rkTargetMonthRows() {
+  const mono = rkDate ? String(rkDate).slice(0, 7) : rkMonthOf(rkAllRows);
+  let rows = rkAllRows.filter(function(r){ return String(r.work_date || '').slice(0, 7) === mono; });
+  rows = rows.filter(function(r){ return !RK_EXCLUDE_STAFF.some(function(x){
+    return x.group === r.group_name && x.name === String(r.staff_name || '').trim(); }); });
+  if (rkGroup) rows = rows.filter(function(r){ return r.group_name === rkGroup; });
+  return rows;
+}
+// 某店的转化率目标（0 = 不考核）
+function rkTargetOf(shop) {
+  const T = rkTargets || RK_TARGET_DEFAULTS;
+  const t = T[shop];
+  return (t && t.conv_target > 0) ? t.conv_target : 0;
+}
+
+// 个人 × 店铺聚合（当月累计）：每人还差几付款/几条好评
+function rkPersonShopAgg(rows) {
+  const map = new Map();          // 人||店 → 明细
+  rows.forEach(function(r){
+    const p = String(r.staff_name || '').trim() || '(未署名)', sh = r.shop_name || '(未分店)';
+    const k = p + '||' + sh;
+    if (!map.has(k)) map.set(k, { name: p, shop: sh, inq: 0, pay: 0, g: 0, b: 0 });
+    const o = map.get(k);
+    o.inq += Number(r.inquiry) || 0;
+    o.pay += Number(r.payment) || 0;
+    const g = rkNum(r.good_reviews), b = rkNum(r.bad_reviews);
+    if (!isNaN(g)) o.g += g;
+    if (!isNaN(b)) o.b += b;
+  });
+  const byP = new Map();          // 人 → 汇总
+  map.forEach(function(o){
+    if (!byP.has(o.name)) byP.set(o.name, { name: o.name, shops: [], inq: 0, pay: 0, g: 0, b: 0, tW: 0, tN: 0 });
+    const p = byP.get(o.name);
+    o.hasReview = (o.g + o.b) > 0;
+    p.shops.push(o);
+    p.inq += o.inq; p.pay += o.pay; p.g += o.g; p.b += o.b;
+    const t = rkTargetOf(o.shop);
+    if (t > 0) { p.tW += t * o.inq; p.tN += o.inq; }   // 加权目标：按询单占比折算
+  });
+  byP.forEach(function(p){
+    p.convT = p.tN > 0 ? p.tW / p.tN : null;
+    p.satT = 0.98;
+    p.conv = p.inq > 0 ? p.pay / p.inq : null;
+    p.sat = (p.g + p.b) > 0 ? p.g / (p.g + p.b) : null;
+    p.convGap = rkConvGap(p.pay, p.inq, p.convT);
+    p.satGap = rkSatGap(p.g, p.b, p.satT);
+    // 主因：还差付款最多的店
+    let worst = null;
+    p.shops.forEach(function(o){
+      const cg = rkConvGap(o.pay, o.inq, rkTargetOf(o.shop));
+      if (cg && cg.need > 0 && (!worst || cg.need > worst.need)) worst = { shop: o.shop, need: cg.need };
+    });
+    p.worst = worst;
+  });
+  return Array.from(byP.values());
+}
+
+// 激励排序：两项都达标的排最前，其余按「还差付款」升序（越接近达标越靠前）
+function rkGapRank(p) {
+  const cOk = !!(p.convGap && p.convGap.ok);
+  const sOk = !!(p.satGap && (p.satGap.ok || p.satGap.noReview));
+  const need = (p.convGap && p.convGap.need) || 0;
+  return ((cOk && sOk) ? 0 : 1e9) + need;
+}
+
+// 进度条（v/目标，封顶 100%）
+function rkPbar(v, target, cls) {
+  const ratio = (target > 0 && isFinite(v)) ? Math.max(0, Math.min(1, v / target)) : 0;
+  return '<span class="rk-pbar"><i class="' + (cls || '') + '" style="width:' + Math.round(ratio * 100) + '%"></i></span>';
+}
+
 function rkRenderTargets() {
   const el = document.getElementById('rk-targets');
   if (!el || !rkAllRows.length) return;
   const T = rkTargetsGet() || RK_TARGET_DEFAULTS;
   const month = rkDate ? String(rkDate).slice(0, 7) : rkMonthOf(rkAllRows);
   if (!month) { el.innerHTML = ''; return; }
-  const stats = rkTargetStats(month);
+  const people = rkPersonShopAgg(rkTargetMonthRows());
+  const adminBtn = isFullAdmin()
+    ? '<button class="rk-tgt-edit" onclick="rkTargetEditOpen()">⚙ 目标设置</button>' : '';
 
-  // 合计行（全渠道）：全部店铺合计
+  let html = '<div class="rk-target-box">' +
+    '<div class="rk-target-head">🎯 个人达标分析（' + month.replace('-', '/') + ' 月累计 · 数据截至 ' + rkDateFmt(rkDate) +
+      '）<span class="rk-sub">转化目标 = 所接各店目标按询单加权 · 满意度统一 98% · 点客服名看单人明细</span>' + adminBtn + '</div>';
+
+  // 单人视图：重点诊断卡（进度条 + 分店明细 + 主因/对策）
+  const one = (rkGroupBy === 'person' && rkPersonFocus) ? people.filter(function(p){ return p.name === rkPersonFocus; }) : [];
+  if (one.length) html += rkPersonDetailHTML(one[0]);
+
+  // 全组缺口榜：一人一行（越接近达标越靠前，激励用）
+  if (people.length) {
+    html += '<div class="rk-target-table">' +
+      '<div class="rk-target-tr rk-target-th rk-pt"><span>客服</span><span>转化率</span><span>还差付款</span><span>满意度</span><span>还差好评</span><span>主因店铺</span></div>';
+    people.slice().sort(function(a, b){ return rkGapRank(a) - rkGapRank(b); })
+      .forEach(function(p){ html += rkPersonRowHTML(p); });
+    html += '</div>';
+  } else {
+    html += '<div class="rk-target-na">本月本组还没有排名数据。</div>';
+  }
+
+  // 店铺达标总览（管理员视角，折叠收起）
+  html += '<details class="rk-target-details"><summary>🏪 店铺达标总览（各店还差几单，点开看）</summary>' +
+    rkShopOverviewHTML(month, T) + '</details>';
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// 一人一行（缺口榜）
+function rkPersonRowHTML(p) {
+  const convCell = p.convGap
+    ? (p.convGap.ok ? '<b class="ok">达标' + (p.convGap.extra > 0 ? ' +' + p.convGap.extra : '') + '</b>'
+                    : '<b class="no">' + p.convGap.need + ' 单</b>')
+    : '<b class="na">—</b>';
+  const satCell = p.satGap
+    ? (p.satGap.noReview ? '<b class="na">无评价</b>'
+        : (p.satGap.ok ? '<b class="ok">达标' + (p.satGap.extra > 0 ? ' +' + p.satGap.extra : '') + '</b>'
+                       : '<b class="no">' + p.satGap.need + ' 条</b>'))
+    : '<b class="na">—</b>';
+  const safeName = String(p.name).replace(/'/g, "\\'");
+  return '<div class="rk-target-tr rk-pt" onclick="rkPickPerson(\'' + safeName + '\')" title="点名字看单人达标明细">' +
+    '<span class="rk-tgt-name">' + rkEsc(p.name) + '</span>' +
+    '<span>' + (p.conv === null ? '—' : (p.conv * 100).toFixed(1) + '%') +
+      '<i>/ ' + (p.convT ? (p.convT * 100).toFixed(0) + '%' : '不考核') + '</i></span>' +
+    '<span>' + convCell + '</span>' +
+    '<span>' + (p.sat === null ? '—' : (p.sat * 100).toFixed(1) + '%') + '<i>/ 98%</i></span>' +
+    '<span>' + satCell + '</span>' +
+    '<span class="rk-tgt-worst">' + (p.worst ? rkEsc(p.worst.shop) + ' 差' + p.worst.need + ' 单' : '—') + '</span>' +
+  '</div>';
+}
+
+// 单人诊断卡：进度条 + 分店明细 + 主因/对策（参照茹姐 2026-11-02 截图样式）
+function rkPersonDetailHTML(p) {
+  const convCls = (p.convGap && p.convGap.ok) ? 'ok' : 'bad';
+  const satCls = (p.satGap && p.satGap.ok) ? 'ok' : 'bad';
+  let html = '<div class="rk-person-target">' +
+    '<div class="rk-pt-head">👤 ' + rkEsc(p.name) +
+      '<span class="rk-sub">本月累计 询单 ' + Math.round(p.inq) + ' · 付款 ' + Math.round(p.pay) +
+      ' · 转化率 ' + (p.conv === null ? '—' : (p.conv * 100).toFixed(1) + '%') +
+      ' · 满意度 ' + (p.sat === null ? '—' : (p.sat * 100).toFixed(1) + '%') + '</span></div>';
+  // 转化率
+  html += '<div class="rk-pt-row"><span class="rk-pt-k">转化率</span>' +
+    '<span class="rk-pt-bar">' + rkPbar(p.conv, p.convT, convCls) + '</span>' +
+    '<span class="rk-pt-v">' + (p.conv === null ? '—' : (p.conv * 100).toFixed(1) + '%') +
+      '<i>/ ' + (p.convT ? (p.convT * 100).toFixed(0) + '%' : '不考核') + '</i></span>' +
+    '<span class="rk-pt-gap">' + (p.convGap
+      ? (p.convGap.ok ? '<b class="ok">达标' + (p.convGap.extra > 0 ? ' +' + p.convGap.extra : '') + '</b>'
+                      : '<b class="no">还差 ' + p.convGap.need + ' 个付款</b>')
+      : '<b class="na">不考核</b>') + '</span></div>';
+  // 满意度
+  html += '<div class="rk-pt-row"><span class="rk-pt-k">满意度</span>' +
+    '<span class="rk-pt-bar">' + rkPbar(p.sat, p.satT, satCls) + '</span>' +
+    '<span class="rk-pt-v">' + (p.sat === null ? '—' : (p.sat * 100).toFixed(1) + '%') + '<i>/ 98%</i></span>' +
+    '<span class="rk-pt-gap">' + (p.satGap
+      ? (p.satGap.noReview ? '<b class="na">本月无评价</b>'
+          : (p.satGap.ok ? '<b class="ok">达标' + (p.satGap.extra > 0 ? ' +' + p.satGap.extra : '') + '</b>'
+                         : '<b class="no">还差 ' + p.satGap.need + ' 条好评</b>'))
+      : '<b class="na">—</b>') + '</span></div>';
+  // 分店明细
+  html += '<div class="rk-pt-shops">' + p.shops.map(function(o){
+    const t = rkTargetOf(o.shop);
+    const cg = rkConvGap(o.pay, o.inq, t);
+    const sg = rkSatGap(o.g, o.b, p.satT);
+    const cc = cg ? (cg.inq0 ? '<b class="na">询单 0</b>'
+        : (cg.ok ? '<b class="ok">达标' + (cg.extra > 0 ? ' +' + cg.extra : '') + '</b>'
+                 : '<b class="no">还差 ' + cg.need + ' 单</b>')) : '<b class="na">不考核</b>';
+    const sc = sg ? (sg.noReview ? '<b class="na">无评价</b>'
+        : (sg.ok ? '<b class="ok">达标' + (sg.extra > 0 ? ' +' + sg.extra : '') + '</b>'
+                 : '<b class="no">还差 ' + sg.need + ' 条</b>')) : '<b class="na">—</b>';
+    return '<div class="rk-pt-shop"><span class="rk-tgt-name">' + rkEsc(o.shop) + '</span>' +
+      '<span>询单 ' + Math.round(o.inq) + ' · 付款 ' + Math.round(o.pay) + '</span>' +
+      '<span>转化 ' + (o.inq > 0 ? (o.pay / o.inq * 100).toFixed(1) + '%' : '—') +
+        '<i>/ ' + (t > 0 ? (t * 100).toFixed(0) + '%' : '不考核') + '</i></span>' +
+      '<span>' + cc + '</span>' +
+      '<span>好评 ' + Math.round(o.g) + '/' + Math.round(o.g + o.b) + '</span>' +
+      '<span>' + sc + '</span></div>';
+  }).join('') + '</div>';
+  // 主因 / 对策
+  if (p.worst && p.convGap && !p.convGap.ok) {
+    html += '<div class="rk-pt-diag">💡 <b>主因</b>：' + rkEsc(p.worst.shop) + ' 拖了转化率（还差 ' + p.worst.need +
+      ' 个付款）；<b>对策</b>：优先跟进该店询单，全店合计再成交 <b>' + p.convGap.need + ' 单</b>即可达标</div>';
+  } else if (p.satGap && !p.satGap.ok && !p.satGap.noReview) {
+    html += '<div class="rk-pt-diag">💡 <b>对策</b>：转化已达标，把好评再抓一抓——再拿 <b>' + p.satGap.need + ' 条好评</b>满意度就到 98%</div>';
+  } else if (p.convGap && p.convGap.ok && p.satGap && (p.satGap.ok || p.satGap.noReview)) {
+    html += '<div class="rk-pt-diag ok">🎉 转化率、满意度都已达标，保持！</div>';
+  } else if (p.inq <= 0) {
+    html += '<div class="rk-pt-diag">本月还没有询单数据。</div>';
+  }
+  return html + '</div>';
+}
+
+// 店铺达标总览（原 2026-10-31 版，折叠进底部）
+function rkShopOverviewHTML(month, T) {
+  const stats = rkTargetStats(month);
   let allInq = 0, allPay = 0, allG = 0, allB = 0;
   stats.forEach(function(o){ allInq += o.inq; allPay += o.pay; if (o.hasReview) { allG += o.g; allB += o.b; } });
-  const rowAll = rkTargetRowHTML('合计（全渠道）',
-    { inq: allInq, pay: allPay, g: allG, b: allB, hasReview: (allG + allB) > 0 },
-    T['全渠道'] || {}, true);
-
-  // 考核店（按 sort_order）+ 不考核店；本月没数据的店不显示
+  let html = '<div class="rk-target-table"><div class="rk-target-tr rk-target-th">' +
+    '<span>店铺</span><span>询单</span><span>付款</span><span>转化率</span><span>还差付款</span><span>满意度</span><span>还差好评</span></div>' +
+    rkTargetRowHTML('合计（全渠道）',
+      { inq: allInq, pay: allPay, g: allG, b: allB, hasReview: (allG + allB) > 0 },
+      T['全渠道'] || {}, true);
   const assessed = [], notAssessed = [];
   Object.keys(T).forEach(function(n){
     if (n === '全渠道' || !stats.has(n)) return;
     (T[n].assessed ? assessed : notAssessed).push(n);
   });
-  assessed.sort(function(a,b){ return (T[a].sort_order || 99) - (T[b].sort_order || 99); });
-  notAssessed.sort(function(a,b){ return (T[a].sort_order || 99) - (T[b].sort_order || 99); });
-
-  const adminBtn = isFullAdmin()
-    ? '<button class="rk-tgt-edit" onclick="rkTargetEditOpen()">⚙ 目标设置</button>' : '';
-  let html = '<div class="rk-target-box">' +
-    '<div class="rk-target-head">🎯 达标分析（' + month.replace('-', '/') + ' 月累计 · 数据截至 ' + rkDateFmt(rkDate) +
-      '）<span class="rk-sub">转化率=付款÷询单 · 满意度=好评÷(好评+差评)</span>' + adminBtn + '</div>' +
-    '<div class="rk-target-table"><div class="rk-target-tr rk-target-th">' +
-      '<span>店铺</span><span>询单</span><span>付款</span><span>转化率</span><span>还差付款</span><span>满意度</span><span>还差好评</span></div>' +
-    rowAll;
+  assessed.sort(function(a, b){ return (T[a].sort_order || 99) - (T[b].sort_order || 99); });
+  notAssessed.sort(function(a, b){ return (T[a].sort_order || 99) - (T[b].sort_order || 99); });
   assessed.forEach(function(n){ html += rkTargetRowHTML(n, stats.get(n), T[n], false); });
   html += '</div>';
   if (notAssessed.length) {
@@ -6282,8 +6485,7 @@ function rkRenderTargets() {
       return rkEsc(n) + ' ' + Math.round(o.pay) + '/' + Math.round(o.inq);
     }).join(' · ') + '</div>';
   }
-  html += '</div>';
-  el.innerHTML = html;
+  return html;
 }
 
 function rkTargetRowHTML(name, o, t, isAll) {
