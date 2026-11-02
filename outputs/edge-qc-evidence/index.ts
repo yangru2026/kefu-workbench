@@ -14,7 +14,14 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const FEISHU = 'https://open.feishu.cn/open-apis';
 
 const json = (b: unknown, s = 200) =>
-  new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
+  new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS } });
+
+// 2026-11-02：qc-view.html 从工作台域名跨域调本函数，所有响应都必须带 CORS 头，否则浏览器报 Failed to fetch
+const CORS: Record<string, string> = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+};
 
 function page(title: string, msg: string, status = 400) {
   const html = `<!doctype html><meta charset="utf-8">
@@ -22,7 +29,7 @@ function page(title: string, msg: string, status = 400) {
   <div style="font-size:15px;font-weight:600;margin-bottom:10px;">${title}</div>
   <div style="font-size:13px;line-height:1.7;color:#475569;">${msg}</div>
 </div>`;
-  return new Response(html, { status, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+  return new Response(html, { status, headers: { 'Content-Type': 'text/html; charset=utf-8', ...CORS } });
 }
 
 async function tenantToken(): Promise<string> {
@@ -59,7 +66,7 @@ function pickAttachment(fields: Record<string, unknown>, fieldName: string): { f
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*' } });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
 
   const url = new URL(req.url);
   const id = url.searchParams.get('id') || '';
@@ -132,6 +139,7 @@ Deno.serve(async (req: Request) => {
       headers: {
         'Content-Type': upstream.headers.get('content-type') || 'image/png',
         'Cache-Control': 'private, max-age=600',
+        ...CORS,
       },
     });
   } catch (e) {
