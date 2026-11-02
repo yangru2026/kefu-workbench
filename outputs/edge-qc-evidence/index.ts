@@ -113,7 +113,19 @@ Deno.serve(async (req: Request) => {
       return page('飞书取图失败', '换临时直链没成功：' + why + '（多为应用缺云文档读权限，需加 drive:drive:readonly）。', 502);
     }
 
-    return new Response(null, { status: 302, headers: { Location: link } });
+    // 2026-11-02：签名直链带 Content-Disposition: attachment，浏览器会直接下载而不是显示。
+    // 改为后端把图片取回来、以 image/* 内联输出（不带 attachment 标记），新标签页直接显示图片。
+    const upstream = await fetch(link);
+    if (!upstream.ok || !upstream.body) {
+      return page('飞书取图失败', '下载截图没成功：HTTP ' + upstream.status, 502);
+    }
+    return new Response(upstream.body, {
+      status: 200,
+      headers: {
+        'Content-Type': upstream.headers.get('content-type') || 'image/png',
+        'Cache-Control': 'private, max-age=600',
+      },
+    });
   } catch (e) {
     return page('出错了', String((e as Error)?.message || e), 500);
   }
