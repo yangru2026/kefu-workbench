@@ -4744,6 +4744,7 @@ async function initSupabase() {
         updateAuthUI();
         startNotificationPolling();
         qcGateCheck();
+        loadScheduleFromDB();   // 登录恢复后加载排班（汇报页日报统计/排班页都读这块内存，2026-11-02 补）
       }
     } catch (se) {
       console.warn('获取会话超时或失败', se.message);
@@ -4781,6 +4782,7 @@ async function initSupabase() {
         updateAuthUI();
         startNotificationPolling();
         qcGateCheck();
+        loadScheduleFromDB();   // 登录后加载排班（同上）
         if (document.getElementById('page-login').classList.contains('active')) {
           switchPage('home');
         }
@@ -5129,7 +5131,12 @@ async function loadConfig() {
     bulletinData = cfg.bulletinData || [];
     toolsData = cfg.toolsData || [];
     quizData = cfg.quizData || [];
-    scheduleData = cfg.scheduleData || {};
+    // 2026-11-02 修：数据库排班加载完成后，config.json（静态旧数据）会把它整个覆盖，
+    // 导致汇报页「日报提交情况」读不到当月排班（当班 0 人）。改为：只有内存里还没有
+    // 排班数据时才用 config 兜底，数据库始终优先。
+    if (!scheduleData || Object.keys(scheduleData).length === 0) {
+      scheduleData = cfg.scheduleData || {};
+    }
     window._fullConfig = cfg; // for export
     document.getElementById('config-version').textContent = 'v' + configVersion;
     document.getElementById('config-update').textContent = cfg.lastUpdate || '';
