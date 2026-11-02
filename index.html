@@ -2828,16 +2828,21 @@ body {
         </div>
         <div>
           <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">主题</label>
-          <select id="voc-topic" onchange="vocManualEdit=true;saveVOCDraft();" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
+          <select id="voc-topic" onchange="onVOCTopicChange()" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
             <option value="">未分类</option>
-            <option>产品建议</option>
-            <option>价格反馈</option>
-            <option>物流吐槽</option>
-            <option>竞品对比</option>
-            <option>使用问题</option>
-            <option>好评夸夸</option>
-            <option>投诉吐槽</option>
+            <option>询货咨询</option>
+            <option>使用反馈</option>
+            <option>售后抱怨</option>
+            <option>好评</option>
+            <option>价格</option>
+            <option>物流</option>
             <option>其他</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">细分</label>
+          <select id="voc-subtopic" onchange="vocManualEdit=true;saveVOCDraft();" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;">
+            <option value="">未分类</option>
           </select>
         </div>
         <div style="flex:1;min-width:170px;">
@@ -2871,18 +2876,14 @@ body {
         <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
           <div style="font-size:13px;color:var(--text-secondary);">分析维度：</div>
           <div id="voc-dim-tabs" style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="voc-dim-tab active" data-dim="topic" onclick="setVOCAnalysisDim('topic')">按主题</button>
+            <button class="voc-dim-tab active" data-dim="topic" onclick="setVOCAnalysisDim('topic')">按一级</button>
+            <button class="voc-dim-tab" data-dim="subtopic" onclick="setVOCAnalysisDim('subtopic')">按二级</button>
             <button class="voc-dim-tab" data-dim="brand" onclick="setVOCAnalysisDim('brand')">按品牌</button>
             <button class="voc-dim-tab" data-dim="scene" onclick="setVOCAnalysisDim('scene')">按场景</button>
             <button class="voc-dim-tab" data-dim="staff" onclick="setVOCAnalysisDim('staff')">按客服</button>
           </div>
-          <span style="flex:1;"></span>
-          <div style="display:flex;gap:14px;font-size:13px;color:var(--text);">
-            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="radio" name="voc-grain" value="big" checked onchange="renderVOCAnalysis()"> 大类（分类标签）</label>
-            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="radio" name="voc-grain" value="small" onchange="renderVOCAnalysis()"> 小类（关键词细拆）</label>
-          </div>
         </div>
-        <div id="voc-summary" style="color:var(--text-secondary);font-size:14px;">选择月份后点击「生成分析」，自动统计本月反馈的高频主题 / 品牌 / 场景，可一键切换「大类 / 小类」并导出 Excel。</div>
+        <div id="voc-summary" style="color:var(--text-secondary);font-size:14px;">选择月份后点击「生成分析」，按一级（诉求性质）/ 二级（具体问什么）/ 品牌 / 场景 / 客服统计，可导出 Excel。</div>
       </div>
     </details>
 
@@ -17272,16 +17273,45 @@ function parseVOC(text, team) {
   }
   // '' 表示未分类（匹配 select 的 value=""）
 
-  // 主题（加权取最高）
-  let bestTopic = '', bestTopicScore = 0;
-  for (const [label, cfg] of Object.entries(VOC_PARSE.topic)) {
-    let score = 0; const found = [];
-    for (const kw of cfg.k) { if (t.includes(kw.toLowerCase())) { score += cfg.w; found.push(kw); } }
-    if (score > bestTopicScore) { bestTopicScore = score; bestTopic = label; hits.topic = found; }
+  // 一级主题 + 二级细分（规则与历史回填 SQL 保持一致，先匹配更具体的）
+  const test = (re) => re.test(t);
+  let subtopic = '未细分';
+  if (test(/退货|退款|差评|投诉|假货|虚假|骗子|垃圾|气死|恶心|坑人|骗人/)) {
+    topic = '售后抱怨';
+    subtopic = test(/退货|退款/) ? '退货退款' : test(/破损|质量|坏|瑕疵/) ? '质量破损' : test(/态度|敷衍|不理/) ? '客服态度' : '其他抱怨';
+  } else if (test(/磨眼|干涩|红血丝|发炎|过敏|刺痛|不舒服|异物|滑片|看不清|模糊|结膜炎|孕妇|孕期|岁以下|以下|不能带|不能戴|可以带|可以戴|能带|能戴|带么|戴着|戴久|长时间|疼/)) {
+    topic = '使用反馈';
+    subtopic = test(/红血丝|发炎|过敏|刺痛|充血/) ? '红血丝发炎'
+      : test(/滑片|看不清|模糊|移位/) ? '滑片看不清'
+      : test(/结膜炎|孕妇|孕期|岁以下|以下|不能带|不能戴|可以带|可以戴|能带|能戴|带么|戴着|戴久/) ? '适用人群禁忌'
+      : test(/磨眼|干涩|干|疼|不适/) ? '磨眼干涩' : '其他反馈';
+  } else if (test(/贵|便宜|优惠|活动价|折扣|多少钱|价位|性价比|满减|买不起/)) {
+    topic = '价格';
+    subtopic = test(/优惠|活动|折扣|满减/) ? '要优惠' : '嫌贵';
+  } else if (test(/物流|快递|发货|到货|收货|配送|顺丰|邮政|包裹|送到|地址/)) {
+    topic = '物流';
+    subtopic = test(/慢|迟迟|还没收到/) ? '发货慢' : '快递问题';
+  } else if (test(/好看|喜欢|满意|回购|推荐|舒服|自然|惊艳|显白|超爱|绝了|太美/) && !test(/吗|嘛|么|有没有|有么|多少|几|还有|没有|哪/)) {
+    topic = '好评';
+    subtopic = test(/回购|推荐/) ? '回购推荐' : test(/舒服|水润|不干/) ? '夸舒适' : '夸颜色';
+  } else if (test(/抛|直径|着色|1[3-4]\.[0-9]|度|片|盒|色号|花色|系列|款|材质|硅水|非离子|轴|散光|库存|货|颜色|基弧|链接|返场|什么时候|有没有|有吗|有么|还有|没有|大瓶|护理液|锁边|个装/)) {
+    topic = '询货咨询';
+    subtopic = test(/还会出|还会有|还有吗|还有没有|还有么|什么时候有|补货|缺货|有货|会出吗|还上吗|返场|什么时候/) ? '库存·还会出吗'
+      : test(/日抛|月抛|半年抛|年抛|季抛|抛/) ? '抛型'
+      : test(/直径|着色|1[3-4]\.[0-9]|小直径|大直径|锁边/) ? '直径·着色直径'
+      : test(/多少度|度数|度|近视|基弧/) ? '度数'
+      : test(/花色|色号|颜色|款式|系列|新款|上新|pro|版|链接/) ? '花色·款式'
+      : test(/硅水|非离子|材质|工艺|透氧|含水量/) ? '材质工艺'
+      : test(/两片|一片|盒|包装|伴侣|几片|片装|大瓶|护理液/) ? '包装·规格'
+      : test(/定轴|散光|轴位|会转|转动/) ? '定轴·散光' : '未细分';
+  } else {
+    topic = '其他';
+    subtopic = '未分类';
   }
-  topic = bestTopic || '其他';
+  hits.topic = [topic];
+  hits.subtopic = [subtopic];
 
-  return { brand, scene, topic, hits };
+  return { brand, scene, topic, subtopic, hits };
 }
 
 // ===== 单条一键解析 UI =====
@@ -17296,8 +17326,9 @@ function saveVOCDraft() {
     const scene = document.getElementById('voc-scene')?.value || '';
     const brand = document.getElementById('voc-brand')?.value || '';
     const topic = document.getElementById('voc-topic')?.value || '';
-    if (!raw && !tag && !scene && !brand && !topic) { localStorage.removeItem(VOC_DRAFT_KEY()); return; }
-    localStorage.setItem(VOC_DRAFT_KEY(), JSON.stringify({ raw, tag, scene, brand, topic, ts: Date.now() }));
+    const subtopic = document.getElementById('voc-subtopic')?.value || '';
+    if (!raw && !tag && !scene && !brand && !topic && !subtopic) { localStorage.removeItem(VOC_DRAFT_KEY()); return; }
+    localStorage.setItem(VOC_DRAFT_KEY(), JSON.stringify({ raw, tag, scene, brand, topic, subtopic, ts: Date.now() }));
   } catch (e) {}
 }
 function restoreVOCDraft() {
@@ -17311,6 +17342,7 @@ function restoreVOCDraft() {
     if (d.raw) ta.value = d.raw;
     const set = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = v; };
     set('voc-tag', d.tag); set('voc-scene', d.scene); set('voc-brand', d.brand); set('voc-topic', d.topic);
+    fillVOCSubtopicOptions(d.topic, d.subtopic);
     vocManualEdit = true; // 恢复的草稿视为手动编辑，避免自动解析覆盖
     showToast('📝 已恢复上次未提交的草稿，确认后点「保存这条反馈」');
   } catch (e) {}
@@ -17324,12 +17356,13 @@ function onVOCRawInput() {
   // 用户手动改过下拉后，停止自动覆盖，尊重其手动选择
   if (vocManualEdit) return;
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = (v == null ? '' : v); };
-  if (!text) { set('voc-scene', ''); set('voc-brand', ''); set('voc-topic', ''); hideVOCParseHits(); return; }
+  if (!text) { set('voc-scene', ''); set('voc-brand', ''); set('voc-topic', ''); fillVOCSubtopicOptions('', ''); hideVOCParseHits(); return; }
   const team = (currentProfile && currentProfile.group_name) || '';
   const res = parseVOC(text, team);
   set('voc-scene', res.scene);
   set('voc-brand', res.brand);
   set('voc-topic', res.topic); // '其他' 也是合法选项，避免空值拦截
+  fillVOCSubtopicOptions(res.topic, res.subtopic);
   showVOCParseHits(res, false);
 }
 
@@ -17346,6 +17379,7 @@ function showVOCParseHits(res, isAuto) {
   html += chip('📍', '场景', res.scene || '未分类', '#eaf1fb', '#3a6ea5');
   html += chip('🏷', '品牌', res.brand || '未分类', '#fdeefb', '#a64ca6');
   html += chip('🏷', '主题', res.topic, '#f3eefb', '#7a4fb0');
+  html += chip('🏷', '细分', res.subtopic, '#eef7f2', '#0f6e56');
   html += `</div>`;
   const parts = [];
   if (res.hits.scene.length) parts.push('场景←' + res.hits.scene.join('、'));
@@ -17369,7 +17403,18 @@ function hideVOCParseHits() {
 // ===== 批量粘贴解析与一键保存 =====
 const VOC_SCENE_OPTS = ['未分类', '抖音客服', '天猫客服', '淘宝客服', '拼多多客服', '京东客服', '小红书客服', '快手客服', '微信客服', '其他'];
 const VOC_BRAND_OPTS = ['未分类', '弥生', '极氧'];
-const VOC_TOPIC_OPTS = ['未分类', '产品建议', '价格反馈', '物流吐槽', '竞品对比', '使用问题', '好评夸夸', '投诉吐槽', '其他'];
+// 一级=诉求性质，二级=具体在问什么（二级按真实原话量排序，便于统计）
+const VOC_CAT = {
+  '询货咨询': ['库存·还会出吗', '抛型', '直径·着色直径', '度数', '花色·款式', '材质工艺', '包装·规格', '定轴·散光', '未细分'],
+  '使用反馈': ['磨眼干涩', '红血丝发炎', '滑片看不清', '适用人群禁忌', '其他反馈'],
+  '售后抱怨': ['退货退款', '质量破损', '客服态度', '其他抱怨'],
+  '好评': ['夸颜色', '夸舒适', '回购推荐'],
+  '价格': ['嫌贵', '要优惠'],
+  '物流': ['发货慢', '快递问题'],
+  '其他': ['未分类']
+};
+const VOC_TOPIC_OPTS = ['未分类', '询货咨询', '使用反馈', '售后抱怨', '好评', '价格', '物流', '其他'];
+function vocSubOpts(topic) { return (topic && VOC_CAT[topic]) ? VOC_CAT[topic] : ['未分类']; }
 
 function vocOptHtml(opts, selected) {
   let html = opts.map(o => `<option ${o === selected ? 'selected' : ''}>${vocEsc(o)}</option>`).join('');
@@ -17379,6 +17424,23 @@ function vocOptHtml(opts, selected) {
 function vocSceneOptions(sel) { return vocOptHtml(VOC_SCENE_OPTS, sel || '未分类'); }
 function vocBrandOptions(sel) { return vocOptHtml(VOC_BRAND_OPTS, sel || '未分类'); }
 function vocTopicOptions(sel) { return vocOptHtml(VOC_TOPIC_OPTS, sel || '未分类'); }
+function vocSubtopicOptions(topic, sel) {
+  const opts = vocSubOpts(topic);
+  return vocOptHtml(opts, sel || '未分类');
+}
+function fillVOCSubtopicOptions(topic, sel) {
+  const el = document.getElementById('voc-subtopic');
+  if (!el) return;
+  const opts = vocSubOpts(topic).filter(o => o !== '未分类');
+  el.innerHTML = '<option value="">未分类</option>' + opts.map(o => `<option>${vocEsc(o)}</option>`).join('');
+  el.value = (sel && opts.includes(sel)) ? sel : '';
+}
+function onVOCTopicChange() {
+  vocManualEdit = true;
+  const topic = document.getElementById('voc-topic')?.value || '';
+  fillVOCSubtopicOptions(topic, '');
+  saveVOCDraft();
+}
 
 // 按行拆分多条；支持「1. 」「①」编号或「[日期]」开头自动去除前缀
 function vocSplitLines(text) {
@@ -17413,7 +17475,7 @@ function runVOCBatchParse() {
   if (!lines.length) { showToast('⚠️ 未解析出任何内容'); return; }
   vocBatchItems = lines.map(line => {
     const r = parseVOC(line, team);
-    return { raw: line, scene: r.scene || '未分类', brand: r.brand || '未分类', topic: r.topic };
+    return { raw: line, scene: r.scene || '未分类', brand: r.brand || '未分类', topic: r.topic, subtopic: r.subtopic || '未细分' };
   });
   renderVOCBatchPreview();
 }
@@ -17433,6 +17495,7 @@ function renderVOCBatchPreview() {
           <select data-batch="${i}" data-field="scene" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:12px;">${vocSceneOptions(it.scene)}</select>
           <select data-batch="${i}" data-field="brand" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:12px;">${vocBrandOptions(it.brand)}</select>
           <select data-batch="${i}" data-field="topic" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:12px;">${vocTopicOptions(it.topic)}</select>
+          <select data-batch="${i}" data-field="subtopic" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:12px;">${vocSubtopicOptions(it.topic, it.subtopic)}</select>
         </div>
       </div>
       <button class="voc-del" onclick="removeVOCBatchItem(${i})" title="删除">🗑</button>
@@ -17441,7 +17504,12 @@ function renderVOCBatchPreview() {
     sel.addEventListener('change', e => {
       const idx = +e.target.getAttribute('data-batch');
       const field = e.target.getAttribute('data-field');
-      if (vocBatchItems[idx]) vocBatchItems[idx][field] = e.target.value;
+      if (!vocBatchItems[idx]) return;
+      vocBatchItems[idx][field] = e.target.value;
+      if (field === 'topic') {
+        vocBatchItems[idx].subtopic = '未细分';
+        renderVOCBatchPreview();
+      }
     });
   });
 }
@@ -17463,6 +17531,7 @@ async function saveVOCBatch() {
     raw_text: it.raw,
     scene: it.scene === '未分类' ? '' : it.scene,
     topic: it.topic === '未分类' ? '' : it.topic,
+    subtopic: (!it.subtopic || it.subtopic === '未分类') ? '' : it.subtopic,
     brand: it.brand === '未分类' ? '' : it.brand,
     staff_name: name, team, customer_tag: '', record_month: vocMonthNow()
   }));
@@ -17543,13 +17612,14 @@ function renderVOCList() {
     const dtStr = dt ? (dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0') + ' ' + String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0')) : '-';
     const scene = r.scene ? `<span class="voc-tag voc-tag-scene">${vocEsc(r.scene)}</span>` : '';
     const topic = r.topic ? `<span class="voc-tag voc-tag-topic">${vocEsc(r.topic)}</span>` : '';
+    const subtopic = r.subtopic ? `<span class="voc-tag" style="background:#eef7f2;color:#0f6e56;">${vocEsc(r.subtopic)}</span>` : '';
     const brand = r.brand ? `<span class="voc-tag" style="background:#fdeefb;color:#a64ca6;">🏷 ${vocEsc(r.brand)}</span>` : '';
     const tag = r.customer_tag ? `<span class="voc-tag" style="background:#eef2f7;color:#586b82;">@${vocEsc(r.customer_tag)}</span>` : '';
     const delBtn = isAdmin ? `<button class="voc-del" onclick="deleteVOC(${r.id})" title="删除">🗑</button>` : '';
     return `<div class="voc-item">
       <div class="voc-item-head">
         <span class="voc-meta">${vocEsc(r.staff_name || '')} · ${vocEsc(r.team || '')} · ${dtStr}</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${brand}${scene}${topic}${tag}${delBtn}</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${brand}${scene}${topic}${subtopic}${tag}${delBtn}</div>
       </div>
       <div class="voc-raw">${vocEsc(r.raw_text || '')}</div>
     </div>`;
@@ -17568,6 +17638,7 @@ async function submitVOC() {
   const reachedLimit = todayCount >= VOC_DAILY_LIMIT;
   const scene = document.getElementById('voc-scene')?.value || '';
   const topic = document.getElementById('voc-topic')?.value || '';
+  const subtopic = document.getElementById('voc-subtopic')?.value || '';
   const brand = document.getElementById('voc-brand')?.value || '';
   // 品牌 / 场景 / 主题 必选
   if (!brand) { showToast('⚠️ 请先选择「品牌」'); return; }
@@ -17575,7 +17646,7 @@ async function submitVOC() {
   if (!topic) { showToast('⚠️ 请先选择「主题」'); return; }
   const tag = (document.getElementById('voc-tag')?.value || '').trim();
   const team = (currentProfile && currentProfile.group_name) || '';
-  const rec = { raw_text: raw, scene, topic, brand, staff_name: name, team, customer_tag: tag, record_month: vocMonthNow() };
+  const rec = { raw_text: raw, scene, topic, subtopic: (subtopic || (topic === '询货咨询' ? '未细分' : '')), brand, staff_name: name, team, customer_tag: tag, record_month: vocMonthNow() };
   try {
     const { data, error } = await supabase.from('customer_voice').insert([rec]).select();
     if (error) { showToast('⚠️ 保存失败：' + error.message); return; }
@@ -17636,7 +17707,7 @@ async function generateVOCSummary() {
   renderVOCAnalysis();
 }
 
-const VOC_DIM_LABEL = { topic: '主题', brand: '品牌', scene: '场景', staff: '客服' };
+const VOC_DIM_LABEL = { topic: '一级主题', subtopic: '二级细分', brand: '品牌', scene: '场景', staff: '客服' };
 
 function setVOCAnalysisDim(dim) {
   vocAnalysisDim = dim;
@@ -17714,7 +17785,7 @@ function exportVOCSummaryXLSX() {
     statRows.push(['分类标签', '条数', '占比']);
     entries.forEach(([k, list]) => statRows.push([k, list.length, Math.round(list.length / total * 100) + '%']));
     detail = [];
-    entries.forEach(([k, list]) => list.forEach(r => detail.push({ '分类标签': k, '品牌': r.brand || '', '来源场景': r.scene || '', '主题': r.topic || '', '客服': r.staff_name || '', '客户原话': r.raw_text || '' })));
+    entries.forEach(([k, list]) => list.forEach(r => detail.push({ '分类标签': k, '品牌': r.brand || '', '来源场景': r.scene || '', '主题': r.topic || '', '二级': r.subtopic || '', '客服': r.staff_name || '', '客户原话': r.raw_text || '' })));
   } else {
     const freq = computeVOCSmallFreq(rows, dim);
     const entries = Object.entries(freq).sort((a, b) => b[1].length - a[1].length);
@@ -17722,7 +17793,7 @@ function exportVOCSummaryXLSX() {
     statRows.push(['细类关键词', '条数', '占比']);
     entries.forEach(([k, list]) => statRows.push([k, list.length, Math.round(list.length / total * 100) + '%']));
     detail = [];
-    entries.forEach(([k, list]) => list.forEach(r => detail.push({ '细类关键词': k, '品牌': r.brand || '', '来源场景': r.scene || '', '主题': r.topic || '', '客服': r.staff_name || '', '客户原话': r.raw_text || '' })));
+    entries.forEach(([k, list]) => list.forEach(r => detail.push({ '细类关键词': k, '品牌': r.brand || '', '来源场景': r.scene || '', '主题': r.topic || '', '二级': r.subtopic || '', '客服': r.staff_name || '', '客户原话': r.raw_text || '' })));
   }
   try {
     const wb = XLSX.utils.book_new();
@@ -17754,7 +17825,7 @@ function exportVOCSummaryTXT() {
   groups.forEach(([k, list]) => out += `  ${k}：${list.length} 条（${Math.round(list.length / total * 100)}%）\n`);
   out += `\n【全部明细】\n`;
   let n = 0;
-  groups.forEach(([k, list]) => list.forEach(r => { n++; out += `${n}. [${k}] ${[r.brand, r.scene, r.topic].filter(Boolean).join('/')} ${r.staff_name || ''}：${r.raw_text}\n`; }));
+  groups.forEach(([k, list]) => list.forEach(r => { n++; out += `${n}. [${k}] ${[r.brand, r.scene, r.topic, r.subtopic].filter(Boolean).join('/')} ${r.staff_name || ''}：${r.raw_text}\n`; }));
   const blob = new Blob([out], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
