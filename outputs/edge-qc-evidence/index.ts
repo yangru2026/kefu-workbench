@@ -36,8 +36,10 @@ async function tenantToken(): Promise<string> {
   return j.tenant_access_token as string;
 }
 
-// 附件字段可能返回数组或单个对象，统一取出可下载地址
-function pickUrl(fields: Record<string, unknown>, fieldName: string): string | null {
+// 附件字段可能返回数组或单个对象，统一取出附件本体（要 file_token，不是 tmp_url ——
+// 2026-11-02 实测：record 接口返回的 tmp_url 是 drive API 端点、浏览器直接打开不了，
+// 必须再拿 file_token 调 batch_get_tmp_download_url 换真正的免登录签名直链）
+function pickAttachment(fields: Record<string, unknown>, fieldName: string): { file_token: string; name?: string } | null {
   let v: any = fields?.[fieldName];
   if (v == null) {
     // 字段名没配准就退一步：随便找一个带 file_token 的数组字段
@@ -48,9 +50,7 @@ function pickUrl(fields: Record<string, unknown>, fieldName: string): string | n
   }
   const arr = Array.isArray(v) ? v : v ? [v] : [];
   for (const it of arr) {
-    if (!it) continue;
-    const u = it.tmp_url || it.url || it.download_url;
-    if (u) return String(u);
+    if (it && it.file_token) return { file_token: String(it.file_token), name: it.name ? String(it.name) : undefined };
   }
   return null;
 }
@@ -95,8 +95,23 @@ Deno.serve(async (req: Request) => {
     const j = await r.json();
     if (j.code !== 0) return page('飞书读取失败', '错误：' + (j.msg || j.code) + '（检查表格权限/字段名配置）', 502);
 
-    const link = pickUrl(j.data?.record?.fields || {}, field);
-    if (!link) return page('这条记录没有截图', '登记时没有上传截图附件。', 404);
+    const att = pickAttachment(j.data?.record?.fields || {}, field);
+    if (!att) return page('这条记录没有截图', '登记时没有上传截图附件。', 404);
+
+    // 拿 file_token 现场换免登录的签名直链（约 24h 有效，但每次点都是现取的，永不过期）
+    const dr = await fetch(
+      `${FEISHU}/drive/v1/medias/batch_get_tmp_download_url?file_tokens=${encodeURIComponent(att.file_token)}`,
+      { headers: { Authorization: `Bearer ${tk}` } },
+    );
+    const dj = await dr.json();
+    // 响应结构是 data.tmp_download_urls = [{file_token, tmp_download_url}]（数组，不是单字段）
+    const arr = dj?.data?.tmp_download_urls || [];
+    const hit = arr.find((x: any) => x && x.file_token === att.file_token) || arr[0];
+    const link = hit?.tmp_download_url;
+    if (!link) {
+      const why = dj?.msg || dj?.code || '未知';
+      return page('飞书取图失败', '换临时直链没成功：' + why + '（多为应用缺云文档读权限，需加 drive:drive:readonly）。', 502);
+    }
 
     return new Response(null, { status: 302, headers: { Location: link } });
   } catch (e) {
