@@ -173,11 +173,28 @@ async function run(browser, role, name, qcFail) {
     await sleep(250);
     const after = await page.evaluate(() => ({
       gd: document.querySelectorAll('#panel-mine .gd').length,
+      iss: document.querySelectorAll('#panel-mine .iss').length,
       offBtn: document.querySelectorAll('#panel-mine .cfm-btn.off').length,
-      ev: document.querySelectorAll('#panel-mine table.tb tbody a.ev').length
+      ev: document.querySelectorAll('#panel-mine table.tb tbody a.ev').length,
+      // 2026-11-03 方案A：有截图未点开 → 出现「请先点开证据截图」提示
+      imgHint: [...document.querySelectorAll('#panel-mine table.tb tbody span')]
+        .filter(s => /请先点开证据截图/.test(s.textContent || '')).length,
+      trail: document.querySelectorAll('#panel-mine .trail').length
     }));
     shots.extra.after = after;
     await page.screenshot({ path: ROOT + '/outputs/shot-qc-stats-staff-expanded.png', fullPage: true });
+
+    // 2026-11-03 方案A/B：模拟点开截图（qcMarkViewed）→ 5 秒后确认解锁
+    await page.evaluate(() => { ['rec1', 'rec2', 'rec3'].forEach(id => window.qcMarkViewed(id)); });
+    await sleep(5400);
+    const afterView = await page.evaluate(() => ({
+      onBtn: [...document.querySelectorAll('#panel-mine table.tb tbody .cfm-btn')]
+        .filter(b => !/o|ghost|off/.test(b.className.replace('cfm-btn', ''))).length,
+      offBtn: document.querySelectorAll('#panel-mine .cfm-btn.off').length,
+      imgHint: [...document.querySelectorAll('#panel-mine table.tb tbody span')]
+        .filter(s => /请先点开证据截图/.test(s.textContent || '')).length
+    }));
+    shots.extra.afterView = afterView;
   }
   await page.close();
   return { st, errs, extra: shots.extra };
@@ -223,13 +240,19 @@ async function run(browser, role, name, qcFail) {
     staff_collapsed_hides_detail: staff.extra.expand === RECS.filter(r => r.staff_name === '小柚' && !r.staff_confirmed_at).length
       && staff.extra.gd === 0 && staff.extra.cfm === 0,
     staff_expand_then_confirm: staff.extra.after.gd > 0 && staff.extra.after.offBtn >= 1,
+    // 2026-11-03 方案A/B：问题点红块 + 看图留痕标签 + 「先看图」提示 + 看图后 5 秒解锁
+    staff_issue_block: staff.extra.after.iss > 0,
+    staff_view_trail: staff.extra.after.trail >= 3,                    // 小柚有证据的未确认记录 3 条
+    staff_img_hint_first: staff.extra.after.imgHint === 3,             // 有截图的 3 条都提示先看图
+    staff_unlock_after_view: staff.extra.afterView.onBtn === 8 && staff.extra.afterView.offBtn === 0
+      && staff.extra.afterView.imgHint === 0,  // 未确认 4 条 × (行内+详情块 2 处) = 8 个按钮全部解锁
     admin_guidance_col: admin.st.detailGuidance > 0 && admin.st.detailConfirmBtns > 0,
     no_mask_element: broken.st.noMaskElement === true,                       // 模态弹窗已彻底移除
     broken_shows_dismissable_bar: broken.st.errShown === true && /SQL/.test(broken.st.errText),
     no_page_errors: admin.errs.concat(staff.errs, broken.errs).length === 0
   };
-  fs.writeFileSync(ROOT + '/outputs/smoke-qc-stats.out', JSON.stringify({ admin: admin.st, staff: staff.st, broken: broken.st, mineCount, checks, errs: admin.errs.concat(staff.errs, broken.errs) }, null, 2), 'utf8');
-  console.log(JSON.stringify({ admin: admin.st, staff: staff.st, broken: broken.st, mineCount, checks }, null, 2));
+  fs.writeFileSync(ROOT + '/outputs/smoke-qc-stats.out', JSON.stringify({ admin: admin.st, staff: staff.st, broken: broken.st, mineCount, staffExtra: staff.extra, checks, errs: admin.errs.concat(staff.errs, broken.errs) }, null, 2), 'utf8');
+  console.log(JSON.stringify({ admin: admin.st, staff: staff.st, broken: broken.st, mineCount, staffExtra: staff.extra, checks }, null, 2));
   const ok = Object.keys(checks).every(k => checks[k]);
   console.log(ok ? 'QC_STATS_SMOKE_PASS' : 'QC_STATS_SMOKE_FAIL');
 

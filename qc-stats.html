@@ -111,6 +111,15 @@
   .gd span{display:inline-block;font-size:10.5px;font-weight:800;color:#047857;background:#d1fae5;
            border-radius:5px;padding:1px 7px;margin-right:7px;vertical-align:1px;}
   .gd.adm{display:block;background:#f0fdf4;border-color:#bbf7d0;}
+  /* 2026-11-03 方案A：问题点红块前置（和正确做法绿块成对） */
+  .iss{margin-bottom:7px;background:#fef2f2;border:1px solid #fecaca;border-left:3px solid #dc2626;
+       border-radius:8px;padding:7px 10px;font-size:12.5px;line-height:1.65;color:#7f1d1d;}
+  .iss span{display:inline-block;font-size:10.5px;font-weight:800;color:#b91c1c;background:#fee2e2;
+            border-radius:5px;padding:1px 7px;margin-right:7px;vertical-align:1px;}
+  /* 2026-11-03 方案B：看图留痕小标签（组长/本人都可见） */
+  .trail{display:inline-block;font-size:10.5px;font-weight:700;color:#0369a1;background:#f0f9ff;
+         border:1px solid #bae6fd;border-radius:6px;padding:1px 7px;margin-left:7px;white-space:nowrap;}
+  .trail.warn{color:#b45309;background:#fffbeb;border-color:#fde68a;}
   /* 客服确认 */
   .cfm.done{font-size:11px;font-weight:700;color:#059669;background:#ecfdf5;border:1px solid #a7f3d0;
             border-radius:6px;padding:2px 8px;white-space:nowrap;}
@@ -208,6 +217,7 @@ let tab = 'rank';
 let fStaff = '', fType = '', fSev = '', fKw = '';
 const expanded = {};    // 客服视角：哪条已展开查看
 const readOK = {};      // 展开后多久才允许点确认（防止不点开就确认）
+const viewed = {};      // 2026-11-03 方案A：哪条的截图已点开过（有截图的记录必须点开图才解锁确认）
 
 const SEV_CLASS = { '一般提醒':'s1', '严重问题':'s2', '严重需整改':'s3' };
 // 质检登记表（飞书）：飞书禁止被 iframe 嵌入，只能新窗口打开
@@ -454,7 +464,8 @@ function evCell(r){
   const urls = evUrls(r);
   if (urls.length){
     return urls.map((u,i) =>
-      '<a class="ev" href="'+esc(u)+'" target="_blank" rel="noopener noreferrer" title="在新窗口打开截图">'
+      '<a class="ev" href="'+esc(u)+'" target="_blank" rel="noopener noreferrer" title="在新窗口打开截图"'
+      + ' data-qcid="'+esc(r.id)+'">'
       + '图' + (urls.length > 1 ? ' ' + (i+1) : '') + '</a>'
     ).join(' ');
   }
@@ -464,9 +475,23 @@ function evCell(r){
     // 2026-11-03：不再把 token 焊死在链接里（挂机 1 小时必 401）→ 点的时候现取新 token 再开窗
     return '<a class="ev" href="qc-view.html?id='+encodeURIComponent(id)
       + '" data-evid="'+encodeURIComponent(id)
+      + '" data-qcid="'+esc(r.id)
       + '" target="_blank" rel="noopener noreferrer" title="在新窗口打开截图">图 查看</a>';
   }
   return '<span style="color:#cbd5e1;">—</span>';
+}
+
+/* 2026-11-03 方案B：看图留痕——qc-view 关闭时把停留秒数写进 evidence_views，
+   这里汇总成「看了几次/最长几秒」；没打开过图或打开不到 8 秒的标黄提醒 */
+function evTrail(r){
+  if (!evCount(r)) return '';
+  const v = Array.isArray(r.evidence_views) ? r.evidence_views : [];
+  const n = v.length;
+  if (!n) return '<span class="trail warn">截图还没打开过</span>';
+  const maxSec = v.reduce((m,x) => Math.max(m, Number(x && x.sec) || 0), 0);
+  const low = maxSec < 8;
+  return '<span class="trail' + (low ? ' warn' : '') + '">'
+    + '看图 ' + n + ' 次 · 最长 ' + maxSec + ' 秒' + (low ? ' · ⚠ 偏短' : '') + '</span>';
 }
 
 function renderDetail(){
@@ -484,7 +509,7 @@ function renderDetail(){
     : '<div class="tb-wrap"><table class="tb"><thead><tr>'
       + '<th style="width:88px;">日期</th><th style="width:76px;">客服</th><th style="width:104px;">问题类型</th>'
       + '<th style="width:88px;">严重度</th><th style="width:60px;">扣罚</th><th>问题描述</th><th>正确做法</th>'
-      + '<th style="width:56px;">证据</th><th style="width:64px;">质检人</th><th style="width:88px;">客服确认</th>'
+      + '<th style="width:118px;">证据 / 看图</th><th style="width:64px;">质检人</th><th style="width:88px;">客服确认</th>'
       + '</tr></thead><tbody>'
       + list.map(r =>
         '<tr>'
@@ -497,7 +522,7 @@ function renderDetail(){
           +(custId(r)?'<br><span style="color:#64748b;font-size:11.5px;">客户ID：<code style="background:#f1f5f9;padding:1px 6px;border-radius:5px;font-family:ui-monospace,Consolas,monospace;">'+esc(custId(r))+'</code>'
             +' <a href="javascript:void(0)" onclick="copyCustId(\''+esc(r.id)+'\')" style="color:#047857;font-size:11.5px;">复制</a></span>':'')+'</td>'
         + '<td class="det">'+(String(r.guidance||'').trim() ? '<span class="gd adm">'+esc(r.guidance)+'</span>' : '<span style="color:#cbd5e1;">—</span>')+'</td>'
-        + '<td>'+evCell(r)+'</td>'
+        + '<td>' + evCell(r) + (evTrail(r) ? '<br>' + evTrail(r) : '') + '</td>'
         + '<td>'+esc(r.qc_name||'-')+'</td>'
         + '<td>'+confirmCell(r)+'</td>'
         + '</tr>').join('')
@@ -542,7 +567,7 @@ function renderMine(){
   const pending = rows.filter(r => !r.staff_confirmed_at);
   reportPending(pending.length);
   const notice = pending.length
-    ? '<div class="mine-warn">⏳ 还有 <b>' + pending.length + '</b> 条没看：逐条点「展开查看」，看完才能点「我已知晓」。<b>没确认完不能离开本页、不能提交日报。</b></div>'
+    ? '<div class="mine-warn">⏳ 还有 <b>' + pending.length + '</b> 条没看：逐条点「展开查看」，<b>有截图的必须点开截图看完</b>，之后才能点「我已知晓」。<b>没确认完不能离开本页、不能提交日报。</b></div>'
     : '<div class="mine-tip">✅ 全部确认完成，可以离开本页、提交日报了</div>';
   const body = !rows.length ? emptyBox('这段时间没有你的质检记录 👍')
     : '<div class="tb-wrap"><table class="tb"><thead><tr>'
@@ -576,19 +601,31 @@ function mineRow(r){
   if (!open) return head;
   return head + '<tr><td colspan="6" style="padding:0 10px 12px;background:#f8fbff;">'
     + '<div style="border:1px solid #e2e8f0;border-radius:9px;padding:10px 12px;background:#fff;">'
-    + '<div style="font-size:12.5px;color:#475569;line-height:1.65;">' + esc(r.detail || '（无描述）') + '</div>'
+    + '<div class="iss"><span>✘ 问题点</span>' + esc(r.detail || '（无描述）') + '</div>'
     + custIdBlock(r)
     + guidanceBlock(r)
-    + (String(r.evidence || '').trim() ? '<div style="margin-top:8px;font-size:11.5px;color:#64748b;">证据截图：' + evCell(r) + '（点开看当时的聊天记录）</div>' : '')
+    + (String(r.evidence || '').trim() ? '<div style="margin-top:8px;font-size:11.5px;color:#64748b;">证据截图：' + evCell(r) + evTrail(r)
+        + '（' + (evCount(r) ? '必须点开看一遍，看完才解锁确认' : '对照着看当时的聊天记录') + '）</div>' : '')
     + (r.note ? '<div style="margin-top:7px;font-size:11.5px;color:#94a3b8;">备注：' + esc(r.note) + '</div>' : '')
     + '<div style="margin-top:9px;display:flex;align-items:center;gap:10px;">'
     + (confirmed ? '<span class="cfm done">已确认</span>' : confirmBtn(r))
     + '<button class="cfm-btn ghost" onclick="qcCollapse(\'' + id + '\')">收起</button>'
-    + (readReady(r) ? '' : '<span style="font-size:11.5px;color:#94a3b8;">看清楚再确认（还有 ' + readLeft(r) + ' 秒）</span>')
+    + (hintView(r) ? '<span style="font-size:11.5px;color:#b45309;">' + hintView(r) + '</span>' : '')
     + '</div></div></td></tr>';
 }
 
-function readReady(r){ return (readOK[r.id] || 0) <= Date.now(); }
+/* 确认按钮旁的提示：有截图未点开 → 引导看图；点了图/没截图 → 倒计时 */
+function hintView(r){
+  if (readReady(r)) return '';
+  if (evCount(r) > 0 && !viewed[r.id]) return '📷 请先点开证据截图看一遍，看完 5 秒后才能确认';
+  return '看清楚再确认（还有 ' + readLeft(r) + ' 秒）';
+}
+
+function readReady(r){
+  // 2026-11-03 方案A：有截图的记录必须点开过图，光展开文字不算
+  if (evCount(r) > 0 && !viewed[r.id]) return false;
+  return (readOK[r.id] || 0) <= Date.now();
+}
 function readLeft(r){ return Math.max(0, Math.ceil(((readOK[r.id] || 0) - Date.now()) / 1000)); }
 function confirmBtn(r){
   const ok = readReady(r);
@@ -596,10 +633,23 @@ function confirmBtn(r){
 }
 function qcExpand(id){
   expanded[id] = true;
-  readOK[id] = Date.now() + 3000;      // 展开后停留 3 秒才出现可点的确认（防止手快连点）
+  const r = rows.find(x => String(x.id) === String(id));
+  if (!r || evCount(r) === 0){
+    readOK[id] = Date.now() + 3000;      // 没截图的：展开停留 3 秒即可确认（原逻辑）
+    setTimeout(() => { try{ renderMine(); }catch(e){} }, 3100);
+  }
+  // 有截图的：不解锁，等 markViewed（点开截图）后开 5 秒倒计时
   renderMine();
-  setTimeout(() => { try{ renderMine(); }catch(e){} }, 3100);
 }
+/* 2026-11-03 方案A：点开任一证据截图 → 5 秒后解锁该条的「我已知晓」 */
+function markViewed(id){
+  if (!id) return;
+  viewed[id] = true;
+  readOK[id] = Math.max(readOK[id] || 0, Date.now() + 5000);
+  renderMine();
+  setTimeout(() => { try{ renderMine(); }catch(e){} }, 5100);
+}
+window.qcMarkViewed = markViewed;
 function qcCollapse(id){ delete expanded[id]; renderMine(); }
 window.qcExpand = qcExpand; window.qcCollapse = qcCollapse;
 
@@ -607,10 +657,7 @@ window.qcExpand = qcExpand; window.qcCollapse = qcCollapse;
 window.qcFocusPending = function(){
   const first = rows.find(r => !r.staff_confirmed_at);
   if (!first) return;
-  expanded[first.id] = true;
-  readOK[first.id] = Date.now() + 3000;
-  renderMine();
-  setTimeout(() => { try{ renderMine(); }catch(e){} }, 3100);
+  qcExpand(first.id);
   const el = document.querySelector('#panel-mine table.tb tbody tr');
   if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
 };

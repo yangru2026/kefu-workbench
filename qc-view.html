@@ -51,6 +51,29 @@ html,body{margin:0;height:100%;background:#1b2230;overflow:hidden;font-family:sy
   var wrap = document.getElementById('wrap'), msg = document.getElementById('msg');
   var z = 0, im = null;
   if (!id || !t){ msg.textContent = '链接不完整，请回到工作台质检页重新点「图 查看」。'; return; }
+
+  // ★ 2026-11-03 看图留痕（方案B）：关闭/切走时把本页停留秒数写进 qc_records.evidence_views，
+  //   工作台组长端汇总「看图 N 次 · 最长 N 秒」，没打开过图/秒数过短的会标出来。
+  //   用 fetch keepalive（页面卸载也能发出去）；token 过期上报失败就算了，不影响看图。
+  var openT = Date.now(), logSent = false;
+  function sendLog(){
+    if (logSent) return; logSent = true;
+    var sec = Math.round((Date.now() - openT) / 1000);
+    try{
+      fetch('https://icfgireprowcqwdodfqx.supabase.co/rest/v1/rpc/qc_log_evidence_view', {
+        method: 'POST', keepalive: true,
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': 'sb_publishable_LF-obMSRD7DFsY0AcjYZuQ_53P6UlQ8',
+          'Authorization': 'Bearer ' + t
+        },
+        body: JSON.stringify({ p_id: id, p_sec: sec })
+      }).catch(function(){});
+    }catch(e){}
+  }
+  window.addEventListener('pagehide', sendLog);
+  document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'hidden') sendLog(); });
+
   // 加载超过 3 秒给个等待提示（大图/函数冷启动会慢几秒，别让人以为卡死了）
   var t0 = Date.now(), slowTimer = setInterval(function(){
     if (im) { clearInterval(slowTimer); return; }
