@@ -1,108 +1,159 @@
-// 补货动态页冒烟 v2：批量登记 + 勾选批量操作 + 公告复制
-const puppeteer = require('puppeteer-core');
-(async () => {
-  const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-    headless: 'new', args: ['--no-sandbox'],
-  });
+/**
+ * restock.html（补货情况）冒烟 + 截图（2026-11-03 两分类版）
+ * 场景A 管理员：两个分组渲染、条数正确、可登记、生成图片出 dataURL
+ * 场景B 客服：只读、无登记按钮、也能生成图片
+ * 产出：outputs/shot-restock-admin.png / shot-restock-staff.png / shot-restock-poster.png
+ */
+const puppeteer = require('C:/Users/Administrator/.workbuddy/binaries/node/workspace/node_modules/puppeteer-core');
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = 'C:/Users/Administrator/WorkBuddy/2026-07-28-10-50-05';
+const PORT = 8177;
+const REF = 'icfgireprowcqwdodfqx';
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const wd = setTimeout(() => { console.log('WATCHDOG_TIMEOUT'); process.exit(3); }, 120000);
+
+const ROWS = [
+  { id: 1, toss: '半年抛', name: '我喜欢你', status: 'restocking', eta_date: '11.7左右', note: null, updated_at: '2026-11-03T01:00:00Z' },
+  { id: 2, toss: '半年抛', name: '汪汪队', status: 'restocking', eta_date: '11.7左右', note: null, updated_at: '2026-11-03T01:00:00Z' },
+  { id: 3, toss: '半年抛', name: '少女心事', status: 'restocking', eta_date: '11.13左右', note: null, updated_at: '2026-11-03T01:00:00Z' },
+  { id: 4, toss: '半年抛', name: '黑莓缪斯', status: 'restocking', eta_date: '11.11左右', note: null, updated_at: '2026-11-03T01:00:00Z' },
+  { id: 5, toss: '日抛', name: '校花指南6片装', status: 'restocking', eta_date: '12.10左右', note: null, updated_at: '2026-11-03T01:00:00Z' },
+  { id: 6, toss: '日抛', name: '小黑环pro6片装', status: 'restocking', eta_date: '11.5左右', note: null, updated_at: '2026-11-03T01:00:00Z' },
+  { id: 7, toss: '半年抛', name: '窗外樱花', status: 'no', eta_date: null, note: null, updated_at: '2026-11-03T01:00:00Z' },
+  { id: 8, toss: '日抛', name: '冰葡萄6片装', status: 'no', eta_date: null, note: null, updated_at: '2026-11-03T01:00:00Z' }
+];
+
+const server = http.createServer((req, res) => {
+  const p = req.url.split('?')[0];
+  const file = path.join(ROOT, decodeURIComponent(p === '/' ? '/index.html' : p));
+  try {
+    const data = fs.readFileSync(file);
+    const mime = p.endsWith('.html') ? 'text/html; charset=utf-8' : p.endsWith('.js') ? 'application/javascript' : 'application/octet-stream';
+    res.writeHead(200, { 'Content-Type': mime }); res.end(data);
+  } catch (e) { res.writeHead(404); res.end('nf'); }
+});
+const json = o => ({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(o) });
+
+async function run(browser, role, name) {
   const page = await browser.newPage();
-  const errors = [];
-  page.on('pageerror', e => errors.push('pageerror: ' + e.message));
-  page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+  await page.setViewport({ width: 1280, height: 920, deviceScaleFactor: 1.5 });
+  const errs = [];
+  page.on('pageerror', e => errs.push('PAGEERROR:' + e.message));
+  page.on('dialog', d => d.accept());
 
-  const seed = [
-    { id: 'a1', toss: '半年抛', name: '她的梨涡', status: 'restocking', eta_date: '10.26', note: '', updated_at: '2026-10-24T02:00:00Z' },
-    { id: 'a2', toss: '日抛', name: '恋爱情报', status: 'done', eta_date: '10.23', note: '', updated_at: '2026-10-23T09:00:00Z' },
-    { id: 'a3', toss: '日抛', name: '泡沫挽歌', status: 'no', eta_date: '', note: '', updated_at: '2026-10-20T09:00:00Z' },
-  ];
-  await page.evaluateOnNewDocument((seed) => {
-    window.confirm = () => true;
-    window.alert = () => {};
-    function chain(result) {
-      return new Proxy(function(){}, {
-        get(t, p) {
-          if (p === 'then') return res => Promise.resolve(result).then(res);
-          if (p === 'catch') return rej => Promise.resolve(result).catch(rej);
-          return chain(result);
-        },
-        apply() { return chain(result); },
-      });
+  await page.setRequestInterception(true);
+  page.on('request', req => {
+    const u = req.url(); const m = req.method();
+    if (m === 'OPTIONS' && u.includes('supabase')) {
+      return req.respond({ status: 200, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*', 'Access-Control-Allow-Methods': '*' } });
     }
-    let store = JSON.parse(JSON.stringify(seed));
-    const mockSb = {
-      auth: { getSession: async () => ({ data: { session: { user: { id: 'u-admin', app_metadata: {} } } } }) },
-      from(table) {
-        if (table === 'profiles') return chain({ data: { role: 'admin', name: '茹姐' }, error: null });
-        if (table === 'restock_items') {
-          return {
-            select: () => chain({ data: store, error: null }),
-            insert: (rows) => {
-              (Array.isArray(rows) ? rows : [rows]).forEach(row => store.push(Object.assign({ id: 'n' + Math.random().toString(36).slice(2, 8) }, row)));
-              return chain({ data: null, error: null });
-            },
-            update: (row) => ({ eq: (k, id) => { const it = store.find(x => x[k] === id); if (it) Object.assign(it, row); return chain({ data: null, error: null }); } }),
-            delete: () => ({ eq: (k, id) => { store = store.filter(x => x[k] !== id); return chain({ data: null, error: null }); } }),
-          };
-        }
-        return chain({ data: null, error: null });
-      },
+    if (/supabase\.min\.js/.test(u)) {
+      try { return req.respond({ status: 200, contentType: 'application/javascript', body: fs.readFileSync(ROOT + '/vendor/supabase.min.js', 'utf8') }); }
+      catch (e) { return req.respond({ status: 404, body: 'nf' }); }
+    }
+    if (u.includes('/rest/v1/profiles')) return req.respond(json({ id: 'u1', name, role }));
+    if (u.includes('/rest/v1/restock_items')) {
+      if (m === 'POST') { let b = ''; req.on('data', c => b += c); req.on('end', () => { posts.push(b); req.respond(json([])); }); return; }
+      return req.respond(json(ROWS));
+    }
+    if (u.includes('/rest/v1/')) return req.respond(json([]));
+    if (u.includes('/auth/v1/')) return req.respond(json({}));
+    req.continue();
+  });
+
+  await page.evaluateOnNewDocument((ref, userRole) => {
+    const session = {
+      access_token: 'fake', token_type: 'bearer', expires_in: 3600,
+      expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: 'fake',
+      user: { id: 'u1', email: 'u@workbench.test', app_metadata: { role: userRole }, user_metadata: {} }
     };
-    window.supabase = { createClient: () => mockSb };
-    Object.defineProperty(window, 'supabase', { value: window.supabase, writable: false, configurable: false });
-  }, seed);
+    localStorage.setItem('sb-' + ref + '-auth-token', JSON.stringify(session));
+  }, REF, role);
 
-  await page.goto('file:///C:/Users/Administrator/WorkBuddy/2026-07-28-10-50-05/restock.html', { waitUntil: 'networkidle0' });
-  await new Promise(r => setTimeout(r, 400));
-  console.log('badge:', await page.$eval('#roleBadge', e => e.textContent));
-  console.log('初始计数:', await page.evaluate(() => [cntWait.textContent, cntDone.textContent, cntNo.textContent].join(' | ')));
+  const posts = [];
+  await page.goto('http://127.0.0.1:' + PORT + '/restock.html', { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await sleep(2500);
 
-  // 1) 批量登记：粘贴采购消息风格的多行（带 D 前缀和 6片装，应自动清洗）
-  await page.click('#btnAdd');
-  await page.select('#fToss', '半年抛');
-  await page.evaluate(() => { document.getElementById('fName').value = '半年抛\n冰岛日记\n窗外樱花\nD我喜欢你6片装\n、恋爱情报6片装\n物流顺利的话提前至26号 如有延误延1天预计27号到义乌'; });
-  await page.type('#fDate', '10.26');
-  await page.click('#fSave');
-  await new Promise(r => setTimeout(r, 300));
-  const waitNames = await page.$$eval('#gridWait .item .name', els => els.map(e => e.textContent));
-  console.log('批量登记后 补货中:', await page.$eval('#cntWait', e => e.textContent), JSON.stringify(waitNames));
+  const st = await page.evaluate(() => ({
+    badge: document.getElementById('roleBadge').textContent,
+    cntWait: document.getElementById('cntWait').textContent,
+    cntNo: document.getElementById('cntNo').textContent,
+    waitCards: document.querySelectorAll('#gridWait .item').length,
+    noCards: document.querySelectorAll('#gridNo .item').length,
+    hasDone: !!document.getElementById('secDone'),
+    hasAdd: document.getElementById('btnAdd').style.display !== 'none',
+    firstWait: (document.querySelector('#gridWait .item .name') || {}).textContent || '',
+    firstDate: (document.querySelector('#gridWait .item .date') || {}).textContent || ''
+  }));
 
-  // 2) 勾选两条 → 批量改到货时间（不改状态）
-  await page.evaluate(() => {
-    const ids = [...document.querySelectorAll('[data-ck]')].map(e => e.dataset.ck);
-    document.querySelector('[data-ck="' + ids[0] + '"]').click();
-    document.querySelector('[data-ck="' + ids[1] + '"]').click();
+  // 生成图片
+  let poster = { dataLen: 0 };
+  try {
+    poster = await Promise.race([
+      page.evaluate(() => {
+        document.getElementById('btnPoster').click();
+        const img = document.getElementById('posterImg');
+        const maskShow = document.getElementById('posterMask').classList.contains('show');
+        return { dataLen: (img.src || '').length, isPng: /^data:image\/png/.test(img.src), maskShow };
+      }),
+      new Promise(r => setTimeout(() => r({ timeout: true }), 10000))
+    ]);
+  } catch (e) { poster = { err: String(e) }; }
+
+  const shotName = role === 'admin' ? 'shot-restock-admin.png' : 'shot-restock-staff.png';
+  await page.screenshot({ path: 'C:/Users/Administrator/WorkBuddy/2026-07-28-10-50-05/outputs/' + shotName });
+
+  let posterShot = null;
+  if (role === 'admin' && poster.isPng) {
+    posterShot = 'C:/Users/Administrator/WorkBuddy/2026-07-28-10-50-05/outputs/shot-restock-poster.png';
+    const el = await page.$('#posterMask .modal');
+    if (el) await el.screenshot({ path: posterShot });
+  }
+
+  await page.close();
+  return { st, poster, errs, posts, shotName, posterShot };
+}
+
+(async () => {
+  await new Promise(r => server.listen(PORT, '127.0.0.1', r));
+  const browser = await puppeteer.launch({
+    executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+    headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage', '--no-proxy-server', '--proxy-bypass-list=*']
   });
-  console.log('batchBar 可见:', await page.$eval('#batchBar', e => e.classList.contains('show')), '|', await page.$eval('#batchN', e => e.textContent));
-  await page.click('#bEta');
-  await page.type('#batchDate', '10.27');
-  await page.click('#dateApply');
-  await new Promise(r => setTimeout(r, 300));
-  const etas = await page.$$eval('#gridWait .item .date', els => els.map(e => e.textContent));
-  console.log('批量改时间后 各条日期:', JSON.stringify(etas));
-  console.log('状态未变(仍补货中):', await page.$eval('#cntWait', e => e.textContent));
+  const out = { assertions: [] };
+  const ok = (n, c, x) => out.assertions.push({ name: n, pass: !!c, extra: x || '' });
+  try {
+    const admin = await run(browser, 'admin', '杨茹');
+    const staff = await run(browser, 'staff', '小柚');
 
-  // 3) 勾选两条 → 批量设为已入库（日期自动今天）
-  await page.evaluate(() => {
-    const ids = [...document.querySelectorAll('[data-ck]')].slice(0, 2);
-    ids.forEach(e => { if (!e.checked) e.click(); });
-  });
-  await page.click('#bDone');
-  await new Promise(r => setTimeout(r, 300));
-  console.log('批量入库后:', await page.evaluate(() => [cntWait.textContent, cntDone.textContent, cntNo.textContent].join(' | ')));
-
-  // 4) 批量删除
-  await page.evaluate(() => {
-    const ids = [...document.querySelectorAll('[data-ck]')].slice(0, 2);
-    ids.forEach(e => { if (!e.checked) e.click(); });
-  });
-  await page.click('#bDel');
-  await new Promise(r => setTimeout(r, 300));
-  console.log('批量删除后 总数:', await page.evaluate(() => cntWait.textContent + '/' + cntDone.textContent + '/' + cntNo.textContent));
-
-  // 5) 公告复制
-  const notice = await page.evaluate(() => buildNotice());
-  console.log('---- 公告文案 ----\n' + notice);
-
-  console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'NO JS ERRORS');
-  await browser.close();
+    ok('管理员：两分组渲染（补货中6/不补2）', admin.st.waitCards === 6 && admin.st.noCards === 2, JSON.stringify(admin.st));
+    ok('管理员：条数徽标正确', admin.st.cntWait === '6 款' && admin.st.cntNo === '2 款');
+    ok('旧「已入库」分组已移除', admin.st.hasDone === false);
+    ok('管理员：显示登记按钮', admin.st.hasAdd === true);
+    ok('补货中卡带预计时间（按到货时间排序，最早 11.5 在前）', /预计 11\.5左右/.test(admin.st.firstDate || ''), admin.st.firstDate);
+    ok('客服：只读（无登记按钮）', staff.st.hasAdd === false);
+    ok('客服：数据一致', staff.st.waitCards === 6 && staff.st.noCards === 2);
+    ok('生成图片：弹出预览且是 PNG', admin.poster.isPng === true && admin.poster.maskShow === true, JSON.stringify(admin.poster));
+    ok('生成图片：内容非空', (admin.poster.dataLen || 0) > 20000, 'len=' + admin.poster.dataLen);
+    ok('客服也能生成图片', staff.poster.isPng === true);
+    ok('管理员视角无页面异常', admin.errs.length === 0, admin.errs.slice(0, 2).join('|'));
+    ok('客服视角无页面异常', staff.errs.length === 0, staff.errs.slice(0, 2).join('|'));
+    out.shots = [admin.shotName, staff.shotName, admin.posterShot];
+  } catch (e) {
+    out.fatal = String(e && e.stack || e);
+  } finally {
+    await browser.close().catch(() => {});
+    server.close();
+  }
+  clearTimeout(wd);
+  const pass = out.assertions.filter(a => a.pass).length;
+  const fail = out.assertions.filter(a => !a.pass);
+  console.log('=== restock 冒烟 ===');
+  out.assertions.forEach(a => console.log((a.pass ? 'PASS ' : 'FAIL ') + a.name + (a.extra && !a.pass ? '  [' + a.extra + ']' : '')));
+  console.log('--- ' + pass + ' / ' + out.assertions.length + ' 通过');
+  if (out.fatal) console.log('FATAL: ' + out.fatal);
+  process.exit(fail.length ? 1 : 0);
 })();

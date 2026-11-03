@@ -87,10 +87,11 @@
 </head>
 <body>
   <div class="topbar">
-    <h1>📦 补货动态</h1>
+    <h1>📦 补货情况</h1>
     <span class="badge" id="roleBadge">…</span>
     <div class="sp"></div>
     <div class="search"><span class="ico">🔍</span><input id="q" placeholder="搜花名" autocomplete="off"></div>
+    <button class="btn o" id="btnPoster">🖼️ 生成图片</button>
     <button class="btn o" id="btnCopy" style="display:none;">📋 复制公告</button>
     <button class="btn o" id="btnSelAll" style="display:none;">☑️ 全选</button>
     <button class="btn g" id="btnAdd" style="display:none;">＋ 登记</button>
@@ -99,10 +100,6 @@
     <div class="sec wait" id="secWait">
       <div class="sec-title">🕐 补货中<span id="cntWait">0</span></div>
       <div class="grid" id="gridWait"></div>
-    </div>
-    <div class="sec done" id="secDone">
-      <div class="sec-title">✅ 已入库<span id="cntDone">0</span></div>
-      <div class="grid" id="gridDone"></div>
     </div>
     <div class="sec no" id="secNo">
       <div class="sec-title">🚫 不补清单<span id="cntNo">0</span></div>
@@ -120,8 +117,7 @@
       <label>状态</label>
       <select id="fStatus">
         <option value="restocking">补货中（等采购回复到货时间）</option>
-        <option value="done">已入库（客服可查收）</option>
-        <option value="no">不补（潜仓不补）</option>
+        <option value="no">不补清单（潜仓不补）</option>
       </select>
       <label id="fDateLabel">预计到货日期</label>
       <input id="fDate" placeholder="如：10.26 / 12-10号左右" autocomplete="off">
@@ -135,11 +131,24 @@
   </div>
   <div id="batchBar">
     <span class="n" id="batchN">已选 0 条</span>
-    <button class="b-done" id="bDone">✅ 设为已入库</button>
     <button class="b-eta" id="bEta">🕐 改到货时间</button>
     <button class="b-no" id="bNo">🚫 设为不补</button>
+    <button class="b-wait" id="bWait" style="background:#ea580c;">🕐 设回补货中</button>
     <button class="b-del" id="bDel">🗑️ 删除</button>
     <button class="b-cancel" id="bCancel">取消选择</button>
+  </div>
+
+  <!-- 生成图片预览弹窗：客服可长按/右键保存发客户，也可点下载 -->
+  <div class="mask" id="posterMask">
+    <div class="modal" style="width:min(460px,calc(100vw - 36px));max-height:88vh;overflow:auto;">
+      <h3>📋 补货清单图片</h3>
+      <div style="font-size:12px;color:var(--muted);margin:-6px 0 10px;">可以直接截图/长按保存发给客户，或点下面下载</div>
+      <img id="posterImg" style="width:100%;border:1px solid var(--border);border-radius:10px;display:block;" alt="补货清单">
+      <div class="btns">
+        <button class="btn o" id="posterClose">关闭</button>
+        <button class="btn g" id="posterDownload">⬇️ 下载图片</button>
+      </div>
+    </div>
   </div>
 
   <div class="mask" id="dateMask">
@@ -197,9 +206,8 @@ function filtered(){
 }
 
 function cardHtml(x){
-  const dateTxt = x.status==='restocking' ? (x.eta_date ? '预计 ' + x.eta_date : '等采购回复')
-                : x.status==='done' ? (x.eta_date ? x.eta_date + ' 入库' : '已入库')
-                : '不补';
+  // 2026-11-03：只保留 补货中 / 不补清单 两个分类
+  const dateTxt = x.status==='restocking' ? (x.eta_date ? '预计 ' + x.eta_date : '等采购回复') : '不补';
   return '<div class="item" data-id="' + x.id + '">' +
     '<div style="display:flex;gap:8px;align-items:flex-start;">' +
       (isAdmin ? '<label class="ckwrap"><input type="checkbox" data-ck="' + x.id + '"' + (selected.has(x.id)?' checked':'') + '></label>' : '') +
@@ -217,14 +225,11 @@ function cardHtml(x){
 function render(){
   const list = filtered();
   const g1 = list.filter(x=>x.status==='restocking');
-  const g2 = list.filter(x=>x.status==='done');
   const g3 = list.filter(x=>x.status==='no');
   g1.sort((a,b)=> etaKey(a.eta_date) - etaKey(b.eta_date));
   $('cntWait').textContent = g1.length + ' 款';
-  $('cntDone').textContent = g2.length + ' 款';
   $('cntNo').textContent = g3.length + ' 款';
   $('gridWait').innerHTML = g1.length ? g1.map(cardHtml).join('') : '<div class="empty">暂无补货中的花色 🎉</div>';
-  $('gridDone').innerHTML = g2.length ? g2.map(cardHtml).join('') : '<div class="empty">暂无入库记录</div>';
   $('gridNo').innerHTML = g3.length ? g3.map(cardHtml).join('') : '<div class="empty">暂无不补花色</div>';
   // 清掉已不存在的选中项
   [...selected].forEach(id => { if (!list.some(x=>x.id===id)) selected.delete(id); });
@@ -297,22 +302,21 @@ function openForm(x){
   setTimeout(()=>{ try{ $('fName').focus(); }catch(e){} }, 60);
 }
 function syncDateLabel(){
-  $('fDateLabel').textContent = $('fStatus').value === 'done' ? '入库日期' : '预计到货日期';
+  $('fDateLabel').textContent = $('fStatus').value === 'restocking' ? '预计到货时间（如 11.7左右）' : '备注时间（可不填）';
 }
 async function save(){
   const raw = $('fName').value.trim();
   if (!raw) { toast('请填花名'); return; }
   const status = $('fStatus').value;
   let eta = $('fDate').value.trim();
-  if (status === 'done' && !eta) eta = todayMd();
-  // 批量：一行一个，兼容 、，, 分隔；自动去掉 D 前缀和 6片装/片装 后缀；
-  // 过滤标题/说明行（半年抛、日抛、缺货、物流、预计、入库、潜仓等），并跳过已有的同抛型同名花色
+  if (status === 'no' && !eta) eta = '';
+  // 批量：一行一个，兼容 、，, 分隔；自动去掉 D 前缀；过滤标题/说明行；跳过已有同名花色
   const isNoise = s => /^(半年抛|日抛)$/.test(s) || /(缺货|潜仓|预计|物流|入库|延误|到货|义乌|全度数|查收)/.test(s);
   const names = [...new Set(raw.split(/[\n\r]+|、|，|,/).map(s => s.trim()
-      .replace(/^D(?=[\u4e00-\u9fa5A-Za-z])/,'').replace(/-?6?片装$/,'').replace(/-?片装$/,''))
+      .replace(/^D(?=[\u4e00-\u9fa5A-Za-z])/,''))
     .filter(Boolean))]
     .filter(n => !isNoise(n))
-    .filter(n => !items.some(x => x.toss === $('fToss').value && x.name === n));
+    .filter(n => !items.some(x => x.toss === $('fToss').value && x.name === n && !editingId));
   if (!names.length) { toast('没识别到花名'); return; }
   let error;
   if (editingId) {
@@ -336,21 +340,21 @@ function buildNotice(){
   const hy = wait.filter(x=>x.toss==='半年抛');
   const da = wait.filter(x=>x.toss==='日抛');
   const L = [];
-  L.push('📣 补货动态（' + todayMd() + ' 更新）');
+  L.push('📣 补货情况（' + todayMd() + ' 更新）');
   if (hy.length){
     L.push('');
     L.push('半年抛缺货到货预计时效：');
-    hy.forEach(x=> L.push(x.name + (x.eta_date ? ' 预计' + x.eta_date + '到货' : ' 到货时间待定')));
+    hy.forEach(x=> L.push(x.name + (x.eta_date ? ' ' + x.eta_date : ' 到货时间待定')));
   }
   if (da.length){
     L.push('');
     L.push('日抛缺货到货预计时效：');
-    da.forEach(x=> L.push(x.name + '6片装' + (x.eta_date ? ' 预计' + x.eta_date + '到货' : ' 到货时间待定')));
+    da.forEach(x=> L.push(x.name + (x.eta_date ? ' ' + x.eta_date : ' 到货时间待定')));
   }
   if (no.length){
     L.push('');
-    L.push('潜仓不补缺货花色：');
-    no.forEach(x=> L.push(x.name + (x.toss==='日抛' ? '-6片装' : '')));
+    L.push('不补清单（潜仓不补）：');
+    no.forEach(x=> L.push(x.name));
   }
   return L.join('\n');
 }
@@ -362,6 +366,91 @@ async function copyNotice(){
     ta.select(); try{ document.execCommand('copy'); toast('公告已复制，去群里粘贴即可 📋'); }catch(_){ toast('复制失败，请手动复制'); }
     document.body.removeChild(ta);
   }
+}
+
+/* ==================== 生成图片（2026-11-03 新增） ====================
+   客服在工作台直接看 + 点「生成图片」出一张清单图，可保存发客户；
+   管理员也可以把图发到工作台通知客服。纯 canvas 绘制，不依赖任何库。 */
+function posterData(){
+  const list = filtered();
+  const wait = list.filter(x=>x.status==='restocking').sort((a,b)=>etaKey(a.eta_date)-etaKey(b.eta_date));
+  const no   = list.filter(x=>x.status==='no');
+  return { wait, no };
+}
+function genPoster(){
+  const { wait, no } = posterData();
+  if (!wait.length && !no.length) { toast('现在没有补货情况可生成'); return; }
+  const W = 750, PAD = 44, ROW = 62, TITLE_H = 76;
+  const hasWait = wait.length > 0, hasNo = no.length > 0;
+  const noRows = Math.ceil(no.length / 2);
+  const H = 190                                  // 头部
+    + (hasWait ? TITLE_H + wait.length * ROW : 0)
+    + (hasWait && hasNo ? 26 : 0)
+    + (hasNo ? TITLE_H + noRows * 58 : 0)
+    + 96;                                        // 底部
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const ctx = c.getContext('2d');
+  const F = (w, s) => w + ' ' + s + 'px "PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif';
+  // 背景
+  ctx.fillStyle = '#f7f9f8'; ctx.fillRect(0, 0, W, H);
+  // 头部色带
+  const grad = ctx.createLinearGradient(0, 0, W, 170);
+  grad.addColorStop(0, '#10b981'); grad.addColorStop(1, '#059669');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, 150);
+  ctx.fillStyle = '#fff';
+  ctx.font = F('800', 40); ctx.textBaseline = 'middle';
+  ctx.fillText('补货情况说明', PAD, 68);
+  ctx.font = F('600', 22);
+  ctx.globalAlpha = .92;
+  ctx.fillText('更新：' + todayMd() + ' · 具体到货以实际为准', PAD, 114);
+  ctx.globalAlpha = 1;
+  let y = 190;
+  if (hasWait){
+    ctx.fillStyle = '#c2410c';
+    ctx.font = F('800', 27);
+    ctx.fillText('🕐 补货中 · 预计到货（' + wait.length + ' 款）', PAD, y);
+    y += TITLE_H - 14;
+    wait.forEach((x, i) => {
+      if (i % 2 === 0){ ctx.fillStyle = '#ffffff'; ctx.fillRect(PAD - 14, y - 24, W - (PAD - 14) * 2, ROW - 6); }
+      ctx.fillStyle = '#1e293b'; ctx.font = F('700', 26);
+      ctx.fillText(x.name, PAD, y);
+      ctx.fillStyle = '#ea580c'; ctx.font = F('800', 24);
+      ctx.textAlign = 'right';
+      ctx.fillText(x.eta_date ? x.eta_date : '时间待定', W - PAD, y);
+      ctx.textAlign = 'left';
+      y += ROW;
+    });
+  }
+  if (hasWait && hasNo) y += 26;
+  if (hasNo){
+    ctx.fillStyle = '#475569';
+    ctx.font = F('800', 27);
+    ctx.fillText('🚫 不补清单（' + no.length + ' 款）', PAD, y);
+    y += TITLE_H - 14;
+    ctx.font = F('600', 24);
+    no.forEach((x, i) => {
+      const col = i % 2, row = Math.floor(i / 2);
+      const cx = PAD + col * ((W - PAD * 2) / 2);
+      ctx.fillStyle = '#64748b';
+      ctx.fillText('· ' + x.name, cx, y + row * 58);
+    });
+    y += noRows * 58;
+  }
+  // 底部
+  ctx.fillStyle = '#94a3b8'; ctx.font = F('500', 20); ctx.textAlign = 'center';
+  ctx.fillText('—— 到货时间为预计时间，以实际到货为准 ——', W / 2, H - 46);
+  ctx.textAlign = 'left';
+  // 预览
+  $('posterImg').src = c.toDataURL('image/png');
+  $('posterMask').classList.add('show');
+}
+function downloadPoster(){
+  const a = document.createElement('a');
+  a.href = $('posterImg').src;
+  a.download = '补货清单_' + todayMd().replace('.', '') + '.png';
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('图片已下载，可直接发给客户 📤');
 }
 
 /* ==================== 初始化 ==================== */
@@ -399,8 +488,8 @@ $('btnSelAll').addEventListener('click', ()=>{
   if (allOn) selected.clear(); else list.forEach(x=>selected.add(x.id));
   render();
 });
-$('bDone').addEventListener('click', ()=> batchUpdate({ status:'done', eta_date: todayMd() }));
 $('bNo').addEventListener('click', ()=> batchUpdate({ status:'no' }));
+$('bWait').addEventListener('click', ()=> batchUpdate({ status:'restocking' }));
 $('bEta').addEventListener('click', ()=>{ $('dateCnt').textContent = selected.size; $('batchDate').value=''; $('dateMask').classList.add('show'); });
 $('dateCancel').addEventListener('click', ()=>$('dateMask').classList.remove('show'));
 $('dateApply').addEventListener('click', ()=>{
@@ -415,6 +504,13 @@ $('fCancel').addEventListener('click', ()=>$('formMask').classList.remove('show'
 $('fSave').addEventListener('click', save);
 $('fStatus').addEventListener('change', syncDateLabel);
 $('btnCopy').addEventListener('click', copyNotice);
+$('btnPoster').addEventListener('click', genPoster);
+$('posterClose').addEventListener('click', ()=>$('posterMask').classList.remove('show'));
+$('posterDownload').addEventListener('click', downloadPoster);
+// 点遮罩本身才关（拖选文字不误关）
+$('posterMask').addEventListener('click', function(e){ if (e.target === this) this.classList.remove('show'); });
+$('formMask').addEventListener('click', function(e){ if (e.target === this) this.classList.remove('show'); });
+$('dateMask').addEventListener('click', function(e){ if (e.target === this) this.classList.remove('show'); });
 $('q').addEventListener('input', render);
 </script>
 </body>
