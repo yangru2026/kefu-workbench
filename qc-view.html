@@ -43,10 +43,17 @@ html,body{margin:0;height:100%;background:#1b2230;overflow:hidden;font-family:sy
   var wrap = document.getElementById('wrap'), msg = document.getElementById('msg');
   var z = 0, im = null;
   if (!id || !t){ msg.textContent = '链接不完整，请回到工作台质检页重新点「图 查看」。'; return; }
+  // 加载超过 3 秒给个等待提示（大图/函数冷启动会慢几秒，别让人以为卡死了）
+  var t0 = Date.now(), slowTimer = setInterval(function(){
+    if (im) { clearInterval(slowTimer); return; }
+    var s = Math.round((Date.now() - t0) / 1000);
+    if (s >= 3) msg.textContent = '正在取图…（已 ' + s + ' 秒，截图较大时会稍慢，最多等十几秒）';
+  }, 1000);
   fetch('https://icfgireprowcqwdodfqx.supabase.co/functions/v1/qc-evidence?json=1&id=' + encodeURIComponent(id) + '&t=' + encodeURIComponent(t))
     .then(function(r){ return r.json().catch(function(){ throw new Error('HTTP ' + r.status); }); })
     .then(function(j){
       if (!j.ok) throw new Error(j.error || '取图失败');
+      clearInterval(slowTimer);
       document.getElementById('fname').textContent = j.name || '质检截图';
       var dl = document.getElementById('dl'); dl.href = j.url; dl.download = (j.name || '质检截图');
       document.getElementById('bar').style.display = '';
@@ -58,7 +65,14 @@ html,body{margin:0;height:100%;background:#1b2230;overflow:hidden;font-family:sy
       wrap.onwheel = function(e){ e.preventDefault(); set(z === 0 ? (e.deltaY < 0 ? 1 : 0.8) : z * (e.deltaY < 0 ? 1.25 : 0.8)); };
     })
     .catch(function(e){
-      msg.textContent = '取图失败：' + (e.message || e) + '。请刷新工作台后重试（登录过期也会这样提示）。';
+      clearInterval(slowTimer);
+      var m = String(e.message || e);
+      if (m.indexOf('401') >= 0){
+        // 2026-11-03：现在质检页是点按钮时现取新 token，401 只剩「真掉线」一种情况
+        msg.innerHTML = '登录已过期，取图被拒（HTTP 401）。<br>请回到工作台<b>刷新页面重新登录</b>，再点一次「图 查看」。';
+      } else {
+        msg.textContent = '取图失败：' + m + '。请回到工作台质检页重试一次。';
+      }
     });
 
   function apply(){

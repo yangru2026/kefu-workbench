@@ -117,10 +117,10 @@ async function run(browser, role, name, qcFail) {
       typeRows: document.querySelectorAll('#panel-type .type-row').length,
       detailRows: document.querySelectorAll('#panel-detail table.tb tbody tr').length,
       detailEvLinks: document.querySelectorAll('#panel-detail table.tb tbody a.ev').length,
-      proxyLinks: [...document.querySelectorAll('#panel-detail table.tb tbody a.ev')]
-        .filter(a => /functions\/v1\/qc-evidence/.test(a.getAttribute('href') || '')).length,
+      viewerLinks: [...document.querySelectorAll('#panel-detail table.tb tbody a.ev')]
+        .filter(a => /qc-view\.html/.test(a.getAttribute('href') || '') && a.hasAttribute('data-evid')).length,
       proxyHasToken: [...document.querySelectorAll('#panel-detail table.tb tbody a.ev')]
-        .every(a => !/qc-evidence/.test(a.getAttribute('href') || '') || /[?&]t=/.test(a.getAttribute('href') || '')),
+        .every(a => !/qc-view\.html/.test(a.getAttribute('href') || '') || !/[?&]t=/.test(a.getAttribute('href') || '')),
       mineRows: document.querySelectorAll('#panel-mine table.tb tbody tr').length,
       mineEvLinks: document.querySelectorAll('#panel-mine table.tb tbody a.ev').length,
       mineExpandBtns: document.querySelectorAll('#panel-mine table.tb tbody .cfm-btn.o').length,
@@ -211,8 +211,9 @@ async function run(browser, role, name, qcFail) {
     admin_pending_notice: admin.st.pendingShown === true && /还没定扣罚/.test(admin.st.pendingText),
     staff_no_register_btn: staff.st.registerBtn === false && staff.st.pendingShown === false,
     admin_evidence_links: admin.st.detailEvLinks === evAll,                  // 有链接的记录才出按钮
-    admin_proxy_links: admin.st.proxyLinks === RECS.filter(r => /^附件/.test(r.evidence || '')).length,
-    admin_proxy_token: admin.st.proxyHasToken === true,                       // 代取链接必须带身份 token
+    // 2026-11-03：链接改为 qc-view.html + data-evid（点的时候现取新 token），不再焊死 token
+    admin_viewer_links: admin.st.viewerLinks === RECS.filter(r => /^附件/.test(r.evidence || '')).length,
+    admin_no_baked_token: admin.st.proxyHasToken === true,
     staff_sees_evidence_after_expand: staff.extra.after.ev > 0,
     staff_no_qc_name_col: staff.st.mineNoQcNameCol === true,                  // 客服看不到质检人
     staff_no_amount_col: staff.st.mineNoAmountCol === true,                   // 扣罚次要：客服列表不放钱

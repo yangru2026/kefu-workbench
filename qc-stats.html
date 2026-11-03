@@ -256,6 +256,18 @@ function qcTimeout(p, ms, tag){
   }
 })();
 
+/* 2026-11-03 修复「取图 401 / 同步失败：没有同步权限」：
+   accessToken 原来只在页面打开时取一次，工作台挂机超过 1 小时 JWT 就过期了，
+   之后点「图 查看」「⟳ 同步飞书」全部 401。
+   现在每次用时现取一次（getSession 会用 refresh_token 自动续期），挂多久都不会再过期 */
+async function freshToken(){
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    if (session && session.access_token) accessToken = session.access_token;
+  }catch(e){ console.warn('freshToken', e); }
+  return accessToken;
+}
+
 async function load(){
   let q = sb.from('qc_records')
     // 用 * 而不是写死列名：飞书表以后加列（截图链接、扣罚确认人等）页面不会因缺列报错
@@ -449,8 +461,9 @@ function evCell(r){
   if (evHasAttach(r)){
     const id = r.feishu_record_id || r.id || '';
     // 2026-11-02：改开同域查看器 qc-view.html（网关禁止 Edge Function 返回 HTML，查看器放工作台域名下）
+    // 2026-11-03：不再把 token 焊死在链接里（挂机 1 小时必 401）→ 点的时候现取新 token 再开窗
     return '<a class="ev" href="qc-view.html?id='+encodeURIComponent(id)
-      + '&t=' + encodeURIComponent(accessToken)
+      + '" data-evid="'+encodeURIComponent(id)
       + '" target="_blank" rel="noopener noreferrer" title="在新窗口打开截图">图 查看</a>';
   }
   return '<span style="color:#cbd5e1;">—</span>';
@@ -702,6 +715,7 @@ async function syncNow(){
   const b = $('btnSync');
   b.disabled = true; b.textContent = '⟳ 同步中…';
   try{
+    await freshToken();   // 2026-11-03：现取新 token，挂机再久也不会「没有同步权限」
     const r = await fetch(SUPABASE_URL + '/functions/v1/qc-sync', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + accessToken },
@@ -721,6 +735,25 @@ async function syncNow(){
   }
 }
 $('btnSync').addEventListener('click', syncNow);
+
+/* 2026-11-03：点「图 查看」时现取新 token 再开查看器
+   （旧实现把页面打开那一刻的 token 焊死在 href 里，挂机超 1 小时后 qc-evidence 必 401）
+   注意：先在点击瞬间同步 window.open('about:blank') 占住弹窗位（拿 token 有 await，
+   事后才 open 会被浏览器弹窗拦截器拦掉），拿到 token 后再导航过去 */
+document.addEventListener('click', async function(e){
+  const a = e.target && e.target.closest ? e.target.closest('a.ev[data-evid]') : null;
+  if (!a) return;
+  e.preventDefault();
+  const id = a.dataset.evid || '';
+  const w = window.open('about:blank', '_blank');
+  const tk = await freshToken();
+  if (!tk || !w){
+    if (w) w.close();
+    toast('⚠️ 登录已过期，请刷新工作台后重试');
+    return;
+  }
+  w.location = 'qc-view.html?id=' + id + '&t=' + encodeURIComponent(tk);
+});
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
   tab = b.dataset.tab;
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b));

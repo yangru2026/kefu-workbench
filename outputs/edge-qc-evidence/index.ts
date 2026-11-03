@@ -32,7 +32,12 @@ function page(title: string, msg: string, status = 400) {
   return new Response(html, { status, headers: { 'Content-Type': 'text/html; charset=utf-8', ...CORS } });
 }
 
+// 2026-11-03 优化「取图慢」：tenant_access_token 有效 2h，这里模块级缓存 1h——
+// 热实例上每次取图少打一次飞书鉴权接口（冷实例仍要现取，属正常）
+let _tk = '';
+let _tkExp = 0;
 async function tenantToken(): Promise<string> {
+  if (_tk && Date.now() < _tkExp) return _tk;
   const r = await fetch(`${FEISHU}/auth/v3/tenant_access_token/internal`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -43,7 +48,9 @@ async function tenantToken(): Promise<string> {
   });
   const j = await r.json();
   if (!j.tenant_access_token) throw new Error('飞书鉴权失败：' + (j.msg || j.code || '未知'));
-  return j.tenant_access_token as string;
+  _tk = j.tenant_access_token as string;
+  _tkExp = Date.now() + 60 * 60 * 1000;
+  return _tk;
 }
 
 // 附件字段可能返回数组或单个对象，统一取出附件本体（要 file_token，不是 tmp_url ——
