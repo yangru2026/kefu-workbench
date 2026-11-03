@@ -617,13 +617,20 @@ function mineRow(r){
 /* 确认按钮旁的提示：有截图未点开 → 引导看图；点了图/没截图 → 倒计时 */
 function hintView(r){
   if (readReady(r)) return '';
-  if (evCount(r) > 0 && !viewed[r.id]) return '📷 请先点开证据截图看一遍，看完 5 秒后才能确认';
+  if (evCount(r) > 0 && !viewed[r.id] && !evViewedBefore(r)) return '📷 请先点开证据截图看一遍，看完 5 秒后才能确认';
   return '看清楚再确认（还有 ' + readLeft(r) + ' 秒）';
 }
 
+/* 库里已有看图记录也算看过（页面刷新后 viewed 内存会清空，靠 evidence_views 兜底；
+   2026-11-03 晚：否则客服之前点开过图、刷新页面后按钮又被锁死） */
+function evViewedBefore(r){
+  const v = Array.isArray(r.evidence_views) ? r.evidence_views : [];
+  return v.length > 0;
+}
+
 function readReady(r){
-  // 2026-11-03 方案A：有截图的记录必须点开过图，光展开文字不算
-  if (evCount(r) > 0 && !viewed[r.id]) return false;
+  // 2026-11-03 方案A：有截图的记录必须点开过图（本次会话点过 或 库里有看图记录），光展开文字不算
+  if (evCount(r) > 0 && !viewed[r.id] && !evViewedBefore(r)) return false;
   return (readOK[r.id] || 0) <= Date.now();
 }
 function readLeft(r){ return Math.max(0, Math.ceil(((readOK[r.id] || 0) - Date.now()) / 1000)); }
@@ -786,12 +793,17 @@ $('btnSync').addEventListener('click', syncNow);
 /* 2026-11-03：点「图 查看」时现取新 token 再开查看器
    （旧实现把页面打开那一刻的 token 焊死在 href 里，挂机超 1 小时后 qc-evidence 必 401）
    注意：先在点击瞬间同步 window.open('about:blank') 占住弹窗位（拿 token 有 await，
-   事后才 open 会被浏览器弹窗拦截器拦掉），拿到 token 后再导航过去 */
+   事后才 open 会被浏览器弹窗拦截器拦掉），拿到 token 后再导航过去
+   ★ 2026-11-03 晚修复：任何证据截图（外链/查看器）点开都要 markViewed——
+     之前这个监听器只认 data-evid 且没接 markViewed，客服点开图也不解锁「我已知晓」 */
 document.addEventListener('click', async function(e){
-  const a = e.target && e.target.closest ? e.target.closest('a.ev[data-evid]') : null;
-  if (!a) return;
+  const ev = e.target && e.target.closest ? e.target.closest('a.ev') : null;
+  if (!ev) return;
+  const qcid = ev.dataset.qcid;
+  if (qcid) markViewed(qcid);          // 方案A：点开截图 → 5 秒后解锁该条确认
+  if (!ev.dataset.evid) return;        // 外链截图：默认新窗口打开，不拦截
   e.preventDefault();
-  const id = a.dataset.evid || '';
+  const id = ev.dataset.evid || '';
   const w = window.open('about:blank', '_blank');
   const tk = await freshToken();
   if (!tk || !w){

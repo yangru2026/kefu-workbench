@@ -44,7 +44,9 @@ const RECS = (() => {
       staff_confirmed_at: i % 4 === 0 ? '2026-10-30T09:00:00Z' : null,
       // 证据三种情况：飞书附件（走 qc-evidence 代取）/ 文本链接（直接打开）/ 没有（显示 —）
       evidence: i % 5 === 0 ? null
-        : (i % 3 === 0 ? '附件×1' : 'https://yow5cuygtx.feishu.cn/file/qc-shot-' + i)
+        : (i % 3 === 0 ? '附件×1' : 'https://yow5cuygtx.feishu.cn/file/qc-shot-' + i),
+      // rec2 预置库里看图记录（验证「刷新页面后 evViewedBefore 兜底解锁」）
+      evidence_views: i === 2 ? [{ at: '2026-11-03 10:00', sec: 20 }] : null
     });
   }
   return out;
@@ -184,8 +186,10 @@ async function run(browser, role, name, qcFail) {
     shots.extra.after = after;
     await page.screenshot({ path: ROOT + '/outputs/shot-qc-stats-staff-expanded.png', fullPage: true });
 
-    // 2026-11-03 方案A/B：模拟点开截图（qcMarkViewed）→ 5 秒后确认解锁
-    await page.evaluate(() => { ['rec1', 'rec2', 'rec3'].forEach(id => window.qcMarkViewed(id)); });
+    // 2026-11-03 晚：验证点真实链接能触发 markViewed（监听器接线）——stub window.open 防真弹窗
+    await page.evaluate(() => { window.open = function(){ return { location: {}, close: function(){} }; }; });
+    await page.evaluate(() => { const a = document.querySelector('#panel-mine a.ev[data-evid]'); if (a) a.click(); });
+    await page.evaluate(() => { window.qcMarkViewed('rec1'); });   // rec1 没被点到的走直接调用
     await sleep(5400);
     const afterView = await page.evaluate(() => ({
       onBtn: [...document.querySelectorAll('#panel-mine table.tb tbody .cfm-btn')]
@@ -242,8 +246,9 @@ async function run(browser, role, name, qcFail) {
     staff_expand_then_confirm: staff.extra.after.gd > 0 && staff.extra.after.offBtn >= 1,
     // 2026-11-03 方案A/B：问题点红块 + 看图留痕标签 + 「先看图」提示 + 看图后 5 秒解锁
     staff_issue_block: staff.extra.after.iss > 0,
-    staff_view_trail: staff.extra.after.trail >= 3,                    // 小柚有证据的未确认记录 3 条
-    staff_img_hint_first: staff.extra.after.imgHint === 3,             // 有截图的 3 条都提示先看图
+    staff_view_trail: staff.extra.after.trail >= 3,                    // rec1/3「还没打开过」+ rec2「看图1次」
+    staff_img_hint_first: staff.extra.after.imgHint === 2,             // 只有 rec1/rec3 提示先看图
+    staff_db_viewed_unlock: staff.extra.after.offBtn === 6,            // rec2 库里有看图记录→直接解锁(2处按钮)
     staff_unlock_after_view: staff.extra.afterView.onBtn === 8 && staff.extra.afterView.offBtn === 0
       && staff.extra.afterView.imgHint === 0,  // 未确认 4 条 × (行内+详情块 2 处) = 8 个按钮全部解锁
     admin_guidance_col: admin.st.detailGuidance > 0 && admin.st.detailConfirmBtns > 0,
