@@ -2266,7 +2266,7 @@ body {
     <div id="report-daily-tab">
       <div class="daily-actions" style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;">
         <button class="btn-sm primary" onclick="openDailyForm()">✎ 填写今日日报</button>
-        <button class="btn-sm outline admin-only" onclick="renderDailyTrack()">👀 查看提交情况</button>
+        <button class="btn-sm outline admin-only" onclick="openDailyTodoModal()">👀 查看提交情况</button>
       </div>
       <div id="daily-content">
         <!-- 填写表单 -->
@@ -17283,8 +17283,10 @@ async function qcGateRpc(ids){
 <div id="qc-gate-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:100000;align-items:center;justify-content:center;"></div>
 <div id="duty-remind-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:99998;align-items:center;justify-content:center;"></div>
 <div id="daily-remind-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:99997;align-items:center;justify-content:center;"></div>
+<!-- 今日日报 · 未完成名单弹窗（仿售后工作台待办弹窗，2026-11-03） -->
+<div id="daily-todo-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:99996;align-items:center;justify-content:center;"></div>
 
-<script src="app.js?v=20261031c"></script>
+<script src="app.js?v=20261103a"></script>
 
 <!-- Pattern Editor Modal -->
 <div class="modal-overlay" id="mod-pattern"undefined>

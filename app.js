@@ -2376,6 +2376,183 @@ function closeDailyTrack() {
   renderDailyList();
 }
 
+/* 当班名单：排班表 × profiles 匹配（日报提交情况 / 今日待办弹窗共用，2026-11-03 抽取） */
+function dailyOnShiftList(profiles) {
+  const today = new Date();
+  const monthKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+  const todayDay = String(today.getDate());
+  const monthSchedule = scheduleData[monthKey];
+  // 构建排班映射：名字 → 今日班次
+  const shiftMap = {};
+  if (monthSchedule && monthSchedule.staff) {
+    monthSchedule.staff.forEach(s => {
+      const shift = s.schedule[todayDay];
+      if (shift && !shift.includes('休息') && !shift.includes('休')) {
+        shiftMap[s.name] = shift;
+      }
+    });
+  }
+  // 用排班映射中的花名匹配 profiles 中的 name
+  // 同时检查：如果 profile 的 name 在排班中找不到，也试试用排班名去 match
+  const onShiftProfiles = [];
+  const matchedScheduleNames = new Set();
+  (profiles || []).forEach(p => {
+    const pname = p.name || '';
+    const rname = p.real_name || '';
+    // 优先精确匹配花名
+    if (shiftMap[pname]) {
+      onShiftProfiles.push({ ...p, shift: shiftMap[pname] });
+      matchedScheduleNames.add(pname);
+      return;
+    }
+    // 精确匹配真实姓名
+    if (rname && shiftMap[rname]) {
+      onShiftProfiles.push({ ...p, shift: shiftMap[rname] });
+      matchedScheduleNames.add(rname);
+      return;
+    }
+    // 模糊匹配：排班表中的名字包含 profile 名字或反之（同时检查花名和真名）
+    for (const sname of Object.keys(shiftMap)) {
+      if (!matchedScheduleNames.has(sname)) {
+        if (sname.includes(pname) || pname.includes(sname) || (rname && (sname.includes(rname) || rname.includes(sname)))) {
+          onShiftProfiles.push({ ...p, shift: shiftMap[sname] });
+          matchedScheduleNames.add(sname);
+          return;
+        }
+      }
+    }
+  });
+  // 排班表中当班但未找到对应 profile 的人
+  for (const sname of Object.keys(shiftMap)) {
+    if (!matchedScheduleNames.has(sname)) {
+      onShiftProfiles.push({ id: '__unknown__', name: sname, group_name: '', shift: shiftMap[sname], noProfile: true });
+    }
+  }
+  return onShiftProfiles;
+}
+
+/* ============ 今日日报 · 未完成名单弹窗（2026-11-03，仿售后工作台待办弹窗） ============
+   按班次分组，只列有未完成项的人：日报未填 / 质检未确认 / 客户之声不足 5 条 */
+const DAILY_TODO_SHIFT = {
+  '早': { label: '早班', emoji: '☀️', time: '08:00-16:00' },
+  '中': { label: '中班', emoji: '🌤️', time: '13:00-21:00' },
+  '晚': { label: '晚班', emoji: '🌙', time: '16:00-24:00' }
+};
+let dailyTodoLoading = false;
+function openDailyTodoModal() {
+  const ov = document.getElementById('daily-todo-modal');
+  if (!ov) return;
+  ov.style.display = 'flex';
+  ov.innerHTML = '<div style="background:#fff;border-radius:14px;width:min(480px,94vw);padding:34px;text-align:center;font-size:13px;color:var(--text-secondary);box-shadow:0 20px 60px rgba(0,0,0,.25);">加载中…</div>';
+  refreshDailyTodoModal();
+}
+function closeDailyTodoModal() {
+  const ov = document.getElementById('daily-todo-modal');
+  if (ov) { ov.style.display = 'none'; ov.innerHTML = ''; }
+}
+async function refreshDailyTodoModal() {
+  if (dailyTodoLoading) return;
+  const ov = document.getElementById('daily-todo-modal');
+  if (!ov || ov.style.display === 'none') return;
+  dailyTodoLoading = true;
+  try {
+    if (!supabase) throw new Error('数据服务未就绪');
+    if (currentProfile?.role !== 'admin') throw new Error('仅管理员可查看全员提交情况');
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const [pr, rr, qr, vr] = await Promise.all([
+      supabase.from('profiles').select('id,name,group_name,real_name').order('name'),
+      supabase.from('daily_reports').select('user_id').eq('report_date', todayStr),
+      supabase.from('qc_records').select('staff_name').is('staff_confirmed_at', null),
+      supabase.from('customer_voice').select('staff_name').gte('created_at', todayStr)
+    ]);
+    const profiles = pr.data || [];
+    const reportSet = new Set((rr.data || []).map(r => r.user_id));
+    const qcCnt = {}; (qr.data || []).forEach(r => { const k = r.staff_name || ''; qcCnt[k] = (qcCnt[k] || 0) + 1; });
+    const vocCnt = {}; (vr.data || []).forEach(r => { const k = r.staff_name || ''; vocCnt[k] = (vocCnt[k] || 0) + 1; });
+    const vocLimit = (typeof VOC_DAILY_LIMIT === 'number') ? VOC_DAILY_LIMIT : 5;
+
+    const items = dailyOnShiftList(profiles)
+      .filter(p => p.shift && DAILY_TODO_SHIFT[p.shift.charAt(0)])   // 只看早/中/晚当班，调休不算在岗
+      .map(p => {
+        const name = p.name || '';
+        const hasReport = !p.noProfile && reportSet.has(p.id);
+        const qcN = qcCnt[name] || 0;
+        const vocN = vocCnt[name] || 0;
+        const pend = [];
+        if (!hasReport) pend.push({ t: '日报未填', cls: 'red' });
+        if (qcN > 0) pend.push({ t: '质检未确认 ' + qcN + ' 条', cls: 'red' });
+        if (vocN < vocLimit) pend.push({ t: '客户之声 ' + vocN + '/' + vocLimit + ' 条', cls: vocN === 0 ? 'red' : 'org' });
+        return { ...p, pend };
+      });
+    const doneN = items.filter(x => !x.pend.length).length;
+    const todoN = items.length - doneN;
+
+    const badge = (t, cls) => {
+      const s = cls === 'red' ? 'background:#fef2f2;color:#dc2626;border:1px solid #fecaca;'
+        : cls === 'org' ? 'background:#fff7ed;color:#ea580c;border:1px solid #fed7aa;'
+        : 'background:#ecfdf5;color:#16a34a;border:1px solid #bbf7d0;';
+      return '<span style="font-size:11px;font-weight:800;padding:2px 9px;border-radius:6px;white-space:nowrap;' + s + '">' + t + '</span>';
+    };
+
+    let body = '';
+    if (!items.length) {
+      body = '<div style="text-align:center;padding:26px;color:var(--text-secondary);font-size:13px;">⚠️ 今日排班表中未找到当班人员，或排班数据为空</div>';
+    } else {
+      const groups = { '早': [], '中': [], '晚': [] };
+      items.forEach(x => { const k = x.shift.charAt(0); if (groups[k]) groups[k].push(x); });
+      body = Object.keys(DAILY_TODO_SHIFT).map(k => {
+        const meta = DAILY_TODO_SHIFT[k];
+        const list = groups[k];
+        if (!list.length) return '';
+        const todo = list.filter(x => x.pend.length);
+        const head = '<div style="display:flex;align-items:center;gap:8px;padding:9px 13px;background:#f8fafc;border-bottom:1px solid #f1f5f9;flex-wrap:wrap;">'
+          + '<b style="font-size:13px;color:#0f172a;">' + meta.emoji + ' ' + meta.label + '</b>'
+          + '<span style="font-size:11.5px;color:#64748b;">' + meta.time + '</span>'
+          + '<span style="font-size:11.5px;color:#64748b;">在岗 ' + list.length + ' 人</span>'
+          + (todo.length ? badge(todo.length + ' 人未完成', 'red') : badge('全部完成 ✅', 'green'))
+          + '</div>';
+        const rows = todo.length ? todo.map(x =>
+          '<div style="display:flex;align-items:center;gap:9px;padding:8px 13px;border-bottom:1px solid #f8fafc;">'
+          + '<div style="width:28px;height:28px;border-radius:50%;background:#f1f5f9;color:#475569;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 28px;">' + escapeHtml((x.name || '?').charAt(0)) + '</div>'
+          + '<b style="font-size:13px;color:#0f172a;flex:0 0 auto;">' + escapeHtml(x.name || '未命名') + '</b>'
+          + (x.group_name ? '<span style="font-size:10.5px;font-weight:700;color:#2563eb;background:#eff6ff;border-radius:5px;padding:1px 7px;white-space:nowrap;">' + escapeHtml(x.group_name) + '</span>' : '')
+          + '<span style="flex:1;"></span>'
+          + x.pend.map(b => badge(escapeHtml(b.t), b.cls)).join(' ')
+          + '</div>').join('')
+          : '<div style="padding:8px 13px;font-size:12px;color:#94a3b8;">本班次当班人员全部完成 ✅</div>';
+        return '<div style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:9px;">' + head + rows + '</div>';
+      }).join('');
+    }
+
+    ov.innerHTML =
+      '<div style="background:#fff;border-radius:14px;width:min(480px,94vw);max-height:86vh;display:flex;flex-direction:column;padding:20px 20px 14px;box-shadow:0 20px 60px rgba(0,0,0,.25);" onclick="event.stopPropagation()">'
+      + '<div style="display:flex;align-items:center;gap:9px;margin-bottom:6px;flex-wrap:wrap;">'
+      + '<div style="font-size:17px;font-weight:800;color:#0f172a;">📋 今日日报 · 未完成名单</div>'
+      + '<span style="font-size:11.5px;font-weight:700;color:#7c3aed;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:2px 9px;">' + todayStr + ' · 今天</span>'
+      + '<span style="flex:1;"></span>'
+      + '<button onclick="closeDailyTodoModal()" title="关闭" style="border:none;background:none;font-size:18px;color:#94a3b8;cursor:pointer;line-height:1;">✕</button>'
+      + '</div>'
+      + '<div style="font-size:12.5px;color:#475569;margin-bottom:10px;">在岗 <b style="color:#0f172a;">' + items.length + '</b> 人 · 已完成 <b style="color:#16a34a;">' + doneN + '</b> 人 · 未完成 <b style="color:#dc2626;">' + todoN + '</b> 人</div>'
+      + '<div style="flex:1;overflow:auto;">' + body + '</div>'
+      + '<div style="margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+      + '<span style="font-size:11px;color:#94a3b8;flex:1;min-width:180px;">口径：当班人员（早/中/晚）；未完成 = 日报未填 / 质检未确认 / 客户之声不足 ' + vocLimit + ' 条</span>'
+      + '<button class="btn-sm outline" style="padding:6px 12px;font-size:12px;" onclick="closeDailyTodoModal();renderDailyTrack();">📊 店铺汇总</button>'
+      + '<button class="btn-sm outline" style="padding:6px 12px;font-size:12px;" onclick="refreshDailyTodoModal()">🔄 刷新</button>'
+      + '<button class="btn-sm primary" style="padding:6px 16px;font-size:12px;" onclick="closeDailyTodoModal()">关闭</button>'
+      + '</div>'
+      + '</div>';
+    // 点遮罩关闭（弹窗本体已阻止冒泡）
+    ov.onclick = function(e){ if (e.target === ov) closeDailyTodoModal(); };
+  } catch (e) {
+    ov.innerHTML = '<div style="background:#fff;border-radius:14px;width:min(420px,92vw);padding:24px;text-align:center;">'
+      + '<div style="font-size:13.5px;color:#dc2626;font-weight:700;margin-bottom:12px;">⚠️ ' + escapeHtml(e.message || '加载失败') + '</div>'
+      + '<button class="btn-sm outline" onclick="closeDailyTodoModal()">关闭</button></div>';
+  } finally {
+    dailyTodoLoading = false;
+  }
+}
+
 async function renderDailyTrack() {
   if (!supabase) return;
   document.getElementById('daily-form-area').style.display = 'none';
@@ -2405,59 +2582,8 @@ async function renderDailyTrack() {
     return;
   }
 
-  // 读取当日排班表，找出当班人员
-  const monthKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
-  const todayDay = String(today.getDate());
-  const monthSchedule = scheduleData[monthKey];
-  // 构建排班映射：名字 → 今日班次
-  const shiftMap = {};
-  if (monthSchedule && monthSchedule.staff) {
-    monthSchedule.staff.forEach(s => {
-      const shift = s.schedule[todayDay];
-      if (shift && !shift.includes('休息') && !shift.includes('休')) {
-        shiftMap[s.name] = shift;
-      }
-    });
-  }
-
-  // 用排班映射中的花名匹配 profiles 中的 name
-  // 同时检查：如果 profile 的 name 在排班中找不到，也试试用排班名去 match
-  const onShiftProfiles = [];
-  const matchedScheduleNames = new Set();
-
-  profiles.forEach(p => {
-    const pname = p.name || '';
-    const rname = p.real_name || '';
-    // 优先精确匹配花名
-    if (shiftMap[pname]) {
-      onShiftProfiles.push({ ...p, shift: shiftMap[pname] });
-      matchedScheduleNames.add(pname);
-      return;
-    }
-    // 精确匹配真实姓名
-    if (rname && shiftMap[rname]) {
-      onShiftProfiles.push({ ...p, shift: shiftMap[rname] });
-      matchedScheduleNames.add(rname);
-      return;
-    }
-    // 模糊匹配：排班表中的名字包含 profile 名字或反之（同时检查花名和真名）
-    for (const sname of Object.keys(shiftMap)) {
-      if (!matchedScheduleNames.has(sname)) {
-        if (sname.includes(pname) || pname.includes(sname) || (rname && (sname.includes(rname) || rname.includes(sname)))) {
-          onShiftProfiles.push({ ...p, shift: shiftMap[sname] });
-          matchedScheduleNames.add(sname);
-          return;
-        }
-      }
-    }
-  });
-
-  // 排班表中当班但未找到对应 profile 的人
-  for (const sname of Object.keys(shiftMap)) {
-    if (!matchedScheduleNames.has(sname)) {
-      onShiftProfiles.push({ id: '__unknown__', name: sname, group_name: '', shift: shiftMap[sname], noProfile: true });
-    }
-  }
+  // 读取当日排班表，找出当班人员（2026-11-03 抽成 dailyOnShiftList，与「今日待办」弹窗共用）
+  const onShiftProfiles = dailyOnShiftList(profiles);
 
   // 未提交人员列表（用于顶部提醒）
   const notSubmitted = onShiftProfiles.filter(p => !reportMap[p.id] && !p.noProfile);
