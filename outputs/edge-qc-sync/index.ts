@@ -123,6 +123,19 @@ const pick = (fields: Record<string, any>, keys: string[]) => {
   for (const k of keys) if (fields[k] != null && text(fields[k]) !== '') return fields[k];
   return null;
 };
+/* 2026-11-03：列名带备注后缀也能认——「扣罚金额（主管填）」「扣罚金额（主香填）」这类，
+   精确名匹配不上时按「候选名开头」模糊兜底（只用于金额，别的字段精确匹配足够） */
+const pickAmount = (fields: Record<string, any>, keys: string[]) => {
+  const v = pick(fields, keys);
+  if (v != null) return v;
+  for (const k of keys) {
+    const hit = Object.keys(fields).find(
+      (fk) => fk.startsWith(k) && fields[fk] != null && text(fields[fk]) !== ''
+    );
+    if (hit) return fields[hit];
+  }
+  return null;
+};
 
 function mapRecord(it: any, attachField: string, evKeys: string[]) {
   const f = it.fields || {};
@@ -139,7 +152,7 @@ function mapRecord(it: any, attachField: string, evKeys: string[]) {
     qc_name: text(pick(f, F.qc_name)) || null,
     issue_type: text(pick(f, F.issue_type)) || null,
     severity: text(pick(f, F.severity)) || null,
-    amount: toNum(pick(f, F.amount)),
+    amount: toNum(pickAmount(f, F.amount)),
     amount_confirmed_by: text(pick(f, F.confirmed_by)) || null,
     amount_confirmed_at: toTime(pick(f, F.confirmed_at)),
     detail: text(pick(f, F.detail)) || null,
