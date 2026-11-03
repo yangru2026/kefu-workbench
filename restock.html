@@ -28,7 +28,7 @@
   .btn:hover{filter:brightness(.94);}
   .btn.g{background:var(--primary);color:#fff;}
   .btn.o{background:#fff;border:1.5px solid var(--border);color:#334155;}
-  .wrap{width:100%;max-width:1080px;margin:0 auto;padding:16px 18px 60px;flex:1;}
+  .wrap{width:100%;max-width:1440px;margin:0 auto;padding:14px 16px 60px;flex:1;}
   .sec{margin-bottom:22px;}
   .sec-title{font-size:14.5px;font-weight:800;display:flex;align-items:center;gap:8px;margin-bottom:10px;}
   .sec-title::before{content:'';width:4px;height:15px;border-radius:2px;display:inline-block;}
@@ -36,30 +36,30 @@
   .sec.done .sec-title{color:var(--done);} .sec.done .sec-title::before{background:var(--done);}
   .sec.no .sec-title{color:var(--no);} .sec.no .sec-title::before{background:var(--no);}
   .sec-title span{font-size:11.5px;font-weight:600;color:var(--muted);background:#f1f5f9;border-radius:10px;padding:2px 9px;}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;}
-  .item{border-radius:11px;padding:11px 13px;border:1.5px solid;display:flex;flex-direction:column;gap:7px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(212px,1fr));gap:8px;}
+  .item{border-radius:10px;padding:8px 10px;border:1.5px solid;display:flex;flex-direction:column;gap:5px;}
   .wait .item{background:var(--wait-bg);border-color:var(--wait-bd);}
   .done .item{background:var(--done-bg);border-color:var(--done-bd);}
   .no .item{background:var(--no-bg);border-color:var(--no-bd);}
-  .item .row1{display:flex;align-items:center;gap:8px;}
-  .item .name{font-size:15px;font-weight:800;flex:1;word-break:break-all;line-height:1.4;}
-  .item .row2{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .item .date{font-size:12px;font-weight:800;color:var(--wait);background:#fff;
-              border:1px solid var(--wait-bd);border-radius:8px;padding:3px 10px;white-space:nowrap;}
+  .item .row1{display:flex;align-items:center;gap:7px;min-width:0;}
+  .item .name{font-size:14px;font-weight:800;flex:1;word-break:break-all;line-height:1.35;min-width:0;}
+  .item .row2{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+  .item .date{font-size:11.5px;font-weight:800;color:var(--wait);background:#fff;
+              border:1px solid var(--wait-bd);border-radius:7px;padding:2px 8px;white-space:nowrap;}
   .no .item .date{color:var(--no);border-color:var(--no-bd);background:#fff;}
   .item .cp{margin-left:auto;border:1px solid #a7f3d0;background:#ecfdf5;color:#047857;
-            border-radius:8px;font-size:11.5px;font-weight:700;padding:4px 10px;cursor:pointer;font-family:inherit;}
+            border-radius:7px;font-size:11px;font-weight:700;padding:3px 8px;cursor:pointer;font-family:inherit;white-space:nowrap;}
   .item .cp:hover{background:#d1fae5;border-color:#6ee7b7;}
-  .item .toss{font-size:10.5px;font-weight:700;border-radius:6px;padding:1px 6px;white-space:nowrap;flex:0 0 auto;}
+  .item .toss{font-size:10px;font-weight:700;border-radius:5px;padding:1px 5px;white-space:nowrap;flex:0 0 auto;}
   .item .toss.hy{background:#eff6ff;color:#2563eb;}
   .item .toss.da{background:#fef3c7;color:#b45309;}
-  .item .note{font-size:11.5px;color:var(--muted);line-height:1.5;word-break:break-all;}
-  .item .ops{display:flex;gap:6px;}
-  .item .ops button{border:none;background:#fff;border:1px solid var(--border);border-radius:6px;
-                    font-size:11px;padding:3px 9px;cursor:pointer;font-family:inherit;color:#475569;}
+  .item .note{font-size:11px;color:var(--muted);line-height:1.4;word-break:break-all;}
+  .item .ops{display:flex;gap:4px;margin-left:auto;}
+  .item .ops button{border:1px solid var(--border);background:#fff;border-radius:6px;
+                    font-size:11px;padding:3px 7px;cursor:pointer;font-family:inherit;color:#475569;line-height:1;}
   .item .ops button:hover{border-color:var(--primary);color:var(--primary-dark);}
-  .item .ckwrap{display:flex;align-items:flex-start;}
-  .item .ckwrap input{width:16px;height:16px;accent-color:var(--primary);cursor:pointer;}
+  .item .ckwrap{display:flex;align-items:center;flex:0 0 auto;}
+  .item .ckwrap input{width:15px;height:15px;accent-color:var(--primary);cursor:pointer;}
   .item .main{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0;}
   #batchBar{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1e293b;color:#fff;
             border-radius:12px;padding:10px 16px;display:none;align-items:center;gap:10px;flex-wrap:wrap;
@@ -239,21 +239,21 @@ async function copyOne(e){
 }
 
 function cardHtml(x){
-  // 2026-11-03：只保留 补货中 / 不补清单 两个分类
+  // 2026-11-03：只保留 补货中 / 不补清单 两个分类；紧凑两行版（复制/编辑/删除并到一行）
   const wait = x.status === 'restocking';
-  const dateTxt = wait ? (x.eta_date ? '🕐 预计 ' + x.eta_date : '🕐 到货时间待定') : '🚫 不补';
+  const dateTxt = wait ? (x.eta_date ? '🕐 预计 ' + x.eta_date : '🕐 时间待定') : '🚫 不补';
   return '<div class="item" data-id="' + x.id + '">' +
-    '<div style="display:flex;gap:8px;align-items:flex-start;">' +
+    '<div class="row1">' +
       (isAdmin ? '<label class="ckwrap"><input type="checkbox" data-ck="' + x.id + '"' + (selected.has(x.id)?' checked':'') + '></label>' : '') +
-      '<div class="main">' +
-        '<div class="row1"><span class="name">' + esc(x.name) + '</span>' +
-        '<span class="toss ' + (x.toss==='日抛'?'da':'hy') + '">' + esc(x.toss) + '</span></div>' +
-        '<div class="row2"><span class="date">' + esc(dateTxt) + '</span>' +
-        (wait ? '<button class="cp" type="button" title="复制发客户的话术">📋 复制话术</button>' : '') + '</div>' +
-        (x.note ? '<div class="note">' + esc(x.note) + '</div>' : '') +
-        (isAdmin ? '<div class="ops"><button data-act="edit">✏️ 编辑</button><button data-act="del">🗑️ 删除</button></div>' : '') +
-      '</div>' +
+      '<span class="name">' + esc(x.name) + '</span>' +
+      '<span class="toss ' + (x.toss==='日抛'?'da':'hy') + '">' + esc(x.toss) + '</span>' +
     '</div>' +
+    '<div class="row2">' +
+      '<span class="date">' + esc(dateTxt) + '</span>' +
+      (wait ? '<button class="cp" type="button" title="复制发客户的话术">📋 复制</button>' : '') +
+      (isAdmin ? '<div class="ops"><button data-act="edit" title="编辑">✏️</button><button data-act="del" title="删除">🗑️</button></div>' : '') +
+    '</div>' +
+    (x.note ? '<div class="note">' + esc(x.note) + '</div>' : '') +
   '</div>';
 }
 
