@@ -3635,6 +3635,7 @@ body {
       <div style="flex:1;"></div>
       <button class="collab-btn" id="collab-schedule-btn" onclick="openCollabPanel('schedule')" style="display:none;">👥 协作者</button>
       <button class="feishu-sync-btn admin-only-nav" id="sched-sync-btn" onclick="syncScheduleFromFeishu()" style="display:none;">🔄 从飞书同步</button>
+      <button class="admin-only-nav" id="sched-link-btn" onclick="openScheduleSheetModal()" style="display:none;padding:8px 14px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">🔗 关联飞书表格</button>
       <div class="legend-item"><span class="legend-dot" style="background:var(--primary);"></span> 早班</div>
       <div class="legend-item"><span class="legend-dot" style="background:#fdcb6e;"></span> 中班</div>
       <div class="legend-item"><span class="legend-dot" style="background:#E17055;"></span> 晚班</div>
@@ -3642,6 +3643,46 @@ body {
       <div class="legend-item"><span class="legend-dot" style="background:#00b894;"></span> 调休</div>
     </div>
     <div id="sched-popover" class="sched-popover" style="display:none;"></div>
+    <div id="sched-sync-status" style="font-size:12.5px;color:#6b7280;margin:-10px 0 14px;line-height:1.7;"></div>
+
+    <!-- 关联飞书电子表格 -->
+    <div id="sched-sheet-modal" style="display:none;position:fixed;inset:0;z-index:99997;background:rgba(15,23,42,.45);align-items:center;justify-content:center;padding:20px;">
+      <div style="background:#fff;border-radius:16px;width:min(560px,96vw);max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 12px;">
+          <div style="font-size:16px;font-weight:700;color:#0f172a;">🔗 关联飞书排班表</div>
+          <button onclick="closeScheduleSheetModal()" style="border:none;background:none;font-size:20px;color:#94a3b8;cursor:pointer;line-height:1;">×</button>
+        </div>
+        <div style="padding:0 20px 4px;font-size:12.5px;color:#64748b;line-height:1.8;">
+          粘贴飞书里那张排班表的链接即可，<b>原表不用动</b>。之后每 30 分钟自动同步一次；表里改了谁、改了哪天，工作台会跟着变。
+        </div>
+        <div style="padding:14px 20px 0;">
+          <div style="font-size:12.5px;font-weight:600;color:#334155;margin-bottom:6px;">飞书表格链接</div>
+          <input id="sched-sheet-url" type="text" placeholder="https://xxx.feishu.cn/wiki/xxxx?sheet=xxxx 或 /sheets/xxxx"
+                 style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d8dee9;border-radius:10px;font-size:13px;font-family:inherit;outline:none;">
+          <div style="display:flex;gap:10px;margin-top:12px;">
+            <div style="flex:1;">
+              <div style="font-size:12.5px;font-weight:600;color:#334155;margin-bottom:6px;">工作表名（可留空 = 自动读当月）</div>
+              <input id="sched-sheet-name" type="text" placeholder="如 26-11月"
+                     style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #d8dee9;border-radius:10px;font-size:13px;font-family:inherit;outline:none;">
+            </div>
+            <div style="width:150px;">
+              <div style="font-size:12.5px;font-weight:600;color:#334155;margin-bottom:6px;">月份（可留空）</div>
+              <input id="sched-sheet-month" type="text" placeholder="2026-11"
+                     style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #d8dee9;border-radius:10px;font-size:13px;font-family:inherit;outline:none;">
+            </div>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12.5px;color:#475569;cursor:pointer;">
+            <input id="sched-sheet-cleanup" type="checkbox" checked style="width:15px;height:15px;accent-color:var(--primary);">
+            飞书里已经删掉的人，工作台也一起清掉
+          </label>
+          <div id="sched-sheet-result" style="margin-top:12px;font-size:12.5px;color:#6b7280;white-space:pre-wrap;line-height:1.75;min-height:18px;"></div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;padding:16px 20px 18px;">
+          <button onclick="saveScheduleSheet(false)" style="padding:9px 16px;border:1px solid #d8dee9;background:#fff;color:#475569;border-radius:10px;font-size:13px;cursor:pointer;font-family:inherit;">只保存</button>
+          <button onclick="saveScheduleSheet(true)" style="padding:9px 18px;border:none;background:var(--primary);color:#fff;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">保存并立即同步</button>
+        </div>
+      </div>
+    </div>
     <div id="schedule-table-wrapper" style="overflow-x:auto;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04);"></div>
   </div>
 
@@ -4978,6 +5019,8 @@ function refreshAdminUI() {
   // 排班表编辑权限
   const schedSyncBtn = document.getElementById('sched-sync-btn');
   if (schedSyncBtn) schedSyncBtn.style.display = canEditSchedule ? '' : 'none';
+  const schedLinkBtn = document.getElementById('sched-link-btn');
+  if (schedLinkBtn) schedLinkBtn.style.display = canEditSchedule ? '' : 'none';
   // 客服排名：页面只读（数据来自看板自动同步），无编辑按钮
   // 售前月度编辑权限
   const presaleImportBtn = document.getElementById('presale-monthly-import-btn');
@@ -5723,8 +5766,144 @@ function subscribeSchedule() {
   scheduleSub = supabase.channel('schedule-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'schedule_data' }, () => {
       debouncedReload('schedule', loadScheduleFromDB);
+      if (typeof loadScheduleSyncStatus === 'function') loadScheduleSyncStatus();
     })
     .subscribe();
+}
+
+// ==================== 排班表 · 关联飞书电子表格 ====================
+// 口径：飞书那张表是唯一数据源，工作台只读；pg_cron 每 30 分钟拉一次。
+let SCHEDULE_SHEET_CFG = { url: '', sheet_name: '', month_key: '', cleanup: true };
+
+function fmtSyncTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+// 调后端：action=sync_schedule_sheet（dryRun=true 只读不写）
+async function callScheduleSheetSync(dryRun, cfgOverride) {
+  const body = { action: 'sync_schedule_sheet', dry_run: !!dryRun };
+  if (cfgOverride) body.config = cfgOverride;
+  const resp = await fetch(FEISHU_SYNC_CONFIG.edgeFunctionUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + FEISHU_SYNC_CONFIG.authToken,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  return await resp.json();
+}
+
+function scheduleSyncSummary(j) {
+  if (!j || !j.ok) return '❌ ' + ((j && j.error) || '同步失败');
+  const r = (j.results && j.results.schedule) || {};
+  let s = `${r.dry_run ? '👀 试读' : '✅ 已同步'} · 月份 ${r.month_key} · 工作表「${r.sheet_title}」· 解析到 ${r.total_in_feishu} 人`;
+  if (r.dry_run) {
+    s += `\n待写入 ${r.changed} 人（其中新增 ${r.added}），与库里一致 ${r.unchanged} 人`;
+  } else {
+    s += `\n新增 ${r.added} 人 · 更新 ${Math.max(0, (r.changed || 0) - (r.added || 0))} 人 · 无变化 ${r.unchanged} 人` + (r.removed ? ` · 清理 ${r.removed} 人` : '');
+  }
+  if (r.changes_preview && r.changes_preview.length) {
+    s += '\n变动明细：' + r.changes_preview.slice(0, 3).map(c => `${c.name}（${(c.diff || []).slice(0, 2).join('，')}）`).join('；');
+  }
+  if (r.removed && r.removed > 0 && (r.changed || 0) === 0) s += '\n提示：删掉的人在库里也清掉了';
+  return s;
+}
+
+async function loadScheduleSyncStatus() {
+  const box = document.getElementById('sched-sync-status');
+  if (!box || !supabase || typeof supabase.from !== 'function') return;
+  try {
+    const { data } = await supabase
+      .from('sync_config')
+      .select('key,value')
+      .in('key', ['schedule_sheet', 'schedule_sheet_status']);
+    const rows = data || [];
+    const cfg = ((rows.find(r => r.key === 'schedule_sheet') || {}).value) || {};
+    const st = ((rows.find(r => r.key === 'schedule_sheet_status') || {}).value) || {};
+    SCHEDULE_SHEET_CFG = Object.assign({ url: '', sheet_name: '', month_key: '', cleanup: true }, cfg);
+
+    if (!cfg.url) {
+      box.innerHTML = '🔗 还没关联飞书排班表：管理员点右侧「关联飞书表格」粘贴链接，之后每 30 分钟自动同步';
+      box.style.color = '#94a3b8';
+      return;
+    }
+    if (st.ok === false) {
+      box.textContent = `⚠️ 上次自动同步失败（${fmtSyncTime(st.at)}）：${st.error || '未知错误'}`;
+      box.style.color = '#c0392b';
+      return;
+    }
+    const t = fmtSyncTime(st.at);
+    const tail = st.month_key ? ` · ${st.month_key} 共 ${st.staff_count || 0} 人` : '';
+    box.textContent = `✅ 已关联飞书排班表「${st.sheet_title || cfg.sheet_name || '当月'}」 · 上次同步 ${t}${tail} · 每 30 分钟自动更新`;
+    box.style.color = '#0f9d76';
+  } catch (e) {
+    console.warn('读取排班同步配置失败:', e);
+  }
+}
+
+function openScheduleSheetModal() {
+  const m = document.getElementById('sched-sheet-modal');
+  if (!m) return;
+  document.getElementById('sched-sheet-url').value = SCHEDULE_SHEET_CFG.url || '';
+  document.getElementById('sched-sheet-name').value = SCHEDULE_SHEET_CFG.sheet_name || '';
+  document.getElementById('sched-sheet-month').value = SCHEDULE_SHEET_CFG.month_key || '';
+  document.getElementById('sched-sheet-cleanup').checked = SCHEDULE_SHEET_CFG.cleanup !== false;
+  const out = document.getElementById('sched-sheet-result');
+  out.textContent = '';
+  out.style.color = '#6b7280';
+  m.style.display = 'flex';
+}
+
+function closeScheduleSheetModal() {
+  const m = document.getElementById('sched-sheet-modal');
+  if (m) m.style.display = 'none';
+}
+
+async function saveScheduleSheet(alsoSync) {
+  const out = document.getElementById('sched-sheet-result');
+  const url = document.getElementById('sched-sheet-url').value.trim();
+  if (!url) { out.style.color = '#c0392b'; out.textContent = '⚠️ 先粘贴飞书排班表链接'; return; }
+  if (!/feishu\.cn\/(wiki|sheets|base)\//.test(url) && !/^[A-Za-z0-9]{10,}$/.test(url)) {
+    out.style.color = '#c0392b';
+    out.textContent = '⚠️ 这不像飞书表格链接，请把地址栏整条复制过来（feishu.cn/wiki/… 或 feishu.cn/sheets/…）';
+    return;
+  }
+  const value = {
+    url,
+    sheet_name: document.getElementById('sched-sheet-name').value.trim(),
+    month_key: document.getElementById('sched-sheet-month').value.trim(),
+    cleanup: document.getElementById('sched-sheet-cleanup').checked
+  };
+  out.style.color = '#6b7280';
+  out.textContent = '保存中…';
+  try {
+    const { error } = await supabase.from('sync_config').upsert({ key: 'schedule_sheet', value }, { onConflict: 'key' });
+    if (error) { out.style.color = '#c0392b'; out.textContent = '❌ 保存失败：' + error.message; return; }
+    SCHEDULE_SHEET_CFG = value;
+  } catch (e) {
+    out.style.color = '#c0392b';
+    out.textContent = '❌ 保存异常：' + e.message;
+    return;
+  }
+  out.textContent = '✅ 链接已保存，正在试读飞书表格…';
+  try {
+    const j = await callScheduleSheetSync(!alsoSync, value);
+    out.style.color = j.ok ? '#0f9d76' : '#c0392b';
+    out.textContent = scheduleSyncSummary(j);
+    if (j.ok) {
+      loadScheduleFromDB();
+      loadScheduleSyncStatus();
+      showToast(alsoSync ? '✅ 排班表已同步' : '✅ 链接可用，试读成功');
+    }
+  } catch (e) {
+    out.style.color = '#c0392b';
+    out.textContent = '❌ 试读失败：' + e.message;
+  }
 }
 
 async function syncScheduleFromFeishu() {
@@ -5733,25 +5912,25 @@ async function syncScheduleFromFeishu() {
     showToast('⚠️ 请先配置飞书同步参数');
     return;
   }
-  if (!confirm('确定从飞书同步排班数据？')) return;
+  if (!SCHEDULE_SHEET_CFG.url) {
+    showToast('⚠️ 还没关联飞书排班表，先点「🔗 关联飞书表格」');
+    openScheduleSheetModal();
+    return;
+  }
+  if (!confirm('立即从飞书同步一次排班表？\n\n（平时每 30 分钟自动同步，这里只是手动补一次）')) return;
   if (btn) { btn.disabled = true; btn.classList.add('syncing'); btn.textContent = '🔄 同步中...'; }
   try {
-    const resp = await fetch(FEISHU_SYNC_CONFIG.edgeFunctionUrl, {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + FEISHU_SYNC_CONFIG.authToken, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'sync_schedule' })
-    });
-    const data = await resp.json();
-    if (data.ok && data.results) {
-      const r = data.results.schedule || {};
-      if (r.error) showToast('❌ 排班同步失败: ' + r.error);
-      else showToast('✅ 排班同步完成！飞书 ' + (r.total_in_feishu||0) + ' 条，写入 ' + (r.synced||0) + ' 条');
+    const j = await callScheduleSheetSync(false);
+    if (j.ok) {
+      const r = j.results.schedule || {};
+      showToast(`✅ ${r.month_key} 排班已同步：${r.total_in_feishu} 人，变动 ${r.changed} 人`);
       loadScheduleFromDB();
+      loadScheduleSyncStatus();
     } else {
-      showToast('❌ 同步失败: ' + (data.error || '未知错误'));
+      showToast('❌ 排班同步失败: ' + (j.error || '未知错误'));
     }
-  } catch(e) {
-    showToast('❌ 同步异常: ' + e.message);
+  } catch (e) {
+    showToast('❌ 排班同步异常: ' + e.message);
   } finally {
     if (btn) { btn.disabled = false; btn.classList.remove('syncing'); btn.textContent = '🔄 从飞书同步'; }
   }
@@ -11298,7 +11477,7 @@ function switchPage(page) {
   refreshAdminUI();
   if (page === 'tools') renderTools();
   if (page === 'quiz') renderQuiz();
-  if (page === 'schedule') { loadScheduleFromDB(); subscribeSchedule(); renderSchedule(); }
+  if (page === 'schedule') { loadScheduleFromDB(); subscribeSchedule(); renderSchedule(); loadScheduleSyncStatus(); }
   if (page === 'requests') { loadRequests(); renderReqForm(); subscribeRequests(); }
   if (page === 'ranking') { rkBindOnce(); rkReload(false); subscribeRanking(); }
   else if (currentPage !== 'ranking' && typeof rkCarouselKill === 'function') rkCarouselKill();

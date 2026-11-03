@@ -384,6 +384,536 @@ function mapScheduleRecord(record: Record<string, unknown>) {
   };
 }
 
+// ============================================================
+// 排班表 · 直读飞书电子表格（Sheets API）
+// 之所以不走多维表格：排班是普通电子表格，组别/姓名/1~31日 的横向版式，
+// 运营随时手改，原表不动、工作台只读，改完 30 分钟内自动同步。
+// ============================================================
+const SHEETS_V1 = "https://open.feishu.cn/open-apis/sheets/v2/spreadsheets";
+const SHEETS_V3 = "https://open.feishu.cn/open-apis/sheets/v3/spreadsheets";
+
+// 解析飞书文档链接：支持 /sheets/xxx、/wiki/xxx?sheet=yyy、/base/xxx、纯 token
+type SheetRef = { kind: "sheets" | "wiki" | "base" | "token"; token: string; sheetParam: string };
+
+function parseSheetUrl(raw: string): SheetRef {
+  const s = String(raw || "").trim();
+  const sheetParam = (s.match(/[?&]sheet=([A-Za-z0-9_-]+)/) || [])[1] || "";
+  let m = s.match(/\/wiki\/([A-Za-z0-9]{10,})/);
+  if (m) return { kind: "wiki", token: m[1], sheetParam };
+  m = s.match(/\/sheets\/([A-Za-z0-9]{10,})/);
+  if (m) return { kind: "sheets", token: m[1], sheetParam };
+  m = s.match(/\/base\/([A-Za-z0-9]{10,})/);
+  if (m) return { kind: "base", token: m[1], sheetParam };
+  if (/^[A-Za-z0-9]{10,}$/.test(s)) return { kind: "token", token: s, sheetParam };
+  return { kind: "token", token: "", sheetParam };
+}
+
+// 旧的简易版（保留给别处调用）
+function extractSpreadsheetToken(raw: string): string {
+  return parseSheetUrl(raw).token;
+}
+
+// wiki 节点 → 真实文档 token
+async function resolveWikiNode(token: string, wikiToken: string) {
+  const data = await feishuJson(
+    `${FEISHU_BASE}/wiki/v2/spaces/get_node?token=${encodeURIComponent(wikiToken)}`,
+    token,
+  );
+  const node = (data?.node || data) as Record<string, unknown>;
+  return {
+    objToken: String(node?.obj_token || ""),
+    objType: String(node?.obj_type || ""),
+    title: String(node?.title || ""),
+  };
+}
+
+function feishuErrHint(code: number): string {
+  // 91403 / 1770002 / 99991672 等基本都是"应用没有这份文档的权限"
+  if ([91403, 1770002, 99991672, 99991663, 1061004].includes(code)) {
+    return "（应用读不到这份表格：请在飞书表格右上角「分享」→ 添加协作者，搜索应用名并给「可阅读」权限；或把表格设为「组织内获得链接可阅读」）";
+  }
+  return "";
+}
+
+async function feishuJson(url: string, token: string, init?: RequestInit) {
+  const resp = await fetch(url, {
+    ...(init || {}),
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+      ...((init && init.headers) || {}),
+    },
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (data.code !== 0) {
+    throw new Error(
+      `飞书接口失败(${data.code}): ${data.msg || "HTTP " + resp.status}${feishuErrHint(Number(data.code))}`,
+    );
+  }
+  return data.data;
+}
+
+async function listSheets(token: string, ssToken: string) {
+  const data = await feishuJson(`${SHEETS_V3}/${ssToken}/sheets/query`, token);
+  return (data?.sheets || []) as Array<Record<string, unknown>>;
+}
+
+async function readSheetValues(token: string, ssToken: string, range: string) {
+  const url = `${SHEETS_V1}/${ssToken}/values/${encodeURI(range)}` +
+    `?valueRenderOption=ToString&dateTimeRenderOption=FormattedString`;
+  const data = await feishuJson(url, token);
+  const vr = (data?.valueRange || {}) as Record<string, unknown>;
+  return (vr.values || []) as unknown[][];
+}
+
+function colLetter(n: number): string {
+  let s = "";
+  let x = Math.max(1, Math.floor(n));
+  while (x > 0) {
+    const r = (x - 1) % 26;
+    s = String.fromCharCode(65 + r) + s;
+    x = Math.floor((x - 1) / 26);
+  }
+  return s;
+}
+
+function cellStr(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  if (typeof v === "string") return v.trim();
+  if (typeof v === "number") return String(v);
+  if (typeof v === "boolean") return v ? "TRUE" : "FALSE";
+  if (Array.isArray(v)) return v.map(cellStr).join("").trim();
+  if (typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    if (o.text !== undefined) return String(o.text).trim();
+    if (o.value !== undefined) return cellStr(o.value);
+  }
+  return String(v).trim();
+}
+
+const NAME_HEADER_RE = /^(姓名|名字|人员|客服|客服姓名)$/;
+// 统计行/图例行不是人：「周末早」「早」「中」「晚」「休」这些都在表尾
+const SKIP_NAME_RE = /^(合计|小计|总计|备注|说明|注|组长|组别|早|中|晚|休|班|调|调休|周末早|周末晚|早班|中班|晚班|统计)$/;
+// 「分流-小雪」这种把组别写在名字里的，拆出来
+const SPLIT_GROUP_RE = /^(分流|售前[A-Za-z]?组?|售后[A-Za-z]?组?|机动|支援)\s*[-－—]\s*(.+)$/;
+
+// 「售前A组」→「A组」，和库里既有口径保持一致
+function normGroup(g: string): string {
+  return String(g || "").trim().replace(/^售前\s*/, "");
+}
+
+// 公式行（COUNTIFS 统计）要跳过：valueRenderOption=ToString 会把公式原文读出来
+function isFormulaRow(row: unknown[]): boolean {
+  return row.some((c) => {
+    const s = cellStr(c);
+    return s.startsWith("=") || s.includes("COUNTIFS(") || s.includes("SUM(");
+  });
+}
+
+// 纵向版式兜底：第一列是 1..31 日，表头一行是各人姓名
+function tryVerticalSheet(values: unknown[][]) {
+  const dayRows: Array<{ row: number; day: number }> = [];
+  for (let i = 0; i < values.length; i++) {
+    const t = cellStr((values[i] || [])[0]).replace(/[日号\s]/g, "");
+    if (/^\d+$/.test(t)) {
+      const n = parseInt(t, 10);
+      if (n >= 1 && n <= 31) dayRows.push({ row: i, day: n });
+    }
+  }
+  if (dayRows.length < 15) return null;
+  const headerRowIdx = dayRows[0].row - 1;
+  if (headerRowIdx < 0) return null;
+  const namesRow = (values[headerRowIdx] || []).map(cellStr);
+  const cols: Array<{ col: number; name: string }> = [];
+  for (let c = 1; c < namesRow.length; c++) {
+    const nm = namesRow[c];
+    if (!nm || SKIP_NAME_RE.test(nm) || /^(日期|日|星期|班次)/.test(nm)) continue;
+    cols.push({ col: c, name: nm });
+  }
+  if (cols.length < 2) return null;
+
+  const map = new Map<string, Record<string, string>>();
+  cols.forEach((c) => map.set(c.name, {}));
+  for (const dr of dayRows) {
+    const row = values[dr.row] || [];
+    for (const c of cols) {
+      const v = cellStr(row[c.col]);
+      if (v) map.get(c.name)![String(dr.day)] = v;
+    }
+  }
+  const rows = cols
+    .map((c) => ({ group_name: "", staff_name: c.name, schedule: map.get(c.name)! }))
+    .filter((r) => Object.keys(r.schedule).length > 0);
+  if (!rows.length) return null;
+  return { rows, headerIdx: headerRowIdx, headerRow: namesRow, dayColCount: dayRows.length, layout: "vertical" };
+}
+
+// 解析排班表：优先横向（组别 | 姓名 | 1日 … 31日），认不出再试纵向
+export function parseScheduleSheet(values: unknown[][]) {
+  // 1) 找表头行（含「姓名」）
+  let headerIdx = -1;
+  for (let i = 0; i < Math.min(values.length, 12); i++) {
+    const row = values[i] || [];
+    if (row.some((c) => NAME_HEADER_RE.test(cellStr(c)))) { headerIdx = i; break; }
+  }
+  if (headerIdx < 0) {
+    const v = tryVerticalSheet(values);
+    if (v) return v;
+    throw new Error("没找到「姓名」表头行，也认不出纵向版式（表头里要有「姓名」列）");
+  }
+
+  const headerRow = (values[headerIdx] || []).map(cellStr);
+  let nameCol = headerRow.findIndex((c) => NAME_HEADER_RE.test(c));
+  if (nameCol < 0) nameCol = 1;
+  const groupCol = nameCol > 0 ? nameCol - 1 : -1;
+
+  const pickDays = (arr: string[]) => {
+    const out: Array<{ col: number; day: number }> = [];
+    for (let c = 0; c < arr.length; c++) {
+      const t = (arr[c] || "").replace(/[日号\s]/g, "");
+      if (/^\d+$/.test(t)) {
+        const n = parseInt(t, 10);
+        if (n >= 1 && n <= 31) out.push({ col: c, day: n });
+      }
+    }
+    return out;
+  };
+
+  // 2) 日期列：优先表头上方那行 "1,2,3…"，其次表头自己写 "1日 2日…"
+  let dayCols = headerIdx > 0 ? pickDays((values[headerIdx - 1] || []).map(cellStr)) : [];
+  if (dayCols.length < 15) dayCols = pickDays(headerRow);
+  if (dayCols.length < 15) {
+    const v = tryVerticalSheet(values);
+    if (v) return v;
+    // 最后兜底：姓名列右边依次当 1..N 日
+    dayCols = [];
+    const maxCol = Math.max(headerRow.length, (values[headerIdx + 1] || []).length, nameCol + 31);
+    for (let c = nameCol + 1; c <= maxCol; c++) dayCols.push({ col: c, day: c - nameCol });
+  }
+
+  // 3) 数据行
+  const rows: Array<{ group_name: string; staff_name: string; schedule: Record<string, string> }> = [];
+  let group = "";
+  for (let i = headerIdx + 1; i < values.length; i++) {
+    const row = values[i] || [];
+    if (isFormulaRow(row)) continue;
+    const g = groupCol >= 0 ? cellStr(row[groupCol]) : "";
+    let nm = cellStr(row[nameCol]);
+    if (g) group = g;
+    if (!nm || SKIP_NAME_RE.test(nm)) continue;
+
+    // 「分流-小雪」→ 组别=分流，姓名=小雪
+    let rowGroup = group;
+    const sm = nm.match(SPLIT_GROUP_RE);
+    if (sm) { rowGroup = sm[1]; nm = sm[2].trim(); }
+    if (!nm) continue;
+
+    const schedule: Record<string, string> = {};
+    for (const dc of dayCols) {
+      const v = cellStr(row[dc.col]);
+      if (v) schedule[String(dc.day)] = v;
+    }
+    if (Object.keys(schedule).length === 0) continue;
+    // 同名去重（合并单元格重复渲染时可能出现两条）
+    if (rows.some((r) => r.staff_name === nm)) continue;
+    rows.push({ group_name: normGroup(rowGroup), staff_name: nm, schedule });
+  }
+
+  if (rows.length === 0) throw new Error("表头找到了，但没解析到任何人的排班（检查姓名是否在「姓名」列下方）");
+  return { rows, headerIdx, headerRow, dayColCount: dayCols.length, layout: "horizontal" };
+}
+
+// 从表格标题/前几行里猜月份：2026年11月 / 11月 / 2026-11
+function detectMonth(values: unknown[][], sheetTitle: string): string {
+  const texts: string[] = [String(sheetTitle || "")];
+  for (let i = 0; i < Math.min(values.length, 4); i++) {
+    (values[i] || []).slice(0, 10).forEach((c) => texts.push(cellStr(c)));
+  }
+  for (const t of texts) {
+    let m = t.match(/(20\d{2})\s*[年\-\/.]\s*(\d{1,2})/);
+    if (m) return `${m[1]}-${String(m[2]).padStart(2, "0")}`;
+  }
+  for (const t of texts) {
+    const m = t.match(/(\d{1,2})\s*月/);
+    if (m) {
+      const mm = parseInt(m[1], 10);
+      if (mm >= 1 && mm <= 12) {
+        const y = new Date().getFullYear();
+        return `${y}-${String(mm).padStart(2, "0")}`;
+      }
+    }
+  }
+  return "";
+}
+
+function currentMonthKey(): string {
+  // 用东八区算"现在是几月"
+  const now = new Date(Date.now() + 8 * 3600 * 1000);
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function stableJson(obj: unknown): string {
+  if (obj === null || typeof obj !== "object") return JSON.stringify(obj ?? null);
+  if (Array.isArray(obj)) return `[${obj.map(stableJson).join(",")}]`;
+  const o = obj as Record<string, unknown>;
+  return `{${Object.keys(o).sort().map((k) => `${JSON.stringify(k)}:${stableJson(o[k])}`).join(",")}}`;
+}
+
+async function sbGet(url: string, serviceKey: string) {
+  const resp = await fetch(url, {
+    headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+  });
+  return await resp.json().catch(() => null);
+}
+
+async function sbWrite(
+  supabaseUrl: string,
+  serviceKey: string,
+  path: string,
+  method: string,
+  body?: unknown,
+) {
+  const resp = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
+    method,
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+    },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+  if (!resp.ok) throw new Error(`${method} ${path} 失败: ${await resp.text()}`);
+  return await resp.json().catch(() => null);
+}
+
+// 把同步结果记到 sync_config，前端显示"上次同步时间"
+async function saveScheduleStatus(
+  supabaseUrl: string,
+  serviceKey: string,
+  status: Record<string, unknown>,
+) {
+  try {
+    await sbWrite(supabaseUrl, serviceKey, "sync_config?on_conflict=key", "POST", [{
+      key: "schedule_sheet_status",
+      value: status,
+      note: "排班表最近一次同步结果",
+    }]);
+  } catch (e) {
+    console.warn("写同步状态失败（不影响同步）:", e);
+  }
+}
+
+async function syncScheduleFromSheet(
+  token: string,
+  supabaseUrl: string,
+  serviceKey: string,
+  override: Record<string, unknown> = {},
+  dryRun = false,
+) {
+  // 1) 配置：请求体 > sync_config 表 > 环境变量
+  let cfg: Record<string, unknown> = {};
+  try {
+    const arr = await sbGet(
+      `${supabaseUrl}/rest/v1/sync_config?key=eq.schedule_sheet&select=value`,
+      serviceKey,
+    );
+    if (Array.isArray(arr) && arr[0]?.value) cfg = arr[0].value as Record<string, unknown>;
+  } catch (e) {
+    console.warn("读 sync_config 失败:", e);
+  }
+  const merged: Record<string, unknown> = {
+    ...cfg,
+    ...(Deno.env.get("FEISHU_SCHEDULE_SHEET_URL")
+      ? { url: Deno.env.get("FEISHU_SCHEDULE_SHEET_URL") }
+      : {}),
+    ...override,
+  };
+
+  // 2) 解析链接
+  // 实测：飞书 wiki 里的电子表格，wiki 节点 token 可以直接当 spreadsheet_token 用，
+  // 所以先直连；直连失败（比如换成了别的文档类型）再用 wiki 接口换真实 token。
+  const ref = parseSheetUrl(String(merged.url || ""));
+  if (!ref.token) {
+    throw new Error("还没关联飞书排班表：请在「排班表」页点「🔗 关联飞书表格」，把飞书表格链接粘贴进去");
+  }
+  if (ref.kind === "base") {
+    throw new Error("这是多维表格链接；排班表请贴「电子表格」的链接（地址栏里带 /sheets/ 或 /wiki/ 的那种）");
+  }
+  let ssToken = ref.token;
+  let wikiTitle = "";
+
+  // 3) 选工作表：优先指定表名 → 否则按「当月」找（26-11月 / 2026-11 / 11月）
+  let sheets: Array<Record<string, unknown>> = [];
+  try {
+    sheets = await listSheets(token, ssToken);
+  } catch (err) {
+    if (ref.kind !== "wiki") throw err;
+    const node = await resolveWikiNode(token, ref.token);
+    wikiTitle = node.title;
+    if (node.objType && node.objType !== "sheet") {
+      throw new Error(`这条链接指向的是「${node.objType}」不是电子表格；请在飞书里打开排班表格本体再复制链接`);
+    }
+    if (!node.objToken) throw err;
+    ssToken = node.objToken;
+    sheets = await listSheets(token, ssToken);
+  }
+  if (!sheets.length) throw new Error("这份飞书表格里没有任何工作表");
+  const wantSheet = String(merged.sheet_name || "").trim();
+  const monthWanted = String(merged.month_key || "").trim() || currentMonthKey();
+  const [yearStr, monStr] = monthWanted.split("-");
+  const mm = parseInt(monStr || "0", 10);
+  const yy = yearStr ? parseInt(yearStr.slice(-2), 10) : 0;
+
+  // 表名打分：越精确越优先
+  // "2026-11"/"2026年11月"=2 分，"26-11月"/"26年-11月"=1.5 分，光写"11月"=1 分
+  // 这样 12 月新增了「26-12月」后，不会误选到去年的「12月」
+  const titleMonthScore = (title: string) => {
+    const t = String(title || "").replace(/\s/g, "");
+    if (!t || mm < 1 || mm > 12) return 0;
+    if (t.includes(`${yearStr}-${monStr}`) || t.includes(`${yearStr}年${mm}月`)) return 2;
+    if (yy && new RegExp(`${yy}[^0-9]{0,3}${mm}月`).test(t)) return 1.5;
+    if (new RegExp(`(^|[^0-9])${mm}月`).test(t)) return 1;
+    return 0;
+  };
+
+  let sheet: Record<string, unknown> | undefined;
+  if (wantSheet) sheet = sheets.find((s) => String(s.title || "").trim() === wantSheet);
+  if (!sheet) {
+    let best = 0;
+    for (const s of sheets) {
+      const sc = titleMonthScore(String(s.title || ""));
+      if (sc > best) { best = sc; sheet = s; }
+    }
+  }
+  if (!sheet && ref.sheetParam) sheet = sheets.find((s) => String(s.sheet_id) === ref.sheetParam);
+  if (!sheet) sheet = sheets[0];
+
+  const sheetId = String(sheet.sheet_id);
+  const sheetTitle = String(sheet.title || "");
+  const gp = (sheet.grid_properties || {}) as Record<string, number>;
+  const rowCount = Math.min(Math.max(Number(gp.row_count || 80), 20), 300);
+  const colCount = Math.min(Math.max(Number(gp.column_count || 35), 10), 60);
+  const range = `${sheetId}!A1:${colLetter(colCount)}${rowCount}`;
+
+  // 3) 读值 + 解析
+  const values = await readSheetValues(token, ssToken, range);
+  const parsed = parseScheduleSheet(values);
+
+  const monthKey = String(merged.month_key || "").trim()
+    || detectMonth(values, sheetTitle)
+    || monthWanted;
+  const monthMatched = titleMonthScore(sheetTitle) > 0 || monthKey === monthWanted;
+
+  // 4) 对比已有数据，只写有变化的（避免每 30 分钟无谓写库）
+  const existing = (await sbGet(
+    `${supabaseUrl}/rest/v1/schedule_data?month_key=eq.${encodeURIComponent(monthKey)}` +
+    `&select=staff_name,group_name,schedule`,
+    serviceKey,
+  ) || []) as Array<Record<string, unknown>>;
+  const exMap = new Map(existing.map((r) => [String(r.staff_name), r]));
+
+  const toWrite: Array<Record<string, unknown>> = [];
+  const changesPreview: Array<Record<string, unknown>> = [];
+  let unchanged = 0;
+  let newCount = 0;
+  for (const row of parsed.rows) {
+    const cur = exMap.get(row.staff_name);
+    if (!cur) newCount++;
+    const same = !!cur &&
+      String(cur.group_name || "") === row.group_name &&
+      stableJson(cur.schedule) === stableJson(row.schedule);
+    if (same) { unchanged++; continue; }
+
+    if (cur && changesPreview.length < 6) {
+      const oldSc = (cur.schedule || {}) as Record<string, string>;
+      const diff: string[] = [];
+      const keys = new Set([...Object.keys(oldSc), ...Object.keys(row.schedule)]);
+      for (const k of Array.from(keys).sort((a, b) => Number(a) - Number(b))) {
+        if ((oldSc[k] || "") !== (row.schedule[k] || "")) {
+          diff.push(`${k}日:${oldSc[k] || "空"}→${row.schedule[k] || "空"}`);
+        }
+        if (diff.length >= 5) break;
+      }
+      if (String(cur.group_name || "") !== row.group_name) {
+        diff.unshift(`组别:${cur.group_name || "空"}→${row.group_name || "空"}`);
+      }
+      changesPreview.push({ name: row.staff_name, diff });
+    }
+
+    toWrite.push({
+      month_key: monthKey,
+      staff_name: row.staff_name,
+      group_name: row.group_name,
+      schedule: row.schedule,
+    });
+  }
+
+  // 5) 飞书里已删掉的人（清理要保守：解析人数至少 10 且不少于原有的 80%）
+  const names = new Set(parsed.rows.map((r) => r.staff_name));
+  const stale = existing.filter((r) => !names.has(String(r.staff_name)));
+  const guard = parsed.rows.length >= Math.max(10, Math.ceil(existing.length * 0.8));
+  const doCleanup = merged.cleanup !== false && guard;
+
+  let removed = 0;
+  if (!dryRun && toWrite.length > 0) {
+    await supabaseUpsert(supabaseUrl, serviceKey, "schedule_data", toWrite, "month_key,staff_name");
+  }
+  if (!dryRun && doCleanup) {
+    for (const s of stale) {
+      await sbWrite(
+        supabaseUrl,
+        serviceKey,
+        `schedule_data?month_key=eq.${encodeURIComponent(monthKey)}` +
+        `&staff_name=eq.${encodeURIComponent(String(s.staff_name))}`,
+        "DELETE",
+      );
+      removed++;
+    }
+  }
+
+  const result = {
+    month_key: monthKey,
+    month_matched: monthMatched,
+    sheet_title: sheetTitle,
+    wiki_title: wikiTitle,
+    layout: parsed.layout,
+    sheet_names: sheets.map((s) => String(s.title || "")),
+    range,
+    total_in_feishu: parsed.rows.length,
+    added: newCount,
+    changed: toWrite.length,
+    unchanged,
+    removed: dryRun ? stale.length : removed,
+    stale_pending: doCleanup ? 0 : stale.length,
+    staff: parsed.rows.map((r) => `${r.group_name ? r.group_name + "/" : ""}${r.staff_name}`),
+    dry_run: dryRun,
+    changes_preview: changesPreview,
+    head: parsed.rows.slice(0, 3).map((r) => ({
+      name: r.staff_name,
+      group: r.group_name,
+      days: Object.keys(r.schedule).length,
+      d1: r.schedule["1"] || "",
+      d2: r.schedule["2"] || "",
+    })),
+  };
+
+  if (!dryRun) {
+    await saveScheduleStatus(supabaseUrl, serviceKey, {
+      at: new Date().toISOString(),
+      month_key: monthKey,
+      sheet_title: sheetTitle,
+      staff_count: parsed.rows.length,
+      changed: toWrite.length,
+      removed,
+      ok: true,
+    });
+  }
+
+  console.log("排班表同步结果:", JSON.stringify({ ...result, staff: result.staff.length }));
+  return result;
+}
+
 // 客服排名 → ranking_data
 function mapRankingRecord(record: Record<string, unknown>) {
   const f = (record.fields || {}) as Record<string, unknown>;
@@ -903,9 +1433,9 @@ Deno.serve(async (req: Request) => {
     const appToken = Deno.env.get("FEISHU_BITABLE_APP_TOKEN");
     const authToken = Deno.env.get("SYNC_AUTH_TOKEN");
 
-    if (!appId || !appSecret || !appToken) {
+    if (!appId || !appSecret) {
       return json(
-        { ok: false, error: "缺少飞书环境变量配置（FEISHU_APP_ID / FEISHU_APP_SECRET / FEISHU_BITABLE_APP_TOKEN）" },
+        { ok: false, error: "缺少飞书环境变量配置（FEISHU_APP_ID / FEISHU_APP_SECRET）" },
         500,
       );
     }
@@ -939,6 +1469,38 @@ Deno.serve(async (req: Request) => {
     // 获取飞书 token
     const token = await getTenantAccessToken(appId, appSecret);
 
+    // ★ 排班表：直读飞书电子表格（不走多维表格）
+    // action = 'sync_schedule_sheet'，body.config 可临时覆盖链接/工作表/月份，body.dry_run = 只读不写
+    if (action === "sync_schedule_sheet") {
+      try {
+        const result = await syncScheduleFromSheet(
+          token,
+          supabaseUrl,
+          serviceKey,
+          (body.config || {}) as Record<string, unknown>,
+          body.dry_run === true,
+        );
+        return json({
+          ok: true,
+          message: body.dry_run ? "试读成功（未写入）" : "排班同步完成",
+          results: { schedule: result },
+          timestamp: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.error("排班表（电子表格）同步失败:", err);
+        await saveScheduleStatus(supabaseUrl, serviceKey, {
+          at: new Date().toISOString(),
+          ok: false,
+          error: err.message || String(err),
+        });
+        return json({
+          ok: false,
+          error: err.message || String(err),
+          results: { schedule: { error: err.message || String(err) } },
+        });
+      }
+    }
+
     // 确定要执行的同步类型列表
     let typesToSync: string[];
     if (action === "sync_all") {
@@ -967,6 +1529,12 @@ Deno.serve(async (req: Request) => {
       if (!tableId) {
         console.log(`${syncType.name}: 未配置 ${syncType.tableIdEnv}，跳过`);
         results[typeKey] = { skipped: true, reason: `未配置 ${syncType.tableIdEnv}` };
+        continue;
+      }
+
+      if (!appToken) {
+        console.log(`${syncType.name}: 未配置 FEISHU_BITABLE_APP_TOKEN，跳过`);
+        results[typeKey] = { skipped: true, reason: "未配置 FEISHU_BITABLE_APP_TOKEN" };
         continue;
       }
 
