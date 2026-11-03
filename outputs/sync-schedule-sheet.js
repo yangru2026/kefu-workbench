@@ -48,4 +48,5 @@ const dry = args.includes('--dry');
     console.log('   变化明细（最多 6 人）:');
     r.changes_preview.forEach((c) => console.log('     ·', c.name, '→', c.diff.join('  ')));
   }
+  if (r.status_write_error) console.log('   ⚠️ 状态写入失败:', r.status_write_error);
 })();

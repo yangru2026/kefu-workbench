@@ -5833,8 +5833,16 @@ async function loadScheduleSyncStatus() {
       return;
     }
     if (st.ok === false) {
-      box.textContent = `⚠️ 上次自动同步失败（${fmtSyncTime(st.at)}）：${st.error || '未知错误'}`;
-      box.style.color = '#c0392b';
+      const lastOk = st.last_ok_at ? new Date(st.last_ok_at).getTime() : 0;
+      const freshOk = lastOk && (Date.now() - lastOk) < 3 * 3600 * 1000; // 3 小时内成功过 = 偶发失败，下轮会自动重试
+      const errBrief = String(st.error || '未知错误').replace(/\s+/g, ' ').slice(0, 90);
+      if (freshOk) {
+        box.textContent = `⏳ ${fmtSyncTime(st.at)} 那次自动同步没成功（${errBrief}…），下个周期会自动重试；最近一次成功同步 ${fmtSyncTime(st.last_ok_at)}`;
+        box.style.color = '#b7791f';
+      } else {
+        box.textContent = `⚠️ 上次自动同步失败（${fmtSyncTime(st.at)}）：${errBrief}…`;
+        box.style.color = '#c0392b';
+      }
       return;
     }
     const t = fmtSyncTime(st.at);
@@ -17465,7 +17473,7 @@ async function qcGateRpc(ids){
 <!-- 今日日报 · 未完成名单弹窗（仿售后工作台待办弹窗，2026-11-03） -->
 <div id="daily-todo-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:99996;align-items:center;justify-content:center;"></div>
 
-<script src="app.js?v=20261103a"></script>
+<script src="app.js?v=20261103b"></script>
 
 <!-- Pattern Editor Modal -->
 <div class="modal-overlay" id="mod-pattern"undefined>

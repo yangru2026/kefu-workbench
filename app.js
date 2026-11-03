@@ -2387,7 +2387,8 @@ function dailyOnShiftList(profiles) {
   if (monthSchedule && monthSchedule.staff) {
     monthSchedule.staff.forEach(s => {
       const shift = s.schedule[todayDay];
-      if (shift && !shift.includes('休息') && !shift.includes('休')) {
+      // 休/调（调休）都算休息：不算当班、不进日报未完成名单、不催日报
+      if (shift && !shift.includes('休') && !shift.includes('调')) {
         shiftMap[s.name] = shift;
       }
     });

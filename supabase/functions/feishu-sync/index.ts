@@ -672,14 +672,20 @@ async function sbWrite(
   path: string,
   method: string,
   body?: unknown,
+  upsert = false,
 ) {
+  // ⚠️ PostgREST 的 on_conflict 参数必须配合 Prefer: resolution=merge-duplicates 才生效，
+  // 光带 on_conflict 会当普通 INSERT 处理 → 撞唯一键 23505
+  const prefer = upsert
+    ? "resolution=merge-duplicates,return=representation"
+    : "return=representation";
   const resp = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
     method,
     headers: {
       apikey: serviceKey,
       Authorization: `Bearer ${serviceKey}`,
       "Content-Type": "application/json",
-      Prefer: "return=representation",
+      Prefer: prefer,
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
@@ -688,19 +694,36 @@ async function sbWrite(
 }
 
 // 把同步结果记到 sync_config，前端显示"上次同步时间"
+// 失败时保留上一次的 last_ok_at（前端据此判断"偶发失败，下轮自动重试"还是"持续失败"）
 async function saveScheduleStatus(
   supabaseUrl: string,
   serviceKey: string,
   status: Record<string, unknown>,
-) {
+): Promise<string | null> {
   try {
+    let prev: Record<string, unknown> = {};
+    try {
+      const arr = await sbGet(
+        `${supabaseUrl}/rest/v1/sync_config?key=eq.schedule_sheet_status&select=value`,
+        serviceKey,
+      );
+      if (Array.isArray(arr) && arr[0]?.value) prev = arr[0].value as Record<string, unknown>;
+    } catch (_) { /* 读不到就当没有 */ }
+
+    const merged: Record<string, unknown> = { ...prev, ...status };
+    if (status.ok === true) {
+      merged.last_ok_at = status.at;
+      delete merged.error; // 成功后清掉历史报错，避免误导
+    }
     await sbWrite(supabaseUrl, serviceKey, "sync_config?on_conflict=key", "POST", [{
       key: "schedule_sheet_status",
-      value: status,
+      value: merged,
       note: "排班表最近一次同步结果",
-    }]);
+    }], true);
+    return null;
   } catch (e) {
     console.warn("写同步状态失败（不影响同步）:", e);
+    return e.message || String(e);
   }
 }
 
@@ -899,7 +922,7 @@ async function syncScheduleFromSheet(
   };
 
   if (!dryRun) {
-    await saveScheduleStatus(supabaseUrl, serviceKey, {
+    const statusErr = await saveScheduleStatus(supabaseUrl, serviceKey, {
       at: new Date().toISOString(),
       month_key: monthKey,
       sheet_title: sheetTitle,
@@ -908,6 +931,7 @@ async function syncScheduleFromSheet(
       removed,
       ok: true,
     });
+    if (statusErr) (result as Record<string, unknown>).status_write_error = statusErr;
   }
 
   console.log("排班表同步结果:", JSON.stringify({ ...result, staff: result.staff.length }));

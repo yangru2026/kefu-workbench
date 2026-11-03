@@ -31,7 +31,8 @@ const SCHEDULE_ROWS = [
   { month_key: monthKey, staff_name: '小南', group_name: 'B组', schedule: { [day]: '晚' } },
   { month_key: monthKey, staff_name: '朵朵', group_name: 'B组', schedule: { [day]: '晚' } },
   { month_key: monthKey, staff_name: '天天', group_name: 'C组', schedule: { [day]: '晚' } },
-  { month_key: monthKey, staff_name: '泡泡', group_name: 'C组', schedule: { [day]: '休' } }
+  { month_key: monthKey, staff_name: '泡泡', group_name: 'C组', schedule: { [day]: '休' } },
+  { month_key: monthKey, staff_name: '小猫', group_name: 'C组', schedule: { [day]: '调' } }
 ];
 // 小柚交了日报但客户之声 4/5；小雷全好；小南啥都没有+质检2条未确认；朵朵全好；天天没交
 const REPORTS = [{ user_id: 'p2' }, { user_id: 'p3' }, { user_id: 'p5' }];
@@ -155,6 +156,7 @@ const json = o => ({ status: 200, contentType: 'application/json', headers: { 'A
       vocZero: cnt('客户之声 0/5 条') === 2,
       allDoneBadge: cnt('全部完成 ✅'),
       noXiuxiu: !/泡泡/.test(txt),
+      noTiao: !/小猫/.test(txt),
       btnRefresh: /刷新/.test(txt),
       btnShop: /店铺汇总/.test(txt),
       btnClose: /关闭/.test(txt)
@@ -203,6 +205,7 @@ const json = o => ({ status: 200, contentType: 'application/json', headers: { 'A
     voc_zero_red: st.vocZero === true,                            // 小南/天天 0/5
     all_done_badge_x1: st.allDoneBadge === 1,                     // 中班全部完成
     off_duty_excluded: st.noXiuxiu === true,                      // 休班泡泡不在名单
+    tiao_excluded: st.noTiao === true,                            // 调休小猫也不在名单（调=休，2026-11-03）
     shop_entry: afterShop.modalHidden === true && afterShop.trackShown === true,
     refresh_and_close: afterClose === true,
     no_page_errors: errs.length === 0
