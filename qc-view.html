@@ -34,11 +34,12 @@ html,body{margin:0;height:100%;background:#1b2230;overflow:hidden;font-family:sy
  <button onclick="qvFit()">适应窗口</button>
  <button id="mgbtn" onclick="qvToggleMg()" title="开了之后鼠标悬到哪，哪就放大显示（再点一次切 3 倍，再点关闭）">🔍 放大镜</button>
  <button onclick="qvReadMode()" title="长图专用：按原始清晰度显示，整幅上下滚动，不缩小">📖 阅读模式</button>
+ <button id="shbtn" onclick="qvSharpen()" title="对原图做一次锐化处理，字边缘更清楚（真正改像素，不是拉伸）；再点一次还原">✨ 增强清晰</button>
  <button onclick="qvZoomIn()">放大 ＋</button>
  <button onclick="qvZoomOut()">缩小 －</button>
  <span id="pct"></span>
  <a id="dl" download="质检截图.png"><button>下载原图</button></a>
- <span id="tip">滚轮缩放 · 点图片切大小 · 放大镜悬哪看哪 · 阅读模式=原始清晰度滚动 · 还可以「下载原图」用系统图片查看器看</span>
+ <span id="tip">滚轮缩放 · 🔍放大镜悬哪看哪 · 📖阅读模式滚长图 · ✨增强清晰=真锐化 · 实在太糊只能让登记人重传更清晰的原图</span>
 </div>
 <div id="wrap"><div id="msg">正在取图…</div></div>
 <div id="lens"></div>
@@ -131,6 +132,56 @@ html,body{margin:0;height:100%;background:#1b2230;overflow:hidden;font-family:sy
     lens.style.backgroundPosition = (R - nx * mgK) + 'px ' + (R - ny * mgK) + 'px';
   }
 
+  // ★ 2026-11-03 清晰增强：源图只有 ~935px 宽时，显示端怎么拉都是糊的——
+  //   这里对原图像素做一次锐化卷积（5点核），字边缘对比拉起来，读小字明显更清楚。
+  //   原图字节走 qc-evidence 代理取（响应带 CORS，飞书直链取不了像素数据）；
+  //   canvas 生成增强版替换 <img>，再点一次还原。
+  var SHARP_URL = null, ORIG_URL = '', sharpening = false;
+  async function qvSharpen(){
+    if (sharpening || !im) return;
+    var btn = document.getElementById('shbtn');
+    if (SHARP_URL){
+      im.src = ORIG_URL; SHARP_URL = null;
+      btn.style.background = ''; btn.textContent = '✨ 增强清晰';
+      return;
+    }
+    sharpening = true; btn.disabled = true; btn.textContent = '✨ 处理中…';
+    try{
+      var r = await fetch('https://icfgireprowcqwdodfqx.supabase.co/functions/v1/qc-evidence?id=' + encodeURIComponent(id) + '&t=' + encodeURIComponent(t));
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      var bmp = await createImageBitmap(await r.blob());
+      var c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+      var ctx = c.getContext('2d');
+      ctx.drawImage(bmp, 0, 0);
+      var src = ctx.getImageData(0, 0, c.width, c.height);
+      var out = ctx.createImageData(c.width, c.height);
+      var s = src.data, o = out.data, W = c.width, H = c.height, W4 = W * 4;
+      for (var y = 0; y < H; y++){
+        for (var x = 0; x < W; x++){
+          var i = (y * W + x) * 4;
+          if (x === 0 || y === 0 || x === W - 1 || y === H - 1){
+            o[i] = s[i]; o[i+1] = s[i+1]; o[i+2] = s[i+2]; o[i+3] = s[i+3]; continue;
+          }
+          for (var ch = 0; ch < 3; ch++){
+            var p = i + ch;
+            var v = 5 * s[p] - s[p-4] - s[p+4] - s[p-W4] - s[p+W4];
+            o[p] = v < 0 ? 0 : (v > 255 ? 255 : v);
+          }
+          o[i+3] = s[i+3];
+        }
+      }
+      ctx.putImageData(out, 0, 0);
+      SHARP_URL = c.toDataURL('image/png');
+      ORIG_URL = im.src;
+      im.src = SHARP_URL;
+      btn.style.background = '#10b981'; btn.textContent = '✨ 已增强（点还原）';
+    } catch (e){
+      btn.textContent = '✨ 增强失败，再试一次';
+    } finally {
+      sharpening = false; btn.disabled = false;
+    }
+  }
+
   // ★ 2026-11-03 修复：工具条按钮的 inline onclick 看不见 IIFE 内部函数（之前「原图100%/适应宽度/
   //   放大缩小」按钮其实点了会报 ReferenceError，只是大家多用滚轮没发现）——统一挂到 window
   window.qvSet = function(v){ set(v); };
@@ -140,6 +191,7 @@ html,body{margin:0;height:100%;background:#1b2230;overflow:hidden;font-family:sy
   window.qvZoomOut = function(){ set(z === 0 ? 0.8 : z / 1.25); };
   window.qvToggleMg = toggleMg;
   window.qvReadMode = readMode;
+  window.qvSharpen = qvSharpen;
 })();
 </script>
 </body>

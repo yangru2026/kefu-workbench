@@ -32,12 +32,18 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const errs = [];
     page.on('pageerror', e => errs.push(String(e && e.message || e)));
     await page.setRequestInterception(true);
+    // 1x1 真 PNG（给「✨ 增强清晰」的原图字节链路用）
+    const PNG1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
     page.on('request', req => {
       const u = req.url();
       try {
         if (u.includes('/functions/v1/qc-evidence')) {
-          return req.respond({ status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-            body: JSON.stringify({ ok: true, url: IMG, name: '长图测试' }) });
+          if (u.includes('json=1')) {
+            return req.respond({ status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+              body: JSON.stringify({ ok: true, url: IMG, name: '长图测试' }) });
+          }
+          // 不带 json=1 = 原图字节代理（增强清晰用）
+          return req.respond({ status: 200, headers: { 'Content-Type': 'image/png', 'Access-Control-Allow-Origin': '*' }, body: PNG1 });
         }
         req.continue().catch(() => {});
       } catch (e) { req.continue().catch(() => {}); }
@@ -58,20 +64,20 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     ok('图已加载（1080x6000）', s1.loaded && s1.nw === 1080 && s1.nh === 6000, JSON.stringify(s1));
     ok('默认原图 100%', s1.pct === '100%');
 
-    // 按钮链路：qv* 全局存在 + 点击不抛错
+    // 按钮链路：qv* 全局存在 + 调用不抛错（⚠️ 别用索引点 #bar button——
+    // 按钮顺序会变，2026-11-03 就曾误触「增强清晰」导致后面断言全乱）
     const s2 = await ev(() => {
-      const has = ['qvSet','qvFitW','qvFit','qvZoomIn','qvZoomOut','qvToggleMg','qvReadMode'].every(k => typeof window[k] === 'function');
-      document.querySelector('#mgbtn').click();
-      document.querySelectorAll('#bar button')[5].click();   // 放大＋
-      document.querySelectorAll('#bar button')[6].click();   // 缩小－
+      const has = ['qvSet','qvFitW','qvFit','qvZoomIn','qvZoomOut','qvToggleMg','qvReadMode','qvSharpen'].every(k => typeof window[k] === 'function');
+      window.qvZoomIn();
+      window.qvZoomOut();
       return { has, pct: document.getElementById('pct').textContent };
     });
-    ok('qv* 全局函数齐 + 点按钮无异常', s2.has && typeof s2.pct === 'string', JSON.stringify(s2));
+    ok('qv* 全局函数齐 + 调用无异常', s2.has && typeof s2.pct === 'string', JSON.stringify(s2));
 
-    // 放大镜：开 → mousemove → 镜片显示且背景按 2x 缩放
+    // 放大镜：开（第一次=2x）→ mousemove → 镜片显示且背景按 2x 缩放
     const s3 = await ev(() => {
       window.qvSet(0.5);   // 缩到 50%，模拟长图缩略态
-      window.qvToggleMg(); // 已在上面点过一次 → 现在切到 3x
+      window.qvToggleMg(); // 关→2x
       const im = document.getElementById('im');
       const r = im.getBoundingClientRect();
       const ev2 = new MouseEvent('mousemove', { clientX: r.left + r.width / 2, clientY: r.top + 300, bubbles: true });
@@ -80,8 +86,17 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       return { shown: lens.style.display === 'block', size: lens.style.backgroundSize, label: document.getElementById('mgbtn').textContent };
     });
     ok('放大镜镜片出现', s3.shown === true, JSON.stringify(s3));
-    ok('镜片按 3x 原图缩放（1080*3=3240）', /3240px/.test(s3.size), s3.size);
-    ok('按钮显示 3x', /3x/.test(s3.label));
+    ok('镜片按 2x 原图缩放（1080*2=2160）', /2160px/.test(s3.size), s3.size);
+    ok('按钮显示 2x', /2x/.test(s3.label));
+    // 再切一次 → 3x
+    const s3b = await ev(() => {
+      window.qvToggleMg();
+      const im = document.getElementById('im');
+      const r = im.getBoundingClientRect();
+      document.getElementById('wrap').dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + 50, clientY: r.top + 100, bubbles: true }));
+      return { size: document.getElementById('lens').style.backgroundSize, label: document.getElementById('mgbtn').textContent };
+    });
+    ok('再点切到 3x（1080*3=3240）', /3240px/.test(s3b.size), JSON.stringify(s3b));
 
     // 阅读模式：z 封顶 100%，显示宽度=原图宽
     const s4 = await ev(() => {
@@ -90,6 +105,21 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       return { w: im.clientWidth, pct: document.getElementById('pct').textContent };
     });
     ok('阅读模式 = 原始清晰度（宽 1080）', s4.w === 1080 && s4.pct === '100%', JSON.stringify(s4));
+
+    // ✨ 增强清晰：走代理拉原图字节 → canvas 锐化 → im.src 换成增强版；再点还原
+    const s5 = await ev(async () => {
+      const before = document.getElementById('im').src.slice(0, 30);
+      await window.qvSharpen();
+      const im = document.getElementById('im');
+      const after = im.src.slice(0, 22);
+      const btnText = document.getElementById('shbtn').textContent;
+      await window.qvSharpen();   // 还原
+      const restored = document.getElementById('im').src.slice(0, 30);
+      return { before, after, btnText, restored };
+    }, 12000);
+    ok('增强清晰：src 换成锐化 dataURL', /data:image\/png/.test(s5.after || ''), JSON.stringify(s5));
+    ok('增强按钮显示「已增强」', /已增强/.test(s5.btnText || ''));
+    ok('再点一次还原原图', (s5.restored || '') === (s5.before || ''));
 
     ok('无未捕获页面异常', errs.length === 0, errs.slice(0, 3).join(' | '));
     out.pageErrors = errs.slice(0, 5);

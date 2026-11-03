@@ -752,7 +752,8 @@ document.addEventListener('click', async function(e){
     toast('⚠️ 登录已过期，请刷新工作台后重试');
     return;
   }
-  w.location = 'qc-view.html?id=' + id + '&t=' + encodeURIComponent(tk);
+  // &v=时间戳：防查看器页被旧缓存卡住（2026-11-03 茹姐反馈「还是旧工具条」就是这么来的）
+  w.location = 'qc-view.html?id=' + id + '&t=' + encodeURIComponent(tk) + '&v=' + Date.now();
 });
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
   tab = b.dataset.tab;
