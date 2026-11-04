@@ -53,6 +53,11 @@
   .item .toss{font-size:10px;font-weight:700;border-radius:5px;padding:1px 5px;white-space:nowrap;flex:0 0 auto;}
   .item .toss.hy{background:#eff6ff;color:#2563eb;}
   .item .toss.da{background:#fef3c7;color:#b45309;}
+  .item .toss.pj{background:#f5f3ff;color:#7c3aed;}
+  .sub{margin-bottom:14px;}
+  .sub-t{font-size:12.5px;font-weight:800;color:#475569;margin-bottom:7px;display:flex;align-items:center;gap:7px;}
+  .sub-t::before{content:'';width:3px;height:12px;border-radius:2px;background:var(--wait);display:inline-block;}
+  .sub-t span{font-size:11px;font-weight:600;color:var(--muted);background:#f1f5f9;border-radius:9px;padding:1px 8px;}
   .item .note{font-size:11px;color:var(--muted);line-height:1.4;word-break:break-all;}
   .item .ops{display:flex;gap:4px;margin-left:auto;}
   .item .ops button{border:1px solid var(--border);background:#fff;border-radius:6px;
@@ -104,7 +109,7 @@
   <div class="wrap">
     <div class="sec wait" id="secWait">
       <div class="sec-title">🕐 补货中<span id="cntWait">0</span></div>
-      <div class="grid" id="gridWait"></div>
+      <div id="gridWait"></div>
     </div>
     <div class="sec no" id="secNo">
       <div class="sec-title">🚫 不补清单<span id="cntNo">0</span></div>
@@ -116,7 +121,7 @@
     <div class="modal">
       <h3 id="formTitle">登记补货</h3>
       <label>抛型</label>
-      <select id="fToss"><option value="半年抛">半年抛</option><option value="日抛">日抛</option></select>
+      <select id="fToss"><option value="半年抛">半年抛</option><option value="日抛">日抛</option><option value="配件">配件</option></select>
       <label>花名（可批量：一行一个，直接从采购消息里粘贴）</label>
       <textarea id="fName" rows="4" placeholder="如：&#10;冰岛日记&#10;窗外樱花&#10;我喜欢你" style="resize:vertical;" autocomplete="off"></textarea>
       <label>状态</label>
@@ -246,7 +251,7 @@ function cardHtml(x){
     '<div class="row1">' +
       (isAdmin ? '<label class="ckwrap"><input type="checkbox" data-ck="' + x.id + '"' + (selected.has(String(x.id))?' checked':'') + '></label>' : '') +
       '<span class="name">' + esc(x.name) + '</span>' +
-      '<span class="toss ' + (x.toss==='日抛'?'da':'hy') + '">' + esc(x.toss) + '</span>' +
+      '<span class="toss ' + (x.toss==='日抛'?'da':(x.toss==='配件'?'pj':'hy')) + '">' + esc(x.toss) + '</span>' +
     '</div>' +
     '<div class="row2">' +
       '<span class="date">' + esc(dateTxt) + '</span>' +
@@ -257,14 +262,30 @@ function cardHtml(x){
   '</div>';
 }
 
+/* 2026-11-04 排序：新增的（还没给到货时间）排最前，按更新时间倒序；给了时间的按到货日期升序排后面 */
+function sortItems(arr){
+  const noEta = arr.filter(x=>!String(x.eta_date||'').trim())
+    .sort((a,b)=> new Date(b.updated_at||0) - new Date(a.updated_at||0));
+  const hasEta = arr.filter(x=>String(x.eta_date||'').trim())
+    .sort((a,b)=> etaKey(a.eta_date) - etaKey(b.eta_date));
+  return noEta.concat(hasEta);
+}
+
 function render(){
   const list = filtered();
   const g1 = list.filter(x=>x.status==='restocking');
   const g3 = list.filter(x=>x.status==='no');
-  g1.sort((a,b)=> etaKey(a.eta_date) - etaKey(b.eta_date));
   $('cntWait').textContent = g1.length + ' 款';
   $('cntNo').textContent = g3.length + ' 款';
-  $('gridWait').innerHTML = g1.length ? g1.map(cardHtml).join('') : '<div class="empty">暂无补货中的花色 🎉</div>';
+  // 2026-11-04：补货中按 半年抛/日抛/配件 分组，不混
+  const sub = (t, arr) => arr.length
+    ? '<div class="sub"><div class="sub-t">' + t + '<span>' + arr.length + ' 款</span></div><div class="grid">' + arr.map(cardHtml).join('') + '</div></div>'
+    : '';
+  $('gridWait').innerHTML = g1.length
+    ? sub('半年抛', sortItems(g1.filter(x=>x.toss==='半年抛')))
+      + sub('日抛', sortItems(g1.filter(x=>x.toss==='日抛')))
+      + sub('配件', sortItems(g1.filter(x=>x.toss==='配件')))
+    : '<div class="empty">暂无补货中的花色 🎉</div>';
   $('gridNo').innerHTML = g3.length ? g3.map(cardHtml).join('') : '<div class="empty">暂无不补花色</div>';
   // 清掉已不存在的选中项
   [...selected].forEach(id => { if (!list.some(x=>String(x.id)===String(id))) selected.delete(id); });
@@ -376,6 +397,7 @@ function buildNotice(){
   const no   = list.filter(x=>x.status==='no');
   const hy = wait.filter(x=>x.toss==='半年抛');
   const da = wait.filter(x=>x.toss==='日抛');
+  const pj = wait.filter(x=>x.toss==='配件');
   const L = [];
   L.push('📣 补货情况（' + todayMd() + ' 更新）');
   if (hy.length){
@@ -387,6 +409,11 @@ function buildNotice(){
     L.push('');
     L.push('日抛缺货到货预计时效：');
     da.forEach(x=> L.push(x.name + (x.eta_date ? ' ' + x.eta_date : ' 到货时间待定')));
+  }
+  if (pj.length){
+    L.push('');
+    L.push('配件：');
+    pj.forEach(x=> L.push(x.name + (x.eta_date ? ' ' + x.eta_date : ' 到货时间待定')));
   }
   if (no.length){
     L.push('');
@@ -418,20 +445,24 @@ function genPoster(){
   const { wait, no } = posterData();
   if (!wait.length && !no.length) { toast('现在没有补货情况可生成'); return; }
   const W = 750, PAD = 44, ROW = 62, TITLE_H = 76;
-  const hasWait = wait.length > 0, hasNo = no.length > 0;
+  const hasNo = no.length > 0;
   const noRows = Math.ceil(no.length / 2);
-  const H = 190                                  // 头部
-    + (hasWait ? TITLE_H + wait.length * ROW : 0)
+  // 2026-11-04：补货中按 半年抛/日抛/配件 分组绘制，不混
+  const groups = [['半年抛', wait.filter(x=>x.toss==='半年抛')],
+                  ['日抛',   wait.filter(x=>x.toss==='日抛')],
+                  ['配件',   wait.filter(x=>x.toss==='配件')]].filter(g=>g[1].length);
+  const hasWait = groups.length > 0;
+  const H = 190
+    + groups.reduce((s,g)=> s + TITLE_H + g[1].length * ROW, 0)
+    + (groups.length > 1 ? 18 * (groups.length - 1) : 0)
     + (hasWait && hasNo ? 26 : 0)
     + (hasNo ? TITLE_H + noRows * 58 : 0)
-    + 96;                                        // 底部
+    + 96;
   const c = document.createElement('canvas');
   c.width = W; c.height = H;
   const ctx = c.getContext('2d');
   const F = (w, s) => w + ' ' + s + 'px "PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif';
-  // 背景
   ctx.fillStyle = '#f7f9f8'; ctx.fillRect(0, 0, W, H);
-  // 头部色带
   const grad = ctx.createLinearGradient(0, 0, W, 170);
   grad.addColorStop(0, '#10b981'); grad.addColorStop(1, '#059669');
   ctx.fillStyle = grad; ctx.fillRect(0, 0, W, 150);
@@ -443,12 +474,13 @@ function genPoster(){
   ctx.fillText('更新：' + todayMd() + ' · 具体到货以实际为准', PAD, 114);
   ctx.globalAlpha = 1;
   let y = 190;
-  if (hasWait){
+  groups.forEach(([t, arr], gi) => {
+    if (gi > 0) y += 18;
     ctx.fillStyle = '#c2410c';
     ctx.font = F('800', 27);
-    ctx.fillText('🕐 补货中 · 预计到货（' + wait.length + ' 款）', PAD, y);
+    ctx.fillText('🕐 ' + t + '（' + arr.length + ' 款）', PAD, y);
     y += TITLE_H - 14;
-    wait.forEach((x, i) => {
+    arr.forEach((x, i) => {
       if (i % 2 === 0){ ctx.fillStyle = '#ffffff'; ctx.fillRect(PAD - 14, y - 24, W - (PAD - 14) * 2, ROW - 6); }
       ctx.fillStyle = '#1e293b'; ctx.font = F('700', 26);
       ctx.fillText(x.name, PAD, y);
@@ -458,7 +490,7 @@ function genPoster(){
       ctx.textAlign = 'left';
       y += ROW;
     });
-  }
+  });
   if (hasWait && hasNo) y += 26;
   if (hasNo){
     ctx.fillStyle = '#475569';
