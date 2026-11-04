@@ -244,7 +244,7 @@ function cardHtml(x){
   const dateTxt = wait ? (x.eta_date ? '🕐 预计 ' + x.eta_date : '🕐 时间待定') : '🚫 不补';
   return '<div class="item" data-id="' + x.id + '">' +
     '<div class="row1">' +
-      (isAdmin ? '<label class="ckwrap"><input type="checkbox" data-ck="' + x.id + '"' + (selected.has(x.id)?' checked':'') + '></label>' : '') +
+      (isAdmin ? '<label class="ckwrap"><input type="checkbox" data-ck="' + x.id + '"' + (selected.has(String(x.id))?' checked':'') + '></label>' : '') +
       '<span class="name">' + esc(x.name) + '</span>' +
       '<span class="toss ' + (x.toss==='日抛'?'da':'hy') + '">' + esc(x.toss) + '</span>' +
     '</div>' +
@@ -267,7 +267,7 @@ function render(){
   $('gridWait').innerHTML = g1.length ? g1.map(cardHtml).join('') : '<div class="empty">暂无补货中的花色 🎉</div>';
   $('gridNo').innerHTML = g3.length ? g3.map(cardHtml).join('') : '<div class="empty">暂无不补花色</div>';
   // 清掉已不存在的选中项
-  [...selected].forEach(id => { if (!list.some(x=>x.id===id)) selected.delete(id); });
+  [...selected].forEach(id => { if (!list.some(x=>String(x.id)===String(id))) selected.delete(id); });
   updateBatchBar();
   document.querySelectorAll('.item [data-ck]').forEach(ck => ck.addEventListener('change', onCk));
   document.querySelectorAll('.item .ops button').forEach(b => b.addEventListener('click', onOp));
@@ -277,8 +277,8 @@ function render(){
 /* ==================== 批量操作 ==================== */
 const selected = new Set();
 function onCk(e){
-  if (e.target.checked) selected.add(e.target.dataset.ck);
-  else selected.delete(e.target.dataset.ck);
+  if (e.target.checked) selected.add(String(e.target.dataset.ck));
+  else selected.delete(String(e.target.dataset.ck));
   updateBatchBar();
 }
 function updateBatchBar(){
@@ -311,7 +311,8 @@ async function batchDelete(){
 
 function onOp(e){
   const id = e.target.closest('.item').dataset.id;
-  const x = items.find(v=>v.id===id);
+  // id 是 bigint，dataset 取出来是字符串，必须 String 比较（否则 ✏️/🗑️ 点了没反应）
+  const x = items.find(v=>String(v.id)===String(id));
   if (!x) return;
   if (e.target.dataset.act === 'edit') openForm(x);
   if (e.target.dataset.act === 'del') delItem(x);
@@ -520,8 +521,8 @@ function downloadPoster(){
 $('btnAdd').addEventListener('click', ()=>openForm(null));
 $('btnSelAll').addEventListener('click', ()=>{
   const list = filtered();
-  const allOn = list.every(x=>selected.has(x.id)) && list.length;
-  if (allOn) selected.clear(); else list.forEach(x=>selected.add(x.id));
+  const allOn = list.every(x=>selected.has(String(x.id))) && list.length;
+  if (allOn) selected.clear(); else list.forEach(x=>selected.add(String(x.id)));
   render();
 });
 $('bNo').addEventListener('click', ()=> batchUpdate({ status:'no' }));
