@@ -319,7 +319,7 @@ body {
 
 .page { display: none; padding: 32px 40px; }
 .page.active { display: block; }
-#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active, #page-price-quiz.active, #page-quiz-results.active, #page-huaming.active, #page-restock.active { display: flex; height: 100vh; overflow: hidden; }
+#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active, #page-price-quiz.active, #page-quiz-results.active, #page-huaming.active, #page-restock.active, #page-patterns.active { display: flex; height: 100vh; overflow: hidden; }
 
 /* Header */
 .page-header { margin-bottom: 28px; }
@@ -3365,38 +3365,9 @@ body {
     </div>
   </div>
 
-  <!-- ===== 花色素材 ===== -->
-  <div class="page" id="page-patterns">
-    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-      <div><h1>🎨 花色素材库</h1><p>按品牌、抛型、系列、色系筛选，一键复制推荐话术 | 修改实时同步所有客服</p></div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <button class="feishu-sync-btn admin-only-nav" id="feishu-sync-btn" onclick="syncFromFeishu()" style="display:none;">🔄 从飞书同步</button>
-        <button class="collab-btn" id="collab-patterns-btn" onclick="openCollabPanel('patterns')" style="display:none;">👥 协作者</button>
-        <button class="mgmt-toggle admin-only-nav" id="mgmt-toggle" onclick="toggleMgmtMode()" style="display:none;">📝 管理素材</button>
-        <button class="mgmt-add-btn" id="mgmt-add-btn" onclick="openPatternEditor(null)" style="display:none;">＋ 新增花色</button>
-      </div>
-    </div>
-    <div class="brand-tabs" id="pattern-brand-tabs"></div>
-    <div class="pf-chips" id="pattern-chips"></div>
-    <div class="pf-toolbar">
-      <button class="pf-adv-toggle" id="pf-adv-toggle" onclick="togglePatternAdvFilters()">⚙️ 更多筛选<span class="pf-adv-badge" id="pf-adv-badge" style="display:none;">0</span><span class="pf-adv-arrow">▾</span></button>
-      <div class="pattern-search-row">
-        <input type="text" id="pattern-search" placeholder="🔍 搜索花色名称..." oninput="onPatternSearch()">
-        <span class="pattern-stats" id="pattern-stats"></span>
-      </div>
-    </div>
-    <div class="pattern-filters-card" id="pattern-adv-filters" style="display:none;">
-      <div class="filter-row" id="pattern-filter-type"></div>
-      <div class="filter-row" id="pattern-filter-fixedaxis"></div>
-      <div class="filter-row" id="pattern-filter-diameter"></div>
-      <div class="filter-row" id="pattern-filter-diamgroup"></div>
-      <div class="filter-row" id="pattern-filter-basecurve"></div>
-      <div class="filter-row" id="pattern-filter-series"></div>
-      <div class="filter-row" id="pattern-filter-color"></div>
-      <div class="filter-row" id="pattern-filter-price"></div>
-      <div class="filter-row" id="pattern-filter-status"></div>
-    </div>
-    <div class="pattern-grid" id="pattern-grid"></div>
+  <!-- ===== 花色素材（2026-11-04 重做：独立子页 iframe 版） ===== -->
+  <div class="page" id="page-patterns" style="padding:0;overflow:hidden;flex-direction:column;">
+    <iframe id="patterns-iframe" src="about:blank" data-src="pattern.html?v=20261104a" style="flex:1;border:none;width:100%;"></iframe>
   </div>
 
   <style>
@@ -11491,9 +11462,12 @@ function switchPage(page) {
     if (window.renderAiPage) renderAiPage();
   }
   if (page === 'patterns') {
-    // 每次进入都重新拉取，保证数据最新（Realtime 仅在花色素材页激活时才刷新）
-    if (window.loadPatternCategories) loadPatternCategories();
-    loadPatternsFromDB();
+    // 2026-11-04 重做：独立子页 iframe，首次点击才加载
+    const ptIframe = document.getElementById('patterns-iframe');
+    if (ptIframe && ptIframe.getAttribute('data-src') && ptIframe.src !== ptIframe.getAttribute('data-src')) {
+      ptIframe.src = ptIframe.getAttribute('data-src');
+      ptIframe.removeAttribute('data-src');
+    }
   }
   if (page === 'pattern-price') {
     // 每次进入都重新拉取，保证数据最新
@@ -12270,6 +12244,8 @@ function getMergedCats(catType, dataCats) {
 }
 
 function renderPatternFilters() {
+  // 2026-11-04：花色素材页已改为独立子页 pattern.html（iframe），旧内嵌渲染退役；价格速查仍复用本数据
+  if (!document.getElementById('pattern-brand-tabs')) return;
   const isAdmin = canEdit('patterns');
 
   // Brand tabs — 品牌大分类不显示编辑/删除，仅保留新增
@@ -12879,6 +12855,8 @@ let patternPage = 1;
 const PATTERN_PAGE_SIZE = 20;
 
 function renderPatterns() {
+  // 2026-11-04：花色素材页已改为独立子页 pattern.html（iframe），旧内嵌渲染退役
+  if (!document.getElementById('pattern-grid')) return;
   // patternData already loaded from Supabase, no localStorage merge needed
   let items = getFilteredItems(patternBrand, patternType, patternSeries, patternDiameter, patternBaseCurve, patternFixedAxis);
   // 色系筛选

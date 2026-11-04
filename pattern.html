@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>花色素材</title>
+<style>
+  :root{ --primary:#10b981; --primary-dark:#059669; --primary-light:rgba(16,185,129,.1);
+         --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f7f9f8; }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+       background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+  .topbar{display:flex;align-items:center;gap:10px;padding:12px 18px;background:#fff;
+          border-bottom:1px solid var(--border);flex-wrap:wrap;position:sticky;top:0;z-index:10;}
+  .topbar h1{font-size:17px;font-weight:800;letter-spacing:.5px;}
+  .badge{font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;background:var(--primary-light);color:var(--primary-dark);}
+  .badge.admin{background:#fff7ed;color:#c2410c;}
+  .badge.ro{background:#f1f5f9;color:#64748b;}
+  .sp{flex:1;}
+  .search{position:relative;min-width:200px;}
+  .search input{width:100%;padding:8px 12px 8px 32px;border:1.5px solid var(--border);border-radius:9px;font-size:13.5px;font-family:inherit;outline:none;background:var(--bg);}
+  .search input:focus{border-color:var(--primary);background:#fff;}
+  .search .ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--muted);}
+  .btn{border:none;border-radius:9px;padding:9px 16px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:filter .15s;}
+  .btn:hover{filter:brightness(.94);}
+  .btn.g{background:var(--primary);color:#fff;}
+  .btn.o{background:#fff;border:1.5px solid var(--border);color:#334155;}
+  .wrap{width:100%;max-width:1440px;margin:0 auto;padding:14px 16px 60px;flex:1;}
+  /* 品牌 tab */
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+  .tab{padding:7px 20px;border-radius:20px;background:#fff;border:1.5px solid var(--border);color:#475569;
+       font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
+  .tab:hover{border-color:var(--primary);color:var(--primary-dark);}
+  .tab.active{background:linear-gradient(135deg,#10b981,#059669);color:#fff;border-color:transparent;}
+  .cnt{font-size:12px;font-weight:600;color:var(--muted);margin-left:2px;}
+  /* 卡片网格 */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;
+        display:flex;flex-direction:column;transition:all .2s;position:relative;}
+  .card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(15,23,42,.08);border-color:#a7f3d0;}
+  .cover{position:relative;aspect-ratio:3/4;background:#f1f5f9;cursor:zoom-in;}
+  .cover img{width:100%;height:100%;object-fit:cover;display:block;}
+  .cover .ph{position:absolute;inset:0;display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;color:#cbd5e1;font-size:13px;}
+  .cover .ph .big{font-size:30px;}
+  .nimg{position:absolute;right:8px;bottom:8px;background:rgba(15,23,42,.65);color:#fff;font-size:11px;
+        font-weight:700;border-radius:10px;padding:2px 8px;}
+  .cbody{padding:9px 11px 11px;display:flex;flex-direction:column;gap:6px;flex:1;}
+  .cname{font-size:14px;font-weight:800;line-height:1.35;word-break:break-all;}
+  .ctags{display:flex;gap:5px;flex-wrap:wrap;}
+  .ctags span{font-size:11px;font-weight:700;border-radius:9px;padding:2px 8px;white-space:nowrap;}
+  .tg-brand{background:#ecfdf5;color:#047857;}
+  .tg-series{background:#eff6ff;color:#2563eb;}
+  .tg-type{background:#fef3c7;color:#b45309;}
+  .cdesc{font-size:12px;color:var(--muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;
+         -webkit-box-orient:vertical;overflow:hidden;word-break:break-word;}
+  .ops{display:flex;gap:5px;margin-left:auto;}
+  .ops button{border:1px solid var(--border);background:#fff;border-radius:7px;font-size:12px;
+              padding:4px 9px;cursor:pointer;font-family:inherit;color:#475569;line-height:1;}
+  .ops button:hover{border-color:var(--primary);color:var(--primary-dark);}
+  .empty{text-align:center;padding:70px 20px;color:var(--muted);font-size:14px;}
+  .empty .big{font-size:44px;margin-bottom:10px;}
+  /* 灯箱 */
+  .lmask{position:fixed;inset:0;background:rgba(15,23,42,.78);z-index:99;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:20px;}
+  .lmask.show{display:flex;}
+  .lmask img{max-width:min(92vw,860px);max-height:74vh;border-radius:12px;background:#fff;}
+  .lthumbs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:90vw;}
+  .lthumbs img{width:64px;height:64px;object-fit:cover;border-radius:8px;cursor:pointer;max-height:64px;
+               border:2px solid transparent;opacity:.75;}
+  .lthumbs img.on{border-color:var(--primary);opacity:1;}
+  .lclose{position:absolute;top:14px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;
+          font-size:22px;width:40px;height:40px;border-radius:50%;cursor:pointer;}
+  .lname{color:#fff;font-size:14px;font-weight:700;}
+  /* 弹窗表单 */
+  .fmask{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:98;display:none;align-items:center;justify-content:center;}
+  .fmask.show{display:flex;}
+  .modal{background:#fff;border-radius:14px;width:min(430px,calc(100vw - 36px));padding:20px 22px;max-height:90vh;overflow:auto;}
+  .modal h3{font-size:16px;font-weight:800;margin-bottom:12px;}
+  .modal label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 5px;}
+  .modal input,.modal select,.modal textarea{width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:14px;font-family:inherit;outline:none;}
+  .modal textarea{resize:vertical;}
+  .modal input:focus,.modal select:focus,.modal textarea:focus{border-color:var(--primary);}
+  .frow{display:flex;gap:10px;}
+  .frow>div{flex:1;}
+  .upzone{border:1.5px dashed var(--border);border-radius:10px;padding:10px;text-align:center;color:var(--muted);
+          font-size:12.5px;cursor:pointer;background:var(--bg);}
+  .upzone:hover{border-color:var(--primary);color:var(--primary-dark);}
+  .upzone input{display:none;}
+  .thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .thumbs .t{position:relative;width:62px;height:62px;border-radius:8px;overflow:hidden;background:#f1f5f9;}
+  .thumbs .t img{width:100%;height:100%;object-fit:cover;}
+  .thumbs .t .del{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:none;
+                  background:rgba(220,38,38,.9);color:#fff;font-size:11px;line-height:18px;padding:0;cursor:pointer;}
+  .modal .btns{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;}
+  .toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%) translateY(20px);background:#1e293b;color:#fff;
+         padding:10px 20px;border-radius:10px;font-size:13.5px;opacity:0;pointer-events:none;transition:all .25s;z-index:200;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .authmask{position:fixed;inset:0;background:var(--bg);z-index:50;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--muted);font-size:14px;}
+  .authmask.active{display:flex;}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>🎨 花色素材</h1>
+    <span class="badge" id="roleBadge">…</span>
+    <div class="sp"></div>
+    <div class="search"><span class="ico">🔍</span><input id="q" placeholder="搜花色/系列" autocomplete="off"></div>
+    <button class="btn g" id="btnAdd" style="display:none;">＋ 新增</button>
+  </div>
+  <div class="wrap">
+    <div class="tabs" id="tabs"></div>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty" style="display:none;">
+      <div class="big">🌸</div>
+      还没有素材，等管理员上传
+    </div>
+  </div>
+
+  <!-- 灯箱 -->
+  <div class="lmask" id="lmask">
+    <button class="lclose" id="lclose">×</button>
+    <div class="lname" id="lname"></div>
+    <img id="limg" alt="素材大图">
+    <div class="lthumbs" id="lthumbs"></div>
+  </div>
+
+  <!-- 新增/编辑 -->
+  <div class="fmask" id="fmask">
+    <div class="modal">
+      <h3 id="fTitle">新增花色</h3>
+      <div class="frow">
+        <div><label>品牌</label>
+          <select id="fBrand"><option>弥生</option><option>极氧</option></select></div>
+        <div><label>抛型（可选）</label>
+          <select id="fType"><option value="">不填</option><option>日抛</option><option>半年抛</option><option>月抛</option><option>年抛</option></select></div>
+      </div>
+      <label>花色名 *</label>
+      <input id="fName" placeholder="如：少女漫" autocomplete="off">
+      <label>系列（可选）</label>
+      <input id="fSeries" placeholder="如：少女漫系列 / 定轴" autocomplete="off">
+      <label>一句话卖点（可选，客服直接照着发）</label>
+      <textarea id="fDesc" rows="2" placeholder="如：自带高光不挑人，素颜也能戴" style="resize:vertical;" autocomplete="off"></textarea>
+      <label>👁️ 上眼图（可多选）</label>
+      <div class="upzone" id="upEye">点击选择图片，可一次多张<input type="file" id="fileEye" accept="image/*" multiple></div>
+      <div class="thumbs" id="thEye"></div>
+      <label>Lens 镜片图（可多选）</label>
+      <div class="upzone" id="upLens">点击选择图片，可一次多张<input type="file" id="fileLens" accept="image/*" multiple></div>
+      <div class="thumbs" id="thLens"></div>
+      <div class="btns">
+        <button class="btn o" id="fCancel">取消</button>
+        <button class="btn g" id="fSave">保存</button>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <div class="authmask" id="authMask">🔒 请先在工作台登录后查看</div>
+
+<script src="vendor/supabase.min.js?v=2"></script>
+<script>
+'use strict';
+const SUPABASE_URL = 'https://icfgireprowcqwdodfqx.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljZmdpcmVwcm93Y3F3ZG9kZnF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0ODMwNjEsImV4cCI6MjEwODA1OTA2MX0.T8yex8pjNBE0ch3vPKL3xPQPOqw3ExS4mwRsjT2FhzE';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let items = [];
+let isAdmin = false;
+let editingId = null;      // 编辑中的记录 id
+let brandFilter = '全部';
+let newEye = [];           // 待上传新图 File[]
+let newLens = [];
+let eyeUrls = [];          // 已有图 URL（编辑时）
+let lensUrls = [];
+
+const $ = id => document.getElementById(id);
+function esc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer); t._timer = setTimeout(()=>t.classList.remove('show'), 2000);
+}
+
+/* ==================== 数据 ==================== */
+async function load(){
+  const { data, error } = await sb.from('pattern_assets').select('*')
+    .order('sort_order', { ascending: false })
+    .order('created_at', { ascending: false });
+  if (error) { toast('读取失败：' + error.message); return; }
+  items = data || [];
+  renderTabs(); renderGrid();
+}
+
+function brands(){
+  const set = [];
+  items.forEach(x => { if (x.brand && !set.includes(x.brand)) set.push(x.brand); });
+  return ['全部'].concat(set);
+}
+function coverOf(x){
+  const arr = Array.isArray(x.eye_imgs) && x.eye_imgs.length ? x.eye_imgs : (x.eye_img ? [x.eye_img] : []);
+  return arr[0] || '';
+}
+function imgsOf(x, kind){
+  const arr = kind === 'eye' ? (Array.isArray(x.eye_imgs) ? x.eye_imgs : (x.eye_img ? [x.eye_img] : []))
+                             : (Array.isArray(x.lens_imgs) ? x.lens_imgs : (x.lens_img ? [x.lens_img] : []));
+  return arr.filter(Boolean);
+}
+function filtered(){
+  const q = $('q').value.trim().toLowerCase();
+  let list = items;
+  if (brandFilter !== '全部') list = list.filter(x => x.brand === brandFilter);
+  if (q) list = list.filter(x => ((x.name||'') + ' ' + (x.series||'') + ' ' + (x.description||'')).toLowerCase().includes(q));
+  return list;
+}
+
+/* ==================== 渲染 ==================== */
+function renderTabs(){
+  const bs = brands();
+  if (brandFilter !== '全部' && !bs.includes(brandFilter)) brandFilter = '全部';
+  $('tabs').innerHTML = bs.map(b => {
+    const n = b === '全部' ? items.length : items.filter(x => x.brand === b).length;
+    return '<button class="tab' + (brandFilter === b ? ' active' : '') + '" data-b="' + esc(b) + '">' + esc(b) +
+           ' <span class="cnt">' + n + '</span></button>';
+  }).join('');
+  document.querySelectorAll('#tabs .tab').forEach(t => t.addEventListener('click', () => { brandFilter = t.dataset.b; renderTabs(); renderGrid(); }));
+}
+function cardHtml(x){
+  const cover = coverOf(x);
+  const eyeN = imgsOf(x,'eye').length, lensN = imgsOf(x,'lens').length;
+  const tags = [x.brand, x.series, x.type].filter(Boolean)
+    .map((v,i) => '<span class="' + ['tg-brand','tg-series','tg-type'][Math.min(i,2)] + '">' + esc(v) + '</span>').join('');
+  return '<div class="card" data-id="' + String(x.id) + '">' +
+    '<div class="cover" data-act="zoom">' +
+      (cover ? '<img loading="lazy" src="' + esc(cover) + '" alt="' + esc(x.name) + '">'
+             : '<div class="ph"><div class="big">🌸</div>暂无图片</div>') +
+      ((eyeN + lensN) > 1 ? '<span class="nimg">' + (eyeN + lensN) + ' 图</span>' : '') +
+    '</div>' +
+    '<div class="cbody">' +
+      '<div class="cname">' + esc(x.name) + '</div>' +
+      (tags ? '<div class="ctags">' + tags + '</div>' : '') +
+      (x.description ? '<div class="cdesc">' + esc(x.description) + '</div>' : '') +
+      (isAdmin ? '<div class="ops"><button data-act="edit">✏️ 修改</button><button data-act="del">🗑️</button></div>' : '') +
+    '</div>' +
+  '</div>';
+}
+function renderGrid(){
+  const list = filtered();
+  $('grid').innerHTML = list.map(cardHtml).join('');
+  $('empty').style.display = list.length ? 'none' : '';
+  $('grid').style.display = list.length ? '' : 'none';
+  document.querySelectorAll('#grid .card').forEach(c => c.addEventListener('click', onCard));
+}
+
+/* ==================== 灯箱 ==================== */
+let lightImgs = [], lightIdx = 0, lightName = '';
+function openLight(x){
+  lightImgs = imgsOf(x,'eye').concat(imgsOf(x,'lens'));
+  lightName = x.name || '';
+  if (!lightImgs.length) return;
+  lightIdx = 0;
+  renderLight();
+  $('lmask').classList.add('show');
+}
+function renderLight(){
+  $('lname').textContent = lightName + (lightImgs.length > 1 ? '（' + (lightIdx+1) + '/' + lightImgs.length + '）' : '');
+  $('limg').src = lightImgs[lightIdx];
+  $('lthumbs').innerHTML = lightImgs.length > 1
+    ? lightImgs.map((u,i) => '<img src="' + esc(u) + '" class="' + (i===lightIdx?'on':'') + '" data-i="' + i + '">').join('')
+    : '';
+  document.querySelectorAll('#lthumbs img').forEach(t => t.addEventListener('click', () => { lightIdx = Number(t.dataset.i); renderLight(); }));
+}
+
+/* ==================== 表单 ==================== */
+function openForm(x){
+  editingId = x ? String(x.id) : null;
+  $('fTitle').textContent = x ? '编辑花色' : '新增花色';
+  $('fBrand').value = x ? (x.brand || '弥生') : '弥生';
+  $('fType').value = x ? (x.type || '') : '';
+  $('fName').value = x ? (x.name || '') : '';
+  $('fSeries').value = x ? (x.series || '') : '';
+  $('fDesc').value = x ? (x.description || '') : '';
+  eyeUrls = x ? imgsOf(x,'eye') : [];
+  lensUrls = x ? imgsOf(x,'lens') : [];
+  newEye = []; newLens = [];
+  renderThumbs();
+  $('fmask').classList.add('show');
+}
+function renderThumbs(){
+  const draw = (host, urls, files, kind) => {
+    $(host).innerHTML =
+      urls.map((u,i) => '<div class="t"><img src="' + esc(u) + '"><button class="del" data-k="' + kind + '" data-i="' + i + '">✕</button></div>').join('') +
+      files.map((f,i) => '<div class="t"><img src="' + URL.createObjectURL(f) + '"><button class="del" data-k="' + kind + 'new" data-i="' + i + '">✕</button></div>').join('');
+    document.querySelectorAll('#' + host + ' .del').forEach(b => b.addEventListener('click', () => {
+      if (b.dataset.k === 'eye') eyeUrls.splice(Number(b.dataset.i), 1);
+      else if (b.dataset.k === 'lens') lensUrls.splice(Number(b.dataset.i), 1);
+      else if (b.dataset.k === 'eyenew') newEye.splice(Number(b.dataset.i), 1);
+      else newLens.splice(Number(b.dataset.i), 1);
+      renderThumbs();
+    }));
+  };
+  draw('thEye', eyeUrls, newEye, 'eye');
+  draw('thLens', lensUrls, newLens, 'lens');
+}
+/* 前端压图：长边 1600，JPEG q82（手机原图太大，直接传网页会卡） */
+async function compress(file){
+  try{
+    const bmp = await createImageBitmap(file);
+    const max = 1600, s = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    return await new Promise(res => c.toBlob(b => res(b || file), 'image/jpeg', 0.82));
+  }catch(e){ return file; }
+}
+async function uploadFiles(files, kind){
+  for (const f of files){
+    if (!/^image\//.test(f.type)) { toast('只能传图片：' + f.name); continue; }
+    toast('上传中…');
+    const blob = await compress(f);
+    const ext = '.jpg';
+    const path = 'pattern/' + Date.now() + '_' + kind + '_' + Math.random().toString(36).slice(2,8) + ext;
+    const { error } = await sb.storage.from('pattern-images').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+    if (error) { toast('上传失败：' + error.message); continue; }
+    const url = sb.storage.from('pattern-images').getPublicUrl(path).data.publicUrl;
+    if (kind === 'eye') eyeUrls.push(url); else lensUrls.push(url);
+  }
+  renderThumbs();
+  toast('图片已就绪 ✅');
+}
+async function save(){
+  const name = $('fName').value.trim();
+  if (!name) { toast('请填花色名'); return; }
+  const row = {
+    brand: $('fBrand').value,
+    name: name,
+    series: $('fSeries').value.trim(),
+    type: $('fType').value,
+    description: $('fDesc').value.trim(),
+    eye_imgs: eyeUrls,
+    lens_imgs: lensUrls,
+    is_discontinued: false,
+    updated_hint: undefined,
+  };
+  let error;
+  if (editingId) {
+    ({ error } = await sb.from('pattern_assets').update(row).eq('id', editingId));
+  } else {
+    row.sort_order = Math.floor(Date.now() / 1000) % 1000000000; // 新增排前面
+    ({ error } = await sb.from('pattern_assets').insert(row));
+  }
+  if (error) { toast('保存失败：' + error.message); return; }
+  $('fmask').classList.remove('show');
+  toast(editingId ? '已保存 ✅' : '已新增 ✅');
+  load();
+}
+async function delItem(x){
+  if (!confirm('确定删除「' + x.name + '」吗？删除后不可恢复。')) return;
+  const { error } = await sb.from('pattern_assets').delete().eq('id', x.id);
+  if (error) { toast('删除失败：' + error.message); return; }
+  toast('已删除'); load();
+}
+
+/* ==================== 事件 ==================== */
+function onCard(e){
+  const card = e.target.closest('.card');
+  const x = items.find(v => String(v.id) === String(card.dataset.id));
+  if (!x) return;
+  const act = e.target.closest('[data-act]');
+  const actName = act && act.dataset.act;
+  if (actName === 'edit') { e.stopPropagation(); openForm(x); return; }
+  if (actName === 'del') { e.stopPropagation(); delItem(x); return; }
+  if (e.target.closest('.ops')) return;
+  openLight(x);
+}
+$('btnAdd').addEventListener('click', () => openForm(null));
+$('q').addEventListener('input', renderGrid);
+$('lclose').addEventListener('click', () => $('lmask').classList.remove('show'));
+$('lmask').addEventListener('click', function(e){ if (e.target === this) this.classList.remove('show'); });
+$('fmask').addEventListener('click', function(e){ if (e.target === this) this.classList.remove('show'); });
+$('fCancel').addEventListener('click', () => $('fmask').classList.remove('show'));
+$('fSave').addEventListener('click', save);
+$('upEye').addEventListener('click', () => $('fileEye').click());
+$('upLens').addEventListener('click', () => $('fileLens').click());
+$('fileEye').addEventListener('change', e => { uploadFiles([...e.target.files], 'eye'); e.target.value = ''; });
+$('fileLens').addEventListener('change', e => { uploadFiles([...e.target.files], 'lens'); e.target.value = ''; });
+
+/* ==================== 初始化 ==================== */
+(async function init(){
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    const user = session && session.user;
+    if (!user){
+      // 不登录也允许看（表允许 anon 读），但按只读渲染
+      $('roleBadge').className = 'badge ro'; $('roleBadge').textContent = '📖 只读查看';
+      await load(); return;
+    }
+    let role = user.app_metadata && user.app_metadata.role;
+    try{
+      const { data:p } = await sb.from('profiles').select('role').eq('id', user.id).single();
+      if (p) role = p.role;
+    }catch(e){}
+    isAdmin = (role === 'admin');
+    if (isAdmin){
+      $('roleBadge').className = 'badge admin'; $('roleBadge').textContent = '👑 管理员 · 可上传';
+      $('btnAdd').style.display = '';
+    } else {
+      $('roleBadge').className = 'badge ro'; $('roleBadge').textContent = '📖 只读查看';
+    }
+    await load();
+  }catch(e){
+    console.warn(e);
+    toast('初始化失败，请刷新重试');
+  }
+})();
+</script>
+</body>
+</html>
