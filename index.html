@@ -2143,23 +2143,35 @@ body {
         <div class="nav-item qc-admin-nav" onclick="openQcRegister()" title="质检登记（飞书表格，组长/管理员专用）" style="display:none;"><span class="icon">📝</span><span>质检登记</span></div>
       </div>
     </div>
-    <div class="nav-group" data-g="training">
-      <div class="nav-group-head" onclick="toggleNavGroup(this)"><span>培训资料</span><span class="ng-arrow">▾</span></div>
+    <div class="nav-group" data-g="training-common">
+      <div class="nav-group-head" onclick="toggleNavGroup(this)"><span>📚 通用必修</span><span class="ng-arrow">▾</span></div>
       <div class="nav-group-body">
         <div class="nav-item" data-page="training-cognition" title="岗位认知：售前是谁、三大核心角色"><span class="icon">🧭</span><span>岗位认知</span></div>
-        <div class="nav-item" data-page="training-basic" title="基础知识：分类、核心参数、佩戴护理"><span class="icon">📖</span><span>基础知识</span></div>
-        <div class="nav-item" data-page="training-miyang" title="弥生产品线：日抛/半年抛/特殊类/花色明细/连带活动"><span class="icon">📘</span><span>弥生产品线</span></div>
+        <div class="nav-item" data-page="training-basic" title="基础知识：分类、核心参数、佩戴护理（含弥生/极氧分类）"><span class="icon">📖</span><span>基础知识</span></div>
         <div class="nav-item" data-page="training-duties" title="工作要点、转接规则、售后对接、扣罚标准"><span class="icon">🎯</span><span>工作要点与考核</span></div>
         <div class="nav-item" data-page="training-faq" title="常见问题话术库：自检清单 + 在线话术库"><span class="icon">💬</span><span>常见问题话术库</span></div>
         <div class="nav-item" data-page="training-platform" title="平台规则：拼多多/抖音/天猫"><span class="icon">🌐</span><span>平台规则</span></div>
         <div class="nav-item" data-page="training-scripts" title="售前话术（按分组）"><span class="icon">🗒️</span><span>售前话术</span></div>
       </div>
     </div>
+    <div class="nav-group" data-g="training-miyang">
+      <div class="nav-group-head" onclick="toggleNavGroup(this)" style="border-left:3px solid #10B981;padding-left:8px;color:#065f46"><span>🟢 弥生专区</span><span class="ng-arrow">▾</span></div>
+      <div class="nav-group-body">
+        <div class="nav-item" data-page="training-miyang" title="弥生产品线：日抛/半年抛/特殊类/花色明细/连带活动"><span class="icon">📘</span><span>弥生产品线</span></div>
+        <div class="nav-item" data-page="price-miyang" title="弥生价格速查"><span class="icon">💰</span><span>弥生价</span></div>
+      </div>
+    </div>
+    <div class="nav-group" data-g="training-jiyang">
+      <div class="nav-group-head" onclick="toggleNavGroup(this)" style="border-left:3px solid #3B82F6;padding-left:8px;color:#1e40af"><span>🔵 极氧专区</span><span class="ng-arrow">▾</span></div>
+      <div class="nav-group-body">
+        <div class="nav-item" data-page="price-jiyang" title="极氧价格速查"><span class="icon">💰</span><span>极氧价</span></div>
+        <div class="nav-item" onclick="openJiyangCategory()" title="极氧分类与实战接待话术（基础知识里的极氧块）"><span class="icon">🔵</span><span>极氧分类</span></div>
+        <div class="nav-item" onclick="openJiyangBrandDetail()" title="极氧品牌定位、产品线与价格一站式介绍"><span class="icon">📗</span><span>极氧品牌介绍</span></div>
+      </div>
+    </div>
     <div class="nav-group" data-g="docs">
       <div class="nav-group-head" onclick="toggleNavGroup(this)"><span>常用资料</span><span class="ng-arrow">▾</span></div>
       <div class="nav-group-body">
-        <div class="nav-item" data-page="price-miyang" title="弥生价格速查"><span class="icon">💰</span><span>弥生价</span></div>
-        <div class="nav-item" data-page="price-jiyang" title="极氧价格速查"><span class="icon">💰</span><span>极氧价</span></div>
         <div class="nav-item" data-page="rules" title="平台规则"><span class="icon">📏</span><span>平台规则</span></div>
         <div class="nav-item" data-page="price-quiz" title="客服考试试卷（试卷一 / 试卷二）"><span class="icon">📝</span><span>客服考试</span></div>
         <div class="nav-item admin-only-nav" data-page="quiz-results" title="考核成绩（仅管理员，查看新客服交卷分数）" style="display:none;"><span class="icon">📝</span><span>考核成绩</span></div>
@@ -5490,6 +5502,7 @@ function renderTrainingTopicPage(key) {
   bindTpTabs(body);
   enhanceTpCopy(body);
   tpRestoreState(body, st);                 // 内容真变了也不跳
+  tpApplyPendingFocus(body, key);           // 快捷入口定向位置：异步重渲染后仍能落到位
   // 编辑按钮：管理员可见
   const btn = document.querySelector('[data-tp-edit="' + key + '"]');
   if (btn) btn.style.display = isFullAdmin() ? '' : 'none';
@@ -5637,6 +5650,34 @@ async function resetTpEditor() {
     showToast('✅ 已恢复默认内容');
     if (currentPage === _tpEditKey) renderTrainingTopicPage(_tpEditKey);
   } catch (e) { showToast('❌ 恢复失败：' + e.message); }
+}
+
+/* 🔵 极氧专区 →「极氧分类」快捷入口：跳到基础知识并展开极氧块
+   指向的是同一份内容（不复制、不新建页），所以以后维护仍然只有一处。
+   ⚠️ 进页后 loadTrainingPages() 可能异步重渲染，会把刚切好的标签/折叠覆盖掉；
+      因此用 _tpPendingFocus 记目标，renderTrainingTopicPage 每次渲染完再落一次。 */
+let _tpPendingFocus = null;   // { key, tab, brand }
+function tpApplyPendingFocus(body, key) {
+  const f = _tpPendingFocus;
+  if (!f || f.key !== key) return;
+  const tab = body.querySelector('.tp-tab[data-tp-tab="' + f.tab + '"]');
+  if (!tab) return;                         // 内容还没到位，留给下次渲染/轮询再试
+  tab.click();
+  const block = body.querySelector('.tp-brand.' + f.brand);
+  if (block) { block.open = true; try { block.scrollIntoView({ block: 'start' }); } catch (e) { } }
+  _tpPendingFocus = null;
+}
+function openJiyangCategory() {
+  _tpPendingFocus = { key: 'training-basic', tab: '1', brand: 'jiyang' };
+  switchPage('training-basic');
+  let tries = 0;
+  const tick = setInterval(() => {
+    tries++;
+    if (currentPage !== 'training-basic') { _tpPendingFocus = null; clearInterval(tick); return; }  // 被质检门禁拦下就别硬切
+    const body = document.getElementById('tpc-training-basic');
+    if (body) tpApplyPendingFocus(body, 'training-basic');
+    if (!_tpPendingFocus || tries > 40) { _tpPendingFocus = null; clearInterval(tick); }
+  }, 200);
 }
 
 /* 培训专题页实时订阅：管理员保存后，所有在线成员自动热更新 */
@@ -11275,6 +11316,9 @@ function toggleNavGroup(head){
 })();
 
 document.querySelectorAll('.nav-item').forEach(item => {
+  // ⚠️ 自定义 onclick 入口（极氧分类/极氧品牌介绍/质检登记）没有 data-page，
+  //    若也走默认切页会执行 switchPage(undefined)，把 .page 的 active 全清掉 → 页面空白。
+  if (!item.dataset.page) return;
   item.addEventListener('click', () => switchPage(item.dataset.page));
 });
 
@@ -15134,8 +15178,18 @@ function openTrainingEditor(item) {
   const curGroup = t.group_name || (trainingGroup !== '全部' ? trainingGroup : (groupNames[0] || ''));
   const curCat = t.category || '未分类';
   const subsOf = g => trainingSubcats().filter(c => c.parent_id === g);
+  /* 大类下拉按 通用 / 弥生 / 极氧 三段分组显示（只改显示顺序，不增删改任何大类和资料） */
+  const TP_BRAND_BUCKET = { '弥生产品线': 'miyang' };
+  const bucket = { common: [], miyang: [], jiyang: [] };
+  groupNames.forEach(g => bucket[TP_BRAND_BUCKET[g] || 'common'].push(g));
+  const opt = g => '<option value="' + g + '"' + (g === curGroup ? ' selected' : '') + '>' + g + '</option>';
+  let groupOpts = '<optgroup label="📚 通用">' + bucket.common.map(opt).join('') + '</optgroup>'
+    + '<optgroup label="🟢 弥生">' + bucket.miyang.map(opt).join('') + '</optgroup>'
+    + (bucket.jiyang.length
+        ? '<optgroup label="🔵 极氧">' + bucket.jiyang.map(opt).join('') + '</optgroup>'
+        : '<optgroup label="🔵 极氧"><option disabled>（暂无极氧专属大类，可选通用）</option></optgroup>');
   let html = '<div class="modal-field-row"><div class="modal-field"><label>大类</label><select id="tf-group" onchange="syncTrainingSubcats()">'
-    + groupNames.map(g => '<option value="' + g + '"' + (g === curGroup ? ' selected' : '') + '>' + g + '</option>').join('')
+    + groupOpts
     + '</select></div>'
     + '<div class="modal-field"><label>小类</label><select id="tf-cat">'
     + subsOf(curGroup).map(c => '<option value="' + c.name + '"' + (c.name === curCat ? ' selected' : '') + '>' + c.name + '</option>').join('')
@@ -17857,7 +17911,7 @@ async function qcGateRpc(ids){
 </div>
 
 <!-- 极氧品牌定位一站式详情弹窗 -->
-<div class="modal-overlay jy-brand-modal" id="mod-jiyang-brand"undefined>
+<div class="modal-overlay jy-brand-modal" id="mod-jiyang-brand">
   <div class="modal-box" onclick="event.stopPropagation()">
     <div class="modal-header">
       <h3 style="display:flex;align-items:center;gap:10px;">
