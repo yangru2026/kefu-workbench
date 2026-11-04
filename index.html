@@ -2143,12 +2143,23 @@ body {
         <div class="nav-item qc-admin-nav" onclick="openQcRegister()" title="质检登记（飞书表格，组长/管理员专用）" style="display:none;"><span class="icon">📝</span><span>质检登记</span></div>
       </div>
     </div>
+    <div class="nav-group" data-g="training">
+      <div class="nav-group-head" onclick="toggleNavGroup(this)"><span>培训资料</span><span class="ng-arrow">▾</span></div>
+      <div class="nav-group-body">
+        <div class="nav-item" data-page="training-cognition" title="岗位认知：售前是谁、三大核心角色"><span class="icon">🧭</span><span>岗位认知</span></div>
+        <div class="nav-item" data-page="training-basic" title="基础知识：分类、核心参数、佩戴护理"><span class="icon">📖</span><span>基础知识</span></div>
+        <div class="nav-item" data-page="training-miyang" title="弥生产品线：日抛/半年抛/特殊类/花色明细/连带活动"><span class="icon">📘</span><span>弥生产品线</span></div>
+        <div class="nav-item" data-page="training-duties" title="工作要点、转接规则、售后对接、扣罚标准"><span class="icon">🎯</span><span>工作要点与考核</span></div>
+        <div class="nav-item" data-page="training-faq" title="常见问题话术库：自检清单 + 在线话术库"><span class="icon">💬</span><span>常见问题话术库</span></div>
+        <div class="nav-item" data-page="training-platform" title="平台规则：拼多多/抖音/天猫"><span class="icon">🌐</span><span>平台规则</span></div>
+        <div class="nav-item" data-page="training-scripts" title="售前话术（按分组）"><span class="icon">🗒️</span><span>售前话术</span></div>
+      </div>
+    </div>
     <div class="nav-group" data-g="docs">
       <div class="nav-group-head" onclick="toggleNavGroup(this)"><span>常用资料</span><span class="ng-arrow">▾</span></div>
       <div class="nav-group-body">
         <div class="nav-item" data-page="price-miyang" title="弥生价格速查"><span class="icon">💰</span><span>弥生价</span></div>
         <div class="nav-item" data-page="price-jiyang" title="极氧价格速查"><span class="icon">💰</span><span>极氧价</span></div>
-        <div class="nav-item" data-page="training" title="培训资料"><span class="icon">📚</span><span>培训资料</span></div>
         <div class="nav-item" data-page="rules" title="平台规则"><span class="icon">📏</span><span>平台规则</span></div>
         <div class="nav-item" data-page="price-quiz" title="客服考试试卷（试卷一 / 试卷二）"><span class="icon">📝</span><span>客服考试</span></div>
         <div class="nav-item admin-only-nav" data-page="quiz-results" title="考核成绩（仅管理员，查看新客服交卷分数）" style="display:none;"><span class="icon">📝</span><span>考核成绩</span></div>
@@ -3527,12 +3538,56 @@ body {
   </div>
 
   <!-- ===== 培训资料 ===== -->
+  <!-- ===== 培训专题页（2026-11-04 照搬售后工作台模式：整页 HTML 内容 + 管理员在线编辑） ===== -->
+  <div class="page" id="page-training-cognition">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div><h1 id="tph-training-cognition">🧭 岗位认知</h1><p id="tps-training-cognition"></p></div>
+      <button class="admin-only-nav" data-tp-edit="training-cognition" onclick="openTpEditor('training-cognition')" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">✏️ 编辑内容</button>
+    </div>
+    <div class="tp-body" id="tpc-training-cognition"><div style="padding:40px;text-align:center;color:#9ca3af;font-size:13px;">加载中…</div></div>
+  </div>
+  <div class="page" id="page-training-basic">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div><h1 id="tph-training-basic">📖 基础知识</h1><p id="tps-training-basic"></p></div>
+      <button class="admin-only-nav" data-tp-edit="training-basic" onclick="openTpEditor('training-basic')" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">✏️ 编辑内容</button>
+    </div>
+    <div class="tp-body" id="tpc-training-basic"><div style="padding:40px;text-align:center;color:#9ca3af;font-size:13px;">加载中…</div></div>
+  </div>
+  <div class="page" id="page-training-miyang">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div><h1 id="tph-training-miyang">📘 弥生产品线</h1><p id="tps-training-miyang"></p></div>
+      <button class="admin-only-nav" data-tp-edit="training-miyang" onclick="openTpEditor('training-miyang')" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">✏️ 编辑内容</button>
+    </div>
+    <div class="tp-body" id="tpc-training-miyang"><div style="padding:40px;text-align:center;color:#9ca3af;font-size:13px;">加载中…</div></div>
+  </div>
+  <div class="page" id="page-training-duties">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div><h1 id="tph-training-duties">🎯 工作要点与考核</h1><p id="tps-training-duties"></p></div>
+      <button class="admin-only-nav" data-tp-edit="training-duties" onclick="openTpEditor('training-duties')" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">✏️ 编辑内容</button>
+    </div>
+    <div class="tp-body" id="tpc-training-duties"><div style="padding:40px;text-align:center;color:#9ca3af;font-size:13px;">加载中…</div></div>
+  </div>
+  <div class="page" id="page-training-faq">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div><h1 id="tph-training-faq">💬 常见问题话术库</h1><p id="tps-training-faq"></p></div>
+      <button class="admin-only-nav" data-tp-edit="training-faq" onclick="openTpEditor('training-faq')" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">✏️ 编辑内容</button>
+    </div>
+    <div class="tp-body" id="tpc-training-faq"><div style="padding:40px;text-align:center;color:#9ca3af;font-size:13px;">加载中…</div></div>
+  </div>
+  <div class="page" id="page-training-platform">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div><h1 id="tph-training-platform">🌐 平台规则</h1><p id="tps-training-platform"></p></div>
+      <button class="admin-only-nav" data-tp-edit="training-platform" onclick="openTpEditor('training-platform')" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">✏️ 编辑内容</button>
+    </div>
+    <div class="tp-body" id="tpc-training-platform"><div style="padding:40px;text-align:center;color:#9ca3af;font-size:13px;">加载中…</div></div>
+  </div>
+
+  <!-- ===== 售前话术（原培训资料页保留话术模块） ===== -->
   <div class="page" id="page-training">
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-      <div><h1>📚 培训资料中心</h1><p id="training-subtitle">按大类和小类查看培训资料，点击链接打开飞书云文档 | 修改实时同步所有客服</p></div>
+      <div><h1>🗒️ 售前话术</h1><p id="training-subtitle">按分组查看售前话术，修改实时同步所有客服</p></div>
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="collab-btn" id="collab-training-btn" onclick="openCollabPanel('training')" style="display:none;">👥 协作者</button>
-        <button class="admin-only-nav" id="train-add-btn" onclick="openTrainingEditor(null)" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">＋ 新增资料</button>
       </div>
     </div>
     <!-- 顶层模块 Tab：培训资料 / 售前话术 -->
@@ -4877,6 +4932,8 @@ async function initSupabase() {
         startNotificationPolling();
         qcGateCheck();
         loadScheduleFromDB();   // 登录后加载排班（同上）
+        loadTrainingPages();    // 培训专题页内容（进入页面时也会拉最新，这里预热缓存）
+        subscribeTrainingPages();
         if (document.getElementById('page-login').classList.contains('active')) {
           switchPage('home');
         }
@@ -5345,6 +5402,131 @@ function subscribeTrainingCategories() {
   supabase.channel('training-cat-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'training_categories' }, () => {
       debouncedReload('training-cat', loadTrainingCategories);
+    })
+    .subscribe();
+}
+
+/* ===== 培训专题页（2026-11-04 照搬售后工作台模式）=====
+ * 表 training_pages：key PK / title / icon / subtitle / sort_order / html / default_html
+ * 左侧 6 个专题入口，点进去是排版好的阅读页；管理员「✏️ 编辑内容」改整页 HTML，
+ * 保存后经 realtime 自动同步给所有在线成员；「恢复默认」还原到 initial 种子内容。
+ */
+const TRAIN_PAGE_DEFS = [
+  { key: 'training-cognition', icon: '🧭', title: '岗位认知' },
+  { key: 'training-basic',     icon: '📖', title: '基础知识' },
+  { key: 'training-miyang',    icon: '📘', title: '弥生产品线' },
+  { key: 'training-duties',    icon: '🎯', title: '工作要点与考核' },
+  { key: 'training-faq',       icon: '💬', title: '常见问题话术库' },
+  { key: 'training-platform',  icon: '🌐', title: '平台规则' },
+];
+window.TRAIN_PAGE_DEFS = TRAIN_PAGE_DEFS;
+let trainingPagesMap = {};          // key → row
+let _tpEditKey = null;              // 当前编辑的专题 key
+
+async function loadTrainingPages() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase.from('training_pages').select('key,title,icon,subtitle,sort_order,html,updated_at');
+    if (error) { console.error('培训专题页加载失败:', error); return; }
+    (data || []).forEach(r => { trainingPagesMap[r.key] = r; });
+    // 当前正看着的专题页热更新
+    if (trainingPagesMap[currentPage]) renderTrainingTopicPage(currentPage);
+  } catch (e) { console.error('培训专题页加载异常:', e); }
+}
+
+function renderTrainingTopicPage(key) {
+  const body = document.getElementById('tpc-' + key);
+  if (!body) return;
+  const def = TRAIN_PAGE_DEFS.find(d => d.key === key) || { icon: '📄', title: key };
+  const row = trainingPagesMap[key];
+  const h1 = document.getElementById('tph-' + key);
+  const ps = document.getElementById('tps-' + key);
+  if (h1) h1.textContent = ((row && row.icon) || def.icon) + ' ' + ((row && row.title) || def.title);
+  if (ps) ps.textContent = (row && row.subtitle) || '';
+  body.innerHTML = (row && row.html) || '<div style="padding:40px;text-align:center;color:#9ca3af;font-size:13px;">该专题还没有内容</div>';
+  bindTpTabs(body);
+  // 编辑按钮：管理员可见
+  const btn = document.querySelector('[data-tp-edit="' + key + '"]');
+  if (btn) btn.style.display = isFullAdmin() ? '' : 'none';
+}
+
+/* 页内小标签切换（内容 HTML 里 .tp-tab[data-tp-tab=n] ↔ .tp-pane[data-tp-pane=n]） */
+function bindTpTabs(root) {
+  if (!root) return;
+  root.querySelectorAll('.tp-tab').forEach(tab => {
+    tab.addEventListener('click', function () {
+      const scope = tab.closest('.tp-body') || root;
+      scope.querySelectorAll('.tp-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      scope.querySelectorAll('.tp-pane').forEach(p => { p.style.display = 'none'; });
+      const pane = scope.querySelector('.tp-pane[data-tp-pane="' + tab.getAttribute('data-tp-tab') + '"]');
+      if (pane) pane.style.display = 'block';
+    });
+  });
+}
+
+/* ===== 编辑器 ===== */
+function openTpEditor(key) {
+  if (!isFullAdmin()) return;
+  _tpEditKey = key;
+  const def = TRAIN_PAGE_DEFS.find(d => d.key === key) || { icon: '📄', title: key };
+  const t = document.getElementById('tp-editor-title');
+  if (t) t.textContent = '编辑：' + def.icon + ' ' + def.title;
+  const area = document.getElementById('tp-editor-area');
+  if (area) area.value = (trainingPagesMap[key] && trainingPagesMap[key].html) || '';
+  const m = document.getElementById('mod-tp-editor');
+  if (m) m.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function tpPreview() {
+  const area = document.getElementById('tp-editor-area');
+  if (!area || !area.value.trim()) { showToast('内容为空'); return; }
+  const w = window.open('', '_blank');
+  if (!w) { showToast('请允许弹出窗口以预览'); return; }
+  w.document.write('<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>培训内容预览</title></head><body style="font-family:-apple-system,Segoe UI,Microsoft YaHei,sans-serif;padding:20px;background:#f8fafc;max-width:1040px;margin:0 auto;">' + area.value + '</body></html>');
+  w.document.close();
+}
+async function saveTpEditor() {
+  if (!_tpEditKey || !isFullAdmin()) return;
+  const area = document.getElementById('tp-editor-area');
+  const html = (area ? area.value : '').trim();
+  if (!html) { showToast('内容不能为空'); return; }
+  try {
+    const { error } = await supabase.from('training_pages')
+      .update({ html: html, updated_at: new Date().toISOString(), updated_by: (currentProfile && currentProfile.name) || 'admin' })
+      .eq('key', _tpEditKey);
+    if (error) { showToast('❌ 保存失败：' + error.message); return; }
+    trainingPagesMap[_tpEditKey].html = html;
+    closeModal('mod-tp-editor');
+    showToast('✅ 已保存并同步给所有成员');
+    if (currentPage === _tpEditKey) renderTrainingTopicPage(_tpEditKey);
+  } catch (e) { showToast('❌ 保存失败：' + e.message); }
+}
+async function resetTpEditor() {
+  if (!_tpEditKey || !isFullAdmin()) return;
+  if (!confirm('确定恢复该页为默认内容吗？（你的修改会被覆盖）')) return;
+  try {
+    const { data, error } = await supabase.from('training_pages').select('default_html').eq('key', _tpEditKey).maybeSingle();
+    const dh = data && (data.default_html || (data[0] && data[0].default_html));
+    if (error || !dh) { showToast('❌ 没有找到默认内容'); return; }
+    const { error: ue } = await supabase.from('training_pages')
+      .update({ html: dh, updated_at: new Date().toISOString(), updated_by: 'reset' })
+      .eq('key', _tpEditKey);
+    if (ue) { showToast('❌ 恢复失败：' + ue.message); return; }
+    trainingPagesMap[_tpEditKey].html = dh;
+    const area = document.getElementById('tp-editor-area');
+    if (area) area.value = dh;
+    showToast('✅ 已恢复默认内容');
+    if (currentPage === _tpEditKey) renderTrainingTopicPage(_tpEditKey);
+  } catch (e) { showToast('❌ 恢复失败：' + e.message); }
+}
+
+/* 培训专题页实时订阅：管理员保存后，所有在线成员自动热更新 */
+function subscribeTrainingPages() {
+  if (!supabase) return;
+  supabase.channel('training-pages-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'training_pages' }, () => {
+      debouncedReload('training-pages', loadTrainingPages);
     })
     .subscribe();
 }
@@ -11395,6 +11577,8 @@ function exportQcReportExcel() {
 function switchPage(page) {
   // 退出登录：不是真实页面，直接走退出流程
   if (page === 'logout') { signOut(); return; }
+  // 售前话术入口别名：training-scripts → 旧培训页（该页已专职话术模块）
+  if (page === 'training-scripts') page = 'training';
   // 质检硬门禁：还有没确认的质检记录时，不允许离开质检页（管理员豁免；无记录=不锁）
   if (page !== 'qc' && window.__qcPendingCount > 0 && !(currentProfile && currentProfile.role === 'admin')) {
     showToast('⚠️ 还有 ' + window.__qcPendingCount + ' 条质检没点开看完确认，确认完才能离开质检页');
@@ -11457,6 +11641,11 @@ function switchPage(page) {
     } else {
       renderTraining();
     }
+  }
+  if (window.TRAIN_PAGE_DEFS && window.TRAIN_PAGE_DEFS.some(d => d.key === page)) {
+    // 培训专题页（照搬售后模式）：先渲染缓存，再拉云端最新覆盖
+    renderTrainingTopicPage(page);
+    loadTrainingPages();
   }
   if (page === 'ai') {
     if (window.renderAiPage) renderAiPage();
@@ -14288,7 +14477,7 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ==================== TRAINING ====================
-let trainingModule = '资料';     // '资料' | '话术'
+let trainingModule = '话术';     // 2026-11-04 起该页专职售前话术（培训资料已拆成 6 个专题页）
 let trainingGroup = '全部';
 let trainingSubcatFilter = '全部';
 let trainingScriptGroup = '全部';
@@ -14316,13 +14505,8 @@ function setTrainingModule(module) {
 function renderTrainingModuleTabs() {
   const el = document.getElementById('training-module-tabs');
   if (!el) return;
-  const tabs = [
-    { key: '资料', label: '📚 培训资料' },
-    { key: '话术', label: '💬 售前话术' }
-  ];
-  el.innerHTML = tabs.map(t =>
-    '<button class="training-module-tab' + (trainingModule === t.key ? ' active' : '') + '" onclick="setTrainingModule(\'' + t.key + '\')">' + t.label + '</button>'
-  ).join('');
+  // 2026-11-04：培训资料拆成 6 个专题页（左侧导航），本页专职「售前话术」，不再显示模块切换
+  el.innerHTML = '';
 }
 
 function setTrainingGroup(group) {
@@ -17509,6 +17693,31 @@ async function qcGateRpc(ids){
 </div>
 
 <!-- 培训资料详情弹窗 -->
+<!-- 培训专题页编辑器（照搬售后工作台：整页 HTML + 预览 + 恢复默认 + 保存同步） -->
+<div class="modal-overlay" id="mod-tp-editor">
+  <div class="modal-box" onclick="event.stopPropagation()" style="max-width:860px;width:94%;">
+    <div class="modal-header">
+      <h3 style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:22px;">📚</span>
+        <span id="tp-editor-title">编辑培训内容</span>
+      </h3>
+      <button class="modal-close" onclick="closeModal('mod-tp-editor')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:#888;margin:0 0 10px;">编辑该专题页内容（HTML），请保留结构、主要改文字。保存后所有成员自动同步；改乱了点「恢复默认」一键还原。</p>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <button class="btn-sm outline" onclick="tpPreview()">👁️ 预览效果</button>
+        <button class="btn-sm outline" onclick="resetTpEditor()">🔄 恢复默认</button>
+      </div>
+      <textarea id="tp-editor-area" rows="20" spellcheck="false" style="width:100%;font-family:Consolas,monospace;font-size:12px;line-height:1.6;padding:10px;border:1px solid var(--border);border-radius:8px;"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm outline" onclick="closeModal('mod-tp-editor')">取消</button>
+      <button class="btn-sm primary" onclick="saveTpEditor()">💾 保存并同步</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="mod-train-detail"undefined>
   <div class="modal-box" onclick="event.stopPropagation()" style="max-width:520px;">
     <div class="modal-header">
