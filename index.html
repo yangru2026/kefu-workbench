@@ -5422,6 +5422,45 @@ const TRAIN_PAGE_DEFS = [
 window.TRAIN_PAGE_DEFS = TRAIN_PAGE_DEFS;
 let trainingPagesMap = {};          // key → row
 let _tpEditKey = null;              // 当前编辑的专题 key
+let _tpRenderedHtml = {};           // key → 上一次真正渲染进 DOM 的 html（数据没变就不整页重写）
+
+/* 记录/恢复阅读状态：小标签、折叠块、滚动位置
+   ⚠️ 2026-11-04 茹姐反馈「培训资料看一会会自动跳转」：根因是进页后异步拉云端数据、
+      Realtime 热更新都会 body.innerHTML 整页重写，把她点开的小标签和滚动位置打回默认值。 */
+function tpCaptureState(body) {
+  const st = { tab: null, details: [], scroll: [], hasDetails: false };
+  const active = body.querySelector('.tp-tab.active');
+  if (active) st.tab = active.getAttribute('data-tp-tab');
+  const ds = body.querySelectorAll('details');
+  // 旧 DOM 是「还没有内容」的占位页时，别用它的空折叠状态覆盖新内容里自带的 open
+  st.hasDetails = ds.length > 0;
+  ds.forEach((d, i) => { if (d.open) st.details.push(i); });
+  let p = body;
+  while (p && p !== document.documentElement) {
+    try { if (p.scrollHeight > p.clientHeight + 2) st.scroll.push([p, p.scrollTop]); } catch (e) { }
+    p = p.parentElement;
+  }
+  return st;
+}
+function tpRestoreState(body, st) {
+  if (!st) return;
+  if (st.tab != null) {
+    const t = body.querySelector('.tp-tab[data-tp-tab="' + st.tab + '"]');
+    if (t) {
+      body.querySelectorAll('.tp-tab').forEach(x => x.classList.toggle('active', x === t));
+      body.querySelectorAll('.tp-pane').forEach(p => { p.style.display = (p.getAttribute('data-tp-pane') === st.tab) ? 'block' : 'none'; });
+    }
+  }
+  if (st.hasDetails) body.querySelectorAll('details').forEach((d, i) => { d.open = st.details.indexOf(i) !== -1; });
+  st.scroll.forEach(([el, v]) => { try { el.scrollTop = v; } catch (e) { } });
+}
+function tpUpdateHeader(key, row) {
+  const def = TRAIN_PAGE_DEFS.find(d => d.key === key) || { icon: '📄', title: key };
+  const h1 = document.getElementById('tph-' + key);
+  const ps = document.getElementById('tps-' + key);
+  if (h1) h1.textContent = ((row && row.icon) || def.icon) + ' ' + ((row && row.title) || def.title);
+  if (ps) ps.textContent = (row && row.subtitle) || '';
+}
 
 async function loadTrainingPages() {
   if (!supabase) return;
@@ -5429,23 +5468,28 @@ async function loadTrainingPages() {
     const { data, error } = await supabase.from('training_pages').select('key,title,icon,subtitle,sort_order,html,updated_at');
     if (error) { console.error('培训专题页加载失败:', error); return; }
     (data || []).forEach(r => { trainingPagesMap[r.key] = r; });
-    // 当前正看着的专题页热更新
-    if (trainingPagesMap[currentPage]) renderTrainingTopicPage(currentPage);
+    const row = trainingPagesMap[currentPage];
+    if (!row) return;
+    // 只有内容真的变了才热更新；否则「进页后请求回来」会把她点开的小标签打回第一个
+    if (row.html !== _tpRenderedHtml[currentPage]) renderTrainingTopicPage(currentPage);
+    else tpUpdateHeader(currentPage, row);   // 标题/副标题仍保持最新，但不碰阅读位置
   } catch (e) { console.error('培训专题页加载异常:', e); }
 }
 
 function renderTrainingTopicPage(key) {
   const body = document.getElementById('tpc-' + key);
   if (!body) return;
-  const def = TRAIN_PAGE_DEFS.find(d => d.key === key) || { icon: '📄', title: key };
   const row = trainingPagesMap[key];
-  const h1 = document.getElementById('tph-' + key);
-  const ps = document.getElementById('tps-' + key);
-  if (h1) h1.textContent = ((row && row.icon) || def.icon) + ' ' + ((row && row.title) || def.title);
-  if (ps) ps.textContent = (row && row.subtitle) || '';
-  body.innerHTML = (row && row.html) || '<div style="padding:40px;text-align:center;color:#9ca3af;font-size:13px;">该专题还没有内容</div>';
+  const html = (row && row.html) || '<div style="padding:40px;text-align:center;color:#9ca3af;font-size:13px;">该专题还没有内容</div>';
+  // 只有「之前已经渲染过」才需要恢复；首次渲染要保留 HTML 自带的 open / 默认标签
+  const hadContent = Object.prototype.hasOwnProperty.call(_tpRenderedHtml, key);
+  const st = hadContent ? tpCaptureState(body) : null;
+  tpUpdateHeader(key, row);
+  body.innerHTML = html;
+  _tpRenderedHtml[key] = html;
   bindTpTabs(body);
   enhanceTpCopy(body);
+  tpRestoreState(body, st);                 // 内容真变了也不跳
   // 编辑按钮：管理员可见
   const btn = document.querySelector('[data-tp-edit="' + key + '"]');
   if (btn) btn.style.display = isFullAdmin() ? '' : 'none';
@@ -5600,6 +5644,8 @@ function subscribeTrainingPages() {
   if (!supabase) return;
   supabase.channel('training-pages-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'training_pages' }, () => {
+      // 没在看培训专题页时别打扰（也避免后台事件把别页的阅读位置弄乱）
+      if (!window.TRAIN_PAGE_DEFS || !TRAIN_PAGE_DEFS.some(d => d.key === currentPage)) return;
       debouncedReload('training-pages', loadTrainingPages);
     })
     .subscribe();
