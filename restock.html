@@ -368,25 +368,38 @@ async function save(){
   const status = $('fStatus').value;
   let eta = $('fDate').value.trim();
   if (status === 'no' && !eta) eta = '';
-  // 批量：一行一个，兼容 、，, 分隔；自动去掉 D 前缀；过滤标题/说明行；跳过已有同名花色
-  const isNoise = s => /^(半年抛|日抛)$/.test(s) || /(缺货|潜仓|预计|物流|入库|延误|到货|义乌|全度数|查收)/.test(s);
-  const names = [...new Set(raw.split(/[\n\r]+|、|，|,/).map(s => s.trim()
+  const tossV = $('fToss').value;
+  // 拆行：一行一个，兼容 、，, 分隔；自动去掉 D 前缀
+  const splitNames = txt => [...new Set(txt.split(/[\n\r]+|、|，|,/).map(s => s.trim()
       .replace(/^D(?=[\u4e00-\u9fa5A-Za-z])/,''))
-    .filter(Boolean))]
-    .filter(n => !isNoise(n))
-    .filter(n => !items.some(x => x.toss === $('fToss').value && x.name === n && !editingId));
-  if (!names.length) { toast('没识别到花名'); return; }
+    .filter(Boolean))];
+  const isNoise = s => /^(半年抛|日抛|配件)$/.test(s) || /(缺货|潜仓|预计|物流|入库|延误|到货|义乌|全度数|查收)/.test(s);
+  const dupOf = n => items.some(x => x.toss === tossV && x.name === n && !editingId);
+  let names = splitNames(raw).filter(n => !isNoise(n)).filter(n => !dupOf(n));
+  let skipped = [];
+  if (!names.length) {
+    // 2026-11-04 兜底：全被当成说明行/重复跳过时，去掉纯抛型词后按原文重试，不再报"没识别到花名"
+    const retry = splitNames(raw).filter(n => !/^(半年抛|日抛|配件)$/.test(n)).filter(n => !dupOf(n));
+    if (!retry.length) {
+      const dups = splitNames(raw).filter(dupOf);
+      toast(dups.length ? '「' + dups.join('」「') + '」已登记过，没有重复添加' : '没识别到花名');
+      return;
+    }
+    skipped = splitNames(raw).filter(n => !retry.includes(n));
+    names = retry;
+  }
   let error;
   if (editingId) {
-    ({ error } = await sb.from('restock_items').update({ toss: $('fToss').value, name: names[0], status, eta_date: eta, note: $('fNote').value.trim(), updated_at: new Date().toISOString() }).eq('id', editingId));
+    ({ error } = await sb.from('restock_items').update({ toss: tossV, name: names[0], status, eta_date: eta, note: $('fNote').value.trim(), updated_at: new Date().toISOString() }).eq('id', editingId));
   } else {
     const now = new Date().toISOString();
-    const rows = names.map(n => ({ toss: $('fToss').value, name: n, status, eta_date: eta, note: $('fNote').value.trim(), updated_at: now }));
+    const rows = names.map(n => ({ toss: tossV, name: n, status, eta_date: eta, note: $('fNote').value.trim(), updated_at: now }));
     ({ error } = await sb.from('restock_items').insert(rows));
   }
   if (error) { toast('保存失败：' + error.message); return; }
   $('formMask').classList.remove('show');
-  toast(editingId ? '已保存 ✅' : '已登记 ' + names.length + ' 条 ✅');
+  toast((editingId ? '已保存 ✅' : '已登记 ' + names.length + ' 条 ✅')
+    + (skipped.length ? '（' + skipped.join('」「') + ' 像说明文字，已跳过）' : ''));
   load();
 }
 
