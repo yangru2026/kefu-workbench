@@ -29,6 +29,18 @@
   .btn-ghost{background:#fff;color:var(--primary);border:1.5px solid var(--primary);}
   .btn-ghost:hover{background:var(--primary-light);}
   .btn[disabled]{opacity:.5;cursor:not-allowed;}
+  /* ===== 品牌 tab ===== */
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;padding:12px 20px 0;}
+  .tab{padding:7px 20px;border-radius:20px;background:#fff;border:1.5px solid var(--border);color:#475569;
+       font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
+  .tab:hover{border-color:var(--primary);color:var(--primary-dark);}
+  .tab.active{background:linear-gradient(135deg,#10b981,#059669);color:#fff;border-color:transparent;}
+  .tab .cnt{font-size:11px;font-weight:600;opacity:.75;}
+  .card-brand{display:inline-block;align-self:flex-start;font-size:10.5px;font-weight:700;
+              border-radius:9px;padding:1px 7px;}
+  .card-brand.b-mi{background:#eff6ff;color:#2563eb;}
+  .card-brand.b-ji{background:#f5f3ff;color:#7c3aed;}
+  .card-brand.b-qt{background:#f1f5f9;color:#64748b;}
   /* ===== 卡片网格 ===== */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;
         padding:18px 20px;width:100%;}
@@ -68,6 +80,8 @@
   .form-item input[type=text]{width:100%;padding:9px 12px;border:1.5px solid var(--border);
          border-radius:10px;font-size:14px;outline:none;font-family:inherit;transition:border-color .15s;}
   .form-item input[type=text]:focus{border-color:var(--primary);}
+  .form-item select{width:100%;padding:9px 12px;border:1.5px solid var(--border);
+         border-radius:10px;font-size:14px;outline:none;font-family:inherit;background:#fff;}
   .img-pick{border:1.5px dashed var(--border);border-radius:12px;padding:14px;text-align:center;
             cursor:pointer;transition:all .15s;background:#fafcfa;}
   .img-pick:hover{border-color:var(--primary);background:var(--primary-light);}
@@ -133,6 +147,8 @@
   <button class="btn btn-primary" id="btnAdd" style="display:none;">＋ 新增赠品</button>
 </div>
 
+<div class="tabs" id="brandTabs"></div>
+
 <div class="grid" id="grid"><div class="empty"><span class="big">⏳</span>正在加载赠品数据…</div></div>
 
 <div class="auth-mask" id="authMask">
@@ -144,6 +160,14 @@
 <div class="modal-mask" id="modalMask">
   <div class="modal">
     <h2 id="modalTitle">新增赠品</h2>
+    <div class="form-item">
+      <label>大类</label>
+      <select id="fBrand" class="f-select">
+        <option value="弥生">弥生</option>
+        <option value="极氧">极氧</option>
+        <option value="其他">其他</option>
+      </select>
+    </div>
     <div class="form-item">
       <label>简称 *</label>
       <input type="text" id="fName" placeholder="如：透明伴侣盒" autocomplete="off" autocorrect="off" autocapitalize="off">
@@ -197,6 +221,7 @@ let isAdmin = false;     // admin 可写；leader/客服只读
 let editingId = null;    // 编辑中的记录 id
 let editImages = [];     // 编辑中保留的已有图片路径数组
 let editNewFiles = [];   // 编辑中待上传的新图片 File 对象（含 _url 预览）
+let brandFilter = '全部'; // 大类筛选：全部/弥生/极氧/其他
 
 const $ = id => document.getElementById(id);
 
@@ -250,7 +275,7 @@ async function copyText(text){
   }
 })();
 
-var GIFT_CACHE_VER = 'v1';
+var GIFT_CACHE_VER = 'v2';
 function giftCacheGet(){ try{ var r=localStorage.getItem('kefu_cache_gift_codes'); if(!r) return null; var o=JSON.parse(r); if(!o||o.ver!==GIFT_CACHE_VER) return null; return o.data; }catch(e){return null;} }
 function giftCacheSet(d){ try{ localStorage.setItem('kefu_cache_gift_codes', JSON.stringify({ver:GIFT_CACHE_VER,ts:Date.now(),data:d})); }catch(e){} }
 
@@ -260,7 +285,7 @@ async function loadGifts(){
   if (cached && cached.length){ gifts = cached; render(); }
   else { $('grid').innerHTML = '<div class="empty"><span class="big">⏳</span>正在加载赠品数据…</div>'; }
   const { data, error } = await sb.from('gift_codes')
-    .select('id,name,merchant_code,cost,image_path,image_paths,sort_order')
+    .select('id,name,merchant_code,cost,brand,image_path,image_paths,sort_order')
     .order('sort_order', { ascending:true })
     .order('created_at', { ascending:true });
   if(error){
@@ -272,18 +297,36 @@ async function loadGifts(){
   render();
 }
 
+/* ==================== 品牌 tab ==================== */
+function renderTabs(){
+  const bs = ['全部','弥生','极氧','其他'];
+  $('brandTabs').innerHTML = bs.map(b => {
+    const n = b === '全部' ? gifts.length : gifts.filter(g => (g.brand || '其他') === b).length;
+    return '<button class="tab' + (brandFilter === b ? ' active' : '') + '" data-b="' + b + '">' + b +
+           ' <span class="cnt">' + n + '</span></button>';
+  }).join('');
+  document.querySelectorAll('#brandTabs .tab').forEach(t => t.addEventListener('click', () => {
+    brandFilter = t.dataset.b; renderTabs(); render();
+  }));
+}
+
 /* ==================== 渲染（卡片视图） ==================== */
 function render(){
+  renderTabs();
   const kw = ($('searchInput').value || '').trim().toLowerCase();
-  const list = kw ? gifts.filter(g =>
-      (g.name||'').toLowerCase().includes(kw) || (g.merchant_code||'').toLowerCase().includes(kw)
-    ) : gifts;
+  let list = gifts;
+  if (brandFilter !== '全部') list = list.filter(g => (g.brand || '其他') === brandFilter);
+  if (kw) list = list.filter(g =>
+      (g.name||'').toLowerCase().includes(kw) || (g.merchant_code||'').toLowerCase().includes(kw));
   if(!list.length){
     $('grid').innerHTML = '<div class="empty"><span class="big">🎁</span>' +
-      (kw ? '没有匹配「' + esc(kw) + '」的赠品' : '还没有赠品数据' + (isAdmin ? '，点右上角「＋ 新增赠品」添加' : '')) + '</div>';
+      (kw ? '没有匹配「' + esc(kw) + '」的赠品' : '这个大类下还没有赠品数据' + (isAdmin ? '，点右上角「＋ 新增赠品」添加' : '')) + '</div>';
     return;
   }
-  $('grid').innerHTML = list.map(g => `
+  $('grid').innerHTML = list.map(g => {
+    const brand = g.brand || '其他';
+    const bCls = brand === '弥生' ? 'b-mi' : (brand === '极氧' ? 'b-ji' : 'b-qt');
+    return `
     <div class="card${isAdmin?' admin':''}" data-id="${g.id}">
       <div class="card-img" data-act="img">
         ${giftImgs(g).length ? `<img src="${esc(imgUrl(giftImgs(g)[0]))}" loading="lazy" alt="${esc(g.name)}">`
@@ -291,6 +334,7 @@ function render(){
       </div>
       <div class="card-body">
         <div class="card-name">${esc(g.name)}</div>
+        <span class="card-brand ${bCls}">${esc(brand)}</span>
         ${g.cost ? `<span class="card-cost">成本价 ¥ ${esc(g.cost)}</span>` : ''}
         ${g.merchant_code ? `<div class="card-code" data-act="copy" title="点击复制商家编码">
             <span class="code-text">${esc(g.merchant_code)}</span><span class="copy-icon">📋</span></div>` : ''}
@@ -299,7 +343,8 @@ function render(){
         <button class="btn btn-edit" data-act="edit">✏️ 编辑</button>
         <button class="btn btn-del" data-act="del">🗑 删除</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 /* 卡片事件（事件委托） */
@@ -336,6 +381,7 @@ function openModal(g){
   editImages = g ? (g.image_paths ? g.image_paths.slice() : (g.image_path ? [g.image_path] : [])) : [];
   editNewFiles = [];
   $('modalTitle').textContent = g ? '编辑赠品' : '新增赠品';
+  $('fBrand').value = g ? (g.brand || '其他') : (brandFilter !== '全部' ? brandFilter : '弥生');
   $('fName').value = g ? (g.name||'') : '';
   $('fCode').value = g ? (g.merchant_code||'') : '';
   $('fCost').value = g ? (g.cost||'') : '';
@@ -434,6 +480,7 @@ $('btnSave').addEventListener('click', async () => {
     const finalPaths = editImages.concat(uploaded);  // 保留顺序
     const row = {
       name,
+      brand: $('fBrand').value || '其他',
       merchant_code: $('fCode').value.trim() || null,
       cost: $('fCost').value.trim() || null,
       image_paths: finalPaths.length ? finalPaths : null,
