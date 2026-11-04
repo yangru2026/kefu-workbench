@@ -1251,7 +1251,7 @@ async function renderWeeklyTrack() {
   }
 
   const [{ data: profiles }, { data: reports }] = await Promise.all([
-    supabase.from('profiles').select('id,name,group_name,real_name').order('name'),
+    supabase.from('profiles').select('id,name,group_name,real_name').eq('status', 'active').order('name'),
     supabase.from('weekly_reports').select('*').eq('week_start', start).eq('week_end', end)
   ]);
   const reportMap = {};
@@ -2398,6 +2398,8 @@ function dailyOnShiftList(profiles) {
   const onShiftProfiles = [];
   const matchedScheduleNames = new Set();
   (profiles || []).forEach(p => {
+    // 防御：已清退/已离职的人不进当班名单（正常情况下查询已过滤 status=active）
+    if ((p.status && p.status !== 'active') || p.left_at) return;
     const pname = p.name || '';
     const rname = p.real_name || '';
     // 优先精确匹配花名
@@ -2462,7 +2464,7 @@ async function refreshDailyTodoModal() {
     const today = new Date();
     const todayStr = today.toISOString().slice(0, 10);
     const [pr, rr, qr, vr] = await Promise.all([
-      supabase.from('profiles').select('id,name,group_name,real_name').order('name'),
+      supabase.from('profiles').select('id,name,group_name,real_name').eq('status', 'active').order('name'),
       supabase.from('daily_reports').select('user_id').eq('report_date', todayStr),
       supabase.from('qc_records').select('staff_name').is('staff_confirmed_at', null),
       supabase.from('customer_voice').select('staff_name').gte('created_at', todayStr)
@@ -2564,7 +2566,7 @@ async function renderDailyTrack() {
   document.getElementById('daily-track-date').textContent = todayDateStr;
 
   const [{ data: profiles }, { data: reports }] = await Promise.all([
-    supabase.from('profiles').select('id,name,group_name,real_name').order('name'),
+    supabase.from('profiles').select('id,name,group_name,real_name').eq('status', 'active').order('name'),
     supabase.from('daily_reports').select('*').eq('report_date', todayDateStr)
   ]);
 

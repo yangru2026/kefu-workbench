@@ -4271,7 +4271,10 @@ function renderStaffTable() {
     let ops = '';
     if (editable && !off) ops += '<button class="btn-sm outline" onclick="openStaffDetail(\'' + s.id + '\')" title="编辑资料">✏️ 编辑</button>';
     if (isAdmin && !off) ops += '<button class="btn-sm outline" onclick="offboardStaff(\'' + s.id + '\')" title="清退：移出列表" style="color:#EF4444;">🗑 清退</button>';
-    if (isAdmin && off) ops += '<button class="btn-sm outline" onclick="restoreStaff(\'' + s.id + '\')" title="恢复为在职">♻️ 恢复</button>';
+    if (isAdmin && off) {
+      ops += '<button class="btn-sm outline" onclick="restoreStaff(\'' + s.id + '\')" title="恢复为在职">♻️ 恢复</button>';
+      ops += '<button class="btn-sm outline" onclick="deleteStaffForever(\'' + s.id + '\')" title="彻底删除：档案与日报/加班/调休等记录一并清除，不可恢复" style="color:#DC2626;font-weight:600;">❌ 删除</button>';
+    }
     return '<tr' + (off ? ' style="opacity:.5;"' : '') + '>'
       + '<td class="col-left">' + staffNameCell(s) + '</td>'
       + '<td>' + (escHtml(s.real_name) || '<span style="color:var(--text-muted);">-</span>') + '</td>'
@@ -4389,6 +4392,28 @@ async function offboardStaff(id) {
   } catch (e) {
     console.error('清退失败:', e);
     showToast('清退失败：' + (e.message || '未知错误'));
+  }
+}
+
+// 彻底删除客服（管理员：档案 + 日报/加班/调休等记录 + 登录账号，不可恢复）
+async function deleteStaffForever(id) {
+  if (!isFullAdmin()) { showToast('⛔ 仅管理员可删除客服'); return; }
+  const s = staffInfoAllData.find(x => x.id === id);
+  if (!s) { showToast('未找到该客服'); return; }
+  const nm = (s.name || s.real_name || s.phone || '该客服').trim();
+  if (!confirm('⚠️ 彻底删除「' + nm + '」？\n\n· 客服档案立即删除，不可恢复\n· 日报 / 加班 / 调休 / 排名等记录一并删除\n· 登录账号同步注销\n\n只是离职请用「🗑 清退」，删除仅用于清理重复/测试账号！')) return;
+  const inp = prompt('这是不可恢复的操作。\n请输入「' + nm + '」以确认删除：');
+  if (inp === null) return;
+  if (inp.trim() !== nm) { showToast('❌ 名字不一致，已取消删除'); return; }
+  try {
+    if (!(await ensureSb())) { showToast('数据服务还没连接上，请稍候再试'); return; }
+    const { data, error } = await supabase.rpc('admin_delete_staff', { p_id: id });
+    if (error) throw error;
+    showToast('✅ 已彻底删除「' + (typeof data === 'string' && data ? data : nm) + '」');
+    await loadStaffInfo();
+  } catch (e) {
+    console.error('删除失败:', e);
+    showToast('删除失败：' + (e.message || '未知错误'));
   }
 }
 
@@ -17473,7 +17498,7 @@ async function qcGateRpc(ids){
 <!-- 今日日报 · 未完成名单弹窗（仿售后工作台待办弹窗，2026-11-03） -->
 <div id="daily-todo-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:99996;align-items:center;justify-content:center;"></div>
 
-<script src="app.js?v=20261103b"></script>
+<script src="app.js?v=20261104a"></script>
 
 <!-- Pattern Editor Modal -->
 <div class="modal-overlay" id="mod-pattern"undefined>
