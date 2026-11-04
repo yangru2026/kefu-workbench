@@ -5445,6 +5445,7 @@ function renderTrainingTopicPage(key) {
   if (ps) ps.textContent = (row && row.subtitle) || '';
   body.innerHTML = (row && row.html) || '<div style="padding:40px;text-align:center;color:#9ca3af;font-size:13px;">该专题还没有内容</div>';
   bindTpTabs(body);
+  enhanceTpCopy(body);
   // 编辑按钮：管理员可见
   const btn = document.querySelector('[data-tp-edit="' + key + '"]');
   if (btn) btn.style.display = isFullAdmin() ? '' : 'none';
@@ -5462,6 +5463,79 @@ function bindTpTabs(root) {
       const pane = scope.querySelector('.tp-pane[data-tp-pane="' + tab.getAttribute('data-tp-tab') + '"]');
       if (pane) pane.style.display = 'block';
     });
+  });
+}
+
+/* ===== 话术一键复制（2026-11-04）=====
+ * 培训专题页的内容是整块 HTML，管理员编辑时不用写按钮：
+ * 渲染后自动给「话术块 .tp-say」和「含中文引号话术的卡片/表格/提示块」加显眼复制按钮。
+ * 复制的是引号里能直接发给客户的原话，不带「话术1（算账型）：」这类标注。
+ */
+function tpQuotes(el) {
+  const clone = el.cloneNode(true);
+  clone.querySelectorAll('.tp-copy').forEach(b => b.remove());
+  const t = (clone.textContent || '').replace(/\s+/g, ' ').trim();
+  return [...t.matchAll(/「([^」]+)」/g)]
+    .map(m => m[1].trim())
+    // 只认「像一句话」的引号内容，排除「透氧率 / 含水量」这类名词短语
+    .filter(x => (x.length >= 6 && /[，。？！~、；：]/.test(x)) || x.length >= 20);
+}
+function tpCopyText(el) {
+  const q = tpQuotes(el);
+  if (q.length) return q.join('\n');
+  const clone = el.cloneNode(true);
+  clone.querySelectorAll('.tp-copy').forEach(b => b.remove());
+  return (clone.textContent || '').replace(/\s+/g, ' ').trim()
+    .replace(/^💬\s*/, '')
+    .replace(/^话术\s*\d+\s*[（(][^）)]*[）)]\s*[：:]?\s*/, '')
+    .replace(/^[✅❌]\s*/, '')
+    .replace(/^(错误示范|正确示范|纠正|现象)[：:]\s*/, '');
+}
+function enhanceTpCopy(root) {
+  if (!root) return;
+  if (!document.getElementById('tp-copy-css')) {
+    const s = document.createElement('style');
+    s.id = 'tp-copy-css';
+    s.textContent = '.tp-copy{display:inline-flex;align-items:center;gap:4px;float:right;margin:0 0 4px 10px;border:none;border-radius:8px;'
+      + 'background:#10B981;color:#fff;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;padding:6px 12px;'
+      + 'white-space:nowrap;box-shadow:0 2px 6px rgba(16,185,129,.35);transition:background .15s,transform .15s}'
+      + '.tp-copy:hover{background:#059669;transform:translateY(-1px)}'
+      + '.tp-copy.ok{background:#065f46}'
+      + '.tp-copy.small{font-size:11.5px;padding:4px 9px;box-shadow:none;background:#d1fae5;color:#065f46}'
+      + '.tp-copy.small:hover{background:#a7f3d0}'
+      + '.tp-say .tp-copy,.tp-callout .tp-copy{float:right;margin:0 0 4px 10px}';
+    document.head.appendChild(s);
+  }
+  const add = (el, big) => {
+    if (el.querySelector(':scope > .tp-copy')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tp-copy' + (big ? '' : ' small');
+    btn.textContent = big ? '📋 复制话术' : '📋 复制';
+    btn.title = big ? '复制这句话术，直接发给客户' : '复制这句话术';
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const text = tpCopyText(el);
+      if (!text) { showToast('没有可复制的话术'); return; }
+      const done = () => {
+        const old = btn.textContent;
+        btn.textContent = '✅ 已复制';
+        btn.classList.add('ok');
+        setTimeout(() => { btn.textContent = old; btn.classList.remove('ok'); }, 1800);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+      } else fallbackCopy(text, done);
+    });
+    el.insertBefore(btn, el.firstChild);
+  };
+  // 1) 主要话术块：大号绿色按钮，明确显眼
+  root.querySelectorAll('.tp-say').forEach(el => add(el, true));
+  // 2) 其它含「」话术的块（示范/表格/清单），小号按钮；内层已加过按钮的容器跳过
+  root.querySelectorAll('.tp-callout, .tp-card p, .tp-card li, td').forEach(el => {
+    if (el.querySelector('.tp-say, .tp-copy')) return;
+    if (!tpQuotes(el).length) return;
+    add(el, false);
   });
 }
 
