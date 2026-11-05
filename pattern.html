@@ -34,7 +34,7 @@
   .tab.active{background:linear-gradient(135deg,#10b981,#059669);color:#fff;border-color:transparent;}
   .cnt{font-size:12px;font-weight:600;color:var(--muted);margin-left:2px;}
   /* 卡片网格 */
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(226px,1fr));gap:12px;}
   .card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;
         display:flex;flex-direction:column;transition:all .2s;position:relative;}
   .card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(15,23,42,.08);border-color:#a7f3d0;}
@@ -51,9 +51,33 @@
   .tg-brand{background:#ecfdf5;color:#047857;}
   .tg-series{background:#eff6ff;color:#2563eb;}
   .tg-type{background:#fef3c7;color:#b45309;}
-  .cdesc{font-size:12px;color:var(--muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;
-         -webkit-box-orient:vertical;overflow:hidden;word-break:break-word;}
-  .ops{display:flex;gap:5px;margin-left:auto;}
+  /* 抛型分区 / 系列小标题（茹姐 2026-11-05 定顺序） */
+  .ptype{margin:6px 0 4px;}
+  .ptype-h{display:flex;align-items:baseline;gap:10px;padding:12px 2px 9px;margin-bottom:14px;
+           border-bottom:2px solid var(--primary);}
+  .ptype-h .t{font-size:18px;font-weight:800;color:var(--text);letter-spacing:.5px;}
+  .ptype-h .n{font-size:12px;font-weight:600;color:var(--muted);}
+  .pseries{margin-bottom:22px;}
+  .pseries-h{display:flex;align-items:center;gap:8px;margin:0 2px 10px;font-size:14.5px;font-weight:800;color:#0f766e;}
+  .pseries-h:before{content:"";width:4px;height:16px;border-radius:3px;background:var(--primary);}
+  .pseries-h .n{font-size:12px;font-weight:600;color:var(--muted);}
+  .pseries-h .offn{font-size:11px;font-weight:600;color:#94a3b8;}
+  /* 参数 / 话术 / 复制 */
+  .cparams{display:flex;flex-wrap:wrap;gap:4px;}
+  .cparams span{font-size:11px;background:#f1f5f9;color:#64748b;border-radius:6px;padding:2px 6px;white-space:nowrap;}
+  .cparams span b{font-weight:700;color:#0f766e;}
+  .cdesc-wrap{position:relative;border-top:1px dashed var(--border);padding-top:7px;}
+  .cdesc{font-size:12px;color:#475569;line-height:1.55;word-break:break-word;padding-right:50px;}
+  .cno-desc{font-size:11.5px;color:#cbd5e1;}
+  .copy-btn{position:absolute;right:0;top:6px;border:1px solid #a7f3d0;background:#ecfdf5;color:#047857;
+            border-radius:7px;font-size:11px;font-weight:700;padding:3px 7px;cursor:pointer;font-family:inherit;line-height:1.3;}
+  .copy-btn:hover{background:#d1fae5;}
+  .card.off{opacity:.66;background:#fafafa;}
+  .card.off .cover img{filter:grayscale(.72);}
+  .tag-off{background:#e2e8f0;color:#94a3b8;font-size:11px;font-weight:700;border-radius:8px;padding:2px 7px;}
+  .eyemark{position:absolute;left:8px;top:8px;background:rgba(16,185,129,.93);color:#fff;
+           font-size:10.5px;font-weight:700;border-radius:8px;padding:2px 7px;}
+  .ops{display:flex;gap:5px;margin-left:auto;margin-top:2px;}
   .ops button{border:1px solid var(--border);background:#fff;border-radius:7px;font-size:12px;
               padding:4px 9px;cursor:pointer;font-family:inherit;color:#475569;line-height:1;}
   .ops button:hover{border-color:var(--primary);color:var(--primary-dark);}
@@ -109,7 +133,7 @@
   </div>
   <div class="wrap">
     <div class="tabs" id="tabs"></div>
-    <div class="grid" id="grid"></div>
+    <div id="grid"></div>
     <div class="empty" id="empty" style="display:none;">
       <div class="big">🌸</div>
       还没有素材，等管理员上传
@@ -166,6 +190,28 @@ let items = [];
 let isAdmin = false;
 let editingId = null;      // 编辑中的记录 id
 let brandFilter = '全部';
+
+/* ===== 分类口径（茹姐 2026-11-05）：抛型 半年抛→日抛；系列按指定顺序，人鱼／拼多多专属置后 ===== */
+const TYPE_ORDER = ['半年抛','日抛'];
+const SERIES_ORDER = ['少女漫','随便花','女高','初音','心动信号','心动调频','花厨小熊','人鱼','拼多多专属'];
+const SERIES_ALIAS = {
+  '少女漫日抛':'少女漫', '少女漫系列':'少女漫',
+  '随便花系列':'随便花', '女高系列':'女高',
+  '初音未来系列':'初音', '初音未来':'初音',
+  '心动信号':'心动信号', '心动调频':'心动调频',
+  '花厨小熊-日抛':'花厨小熊', '花厨小熊系列':'花厨小熊',
+  '人鱼系列日抛':'人鱼', '人鱼系列':'人鱼',
+  '拼多多专属':'拼多多专属'
+};
+function seriesOf(x){
+  const s = String(x.series || '').trim();
+  if (SERIES_ALIAS[s]) return SERIES_ALIAS[s];
+  const clean = s.replace(/(系列|-?日抛|-?半年抛)$/g, '').trim();
+  if (SERIES_ALIAS[clean]) return SERIES_ALIAS[clean];
+  return s || '其他';
+}
+const seriesRank = s => { const i = SERIES_ORDER.indexOf(s); return i < 0 ? 999 : i; };
+const typeRank = t => { const i = TYPE_ORDER.indexOf(t); return i < 0 ? 99 : i; };
 let newEye = [];           // 待上传新图 File[]
 let newLens = [];
 let eyeUrls = [];          // 已有图 URL（编辑时）
@@ -194,9 +240,10 @@ function brands(){
   return ['全部'].concat(set);
 }
 function coverOf(x){
-  const arr = Array.isArray(x.eye_imgs) && x.eye_imgs.length ? x.eye_imgs : (x.eye_img ? [x.eye_img] : []);
-  return arr[0] || '';
+  // 上眼图永远在最顶部；确实没有上眼图才退回镜片图
+  return imgsOf(x, 'eye')[0] || imgsOf(x, 'lens')[0] || '';
 }
+const hasEye = x => imgsOf(x, 'eye').length > 0;
 function imgsOf(x, kind){
   const arr = kind === 'eye' ? (Array.isArray(x.eye_imgs) ? x.eye_imgs : (x.eye_img ? [x.eye_img] : []))
                              : (Array.isArray(x.lens_imgs) ? x.lens_imgs : (x.lens_img ? [x.lens_img] : []));
@@ -221,37 +268,81 @@ function renderTabs(){
   }).join('');
   document.querySelectorAll('#tabs .tab').forEach(t => t.addEventListener('click', () => { brandFilter = t.dataset.b; renderTabs(); renderGrid(); }));
 }
+function paramsHtml(x){
+  const defs = [['色系','color'],['直径','diameter'],['着色','color_diameter'],['基弧','base_curve']];
+  const parts = defs.filter(d => x[d[1]] != null && String(x[d[1]]).trim() !== '')
+    .map(d => '<span>' + d[0] + ' <b>' + esc(x[d[1]]) + '</b></span>');
+  return parts.length ? '<div class="cparams">' + parts.join('') + '</div>' : '';
+}
 function cardHtml(x){
   const cover = coverOf(x);
+  const off = !!x.is_discontinued;
   const eyeN = imgsOf(x,'eye').length, lensN = imgsOf(x,'lens').length;
-  const tags = [x.brand, x.series, x.type].filter(Boolean)
+  const tags = [x.brand, seriesOf(x), x.type].filter(Boolean)
     .map((v,i) => '<span class="' + ['tg-brand','tg-series','tg-type'][Math.min(i,2)] + '">' + esc(v) + '</span>').join('');
-  return '<div class="card" data-id="' + String(x.id) + '">' +
+  const desc = String(x.description || '').trim();
+  return '<div class="card' + (off ? ' off' : '') + '" data-id="' + String(x.id) + '">' +
     '<div class="cover" data-act="zoom">' +
       (cover ? '<img loading="lazy" src="' + esc(cover) + '" alt="' + esc(x.name) + '">'
              : '<div class="ph"><div class="big">🌸</div>暂无图片</div>') +
+      (hasEye(x) ? '<span class="eyemark">👁 上眼图</span>' : '') +
       ((eyeN + lensN) > 1 ? '<span class="nimg">' + (eyeN + lensN) + ' 图</span>' : '') +
     '</div>' +
     '<div class="cbody">' +
-      '<div class="cname">' + esc(x.name) + '</div>' +
+      '<div class="cname">' + esc(x.name) + (off ? ' <span class="tag-off">已下架</span>' : '') + '</div>' +
       (tags ? '<div class="ctags">' + tags + '</div>' : '') +
-      (x.description ? '<div class="cdesc">' + esc(x.description) + '</div>' : '') +
+      paramsHtml(x) +
+      '<div class="cdesc-wrap">' +
+        (desc ? '<div class="cdesc">' + esc(desc) + '</div>' +
+                '<button class="copy-btn" data-act="copy" title="复制这段花色话术">📋 复制</button>'
+              : '<div class="cno-desc">暂无话术</div>') +
+      '</div>' +
       (isAdmin ? '<div class="ops"><button data-act="edit">✏️ 修改</button><button data-act="del">🗑️</button></div>' : '') +
     '</div>' +
   '</div>';
 }
 function renderGrid(){
   const list = filtered();
-  $('grid').innerHTML = list.map(cardHtml).join('');
   $('empty').style.display = list.length ? 'none' : '';
   $('grid').style.display = list.length ? '' : 'none';
+  if (!list.length) { $('grid').innerHTML = ''; return; }
+  // 两级分组：抛型（半年抛→日抛）→ 系列（按茹姐给的顺序）；组内「已下架」一律排最后
+  const byType = new Map();
+  list.forEach(x => {
+    const t = String(x.type || '其他');
+    if (!byType.has(t)) byType.set(t, new Map());
+    const s = seriesOf(x), m = byType.get(t);
+    if (!m.has(s)) m.set(s, []);
+    m.get(s).push(x);
+  });
+  const cmp = (a,b) => String(a).localeCompare(String(b), 'zh');
+  const typeKeys = [...byType.keys()].sort((a,b) => typeRank(a) - typeRank(b) || cmp(a,b));
+  let html = '';
+  typeKeys.forEach(t => {
+    const m = byType.get(t);
+    const sKeys = [...m.keys()].sort((a,b) => seriesRank(a) - seriesRank(b) || cmp(a,b));
+    const total = [...m.values()].reduce((n,arr) => n + arr.length, 0);
+    html += '<section class="ptype"><div class="ptype-h"><span class="t">' + esc(t) +
+            '</span><span class="n">' + total + ' 款 · ' + sKeys.length + ' 个系列</span></div>';
+    sKeys.forEach(s => {
+      const arr = m.get(s).slice().sort((a,b) => (a.is_discontinued ? 1 : 0) - (b.is_discontinued ? 1 : 0));
+      const offN = arr.filter(x => x.is_discontinued).length;
+      html += '<div class="pseries"><div class="pseries-h">' + esc(s) + ' <span class="n">' + arr.length + ' 款</span>' +
+              (offN ? '<span class="offn">· ' + offN + ' 款已下架</span>' : '') + '</div>' +
+              '<div class="grid">' + arr.map(cardHtml).join('') + '</div></div>';
+    });
+    html += '</section>';
+  });
+  $('grid').innerHTML = html;
   document.querySelectorAll('#grid .card').forEach(c => c.addEventListener('click', onCard));
 }
 
 /* ==================== 灯箱 ==================== */
-let lightImgs = [], lightIdx = 0, lightName = '';
+let lightImgs = [], lightIdx = 0, lightName = '', lightEyeN = 0;
 function openLight(x){
-  lightImgs = imgsOf(x,'eye').concat(imgsOf(x,'lens'));
+  const eye = imgsOf(x,'eye'), lens = imgsOf(x,'lens');
+  lightImgs = eye.concat(lens);      // 上眼图永远排最顶部，镜片图在后
+  lightEyeN = eye.length;
   lightName = x.name || '';
   if (!lightImgs.length) return;
   lightIdx = 0;
@@ -259,7 +350,11 @@ function openLight(x){
   $('lmask').classList.add('show');
 }
 function renderLight(){
-  $('lname').textContent = lightName + (lightImgs.length > 1 ? '（' + (lightIdx+1) + '/' + lightImgs.length + '）' : '');
+  const isEye = lightIdx < lightEyeN;
+  const sub = isEye ? (lightIdx + 1) + '/' + lightEyeN
+                    : (lightIdx - lightEyeN + 1) + '/' + (lightImgs.length - lightEyeN);
+  $('lname').textContent = lightName + ' · ' + (isEye ? '上眼图' : '镜片图') + ' ' + sub +
+                           '（共 ' + lightImgs.length + ' 张）';
   $('limg').src = lightImgs[lightIdx];
   $('lthumbs').innerHTML = lightImgs.length > 1
     ? lightImgs.map((u,i) => '<img src="' + esc(u) + '" class="' + (i===lightIdx?'on':'') + '" data-i="' + i + '">').join('')
@@ -358,12 +453,26 @@ async function delItem(x){
 }
 
 /* ==================== 事件 ==================== */
+async function copyDesc(x){
+  const text = String(x.description || '').trim();
+  if (!text) { toast('这个花色还没有话术'); return; }
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch (e2) {}
+    document.body.removeChild(ta);
+  }
+  toast('话术已复制 ✅');
+}
 function onCard(e){
   const card = e.target.closest('.card');
   const x = items.find(v => String(v.id) === String(card.dataset.id));
   if (!x) return;
   const act = e.target.closest('[data-act]');
   const actName = act && act.dataset.act;
+  if (actName === 'copy') { e.stopPropagation(); copyDesc(x); return; }
   if (actName === 'edit') { e.stopPropagation(); openForm(x); return; }
   if (actName === 'del') { e.stopPropagation(); delItem(x); return; }
   if (e.target.closest('.ops')) return;
@@ -383,11 +492,17 @@ async function syncFromSheets(){
   const setTxt = s => { btn.textContent = s; };
   syncing = true; btn.disabled = true; btn.style.opacity = '.6';
   try {
+    // 先刷新「表格评论里的下架」标记；这一步失败不阻断后面的花色同步
+    setTxt('🔄 检查下架…');
+    try {
+      const { error: oe } = await sb.functions.invoke('pattern-sheets-sync', { body: { offsync: true } });
+      if (oe) console.warn('[同步] 下架标记刷新失败（不阻断）', oe);
+    } catch (e) { console.warn('[同步] 下架标记刷新失败（不阻断）', e); }
     setTxt('🔄 检查中…');
     const { data: dry, error: de } = await sb.functions.invoke('pattern-sheets-sync', { body: { dry_run: true } });
     if (de) throw new Error(de.message || '检查失败');
     if (!dry || !dry.ok) throw new Error((dry && dry.error) || '检查失败');
-    if (!dry.to_insert && !dry.to_update) { toast('✅ 已是最新，明细表没有新增或参数变化'); return; }
+    if (!dry.to_insert && !dry.to_update) { toast('✅ 已是最新，明细表没有新增或参数变化'); await load(); return; }
     const total = dry.feishu_rows || 1;
     const limit = dry.to_insert > 0 ? 5 : 20;   // 有新增要搬图，小批防止函数超时
     let offset = 0, ins = 0, upd = 0, imgs = 0, rounds = 0;
