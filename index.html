@@ -934,6 +934,11 @@ body {
 .pp-chip:hover{border-color:var(--primary,#10b981)}
 .pp-chip.on{background:var(--primary,#10b981);color:#fff;font-weight:500}
 .pp-flat-head{font-size:13.5px;font-weight:700;color:#334155;margin:16px 0 8px;padding-left:9px;border-left:3px solid var(--primary,#10b981);line-height:1.3}
+.pp-flagrow{display:flex;gap:6px;margin-top:6px}
+.pp-flagbtn{flex:1;border:1px solid #e2e8f0;background:#fff;border-radius:7px;padding:4px 0;font-size:11.5px;font-family:inherit;cursor:pointer;color:#475569;line-height:1.3;white-space:nowrap}
+.pp-flagbtn.new.on{background:#ecfdf5;border-color:#10b981;color:#059669;font-weight:600}
+.pp-flagbtn.off.on{background:#fff7ed;border-color:#f59e0b;color:#d97706;font-weight:600}
+.pp-flagbtn:hover{border-color:var(--primary,#10b981)}
 
 /* Link list */
 .link-list { list-style: none; }
@@ -14149,29 +14154,61 @@ let ppJyType = '', ppJySeries = '';   // '' = 全部
 function ppJySetType(v) { ppJyType = v; renderPatternPricePage(); }
 function ppJySetSeries(v) { ppJySeries = v; renderPatternPricePage(); }
 function renderJiyangFlat(items, canManage) {
-  const chip = (label, val, cur, fn) => '<span class="pp-chip' + (cur === val ? ' on' : '') + '" onclick="' + fn + '(\'' + escapeAttr(val) + '\')">' + escapeHtml(label) + '</span>';
+  const chip = (label, val, cur, dim) => '<span class="pp-chip' + (cur === val ? ' on' : '') + '" data-ppjy="' + dim + '" data-val="' + escapeAttr(val) + '">' + escapeHtml(label) + '</span>';
   const cnt = (arr, key, v) => arr.filter(p => p[key] === v).length;
   let h = '<div class="pp-chiprow"><span class="pp-chip-label">抛型</span>'
-    + chip('全部 ' + items.length, '', ppJyType, 'ppJySetType')
-    + [...new Set(items.map(p => p._type).filter(Boolean))].sort().map(t => chip(t + ' ' + cnt(items, '_type', t), t, ppJyType, 'ppJySetType')).join('') + '</div>';
+    + chip('全部 ' + items.length, '', ppJyType, 'type')
+    + [...new Set(items.map(p => p._type).filter(Boolean))].sort().map(t => chip(t + ' ' + cnt(items, '_type', t), t, ppJyType, 'type')).join('') + '</div>';
   h += '<div class="pp-chiprow"><span class="pp-chip-label">系列</span>'
-    + chip('全部 ' + items.length, '', ppJySeries, 'ppJySetSeries')
-    + [...new Set(items.map(p => p.series).filter(Boolean))].sort().map(s => chip(s + ' ' + cnt(items, 'series', s), s, ppJySeries, 'ppJySetSeries')).join('') + '</div>';
+    + chip('全部 ' + items.length, '', ppJySeries, 'series')
+    + [...new Set(items.map(p => p.series).filter(Boolean))].sort().map(s => chip(s + ' ' + cnt(items, 'series', s), s, ppJySeries, 'series')).join('') + '</div>';
   const showDisc = !!document.getElementById('pp-show-disc')?.checked;
   const groups = [
     { label: '⬆ 上新', list: items.filter(p => p.isNewTag && !p.isDiscontinued) },
     { label: '✅ 在售', list: items.filter(p => !p.isNewTag && !p.isDiscontinued) },
   ];
-  if (showDisc) groups.push({ label: '⬇ 已下架', list: items.filter(p => p.isDiscontinued) });
+  if (showDisc) groups.push({ label: '⬇ 已清仓', list: items.filter(p => p.isDiscontinued) });
   let shownAny = false;
   groups.filter(g => g.list.length).forEach(g => {
     shownAny = true;
     h += '<div class="pp-flat-head">' + g.label + ' <span class="pp-count">' + g.list.length + ' 款</span></div><div class="pp-grid">';
-    g.list.forEach(p => { h += ppCardHtml(p, canManage, true); });   // hidePrice：极氧页不看价格档
+    g.list.forEach(p => { h += ppCardHtml(p, canManage, true, true); });   // hidePrice + 打标按钮
     h += '</div>';
   });
   if (!shownAny) h += '<div class="pattern-empty">😕 没有匹配的花色</div>';
   return h;
+}
+// 极氧平铺：chip 用事件委托（inline onclick 个别环境不触发，2026-11-06）
+function bindJiyangChips() {
+  const c = document.getElementById('pp-content');
+  if (!c) return;
+  c.querySelectorAll('.pp-chip[data-ppjy]').forEach(el => {
+    el.addEventListener('click', () => {
+      if (el.dataset.ppjy === 'type') ppJySetType(el.dataset.val);
+      else ppJySetSeries(el.dataset.val);
+    });
+  });
+}
+/* 上新/清仓打标（极氧平铺卡片，管理员）：本地先改立即重排，云端异步保存 */
+async function ppJyFlag(id, field, on) {
+  if (!canEdit('patterns')) { showToast('仅管理员可打标'); return; }
+  if (!supabase) { showToast('数据服务未就绪'); return; }
+  const item = getAllPatternItems().find(p => String(p._id) === String(id));
+  if (!item) { showToast('未找到该花色'); return; }
+  const patch = field === 'is_new'
+    ? { is_new: on, ...(on ? { is_discontinued: false } : {}) }
+    : { is_discontinued: on, ...(on ? { is_new: false } : {}) };   // 互斥：上新/清仓互踢
+  Object.assign(item, { isNewTag: !!patch.is_new, isDiscontinued: !!patch.is_discontinued });
+  renderPatternPricePage();
+  const { error } = await supabase.from('pattern_assets').update(patch).eq('id', id);
+  if (error) {
+    showToast('保存失败：' + error.message);
+    Object.assign(item, { isNewTag: !patch.is_new, isDiscontinued: !patch.is_discontinued });   // 回滚本地
+    renderPatternPricePage();
+  } else {
+    try { const c = (typeof kefuCacheGet === 'function') && kefuCacheGet('pattern_assets'); if (Array.isArray(c)) { const row = c.find(r => r.id === id); if (row) { row.is_new = !!patch.is_new; row.is_discontinued = !!patch.is_discontinued; kefuCacheSet && kefuCacheSet('pattern_assets', c); } } } catch (e) {}
+    showToast(patch.is_discontinued === true ? '⬇ 已标清仓' : patch.is_new === true ? '⬆ 已标上新' : '✅ 已恢复，排在在售区');
+  }
 }
 
 function renderPatternPricePage() {
@@ -14252,6 +14289,7 @@ function renderPatternPricePage() {
       // 极氧：素材页式平铺（茹姐 2026-11-06：进去直接看到卡片，不点目录）
       html = renderJiyangFlat(items, canManage);
       content.innerHTML = html;
+      bindJiyangChips();
       updatePpSelCount();
       return;
     }
@@ -14417,7 +14455,7 @@ function ppLoadMore() {
 }
 const onPpSearch = _debounce(() => { ppRenderLimit = PP_PAGE_SIZE; renderPatternPricePage(); }, 250);
 
-function ppCardHtml(p, canManage, hidePrice) {
+function ppCardHtml(p, canManage, hidePrice, flatOps) {
   const eyeUrlList = (p.eyeImgs && p.eyeImgs.length) ? p.eyeImgs : (p.eyeImg ? [p.eyeImg] : []);
   const lensUrlList = (p.lensImgs && p.lensImgs.length) ? p.lensImgs : (p.lensImg ? [p.lensImg] : []);
   const images = [];
@@ -14442,6 +14480,12 @@ function ppCardHtml(p, canManage, hidePrice) {
     ? '<label class="pp-check" onclick="event.stopPropagation()" title="勾选后批量打标"><input type="checkbox" ' + (ppSel.has(p._id) ? 'checked' : '') + ' onchange="ppToggleSel(\'' + escapeAttr(String(p._id)) + '\',this.checked,this)"></label>'
     : '';
   // 卡片上直接改价格档/直径分组（管理员；极氧平铺不看价格档，只留直径）
+  const flagBtns = (flatOps && canManage)
+    ? '<div class="pp-flagrow">'
+      + '<button class="pp-flagbtn new' + (p.isNewTag ? ' on' : '') + '" onclick="event.stopPropagation();ppJyFlag(\'' + escapeAttr(String(p._id)) + '\',\'is_new\',' + (!p.isNewTag) + ')">' + (p.isNewTag ? '✅ 上新中' : '⬆ 上新') + '</button>'
+      + '<button class="pp-flagbtn off' + (p.isDiscontinued ? ' on' : '') + '" onclick="event.stopPropagation();ppJyFlag(\'' + escapeAttr(String(p._id)) + '\',\'off\',' + (!p.isDiscontinued) + ')">' + (p.isDiscontinued ? '↩ 恢复在售' : '⬇ 清仓') + '</button>'
+      + '</div>'
+    : '';
   const quickBar = canManage
     ? '<div class="pp-quick" onclick="event.stopPropagation()">'
       + (hidePrice ? '' : '<select title="改价格档" onchange="ppQuickSet(\'' + escapeAttr(String(p._id)) + '\',\'price_tier\',this.value)">'
@@ -14463,7 +14507,7 @@ function ppCardHtml(p, canManage, hidePrice) {
   return '<div class="pp-card' + (p.isDiscontinued ? ' disc' : '') + (ppSel.has(p._id) ? ' sel' : '') + '"' + clickAttr + '>'
     + '<div class="pp-img">' + discBadge + imgHtml + priceTag + spBadge + chk + '</div>'
     + '<div class="pp-body"><div class="pp-name"' + nameStyle + '>' + escapeHtml(p.name) + newInline + '</div>'
-    + '<div class="pp-meta">' + escapeHtml(metaParts.join(' · ')) + '</div>' + descLine + quickBar + '</div>'
+    + '<div class="pp-meta">' + escapeHtml(metaParts.join(' · ')) + '</div>' + descLine + flagBtns + quickBar + '</div>'
     + '</div>';
 }
 
