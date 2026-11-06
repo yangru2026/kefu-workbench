@@ -179,6 +179,29 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const LEVELS = ['高压线','重要','提醒'];
 const PLATFORMS = ['通用','抖音','拼多多','天猫','京东','快手','小红书'];
 
+/* ==================== 专区模式（2026-11-06） ====================
+   URL 带 ?pf=pdd（或 ?pf=拼多多）时，只显示该平台的规则；若库里用的是「拼多多-xxx」
+   这类前缀命名，则把所有以前缀开头的平台都列出来（供侧栏「拼多多专区」入口使用）。
+   不带参数时行为与原来完全一致。 */
+const PF_ALIAS = { pdd: '拼多多', douyin: '抖音', tmall: '天猫', jd: '京东', kuaishou: '快手', xhs: '小红书' };
+const ONLY_PF = (() => {
+  try {
+    const raw = new URLSearchParams(location.search).get('pf') || '';
+    return (PF_ALIAS[raw] || raw).trim();
+  } catch (e) { return ''; }
+})();
+if (ONLY_PF) {
+  const h1 = document.querySelector('.topbar h1');
+  if (h1) h1.textContent = '🛒 ' + ONLY_PF + ' · 平台规则';
+}
+function activePlatforms(){
+  if (!ONLY_PF) return null;
+  const names = [...new Set(rules.map(r => (r.platform||'').trim()).filter(Boolean))];
+  if (names.includes(ONLY_PF)) return [ONLY_PF];
+  const pre = names.filter(n => n.startsWith(ONLY_PF));
+  return pre.length ? pre : [ONLY_PF];
+}
+
 /* ==================== 状态 ==================== */
 let rules = [];
 let isAdmin = false;
@@ -248,8 +271,14 @@ async function loadRules(){
 
 /* ==================== 渲染 ==================== */
 function renderChips(){
-  const pfList = PLATFORMS.filter(p => rules.some(r => r.platform === p))
-    .concat(rules.map(r=>r.platform).filter(p => !PLATFORMS.includes(p)));
+  const scope = activePlatforms();
+  // 去重：库里除预置平台外还有「拼多多-平台红线」这类带后缀平台名，直接 concat 会重复出 Tab
+  const pfList = scope
+    ? [...new Set(scope.filter(p => rules.some(r => r.platform === p)))]
+    : [...new Set(
+        PLATFORMS.filter(p => rules.some(r => r.platform === p))
+          .concat(rules.map(r => r.platform).filter(p => !PLATFORMS.includes(p)))
+      )];
   if(!curPlatform || !pfList.includes(curPlatform)) curPlatform = pfList[0] || '';
   $('pfChips').innerHTML = pfList.map(p =>
     `<span class="chip${p===curPlatform?' on':''}" data-pf="${esc(p)}">${esc(p)}</span>`).join('');
@@ -264,8 +293,10 @@ let _curList = [];   // 当前渲染的规则列表（供上移/下移定位）
 
 function renderList(){
   const kw = ($('searchInput').value || '').trim().toLowerCase();
-  let list = rules.filter(r => r.platform === curPlatform);
-  if(kw) list = rules.filter(r =>
+  const scope = activePlatforms();
+  const pool = scope ? rules.filter(r => scope.includes(r.platform)) : rules;
+  let list = pool.filter(r => r.platform === curPlatform);
+  if(kw) list = pool.filter(r =>
       (r.title||'').toLowerCase().includes(kw) ||
       (r.content||'').toLowerCase().includes(kw) ||
       (r.platform||'').toLowerCase().includes(kw));
