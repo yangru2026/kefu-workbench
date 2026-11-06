@@ -319,7 +319,7 @@ body {
 
 .page { display: none; padding: 32px 40px; }
 .page.active { display: block; }
-#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active, #page-price-quiz.active, #page-quiz-results.active, #page-huaming.active, #page-restock.active, #page-biz-contacts.active, #page-pdd-rules.active, #page-patterns.active, #page-price-jiyang.active, #page-feishu-view.active { display: flex; height: 100vh; overflow: hidden; }
+#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active, #page-price-quiz.active, #page-quiz-results.active, #page-huaming.active, #page-restock.active, #page-biz-contacts.active, #page-pdd-rules.active, #page-patterns.active { display: flex; height: 100vh; overflow: hidden; }
 
 /* Header */
 .page-header { margin-bottom: 28px; }
@@ -927,6 +927,7 @@ body {
 .pp-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px}
 .pp-new-inline{font-size:10px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border-radius:8px;padding:0 5px;line-height:1.6;flex-shrink:0}
 .pp-meta{font-size:11px;color:var(--text-secondary);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pp-desc{font-size:11.5px;color:#475569;line-height:1.5;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all}
 
 /* Link list */
 .link-list { list-style: none; }
@@ -3500,6 +3501,7 @@ body {
   <div class="page" id="page-pattern-price">
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <div><h1>💰 弥生价格速查</h1><p>直径分组 × 价格档，卖货前先核对价格档，防止低价备注高价花色 | 与花色素材库实时同步</p></div>
+      <button class="btn-sm primary" id="pp-sync-btn" style="display:none;" onclick="syncPpFromSheets()">🔄 同步飞书表</button>
     </div>
     <div class="pp-batch-bar" id="pp-batch-bar">
       <b>✅ 已选 <span id="pp-sel-count">0</span> 款</b>
@@ -3626,23 +3628,6 @@ body {
       <button class="admin-only-nav" data-tp-edit="training-platform" onclick="openTpEditor('training-platform')" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">✏️ 编辑内容</button>
     </div>
     <div class="tp-body" id="tpc-training-platform"><div style="padding:40px;text-align:center;color:#9ca3af;font-size:13px;">加载中…</div></div>
-  </div>
-  <div class="page" id="page-price-jiyang" style="padding:0;overflow:hidden;flex-direction:column;">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);background:#fff;flex-shrink:0;flex-wrap:wrap;">
-      <div style="font-size:15px;font-weight:700;color:var(--text);">🟡 极氧花色速查<span style="font-size:12px;font-weight:400;color:#6B7280;margin-left:8px;">飞书在线表 · 实时同步</span></div>
-      <button onclick="window.open('https://yow5cuygtx.feishu.cn/sheets/XHBIseUR4hJSwkt4G9EcOAednob?sheet=c4a82c','_blank')" style="padding:6px 14px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:12.5px;cursor:pointer;font-family:inherit;font-weight:500;">↗ 新窗口打开</button>
-    </div>
-    <iframe id="price-jiyang-iframe" src="about:blank" data-src="https://yow5cuygtx.feishu.cn/sheets/XHBIseUR4hJSwkt4G9EcOAednob?sheet=c4a82c" style="flex:1;border:none;width:100%;" loading="lazy"></iframe>
-  </div>
-  <div class="page" id="page-feishu-view" style="padding:0;overflow:hidden;flex-direction:column;">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);background:#fff;flex-shrink:0;flex-wrap:wrap;">
-      <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-        <button id="feishu-view-back" onclick="switchPage(window._feishuViewBack||'home')" style="padding:6px 12px;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:8px;font-size:12.5px;cursor:pointer;font-family:inherit;">← 返回</button>
-        <div id="feishu-view-title" style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">飞书文档</div>
-      </div>
-      <button id="feishu-view-open" style="padding:6px 14px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:12.5px;cursor:pointer;font-family:inherit;font-weight:500;">↗ 新窗口打开</button>
-    </div>
-    <iframe id="feishu-view-iframe" src="about:blank" style="flex:1;border:none;width:100%;"></iframe>
   </div>
   <div class="page" id="page-training-jiyang-category">
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -5739,29 +5724,6 @@ function tpApplyPendingFocus(body, key) {
 /* 🔵 极氧分类已独立成培训页 training-jiyang-category（2026-11-06 美瞳分类按品牌拆分），
    侧栏「极氧专区 → 极氧分类」data-page 直达；旧跳转聚焦入口已删除。
    _tpPendingFocus / tpApplyPendingFocus 通用机制保留（renderTrainingTopicPage 仍调用）。 */
-
-/* 🔗 飞书文档内嵌查看页（2026-11-06）：培训页里的 .tp-btn 飞书链接不再跳出去，页内直接看。
-   全局事件委托拦截（capture），只拦 feishu.cn 域名；云端培训内容零改动，以后新增链接自动生效。 */
-function openFeishuView(url, title) {
-  window._feishuViewBack = currentPage;
-  const f = document.getElementById('feishu-view-iframe');
-  const t = document.getElementById('feishu-view-title');
-  if (t) t.textContent = title || '飞书文档';
-  if (f && f.src !== url) f.src = url;
-  const btn = document.getElementById('feishu-view-open');
-  if (btn) btn.onclick = () => window.open(url, '_blank');
-  switchPage('feishu-view');
-}
-(function bindFeishuViewInterceptor() {
-  document.addEventListener('click', e => {
-    const a = e.target.closest && e.target.closest('a.tp-btn');
-    if (!a) return;
-    const href = a.getAttribute('href') || '';
-    if (!/^https:\/\/[a-z0-9.-]*feishu\.cn/.test(href)) return;   // 只内嵌飞书链接，其他照常跳转
-    e.preventDefault();
-    openFeishuView(href, (a.textContent || '').replace(/^🔗\s*/, '').trim());
-  }, true);
-})();
 
 /* 培训专题页实时订阅：管理员保存后，所有在线成员自动热更新 */
 function subscribeTrainingPages() {
@@ -11849,8 +11811,8 @@ function switchPage(page) {
     currentPage = 'home';
     return;
   }
-  // 品牌价格速查别名：price-miyang 共用价格速查页；price-jiyang 已独立为飞书在线表页（2026-11-06）
-  const PP_ALIAS = { 'price-miyang': '弥生' };
+  // 品牌价格速查别名：price-miyang / price-jiyang → 共用价格速查页，锁定各自品牌
+  const PP_ALIAS = { 'price-miyang': '弥生', 'price-jiyang': '极氧' };
   if (PP_ALIAS[page]) {
     ppBrandFilter = PP_ALIAS[page];
     ppDimView = null; ppRenderLimit = PP_PAGE_SIZE;   // 切换品牌入口回到第一层四维度分区
@@ -11861,7 +11823,7 @@ function switchPage(page) {
     if (ppEl) ppEl.classList.add('active');
     currentPage = 'pattern-price';   // 实时订阅/权限等逻辑继续按价格速查页工作
     const h1 = document.querySelector('#page-pattern-price h1');
-    if (h1) h1.textContent = '💰 ' + PP_ALIAS[page] + '价格速查';
+    if (h1) h1.textContent = page === 'price-jiyang' ? '🟡 极氧花色速查' : '💰 ' + PP_ALIAS[page] + '价格速查';
     if (window.loadPatternCategories) loadPatternCategories();
     if (!patternData || Object.keys(patternData.brands || {}).length === 0) loadPatternsFromDB();
     else renderPatternPricePage();
@@ -11896,14 +11858,6 @@ function switchPage(page) {
   }
   if (page === 'ai') {
     if (window.renderAiPage) renderAiPage();
-  }
-  if (page === 'price-jiyang') {
-    // 2026-11-06：极氧花色速查 = 飞书在线表 iframe，首次点击才加载
-    const pjIframe = document.getElementById('price-jiyang-iframe');
-    if (pjIframe && pjIframe.getAttribute('data-src') && pjIframe.src !== pjIframe.getAttribute('data-src')) {
-      pjIframe.src = pjIframe.getAttribute('data-src');
-      pjIframe.removeAttribute('data-src');
-    }
   }
   if (page === 'patterns') {
     // 2026-11-04 重做：独立子页 iframe，首次点击才加载
@@ -14133,8 +14087,56 @@ function ppMechHtml(sp, full) {
     + '</div>').join('');
   return note + '<div class="pp-mech-grid">' + groups + '</div>';
 }
+/* ===== 从飞书花色明细表同步到花色素材（仅管理员，杨茹 2026-11-06）=====
+ * 按当前品牌入口同步：极氧花色速查 → 极氧花色信息表；弥生价格速查 → 日抛/半年抛明细表。
+ * 口径与「花色素材」页同步按钮一致：新增搬图入库、已有花色只补空缺参数。 */
+let _ppSyncing = false;
+async function syncPpFromSheets() {
+  if (_ppSyncing) return;
+  if (!canEdit('patterns')) { showToast('仅管理员可同步'); return; }
+  if (!supabase || !supabase.functions || typeof supabase.functions.invoke !== 'function') { showToast('数据服务未就绪'); return; }
+  const brand = ppBrandFilter === '极氧' ? '极氧' : '弥生';
+  const srcName = brand === '极氧' ? '极氧花色信息表' : '日抛/半年抛花色明细表';
+  if (!confirm('从飞书「' + srcName + '」同步' + brand + '花色：\n\n'
+    + '· 新增表里有、工作台没有的花色（含图片/卖点/参数）\n'
+    + '· 已有花色只补空缺参数，不覆盖图片、卖点、下架标记\n\n确定继续吗？')) return;
+  const btn = document.getElementById('pp-sync-btn');
+  const setTxt = s => { if (btn) btn.textContent = s; };
+  _ppSyncing = true; if (btn) { btn.disabled = true; btn.style.opacity = '.6'; }
+  try {
+    const { data: dry, error: de } = await supabase.functions.invoke('pattern-sheets-sync', { body: { dry_run: true, brand: brand } });
+    if (de) throw new Error(de.message || '检查失败');
+    if (!dry || !dry.ok) throw new Error((dry && dry.error) || '检查失败');
+    if (!dry.to_insert && !dry.to_update) { showToast('✅ 已是最新，飞书表没有新增或参数变化'); await loadPatternsFromDB(); return; }
+    const total = dry.feishu_rows || 1;
+    const limit = dry.to_insert > 0 ? 5 : 20;   // 有新增要搬图，小批防止函数超时
+    let offset = 0, ins = 0, upd = 0, imgs = 0, rounds = 0;
+    while (true) {
+      setTxt('🔄 同步中 ' + Math.min(offset + limit, total) + '/' + total);
+      const { data, error } = await supabase.functions.invoke('pattern-sheets-sync',
+        { body: { dry_run: false, brand: brand, offset: offset, limit: limit } });
+      if (error) throw new Error(error.message || '同步中断');
+      if (!data || !data.ok) throw new Error((data && data.error) || '同步中断');
+      ins += data.inserted || 0; upd += data.updated || 0; imgs += data.images_uploaded || 0;
+      if (data.errors && data.errors.length) console.warn('[同步] 部分条目异常', data.errors);
+      offset = data.next_offset;
+      if (!data.has_more || ++rounds > 40) break;
+    }
+    showToast('同步完成：新增 ' + ins + '、更新 ' + upd + '、图片 ' + imgs + ' 张');
+    await loadPatternsFromDB();
+  } catch (e) {
+    showToast('同步失败：' + (e.message || e));
+    console.error(e);
+  } finally {
+    _ppSyncing = false;
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; setTxt('🔄 同步飞书表'); }
+  }
+}
+
 function renderPatternPricePage() {
   const canManage = canEdit('patterns');
+  const psb = document.getElementById('pp-sync-btn');
+  if (psb) psb.style.display = canManage ? '' : 'none';
   // 批量打标下拉（管理员可见时才有意义）
   const bp = document.getElementById('pp-batch-price');
   if (bp) bp.innerHTML = '<option value="">（不修改价格档）</option>' + ppTierList().map(t => '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + '</option>').join('') + '<option value="__clear__">✕ 清空价格档</option>';
@@ -14407,10 +14409,13 @@ function ppCardHtml(p, canManage) {
   const clickAttr = lbKey ? ' onclick="openLightbox(window._lbImages[\'' + lbKey + '\'])"' : '';
   const nameStyle = p.isDiscontinued ? ' style="text-decoration:line-through;opacity:.65;"' : '';
   const metaParts = [p._brand, p.series, p.diameter ? '直径' + p.diameter : ''].filter(Boolean);
+  // 推荐话术一行展示（杨茹 2026-11-06：花色速查卡片要有图片/参数/话术；两行截断）
+  const ppDesc = p.description || p.script || '';
+  const descLine = ppDesc ? '<div class="pp-desc" title="' + escapeAttr(ppDesc) + '">' + escapeHtml(ppDesc) + '</div>' : '';
   return '<div class="pp-card' + (p.isDiscontinued ? ' disc' : '') + (ppSel.has(p._id) ? ' sel' : '') + '"' + clickAttr + '>'
     + '<div class="pp-img">' + discBadge + imgHtml + priceTag + spBadge + chk + '</div>'
     + '<div class="pp-body"><div class="pp-name"' + nameStyle + '>' + escapeHtml(p.name) + newInline + '</div>'
-    + '<div class="pp-meta">' + escapeHtml(metaParts.join(' · ')) + '</div>' + quickBar + '</div>'
+    + '<div class="pp-meta">' + escapeHtml(metaParts.join(' · ')) + '</div>' + descLine + quickBar + '</div>'
     + '</div>';
 }
 
@@ -17256,7 +17261,7 @@ init();
 function prefetchSubPages() {
   try {
     if (navigator.connection && navigator.connection.saveData) return;
-    var want = ['restock', 'huaming', 'qc', 'gift', 'diversion', 'biz-contacts', 'pdd-rules', 'price-jiyang'];
+    var want = ['restock', 'huaming', 'qc', 'gift', 'diversion', 'biz-contacts', 'pdd-rules'];
     var urls = [];
     want.forEach(function (key) {
       var f = document.getElementById(key + '-iframe');
