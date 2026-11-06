@@ -319,7 +319,7 @@ body {
 
 .page { display: none; padding: 32px 40px; }
 .page.active { display: block; }
-#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active, #page-price-quiz.active, #page-quiz-results.active, #page-huaming.active, #page-restock.active, #page-biz-contacts.active, #page-patterns.active { display: flex; height: 100vh; overflow: hidden; }
+#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active, #page-price-quiz.active, #page-quiz-results.active, #page-huaming.active, #page-restock.active, #page-biz-contacts.active, #page-pdd-rules.active, #page-patterns.active { display: flex; height: 100vh; overflow: hidden; }
 
 /* Header */
 .page-header { margin-bottom: 28px; }
@@ -2169,6 +2169,12 @@ body {
         <div class="nav-item" onclick="openJiyangBrandDetail()" title="极氧品牌定位、产品线与价格一站式介绍"><span class="icon">📗</span><span>极氧品牌介绍</span></div>
       </div>
     </div>
+    <div class="nav-group" data-g="training-pdd">
+      <div class="nav-group-head" onclick="toggleNavGroup(this)" style="border-left:3px solid #F97316;padding-left:8px;color:#9a3412"><span>🟠 拼多多专区</span><span class="ng-arrow">▾</span></div>
+      <div class="nav-group-body">
+        <div class="nav-item" data-page="pdd-rules" title="拼多多平台规则：红线 / 工作台操作 / 产品机制与价格 / 常见问题 / 转化技巧"><span class="icon">📏</span><span>平台规则</span></div>
+      </div>
+    </div>
     <div class="nav-group" data-g="docs">
       <div class="nav-group-head" onclick="toggleNavGroup(this)"><span>常用资料</span><span class="ng-arrow">▾</span></div>
       <div class="nav-group-body">
@@ -3788,9 +3794,14 @@ body {
     <iframe id="diversion-iframe" src="about:blank" data-src="diversion.html?v=20261023a" style="flex:1;border:none;width:100%;"></iframe>
   </div>
 
+  <!-- ===== 拼多多专区 · 平台规则（2026-11-06，?pf=pdd 只看拼多多） ===== -->
+  <div class="page" id="page-pdd-rules" style="padding:0;overflow:hidden;flex-direction:column;">
+    <iframe id="pdd-rules-iframe" src="about:blank" data-src="rules.html?pf=pdd&v=20261106b" style="flex:1;border:none;width:100%;"></iframe>
+  </div>
+
   <!-- ===== 平台规则 ===== -->
   <div class="page" id="page-rules" style="padding:0;overflow:hidden;flex-direction:column;">
-    <iframe id="rules-iframe" src="about:blank" data-src="rules.html?v=20261020c" style="flex:1;border:none;width:100%;"></iframe>
+    <iframe id="rules-iframe" src="about:blank" data-src="rules.html?v=20261106b" style="flex:1;border:none;width:100%;"></iframe>
   </div>
 
   <!-- ===== 弥生花色与价格考核试卷 ===== -->
@@ -11946,6 +11957,14 @@ function switchPage(page) {
       rulesIframe.removeAttribute('data-src');
     }
   }
+  if (page === 'pdd-rules') {
+    // 拼多多专区 · 平台规则：延迟加载 iframe（首次点击才加载）
+    const pdIframe = document.getElementById('pdd-rules-iframe');
+    if (pdIframe && pdIframe.getAttribute('data-src') && pdIframe.src !== pdIframe.getAttribute('data-src')) {
+      pdIframe.src = pdIframe.getAttribute('data-src');
+      pdIframe.removeAttribute('data-src');
+    }
+  }
   if (page === 'quiz-results') {
     // 考核成绩（仅管理员）：延迟加载 iframe（首次点击才加载）
     const qrIframe = document.getElementById('quiz-results-iframe');
@@ -17190,7 +17209,7 @@ init();
 function prefetchSubPages() {
   try {
     if (navigator.connection && navigator.connection.saveData) return;
-    var want = ['restock', 'huaming', 'qc', 'gift', 'diversion', 'biz-contacts'];
+    var want = ['restock', 'huaming', 'qc', 'gift', 'diversion', 'biz-contacts', 'pdd-rules'];
     var urls = [];
     want.forEach(function (key) {
       var f = document.getElementById(key + '-iframe');
