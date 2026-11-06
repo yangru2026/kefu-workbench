@@ -2177,7 +2177,9 @@ body {
       <div class="nav-group-head" onclick="toggleNavGroup(this)" style="border-left:3px solid #3B82F6;padding-left:8px;color:#1e40af"><span>🔵 极氧专区</span><span class="ng-arrow">▾</span></div>
       <div class="nav-group-body">
         <div class="nav-item" data-page="price-jiyang" title="极氧花色速查（飞书在线表）"><span class="icon">🟡</span><span>极氧花色</span></div>
-        <div class="nav-item" data-page="training-jiyang-category" title="极氧基础分类与长周期实战接待话术（含内部须知）"><span class="icon">🔵</span><span>极氧分类</span></div>
+        <div class="nav-item" data-page="training-jiyang-category" title="极氧产品分类（周期/花色/材质）与长周期产品线内部背景须知"><span class="icon">🔵</span><span>极氧产品分类</span></div>
+        <div class="nav-item" data-page="training-jiyang-long" title="极氧长周期接待·实战对客话术（极简秒回版）"><span class="icon">🟢</span><span>长周期话术</span></div>
+        <div class="nav-item" data-page="training-jiyang-daily" title="极氧日抛接待·实战对客话术（硅水凝胶主推）"><span class="icon">💧</span><span>日抛话术</span></div>
         <div class="nav-item" onclick="openJiyangBrandDetail()" title="极氧品牌定位、产品线与价格一站式介绍"><span class="icon">📗</span><span>极氧品牌介绍</span></div>
       </div>
     </div>
@@ -3646,6 +3648,20 @@ body {
       <button class="admin-only-nav" data-tp-edit="training-jiyang-category" onclick="openTpEditor('training-jiyang-category')" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">✏️ 编辑内容</button>
     </div>
     <div class="tp-body" id="tpc-training-jiyang-category"><div style="padding:40px;text-align:center;color:#9ca3af;font-size:13px;">加载中…</div></div>
+  </div>
+  <div class="page" id="page-training-jiyang-long">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div><h1 id="tph-training-jiyang-long">🟢 极氧长周期话术</h1><p id="tps-training-jiyang-long"></p></div>
+      <button class="admin-only-nav" data-tp-edit="training-jiyang-long" onclick="openTpEditor('training-jiyang-long')" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">✏️ 编辑内容</button>
+    </div>
+    <div class="tp-body" id="tpc-training-jiyang-long"><div style="padding:40px;text-align:center;color:#9ca3af;font-size:13px;">加载中…</div></div>
+  </div>
+  <div class="page" id="page-training-jiyang-daily">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div><h1 id="tph-training-jiyang-daily">💧 极氧日抛话术</h1><p id="tps-training-jiyang-daily"></p></div>
+      <button class="admin-only-nav" data-tp-edit="training-jiyang-daily" onclick="openTpEditor('training-jiyang-daily')" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">✏️ 编辑内容</button>
+    </div>
+    <div class="tp-body" id="tpc-training-jiyang-daily"><div style="padding:40px;text-align:center;color:#9ca3af;font-size:13px;">加载中…</div></div>
   </div>
 
   <!-- ===== 售前话术（原培训资料页保留话术模块） ===== -->
@@ -5494,7 +5510,9 @@ const TRAIN_PAGE_DEFS = [
   { key: 'training-duties',    icon: '🎯', title: '工作要点与考核' },
   { key: 'training-faq',       icon: '💬', title: '常见问题话术库' },
   { key: 'training-platform',  icon: '🌐', title: '平台规则' },
-  { key: 'training-jiyang-category', icon: '🔵', title: '极氧分类' },
+  { key: 'training-jiyang-category', icon: '🔵', title: '极氧产品分类' },
+  { key: 'training-jiyang-long', icon: '🟢', title: '长周期话术' },
+  { key: 'training-jiyang-daily', icon: '💧', title: '日抛话术' },
 ];
 window.TRAIN_PAGE_DEFS = TRAIN_PAGE_DEFS;
 let trainingPagesMap = {};          // key → row
