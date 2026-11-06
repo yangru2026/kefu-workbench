@@ -319,7 +319,7 @@ body {
 
 .page { display: none; padding: 32px 40px; }
 .page.active { display: block; }
-#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active, #page-price-quiz.active, #page-quiz-results.active, #page-huaming.active, #page-restock.active, #page-biz-contacts.active, #page-pdd-rules.active, #page-patterns.active, #page-price-jiyang.active { display: flex; height: 100vh; overflow: hidden; }
+#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active, #page-price-quiz.active, #page-quiz-results.active, #page-huaming.active, #page-restock.active, #page-biz-contacts.active, #page-pdd-rules.active, #page-patterns.active, #page-price-jiyang.active, #page-feishu-view.active { display: flex; height: 100vh; overflow: hidden; }
 
 /* Header */
 .page-header { margin-bottom: 28px; }
@@ -3634,6 +3634,16 @@ body {
     </div>
     <iframe id="price-jiyang-iframe" src="about:blank" data-src="https://yow5cuygtx.feishu.cn/sheets/XHBIseUR4hJSwkt4G9EcOAednob?sheet=c4a82c" style="flex:1;border:none;width:100%;" loading="lazy"></iframe>
   </div>
+  <div class="page" id="page-feishu-view" style="padding:0;overflow:hidden;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);background:#fff;flex-shrink:0;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+        <button id="feishu-view-back" onclick="switchPage(window._feishuViewBack||'home')" style="padding:6px 12px;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:8px;font-size:12.5px;cursor:pointer;font-family:inherit;">← 返回</button>
+        <div id="feishu-view-title" style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">飞书文档</div>
+      </div>
+      <button id="feishu-view-open" style="padding:6px 14px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:12.5px;cursor:pointer;font-family:inherit;font-weight:500;">↗ 新窗口打开</button>
+    </div>
+    <iframe id="feishu-view-iframe" src="about:blank" style="flex:1;border:none;width:100%;"></iframe>
+  </div>
   <div class="page" id="page-training-jiyang-category">
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <div><h1 id="tph-training-jiyang-category">🔵 极氧分类</h1><p id="tps-training-jiyang-category"></p></div>
@@ -5729,6 +5739,29 @@ function tpApplyPendingFocus(body, key) {
 /* 🔵 极氧分类已独立成培训页 training-jiyang-category（2026-11-06 美瞳分类按品牌拆分），
    侧栏「极氧专区 → 极氧分类」data-page 直达；旧跳转聚焦入口已删除。
    _tpPendingFocus / tpApplyPendingFocus 通用机制保留（renderTrainingTopicPage 仍调用）。 */
+
+/* 🔗 飞书文档内嵌查看页（2026-11-06）：培训页里的 .tp-btn 飞书链接不再跳出去，页内直接看。
+   全局事件委托拦截（capture），只拦 feishu.cn 域名；云端培训内容零改动，以后新增链接自动生效。 */
+function openFeishuView(url, title) {
+  window._feishuViewBack = currentPage;
+  const f = document.getElementById('feishu-view-iframe');
+  const t = document.getElementById('feishu-view-title');
+  if (t) t.textContent = title || '飞书文档';
+  if (f && f.src !== url) f.src = url;
+  const btn = document.getElementById('feishu-view-open');
+  if (btn) btn.onclick = () => window.open(url, '_blank');
+  switchPage('feishu-view');
+}
+(function bindFeishuViewInterceptor() {
+  document.addEventListener('click', e => {
+    const a = e.target.closest && e.target.closest('a.tp-btn');
+    if (!a) return;
+    const href = a.getAttribute('href') || '';
+    if (!/^https:\/\/[a-z0-9.-]*feishu\.cn/.test(href)) return;   // 只内嵌飞书链接，其他照常跳转
+    e.preventDefault();
+    openFeishuView(href, (a.textContent || '').replace(/^🔗\s*/, '').trim());
+  }, true);
+})();
 
 /* 培训专题页实时订阅：管理员保存后，所有在线成员自动热更新 */
 function subscribeTrainingPages() {
