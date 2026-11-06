@@ -5647,6 +5647,7 @@ function enhanceTpCopy(root) {
     document.head.appendChild(s);
   }
   const add = (el, big) => {
+    if (el.closest('.tp-internal')) return; // 内部须知块一律不加复制按钮（防外泄红线）
     if (el.querySelector(':scope > .tp-copy')) return;
     const btn = document.createElement('button');
     btn.type = 'button';
