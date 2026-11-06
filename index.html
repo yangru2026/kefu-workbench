@@ -2287,9 +2287,11 @@ body {
 
     <!-- 日报 Tab -->
     <div id="report-daily-tab">
-      <div class="daily-actions" style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;">
+      <div class="daily-actions" style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
         <button class="btn-sm primary" onclick="openDailyForm()">✎ 填写今日日报</button>
-        <button class="btn-sm outline admin-only" onclick="openDailyTodoModal()">👀 查看提交情况</button>
+        <button class="btn-sm outline admin-only" onclick="openDailyTrack()">📈 提交情况 · 可查往日</button>
+        <button class="btn-sm outline admin-only" onclick="openDailyMonthSummary()">📅 月度汇总</button>
+        <button class="btn-sm outline admin-only" onclick="openDailyTodoModal()">⏳ 今日未完成</button>
       </div>
       <div id="daily-content">
         <!-- 填写表单 -->
@@ -2319,14 +2321,40 @@ body {
             </div>
           </div>
         </div>
-        <!-- 提交情况 -->
+        <!-- 提交情况（2026-11-06：加日期选择，可查往日） -->
         <div id="daily-track-area" style="display:none;">
           <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
               <h3 style="margin:0;">📈 日报提交情况 <span id="daily-track-date" style="font-size:13px;color:var(--text-secondary);"></span></h3>
               <button class="btn-sm outline" onclick="closeDailyTrack()" style="font-size:12px;">返回</button>
             </div>
+            <div id="daily-track-toolbar" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px;padding:8px 10px;background:#f8fafc;border:1px solid var(--border);border-radius:9px;">
+              <button class="btn-sm outline" style="padding:4px 9px;font-size:12px;" onclick="shiftDailyTrackDate(-1)">◀ 前一天</button>
+              <input type="date" id="daily-track-datepick" onchange="setDailyTrackDate(this.value)" title="选择要查看的日期" style="padding:5px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);background:#fff;">
+              <button class="btn-sm outline" style="padding:4px 9px;font-size:12px;" onclick="shiftDailyTrackDate(1)">后一天 ▶</button>
+              <button class="btn-sm outline" style="padding:4px 9px;font-size:12px;" onclick="goDailyTrackToday()">今天</button>
+              <span id="daily-track-caliber" style="font-size:11.5px;color:var(--text-secondary);margin-left:auto;"></span>
+            </div>
             <div id="daily-track-list"></div>
+          </div>
+        </div>
+        <!-- 月度汇总（2026-11-06：汇报用，按人/按天统计提交率） -->
+        <div id="daily-month-area" style="display:none;">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+              <h3 style="margin:0;">📅 日报月度汇总 <span id="daily-month-date" style="font-size:13px;color:var(--text-secondary);"></span></h3>
+              <div style="display:flex;gap:6px;">
+                <button class="btn-sm outline" style="font-size:12px;" onclick="exportDailyMonthCsv()">⬇ 导出 CSV</button>
+                <button class="btn-sm outline" onclick="closeDailyMonthSummary()" style="font-size:12px;">返回</button>
+              </div>
+            </div>
+            <div id="daily-month-toolbar" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px;padding:8px 10px;background:#f8fafc;border:1px solid var(--border);border-radius:9px;">
+              <button class="btn-sm outline" style="padding:4px 9px;font-size:12px;" onclick="shiftDailyMonth(-1)">◀ 上月</button>
+              <input type="month" id="daily-month-pick" onchange="setDailyMonth(this.value)" title="选择要统计的月份" style="padding:5px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);background:#fff;">
+              <button class="btn-sm outline" style="padding:4px 9px;font-size:12px;" onclick="shiftDailyMonth(1)">下月 ▶</button>
+              <span id="daily-month-caliber" style="font-size:11.5px;color:var(--text-secondary);margin-left:auto;"></span>
+            </div>
+            <div id="daily-month-body"></div>
           </div>
         </div>
         <!-- 提交结果卡片（截图发群用） -->
@@ -17668,8 +17696,9 @@ async function dailyRemindCheck(){
     if (!window.supabase || typeof supabase.from !== 'function') return;
     if (!currentProfile || !currentProfile.id || !currentProfile.name) return;
     if (currentProfile.role === 'admin') return;                  // 管理员不提醒
-    const today = new Date();
-    const dateStr = today.toISOString().slice(0,10);
+    // 用本地日期（原 toISOString() 是 UTC，凌晨 0~8 点会算到前一天）
+    const _rd = new Date();
+    const dateStr = _rd.getFullYear() + '-' + String(_rd.getMonth() + 1).padStart(2, '0') + '-' + String(_rd.getDate()).padStart(2, '0');
     const sk = 'dailyRemind_' + dateStr;
     let st = {};
     try { st = JSON.parse(localStorage.getItem(sk) || '{}'); } catch(e) {}
@@ -17834,7 +17863,7 @@ async function qcGateRpc(ids){
 <!-- 今日日报 · 未完成名单弹窗（仿售后工作台待办弹窗，2026-11-03） -->
 <div id="daily-todo-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:99996;align-items:center;justify-content:center;"></div>
 
-<script src="app.js?v=20261104a"></script>
+<script src="app.js?v=20261106a"></script>
 
 <!-- Pattern Editor Modal -->
 <div class="modal-overlay" id="mod-pattern"undefined>
