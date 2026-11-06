@@ -14110,7 +14110,7 @@ async function syncPpFromSheets() {
   const srcName = brand === '极氧' ? '极氧花色信息表' : '日抛/半年抛花色明细表';
   if (!confirm('从飞书「' + srcName + '」同步' + brand + '花色：\n\n'
     + '· 新增表里有、工作台没有的花色（含图片/卖点/参数）\n'
-    + '· 已有花色只补空缺参数，不覆盖图片、卖点、下架标记\n\n确定继续吗？')) return;
+    + '· 已有花色只补空缺参数；源表新补的图只补到「库里没图」的花色，不覆盖已有图\n\n确定继续吗？')) return;
   const btn = document.getElementById('pp-sync-btn');
   const setTxt = s => { if (btn) btn.textContent = s; };
   _ppSyncing = true; if (btn) { btn.disabled = true; btn.style.opacity = '.6'; }
@@ -14118,9 +14118,9 @@ async function syncPpFromSheets() {
     const { data: dry, error: de } = await supabase.functions.invoke('pattern-sheets-sync', { body: { dry_run: true, brand: brand } });
     if (de) throw new Error(de.message || '检查失败');
     if (!dry || !dry.ok) throw new Error((dry && dry.error) || '检查失败');
-    if (!dry.to_insert && !dry.to_update) { showToast('✅ 已是最新，飞书表没有新增或参数变化'); await loadPatternsFromDB(); return; }
+    if (!dry.to_insert && !dry.to_update && !dry.to_imgfix) { showToast('✅ 已是最新，飞书表没有新增或参数变化'); await loadPatternsFromDB(); return; }
     const total = dry.feishu_rows || 1;
-    const limit = dry.to_insert > 0 ? 5 : 20;   // 有新增要搬图，小批防止函数超时
+    const limit = (dry.to_insert > 0 || dry.to_imgfix > 0) ? 5 : 20;   // 有新增/补图要搬图，小批防止函数超时
     let offset = 0, ins = 0, upd = 0, imgs = 0, rounds = 0;
     while (true) {
       setTxt('🔄 同步中 ' + Math.min(offset + limit, total) + '/' + total);
