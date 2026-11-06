@@ -319,7 +319,7 @@ body {
 
 .page { display: none; padding: 32px 40px; }
 .page.active { display: block; }
-#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active, #page-price-quiz.active, #page-quiz-results.active, #page-huaming.active, #page-restock.active, #page-patterns.active { display: flex; height: 100vh; overflow: hidden; }
+#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active, #page-price-quiz.active, #page-quiz-results.active, #page-huaming.active, #page-restock.active, #page-biz-contacts.active, #page-patterns.active { display: flex; height: 100vh; overflow: hidden; }
 
 /* Header */
 .page-header { margin-bottom: 28px; }
@@ -2133,6 +2133,7 @@ body {
         <div class="nav-item" data-page="ranking" title="客服排名"><span class="icon">🏆</span><span>客服排名</span></div>
         <div class="nav-item" data-page="huaming" title="特殊花色速查（定轴/小直径/超薄/满着色/大基弧/小基弧）"><span class="icon">🌸</span><span>特殊花色</span></div>
         <div class="nav-item" data-page="restock" title="缺货补货动态（补货中/已入库/不补清单）"><span class="icon">📦</span><span>补货动态</span></div>
+        <div class="nav-item" data-page="biz-contacts" title="商务合作 / 商务种草：客服进线咨询合作时发对应渠道的对接号"><span class="icon">🤝</span><span>商务合作</span></div>
         <div class="nav-item" data-page="requests" title="申请审批（换班/加班/调休申请，管理员审批后自动生效）"><span class="icon">📝</span><span>申请审批</span></div>
       </div>
     </div>
@@ -3778,6 +3779,11 @@ body {
   </div>
   <div class="page" id="page-restock" style="padding:0;overflow:hidden;flex-direction:column;">
     <iframe id="restock-iframe" src="about:blank" data-src="restock.html?v=20261104c" style="flex:1;border:none;width:100%;"></iframe>
+  </div>
+
+  <!-- ===== 商务合作 / 商务种草（2026-11-06） ===== -->
+  <div class="page" id="page-biz-contacts" style="padding:0;overflow:hidden;flex-direction:column;">
+    <iframe id="biz-contacts-iframe" src="about:blank" data-src="biz-contacts.html?v=20261106a" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write"></iframe>
   </div>
   <div class="page" id="page-diversion" style="padding:0;overflow:hidden;flex-direction:column;">
     <iframe id="diversion-iframe" src="about:blank" data-src="diversion.html?v=20261023a" style="flex:1;border:none;width:100%;"></iframe>
@@ -11909,6 +11915,14 @@ function switchPage(page) {
       rsIframe.removeAttribute('data-src');
     }
   }
+  if (page === 'biz-contacts') {
+    // 商务合作 / 商务种草：延迟加载 iframe（首次点击才加载）
+    const bcIframe = document.getElementById('biz-contacts-iframe');
+    if (bcIframe && bcIframe.getAttribute('data-src') && bcIframe.src !== bcIframe.getAttribute('data-src')) {
+      bcIframe.src = bcIframe.getAttribute('data-src');
+      bcIframe.removeAttribute('data-src');
+    }
+  }
   if (page === 'diversion') {
     // 舆情转接登记：延迟加载 iframe（首次点击才加载）
     const divIframe = document.getElementById('diversion-iframe');
@@ -17177,7 +17191,7 @@ init();
 function prefetchSubPages() {
   try {
     if (navigator.connection && navigator.connection.saveData) return;
-    var want = ['restock', 'huaming', 'qc', 'gift', 'diversion'];
+    var want = ['restock', 'huaming', 'qc', 'gift', 'diversion', 'biz-contacts'];
     var urls = [];
     want.forEach(function (key) {
       var f = document.getElementById(key + '-iframe');
