@@ -26,61 +26,70 @@
   .btn.g{background:var(--primary);color:#fff;}
   .btn.o{background:#fff;border:1.5px solid var(--border);color:#334155;}
   .wrap{width:100%;max-width:1440px;margin:0 auto;padding:14px 16px 60px;flex:1;}
-  /* 品牌 tab */
-  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
-  .tab{padding:7px 20px;border-radius:20px;background:#fff;border:1.5px solid var(--border);color:#475569;
-       font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
-  .tab:hover{border-color:var(--primary);color:var(--primary-dark);}
-  .tab.active{background:linear-gradient(135deg,#10b981,#059669);color:#fff;border-color:transparent;}
-  .cnt{font-size:12px;font-weight:600;color:var(--muted);margin-left:2px;}
-  /* 卡片网格 */
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(226px,1fr));gap:12px;}
-  .card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;
+  /* 顶部分类切换（茹姐 2026-11-06：点一下只看那一类） */
+  .filters{margin-bottom:10px;}
+  .frow{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:6px;}
+  .flabel{font-size:11px;font-weight:700;color:var(--muted);min-width:32px;}
+  .chip{border:1.5px solid var(--border);background:#fff;color:#475569;border-radius:16px;
+        padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;line-height:1.3;}
+  .chip:hover{border-color:var(--primary);color:var(--primary-dark);}
+  .chip.active{background:linear-gradient(135deg,#10b981,#059669);color:#fff;border-color:transparent;}
+  .chip .cnt{font-size:10.5px;opacity:.75;margin-left:2px;}
+  .selfilter{border:1.5px solid var(--border);border-radius:9px;padding:7px 9px;font-size:12.5px;
+             font-family:inherit;color:#334155;background:#fff;outline:none;}
+  .selfilter:focus{border-color:var(--primary);}
+  /* 卡片网格（缩小版：一屏放更多） */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:9px;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:11px;overflow:hidden;
         display:flex;flex-direction:column;transition:all .2s;position:relative;}
-  .card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(15,23,42,.08);border-color:#a7f3d0;}
-  .cover{position:relative;aspect-ratio:3/4;background:#f1f5f9;cursor:zoom-in;}
+  .card:hover{transform:translateY(-2px);box-shadow:0 5px 14px rgba(15,23,42,.08);border-color:#a7f3d0;}
+  .cover{position:relative;aspect-ratio:1/1;background:linear-gradient(135deg,#f1f5f9,#e8eef0);cursor:zoom-in;}
   .cover img{width:100%;height:100%;object-fit:cover;display:block;}
-  .cover .ph{position:absolute;inset:0;display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;color:#cbd5e1;font-size:13px;}
-  .cover .ph .big{font-size:30px;}
-  .nimg{position:absolute;right:8px;bottom:8px;background:rgba(15,23,42,.65);color:#fff;font-size:11px;
-        font-weight:700;border-radius:10px;padding:2px 8px;}
-  .cbody{padding:9px 11px 11px;display:flex;flex-direction:column;gap:6px;flex:1;}
-  .cname{font-size:14px;font-weight:800;line-height:1.35;word-break:break-all;}
-  .ctags{display:flex;gap:5px;flex-wrap:wrap;}
-  .ctags span{font-size:11px;font-weight:700;border-radius:9px;padding:2px 8px;white-space:nowrap;}
+  .cover .ph{position:absolute;inset:0;display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;color:#cbd5e1;font-size:11px;}
+  .cover .ph .big{font-size:24px;}
+  .nimg{position:absolute;right:5px;bottom:5px;background:rgba(15,23,42,.65);color:#fff;font-size:9.5px;
+        font-weight:700;border-radius:8px;padding:1px 6px;}
+  .cbody{padding:6px 7px 7px;display:flex;flex-direction:column;gap:3px;flex:1;}
+  .cname{font-size:12px;font-weight:800;line-height:1.3;word-break:break-all;}
+  .ctags{display:flex;gap:3px;flex-wrap:wrap;}
+  .ctags span{font-size:9.5px;font-weight:700;border-radius:7px;padding:1px 5px;white-space:nowrap;}
   .tg-brand{background:#ecfdf5;color:#047857;}
   .tg-series{background:#eff6ff;color:#2563eb;}
   .tg-type{background:#fef3c7;color:#b45309;}
-  /* 抛型分区 / 系列小标题（茹姐 2026-11-05 定顺序） */
-  .ptype{margin:6px 0 4px;}
-  .ptype-h{display:flex;align-items:baseline;gap:10px;padding:12px 2px 9px;margin-bottom:14px;
-           border-bottom:2px solid var(--primary);}
-  .ptype-h .t{font-size:18px;font-weight:800;color:var(--text);letter-spacing:.5px;}
-  .ptype-h .n{font-size:12px;font-weight:600;color:var(--muted);}
-  .pseries{margin-bottom:22px;}
-  .pseries-h{display:flex;align-items:center;gap:8px;margin:0 2px 10px;font-size:14.5px;font-weight:800;color:#0f766e;}
-  .pseries-h:before{content:"";width:4px;height:16px;border-radius:3px;background:var(--primary);}
-  .pseries-h .n{font-size:12px;font-weight:600;color:var(--muted);}
-  .pseries-h .offn{font-size:11px;font-weight:600;color:#94a3b8;}
+  /* 状态分组小标题（茹姐 2026-11-06：上新最前、下架最后） */
+  .sgroup{margin-bottom:10px;}
+  .sgroup-h{display:flex;align-items:center;gap:7px;margin:0 2px 6px;font-size:12px;font-weight:800;color:#0f766e;}
+  .sgroup-h:before{content:"";width:3px;height:12px;border-radius:3px;background:var(--primary);}
+  .sgroup-h .n{font-size:10.5px;font-weight:600;color:var(--muted);}
+  .sgroup-new .sgroup-h{color:#15803d;}
+  .sgroup-new .sgroup-h:before{background:#22c55e;}
+  .sgroup-off .sgroup-h{color:#94a3b8;}
+  .sgroup-off .sgroup-h:before{background:#cbd5e1;}
   /* 参数 / 话术 / 复制 */
-  .cparams{display:flex;flex-wrap:wrap;gap:4px;}
-  .cparams span{font-size:11px;background:#f1f5f9;color:#64748b;border-radius:6px;padding:2px 6px;white-space:nowrap;}
+  .cparams{display:flex;flex-wrap:wrap;gap:3px;}
+  .cparams span{font-size:9.5px;background:#f1f5f9;color:#64748b;border-radius:5px;padding:1px 5px;white-space:nowrap;}
   .cparams span b{font-weight:700;color:#0f766e;}
-  .cdesc-wrap{position:relative;border-top:1px dashed var(--border);padding-top:7px;}
-  .cdesc{font-size:12px;color:#475569;line-height:1.55;word-break:break-word;padding-right:50px;}
-  .cno-desc{font-size:11.5px;color:#cbd5e1;}
-  .copy-btn{position:absolute;right:0;top:6px;border:1px solid #a7f3d0;background:#ecfdf5;color:#047857;
-            border-radius:7px;font-size:11px;font-weight:700;padding:3px 7px;cursor:pointer;font-family:inherit;line-height:1.3;}
+  .cdesc-wrap{position:relative;border-top:1px dashed var(--border);padding-top:5px;}
+  .cdesc{font-size:10.5px;color:#475569;line-height:1.42;word-break:break-word;padding-right:38px;
+         max-height:4.3em;overflow-y:auto;scrollbar-width:thin;}
+  .cno-desc{font-size:10px;color:#cbd5e1;}
+  .copy-btn{position:absolute;right:0;top:4px;border:1px solid #a7f3d0;background:#ecfdf5;color:#047857;
+            border-radius:6px;font-size:9.5px;font-weight:700;padding:2px 5px;cursor:pointer;font-family:inherit;line-height:1.3;}
   .copy-btn:hover{background:#d1fae5;}
   .card.off{opacity:.66;background:#fafafa;}
   .card.off .cover img{filter:grayscale(.72);}
-  .tag-off{background:#e2e8f0;color:#94a3b8;font-size:11px;font-weight:700;border-radius:8px;padding:2px 7px;}
-  .eyemark{position:absolute;left:8px;top:8px;background:rgba(16,185,129,.93);color:#fff;
-           font-size:10.5px;font-weight:700;border-radius:8px;padding:2px 7px;}
-  .ops{display:flex;gap:5px;margin-left:auto;margin-top:2px;}
-  .ops button{border:1px solid var(--border);background:#fff;border-radius:7px;font-size:12px;
-              padding:4px 9px;cursor:pointer;font-family:inherit;color:#475569;line-height:1;}
+  .card.new{border-color:#86efac;box-shadow:inset 0 0 0 1.5px #bbf7d0;}
+  .tag-off{background:#e2e8f0;color:#94a3b8;font-size:9.5px;font-weight:700;border-radius:7px;padding:1px 5px;}
+  .tag-new{background:#dcfce7;color:#15803d;font-size:9.5px;font-weight:700;border-radius:7px;padding:1px 5px;}
+  .eyemark{position:absolute;left:5px;top:5px;background:rgba(16,185,129,.93);color:#fff;
+           font-size:9px;font-weight:700;border-radius:7px;padding:1px 5px;}
+  /* 卡片操作：上新 / 下架 / 修改 / 删除（仅管理员） */
+  .ops{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:2px;}
+  .ops button{border:1px solid var(--border);background:#fff;border-radius:6px;font-size:10px;
+              padding:2px 3px;cursor:pointer;font-family:inherit;color:#475569;line-height:1.3;white-space:nowrap;}
   .ops button:hover{border-color:var(--primary);color:var(--primary-dark);}
+  .ops button.flag-new.on{background:#dcfce7;border-color:#86efac;color:#15803d;font-weight:800;}
+  .ops button.flag-off.on{background:#fee2e2;border-color:#fca5a5;color:#b91c1c;font-weight:800;}
   .empty{text-align:center;padding:70px 20px;color:var(--muted);font-size:14px;}
   .empty .big{font-size:44px;margin-bottom:10px;}
   /* 灯箱 */
@@ -128,11 +137,20 @@
     <span class="badge" id="roleBadge">…</span>
     <div class="sp"></div>
     <div class="search"><span class="ico">🔍</span><input id="q" placeholder="搜花色/系列" autocomplete="off"></div>
+    <select id="statusFilter" class="selfilter" title="按状态筛选">
+      <option value="">全部状态</option>
+      <option value="new">⬆ 上新</option>
+      <option value="on">在售</option>
+      <option value="off">⬇ 已下架</option>
+    </select>
     <button class="btn o" id="btnSync" style="display:none;">🔄 同步明细表</button>
     <button class="btn g" id="btnAdd" style="display:none;">＋ 新增</button>
   </div>
   <div class="wrap">
-    <div class="tabs" id="tabs"></div>
+    <div class="filters">
+      <div class="frow" id="filterType"></div>
+      <div class="frow" id="filterSeries"></div>
+    </div>
     <div id="grid"></div>
     <div class="empty" id="empty" style="display:none;">
       <div class="big">🌸</div>
@@ -189,7 +207,8 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let items = [];
 let isAdmin = false;
 let editingId = null;      // 编辑中的记录 id
-let brandFilter = '全部';
+let typeFilter = '全部';       // 顶部分类切换：抛型
+let seriesFilter = '全部';     // 顶部分类切换：系列
 
 /* ===== 分类口径（茹姐 2026-11-05）：抛型 半年抛→日抛；系列按指定顺序，人鱼／拼多多专属置后 ===== */
 const TYPE_ORDER = ['半年抛','日抛'];
@@ -212,6 +231,11 @@ function seriesOf(x){
 }
 const seriesRank = s => { const i = SERIES_ORDER.indexOf(s); return i < 0 ? 999 : i; };
 const typeRank = t => { const i = TYPE_ORDER.indexOf(t); return i < 0 ? 99 : i; };
+/* 状态：上新 → 在售 → 下架（茹姐 2026-11-06 定排序） */
+const isNew = x => !!x.is_new;
+const isOff = x => !!x.is_discontinued;
+const statusOf = x => isNew(x) ? 'new' : (isOff(x) ? 'off' : 'on');
+const statusRank = x => isNew(x) ? 0 : (isOff(x) ? 2 : 1);
 let newEye = [];           // 待上传新图 File[]
 let newLens = [];
 let eyeUrls = [];          // 已有图 URL（编辑时）
@@ -231,13 +255,7 @@ async function load(){
     .order('created_at', { ascending: false });
   if (error) { toast('读取失败：' + error.message); return; }
   items = data || [];
-  renderTabs(); renderGrid();
-}
-
-function brands(){
-  const set = [];
-  items.forEach(x => { if (x.brand && !set.includes(x.brand)) set.push(x.brand); });
-  return ['全部'].concat(set);
+  renderFilters(); renderGrid();
 }
 function coverOf(x){
   // 上眼图永远在最顶部；确实没有上眼图才退回镜片图
@@ -251,22 +269,36 @@ function imgsOf(x, kind){
 }
 function filtered(){
   const q = $('q').value.trim().toLowerCase();
-  let list = items;
-  if (brandFilter !== '全部') list = list.filter(x => x.brand === brandFilter);
-  if (q) list = list.filter(x => ((x.name||'') + ' ' + (x.series||'') + ' ' + (x.description||'')).toLowerCase().includes(q));
-  return list;
+  const st = $('statusFilter').value;
+  return items.filter(x => {
+    if (typeFilter !== '全部' && String(x.type || '其他') !== typeFilter) return false;
+    if (seriesFilter !== '全部' && seriesOf(x) !== seriesFilter) return false;
+    if (st && statusOf(x) !== st) return false;
+    if (q && !((x.name||'') + ' ' + (x.series||'') + ' ' + (x.description||'')).toLowerCase().includes(q)) return false;
+    return true;
+  });
 }
 
 /* ==================== 渲染 ==================== */
-function renderTabs(){
-  const bs = brands();
-  if (brandFilter !== '全部' && !bs.includes(brandFilter)) brandFilter = '全部';
-  $('tabs').innerHTML = bs.map(b => {
-    const n = b === '全部' ? items.length : items.filter(x => x.brand === b).length;
-    return '<button class="tab' + (brandFilter === b ? ' active' : '') + '" data-b="' + esc(b) + '">' + esc(b) +
-           ' <span class="cnt">' + n + '</span></button>';
+function renderFilters(){
+  // 计数按「其它维度全量」算，切换时数字稳定
+  const types = ['全部'].concat(TYPE_ORDER);
+  const series = ['全部'].concat(SERIES_ORDER);
+  $('filterType').innerHTML = '<span class="flabel">抛型</span>' + types.map(t => {
+    const n = t === '全部' ? items.length : items.filter(x => String(x.type || '其他') === t).length;
+    return '<button class="chip' + (typeFilter === t ? ' active' : '') + '" data-k="t" data-v="' + esc(t) + '">' +
+           esc(t) + ' <span class="cnt">' + n + '</span></button>';
   }).join('');
-  document.querySelectorAll('#tabs .tab').forEach(t => t.addEventListener('click', () => { brandFilter = t.dataset.b; renderTabs(); renderGrid(); }));
+  $('filterSeries').innerHTML = '<span class="flabel">系列</span>' + series.map(s => {
+    const n = s === '全部' ? items.length : items.filter(x => seriesOf(x) === s).length;
+    return '<button class="chip' + (seriesFilter === s ? ' active' : '') + '" data-k="s" data-v="' + esc(s) + '">' +
+           esc(s) + ' <span class="cnt">' + n + '</span></button>';
+  }).join('');
+  document.querySelectorAll('.filters .chip').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.k === 't') typeFilter = b.dataset.v;
+    else seriesFilter = b.dataset.v;
+    renderFilters(); renderGrid();
+  }));
 }
 function paramsHtml(x){
   const defs = [['色系','color'],['直径','diameter'],['着色','color_diameter'],['基弧','base_curve']];
@@ -276,12 +308,25 @@ function paramsHtml(x){
 }
 function cardHtml(x){
   const cover = coverOf(x);
-  const off = !!x.is_discontinued;
+  const st = statusOf(x);                    // new / on / off
   const eyeN = imgsOf(x,'eye').length, lensN = imgsOf(x,'lens').length;
   const tags = [x.brand, seriesOf(x), x.type].filter(Boolean)
     .map((v,i) => '<span class="' + ['tg-brand','tg-series','tg-type'][Math.min(i,2)] + '">' + esc(v) + '</span>').join('');
   const desc = String(x.description || '').trim();
-  return '<div class="card' + (off ? ' off' : '') + '" data-id="' + String(x.id) + '">' +
+  const stTag = st === 'new' ? ' <span class="tag-new">⬆ 上新</span>'
+              : st === 'off' ? ' <span class="tag-off">已下架</span>' : '';
+  // 管理员直接在卡片上标「上新 / 下架」；再点一次即取消
+  const ops = isAdmin
+    ? '<div class="ops">' +
+        '<button data-act="new" class="flag-new' + (st === 'new' ? ' on' : '') +
+          '" title="' + (st === 'new' ? '取消上新' : '标记上新，排到最前面') + '">⬆ 上新</button>' +
+        '<button data-act="off" class="flag-off' + (st === 'off' ? ' on' : '') +
+          '" title="' + (st === 'off' ? '恢复在售' : '标记下架，排到最后面') + '">⬇ 下架</button>' +
+        '<button data-act="edit" title="修改花色">✏️ 修改</button>' +
+        '<button data-act="del" title="删除花色">🗑️ 删除</button>' +
+      '</div>' : '';
+  return '<div class="card' + (st === 'new' ? ' new' : '') + (st === 'off' ? ' off' : '') +
+      '" data-id="' + String(x.id) + '" data-st="' + st + '">' +
     '<div class="cover" data-act="zoom">' +
       (cover ? '<img loading="lazy" src="' + esc(cover) + '" alt="' + esc(x.name) + '">'
              : '<div class="ph"><div class="big">🌸</div>暂无图片</div>') +
@@ -289,7 +334,7 @@ function cardHtml(x){
       ((eyeN + lensN) > 1 ? '<span class="nimg">' + (eyeN + lensN) + ' 图</span>' : '') +
     '</div>' +
     '<div class="cbody">' +
-      '<div class="cname">' + esc(x.name) + (off ? ' <span class="tag-off">已下架</span>' : '') + '</div>' +
+      '<div class="cname">' + esc(x.name) + stTag + '</div>' +
       (tags ? '<div class="ctags">' + tags + '</div>' : '') +
       paramsHtml(x) +
       '<div class="cdesc-wrap">' +
@@ -297,44 +342,58 @@ function cardHtml(x){
                 '<button class="copy-btn" data-act="copy" title="复制这段花色话术">📋 复制</button>'
               : '<div class="cno-desc">暂无话术</div>') +
       '</div>' +
-      (isAdmin ? '<div class="ops"><button data-act="edit">✏️ 修改</button><button data-act="del">🗑️</button></div>' : '') +
+      ops +
     '</div>' +
   '</div>';
 }
 function renderGrid(){
-  const list = filtered();
+  // 顶部 chip 切换看（不再整页大分区）：全局排序 上新 → 在售 → 下架，其次抛型/系列顺序
+  const cmp = (a,b) => String(a).localeCompare(String(b), 'zh');
+  const list = filtered().slice().sort((a,b) =>
+    statusRank(a) - statusRank(b) ||
+    typeRank(String(a.type || '其他')) - typeRank(String(b.type || '其他')) || cmp(a.type||'', b.type||'') ||
+    seriesRank(seriesOf(a)) - seriesRank(seriesOf(b)) || cmp(seriesOf(a), seriesOf(b)) ||
+    (Number(b.sort_order) || 0) - (Number(a.sort_order) || 0) || cmp(a.name||'', b.name||''));
   $('empty').style.display = list.length ? 'none' : '';
   $('grid').style.display = list.length ? '' : 'none';
   if (!list.length) { $('grid').innerHTML = ''; return; }
-  // 两级分组：抛型（半年抛→日抛）→ 系列（按茹姐给的顺序）；组内「已下架」一律排最后
-  const byType = new Map();
-  list.forEach(x => {
-    const t = String(x.type || '其他');
-    if (!byType.has(t)) byType.set(t, new Map());
-    const s = seriesOf(x), m = byType.get(t);
-    if (!m.has(s)) m.set(s, []);
-    m.get(s).push(x);
-  });
-  const cmp = (a,b) => String(a).localeCompare(String(b), 'zh');
-  const typeKeys = [...byType.keys()].sort((a,b) => typeRank(a) - typeRank(b) || cmp(a,b));
+  const stFilter = $('statusFilter').value;
   let html = '';
-  typeKeys.forEach(t => {
-    const m = byType.get(t);
-    const sKeys = [...m.keys()].sort((a,b) => seriesRank(a) - seriesRank(b) || cmp(a,b));
-    const total = [...m.values()].reduce((n,arr) => n + arr.length, 0);
-    html += '<section class="ptype"><div class="ptype-h"><span class="t">' + esc(t) +
-            '</span><span class="n">' + total + ' 款 · ' + sKeys.length + ' 个系列</span></div>';
-    sKeys.forEach(s => {
-      const arr = m.get(s).slice().sort((a,b) => (a.is_discontinued ? 1 : 0) - (b.is_discontinued ? 1 : 0));
-      const offN = arr.filter(x => x.is_discontinued).length;
-      html += '<div class="pseries"><div class="pseries-h">' + esc(s) + ' <span class="n">' + arr.length + ' 款</span>' +
-              (offN ? '<span class="offn">· ' + offN + ' 款已下架</span>' : '') + '</div>' +
-              '<div class="grid">' + arr.map(cardHtml).join('') + '</div></div>';
-    });
-    html += '</section>';
-  });
+  if (!stFilter) {
+    const groups = [
+      ['new', '⬆ 上新', list.filter(x => statusOf(x) === 'new')],
+      ['on',  '在售',   list.filter(x => statusOf(x) === 'on')],
+      ['off', '⬇ 已下架', list.filter(x => statusOf(x) === 'off')],
+    ].filter(g => g[2].length);
+    html = groups.map(g =>
+      '<section class="sgroup sgroup-' + g[0] + '">' +
+        (groups.length > 1 ? '<div class="sgroup-h">' + g[1] + ' <span class="n">' + g[2].length + ' 款</span></div>' : '') +
+        '<div class="grid">' + g[2].map(cardHtml).join('') + '</div>' +
+      '</section>').join('');
+  } else {
+    html = '<div class="grid">' + list.map(cardHtml).join('') + '</div>';
+  }
   $('grid').innerHTML = html;
   document.querySelectorAll('#grid .card').forEach(c => c.addEventListener('click', onCard));
+}
+/* 卡片上直接标记：上新 / 下架（互斥，管理员） */
+async function setFlag(x, patch, msg){
+  if (!isAdmin) { toast('仅管理员可标记'); return; }
+  const { error } = await sb.from('pattern_assets').update(patch).eq('id', x.id);
+  if (error) { toast('标记失败：' + error.message); return; }
+  Object.assign(x, patch);      // 本地同步，立刻重排，不用整页拉数
+  renderFilters(); renderGrid();
+  toast(msg);
+}
+function toggleNew(x){
+  const v = !isNew(x);
+  setFlag(x, v ? { is_new: true, is_discontinued: false } : { is_new: false },
+          v ? '已标记上新 ⬆' : '已取消上新');
+}
+function toggleOff(x){
+  const v = !isOff(x);
+  setFlag(x, v ? { is_discontinued: true, is_new: false } : { is_discontinued: false },
+          v ? '已标记下架 ⬇' : '已恢复在售');
 }
 
 /* ==================== 灯箱 ==================== */
@@ -430,13 +489,14 @@ async function save(){
     description: $('fDesc').value.trim(),
     eye_imgs: eyeUrls,
     lens_imgs: lensUrls,
-    is_discontinued: false,
     updated_hint: undefined,
   };
   let error;
   if (editingId) {
+    // ⚠️ 编辑时不要重置管理员手动标的「上新 / 下架」（row 里不写这两个字段即可）
     ({ error } = await sb.from('pattern_assets').update(row).eq('id', editingId));
   } else {
+    row.is_discontinued = false;
     row.sort_order = Math.floor(Date.now() / 1000) % 1000000000; // 新增排前面
     ({ error } = await sb.from('pattern_assets').insert(row));
   }
@@ -475,10 +535,13 @@ function onCard(e){
   if (actName === 'copy') { e.stopPropagation(); copyDesc(x); return; }
   if (actName === 'edit') { e.stopPropagation(); openForm(x); return; }
   if (actName === 'del') { e.stopPropagation(); delItem(x); return; }
+  if (actName === 'new') { e.stopPropagation(); toggleNew(x); return; }
+  if (actName === 'off') { e.stopPropagation(); toggleOff(x); return; }
   if (e.target.closest('.ops')) return;
   openLight(x);
 }
 $('btnAdd').addEventListener('click', () => openForm(null));
+$('statusFilter').addEventListener('change', renderGrid);
 
 /* ==================== 从飞书花色明细表同步（仅管理员） ==================== */
 let syncing = false;
