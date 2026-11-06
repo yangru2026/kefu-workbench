@@ -276,6 +276,14 @@ async function doRegister() {
 // ---------- 日报 ----------
 let dailyReports = [];
 let dailySub = null;
+/* 本地日期（东八区）：原 toISOString().slice(0,10) 是 UTC，凌晨会算到前一天。
+   2026-11-06 加「查往日」后统一走这里，避免选中日期与实际数据错一天。 */
+function dailyLocalDate(d) {
+  const x = d ? new Date(d) : new Date();
+  return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+}
+let dailyTrackDate = '';   // '' = 今天；否则为 YYYY-MM-DD（查看往日）
+let dailyMonthKey = '';    // '' = 当月；否则为 YYYY-MM（月度汇总）
 // 各组预置店铺模板（每个店铺独立目标，admin可在模板管理中修改）
 const DEFAULT_TEMPLATES = {
   'A组': { shops: ['TM-弥生','KS-弥生','TM-极氧','DY弥生官方','TM-护眼','XHS-弥生','DY-YOUHOO','DY-极氧','JD-弥生','XHS-极氧','有赞-拼多多'].map(n => ({ name: n, target: 15 })) },
@@ -491,12 +499,11 @@ async function openDailyForm() {
   if (!currentUser) { showToast('请先登录'); switchPage('login'); return; }
   const gate = await dailyGateReason();
   if (gate) { dailyGateShow(gate); return; }
+  hideDailyPanes();
   document.getElementById('daily-form-area').style.display = '';
-  document.getElementById('daily-track-area').style.display = 'none';
-  document.getElementById('daily-result-area').style.display = 'none';
   document.getElementById('daily-date-label').textContent = new Date().toLocaleDateString('zh-CN');
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = dailyLocalDate();
   const existing = dailyReports.find(r => r.report_date === today);
   const savedShops = existing?.content?.shops;
   document.getElementById('daily-analysis').value = existing?.content?.analysis || '';
@@ -753,7 +760,7 @@ async function submitDaily() {
   if (!currentUser) return;
   const gate = await dailyGateReason();
   if (gate) { dailyGateShow(gate); return; }
-  const today = new Date().toISOString().slice(0, 10);
+  const today = dailyLocalDate();
   const tbody = document.getElementById('daily-shop-tbody');
   const shops = [];
   tbody.querySelectorAll('tr[data-idx]').forEach(row => {
@@ -784,7 +791,7 @@ async function submitDaily() {
     showToast('日报提交成功');
     // 展示结果卡片（截图发群）
     renderDailyResult(content);
-    document.getElementById('daily-form-area').style.display = 'none';
+    hideDailyPanes();
     document.getElementById('daily-result-area').style.display = '';
     loadDailyReports();
   }
@@ -2372,29 +2379,27 @@ function showArchiveDate(dateStr) {
 }
 
 function closeDailyTrack() {
-  document.getElementById('daily-track-area').style.display = 'none';
+  hideDailyPanes();
   renderDailyList();
 }
 
-/* 当班名单：排班表 × profiles 匹配（日报提交情况 / 今日待办弹窗共用，2026-11-03 抽取） */
-function dailyOnShiftList(profiles) {
-  const today = new Date();
-  const monthKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
-  const todayDay = String(today.getDate());
-  const monthSchedule = scheduleData[monthKey];
-  // 构建排班映射：名字 → 今日班次
+/* 当班名单：排班表 × profiles 匹配（日报提交情况 / 今日待办弹窗共用，2026-11-03 抽取）
+   2026-11-06 泛化为按日期查：传 dateStr 可取任意历史日；该月无排班数据 → 返回 null，
+   由调用方按「在册全员」口径兜底（历史月份只有 2026-08 / 2026-11 有排班）。 */
+function dailyShiftListFor(dateStr, profiles) {
+  const monthKey = String(dateStr).slice(0, 7);
+  const dayKey = String(Number(String(dateStr).slice(8, 10)));
+  const monthSchedule = (typeof scheduleData !== 'undefined') ? scheduleData[monthKey] : null;
+  if (!monthSchedule || !monthSchedule.staff || !monthSchedule.staff.length) return null;
+  // 构建排班映射：名字 → 当日班次
   const shiftMap = {};
-  if (monthSchedule && monthSchedule.staff) {
-    monthSchedule.staff.forEach(s => {
-      const shift = s.schedule[todayDay];
-      // 休/调（调休）都算休息：不算当班、不进日报未完成名单、不催日报
-      if (shift && !shift.includes('休') && !shift.includes('调')) {
-        shiftMap[s.name] = shift;
-      }
-    });
-  }
-  // 用排班映射中的花名匹配 profiles 中的 name
-  // 同时检查：如果 profile 的 name 在排班中找不到，也试试用排班名去 match
+  monthSchedule.staff.forEach(s => {
+    const shift = (s.schedule || {})[dayKey];
+    // 休/调（调休）都算休息：不算当班、不进日报未完成名单、不催日报
+    if (shift && !String(shift).includes('休') && !String(shift).includes('调')) {
+      shiftMap[s.name] = shift;
+    }
+  });
   const onShiftProfiles = [];
   const matchedScheduleNames = new Set();
   (profiles || []).forEach(p => {
@@ -2402,19 +2407,16 @@ function dailyOnShiftList(profiles) {
     if ((p.status && p.status !== 'active') || p.left_at) return;
     const pname = p.name || '';
     const rname = p.real_name || '';
-    // 优先精确匹配花名
     if (shiftMap[pname]) {
       onShiftProfiles.push({ ...p, shift: shiftMap[pname] });
       matchedScheduleNames.add(pname);
       return;
     }
-    // 精确匹配真实姓名
     if (rname && shiftMap[rname]) {
       onShiftProfiles.push({ ...p, shift: shiftMap[rname] });
       matchedScheduleNames.add(rname);
       return;
     }
-    // 模糊匹配：排班表中的名字包含 profile 名字或反之（同时检查花名和真名）
     for (const sname of Object.keys(shiftMap)) {
       if (!matchedScheduleNames.has(sname)) {
         if (sname.includes(pname) || pname.includes(sname) || (rname && (sname.includes(rname) || rname.includes(sname)))) {
@@ -2432,6 +2434,10 @@ function dailyOnShiftList(profiles) {
     }
   }
   return onShiftProfiles;
+}
+/* 兼容旧调用（今日待办弹窗）：今天没排班时维持原来的「空名单」行为 */
+function dailyOnShiftList(profiles) {
+  return dailyShiftListFor(dailyLocalDate(), profiles) || [];
 }
 
 /* ============ 今日日报 · 未完成名单弹窗（2026-11-03，仿售后工作台待办弹窗） ============
@@ -2461,8 +2467,7 @@ async function refreshDailyTodoModal() {
   try {
     if (!supabase) throw new Error('数据服务未就绪');
     if (currentProfile?.role !== 'admin') throw new Error('仅管理员可查看全员提交情况');
-    const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
+    const todayStr = dailyLocalDate();
     const [pr, rr, qr, vr] = await Promise.all([
       supabase.from('profiles').select('id,name,group_name,real_name').eq('status', 'active').order('name'),
       supabase.from('daily_reports').select('user_id').eq('report_date', todayStr),
@@ -2540,6 +2545,8 @@ async function refreshDailyTodoModal() {
       + '<div style="flex:1;overflow:auto;">' + body + '</div>'
       + '<div style="margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
       + '<span style="font-size:11px;color:#94a3b8;flex:1;min-width:180px;">口径：当班人员（早/中/晚）；未完成 = 日报未填 / 质检未确认 / 客户之声不足 ' + vocLimit + ' 条</span>'
+      + '<button class="btn-sm outline" style="padding:6px 12px;font-size:12px;" onclick="closeDailyTodoModal();openDailyTrack();">📅 查看往日提交情况</button>'
+      + '<button class="btn-sm outline" style="padding:6px 12px;font-size:12px;" onclick="closeDailyTodoModal();openDailyMonthSummary();">📅 月度汇总</button>'
       + '<button class="btn-sm outline" style="padding:6px 12px;font-size:12px;" onclick="closeDailyTodoModal();renderDailyTrack();">📊 店铺汇总</button>'
       + '<button class="btn-sm outline" style="padding:6px 12px;font-size:12px;" onclick="refreshDailyTodoModal()">🔄 刷新</button>'
       + '<button class="btn-sm primary" style="padding:6px 16px;font-size:12px;" onclick="closeDailyTodoModal()">关闭</button>'
@@ -2556,37 +2563,79 @@ async function refreshDailyTodoModal() {
   }
 }
 
+/* ===== 日报提交情况：日期回看（2026-11-06） ===== */
+function hideDailyPanes() {
+  ['daily-form-area', 'daily-track-area', 'daily-result-area', 'daily-month-area'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+}
+function dailyTrackDateStr() { return dailyTrackDate || dailyLocalDate(); }
+function syncDailyTrackDateInput() {
+  const dp = document.getElementById('daily-track-datepick');
+  if (dp) dp.value = dailyTrackDateStr();
+}
+function openDailyTrack(dateStr) {
+  if (dateStr) dailyTrackDate = dateStr;
+  hideDailyPanes();
+  document.getElementById('daily-track-area').style.display = '';
+  syncDailyTrackDateInput();
+  renderDailyTrack();
+}
+function setDailyTrackDate(v) { if (!v) return; dailyTrackDate = v; renderDailyTrack(); syncDailyTrackDateInput(); }
+function shiftDailyTrackDate(delta) {
+  const d = new Date(dailyTrackDateStr() + 'T12:00:00');
+  d.setDate(d.getDate() + delta);
+  setDailyTrackDate(dailyLocalDate(d));
+}
+function goDailyTrackToday() { dailyTrackDate = ''; renderDailyTrack(); syncDailyTrackDateInput(); }
+function jumpToDailyTrack(d) { openDailyTrack(d); }
+
 async function renderDailyTrack() {
   if (!supabase) return;
-  document.getElementById('daily-form-area').style.display = 'none';
-  document.getElementById('daily-result-area').style.display = 'none';
+  hideDailyPanes();
   document.getElementById('daily-track-area').style.display = '';
-  const today = new Date();
-  const todayDateStr = today.toISOString().slice(0, 10);
-  document.getElementById('daily-track-date').textContent = todayDateStr;
+  const dateStr = dailyTrackDateStr();
+  syncDailyTrackDateInput();
+  const isToday = dateStr === dailyLocalDate();
+  document.getElementById('daily-track-date').textContent = dateStr + (isToday ? '（今天）' : '（历史）');
 
   const [{ data: profiles }, { data: reports }] = await Promise.all([
-    supabase.from('profiles').select('id,name,group_name,real_name').eq('status', 'active').order('name'),
-    supabase.from('daily_reports').select('*').eq('report_date', todayDateStr)
+    supabase.from('profiles').select('id,name,group_name,real_name,role,status,left_at').eq('status', 'active').order('name'),
+    supabase.from('daily_reports').select('*').eq('report_date', dateStr)
   ]);
 
   const reportMap = {};
   (reports || []).forEach(r => { reportMap[r.user_id] = r; });
 
   const list = document.getElementById('daily-track-list');
+  const oldAgg0 = document.getElementById('daily-track-agg');
+  if (oldAgg0) oldAgg0.remove();
+  const oldDetail = document.getElementById('daily-track-detail');
+  if (oldDetail) oldDetail.remove();
   if (!profiles || profiles.length === 0) {
     list.innerHTML = '<p style="text-align:center;color:var(--text-secondary);">暂无客服人员数据</p>';
     return;
   }
 
-  const isLeader = currentProfile?.role === 'admin';
-  if (!isLeader) {
+  if (currentProfile?.role !== 'admin') {
     list.innerHTML = '<p style="text-align:center;color:var(--text-secondary);">仅管理员/组长可查看全员提交情况</p>';
     return;
   }
 
-  // 读取当日排班表，找出当班人员（2026-11-03 抽成 dailyOnShiftList，与「今日待办」弹窗共用）
-  const onShiftProfiles = dailyOnShiftList(profiles);
+  // 有排班 → 按当班名单；历史月份无排班 → 按在册全员（茹姐 2026-11-06 定）
+  const shiftList = dailyShiftListFor(dateStr, profiles);
+  const hasSchedule = !!shiftList;
+  // 在册全员口径排除管理员（管理员不填日报，不算「未提交」）；组长/客服都要填
+  const activeProfiles = (profiles || []).filter(p =>
+    p.role !== 'admin' && !((p.status && p.status !== 'active') || p.left_at));
+  const onShiftProfiles = hasSchedule ? shiftList
+    : activeProfiles.map(p => ({ ...p, shift: '' }));
+  const calLabel = hasSchedule ? '当班' : '在册';
+  const calEl = document.getElementById('daily-track-caliber');
+  if (calEl) calEl.textContent = hasSchedule
+    ? '口径：当日排班 · 当班人员'
+    : '口径：该月无排班 · 按在册全员（不含管理员）统计（含休息，仅供参考）';
 
   // 未提交人员列表（用于顶部提醒）
   const notSubmitted = onShiftProfiles.filter(p => !reportMap[p.id] && !p.noProfile);
@@ -2603,16 +2652,17 @@ async function renderDailyTrack() {
   // 渲染
   let html = '';
 
-  // 顶部提醒横幅
+  // 顶部提醒横幅（历史日期文案改为「该日」，避免说成今天）
+  const dayLabel = isToday ? '今日' : dateStr;
   if (onShiftProfiles.length === 0) {
-    html += '<div style="text-align:center;padding:20px;color:var(--text-secondary);background:#fff7ed;border-radius:10px;margin-bottom:16px;">⚠️ 今日排班表中未找到当班人员，或排班数据为空</div>';
+    html += '<div style="text-align:center;padding:20px;color:var(--text-secondary);background:#fff7ed;border-radius:10px;margin-bottom:16px;">⚠️ 当日排班表中未找到当班人员，或排班数据为空</div>';
   } else if (notSubmitted.length > 0) {
     html += `<div style="padding:12px 16px;background:#FFF3D4;border-radius:10px;margin-bottom:16px;border-left:4px solid #f59e0b;">
-      <div style="font-size:14px;font-weight:700;color:#b45309;margin-bottom:4px;">⏳ 以下当班人员尚未提交日报：</div>
-      <div style="font-size:13px;color:#92400e;">${notSubmitted.map(p => '<strong>' + escapeHtml(p.name) + '</strong>（' + (p.group_name || '未分组') + ' · ' + (p.shift || '当班') + '）').join('、')}</div>
+      <div style="font-size:14px;font-weight:700;color:#b45309;margin-bottom:4px;">⏳ ${dayLabel} 以下${calLabel}人员尚未提交日报：</div>
+      <div style="font-size:13px;color:#92400e;">${notSubmitted.map(p => '<strong>' + escapeHtml(p.name) + '</strong>（' + escapeHtml(p.group_name || '未分组') + (p.shift ? ' · ' + escapeHtml(p.shift) : '') + '）').join('、')}</div>
     </div>`;
   } else {
-    html += '<div style="padding:12px 16px;background:#dcfce7;border-radius:10px;margin-bottom:16px;border-left:4px solid #22c55e;"><div style="font-size:14px;font-weight:700;color:#16a34a;">✅ 今日当班人员已全部提交日报</div></div>';
+    html += `<div style="padding:12px 16px;background:#dcfce7;border-radius:10px;margin-bottom:16px;border-left:4px solid #22c55e;"><div style="font-size:14px;font-weight:700;color:#16a34a;">✅ ${dayLabel} ${calLabel}人员已全部提交日报</div></div>`;
   }
 
   // 统计卡片
@@ -2621,7 +2671,7 @@ async function renderDailyTrack() {
   html += `<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
     <div style="flex:1;min-width:80px;background:#eff6ff;border-radius:8px;padding:8px;text-align:center;">
       <div style="font-size:18px;font-weight:700;color:#2563eb;">${totalOnShift}</div>
-      <div style="font-size:11px;color:#666;">今日当班</div>
+      <div style="font-size:11px;color:#666;">${isToday ? '今日' : '当日'}${calLabel}</div>
     </div>
     <div style="flex:1;min-width:80px;background:#dcfce7;border-radius:8px;padding:8px;text-align:center;">
       <div style="font-size:18px;font-weight:700;color:#16a34a;">${submitted}</div>
@@ -2641,7 +2691,7 @@ async function renderDailyTrack() {
   sortedGroups.forEach(g => {
     const members = grouped[g];
     html += `<div style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
-      <div style="padding:6px 14px;background:#f8f9ff;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;">${escapeHtml(g)} · ${members.length}人当班</div>
+      <div style="padding:6px 14px;background:#f8f9ff;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;">${escapeHtml(g)} · ${members.length}人${calLabel}</div>
       <div style="padding:4px 14px;">`;
 
     members.forEach(m => {
@@ -2650,7 +2700,7 @@ async function renderDailyTrack() {
       const statusText = hasReport ? '✅ 已提交' : (m.noProfile ? '⚠️ 未注册' : '⏳ 未提交');
       const statusColor = hasReport ? 'var(--success)' : (m.noProfile ? 'var(--warning)' : 'var(--danger)');
       html += `
-        <div class="daily-track-item" style="cursor:${m.noProfile ? 'default' : 'pointer'};" onclick="${m.noProfile ? '' : "showDailyDetail('" + m.id + "', '" + escapeAttr(m.name || '') + "')"}">
+        <div class="daily-track-item" style="cursor:${m.noProfile ? 'default' : 'pointer'};" onclick="${m.noProfile ? '' : "showDailyDetail('" + m.id + "', '" + escapeAttr(m.name || '') + "', '" + dateStr + "')"}">
           <div class="daily-track-avatar" style="background:${hasReport ? 'var(--success)' : 'var(--primary-light)'};">${(m.name || '?').charAt(0)}</div>
           <div class="daily-track-info">
             <div class="daily-track-name">${escapeHtml(m.name || '未命名')} <span style="font-size:11px;color:var(--text-secondary);">${m.shift ? '(' + escapeHtml(m.shift) + ')' : ''}</span></div>
@@ -2699,7 +2749,7 @@ async function renderDailyTrack() {
   const aggContainer = document.createElement('div');
   aggContainer.id = 'daily-track-agg';
   aggContainer.style.marginTop = '18px';
-  aggContainer.innerHTML = '<h4 style="margin-bottom:10px;font-size:15px;">📊 今日已提交数据汇总（按组）</h4>';
+  aggContainer.innerHTML = '<h4 style="margin-bottom:10px;font-size:15px;">📊 ' + dateStr + ' 已提交数据汇总（按组）</h4>';
 
   const aggGroupOrder = ['A组','B组','C组'];
   const aggRemaining = Object.keys(groupAgg).filter(g => !aggGroupOrder.includes(g));
@@ -2749,16 +2799,177 @@ async function renderDailyTrack() {
   list.parentElement.appendChild(aggContainer);
 }
 
-async function showDailyDetail(userId, userName) {
-  const today = new Date().toISOString().slice(0, 10);
-  const { data } = await supabase.from('daily_reports').select('*').eq('user_id', userId).eq('report_date', today).single();
-  if (!data) { showToast(userName + ' 今日未提交日报'); return; }
-  // Show in a simple alert or modal - for now use a card in the track area
+async function showDailyDetail(userId, userName, dateStr) {
+  const d = dateStr || dailyTrackDateStr();
+  const { data } = await supabase.from('daily_reports').select('*').eq('user_id', userId).eq('report_date', d).maybeSingle();
+  if (!data) { showToast(userName + ' ' + d + ' 未提交日报'); return; }
   const list = document.getElementById('daily-track-list');
+  const old = document.getElementById('daily-track-detail');
+  if (old) old.remove();
   const detailCard = document.createElement('div');
+  detailCard.id = 'daily-track-detail';
   detailCard.innerHTML = renderDailyReportCard(data);
   detailCard.style.marginTop = '16px';
   list.appendChild(detailCard);
+  detailCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/* ===== 日报月度汇总（2026-11-06 汇报用） =====
+   基准日 = 当月「有人提交过日报」的日期（避免把没人填报的休息日算成漏交）。
+   按人统计：已交天数 / 未交日期 / 提交率；柱状图点某天可跳到当日提交明细。 */
+let dailyMonthCsvRows = [];
+function dailyMonthRange(mk) {
+  const parts = String(mk).split('-').map(Number);
+  const y = parts[0], m = parts[1];
+  const start = y + '-' + String(m).padStart(2, '0') + '-01';
+  const ny = m === 12 ? y + 1 : y, nm = m === 12 ? 1 : m + 1;
+  return { start, end: ny + '-' + String(nm).padStart(2, '0') + '-01' };
+}
+function syncDailyMonthInput() {
+  const mp = document.getElementById('daily-month-pick');
+  if (mp) mp.value = dailyMonthKey || dailyLocalDate().slice(0, 7);
+}
+function openDailyMonthSummary(monthKey) {
+  if (monthKey) dailyMonthKey = monthKey;
+  hideDailyPanes();
+  document.getElementById('daily-month-area').style.display = '';
+  syncDailyMonthInput();
+  renderDailyMonthSummary();
+}
+function setDailyMonth(v) { if (!v) return; dailyMonthKey = v; renderDailyMonthSummary(); syncDailyMonthInput(); }
+function shiftDailyMonth(delta) {
+  const mk = dailyMonthKey || dailyLocalDate().slice(0, 7);
+  const d = new Date(mk + '-01T12:00:00');
+  d.setMonth(d.getMonth() + delta);
+  setDailyMonth(dailyLocalDate(d).slice(0, 7));
+}
+function closeDailyMonthSummary() { hideDailyPanes(); }
+function exportDailyMonthCsv() {
+  if (!dailyMonthCsvRows.length) { showToast('暂无可导出的数据'); return; }
+  const csv = '\uFEFF' + dailyMonthCsvRows
+    .map(r => r.map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(','))
+    .join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '日报提交汇总_' + (dailyMonthKey || dailyLocalDate().slice(0, 7)) + '.csv';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  showToast('已导出 CSV ✅');
+}
+
+async function renderDailyMonthSummary() {
+  if (!supabase) return;
+  const mk = dailyMonthKey || dailyLocalDate().slice(0, 7);
+  const body = document.getElementById('daily-month-body');
+  if (!body) return;
+  hideDailyPanes();
+  document.getElementById('daily-month-area').style.display = '';
+  syncDailyMonthInput();
+  const dateEl = document.getElementById('daily-month-date');
+  if (dateEl) dateEl.textContent = mk;
+  const hasSchedule = (typeof scheduleData !== 'undefined') && scheduleData[mk]
+    && scheduleData[mk].staff && scheduleData[mk].staff.length > 0;
+  const caliber = hasSchedule
+    ? '口径：该月有排班 · 按「当月有日报记录的日子」统计（不含管理员）'
+    : '口径：该月无排班 · 按在册全员（不含管理员）× 有日报记录的日子统计（含休息，仅供参考）';
+  const calEl = document.getElementById('daily-month-caliber');
+  if (calEl) calEl.textContent = caliber;
+
+  if (currentProfile?.role !== 'admin') {
+    body.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:30px 0;">仅管理员可查看月度汇总</p>';
+    return;
+  }
+  body.innerHTML = '<div style="text-align:center;padding:30px 0;color:var(--text-secondary);font-size:13px;">加载中…</div>';
+  const { start, end } = dailyMonthRange(mk);
+  const [{ data: profiles, error: pe }, { data: reports, error: re }] = await Promise.all([
+    supabase.from('profiles').select('id,name,group_name,real_name,status,left_at').eq('status', 'active').order('name'),
+    supabase.from('daily_reports').select('user_id,report_date,status,content').gte('report_date', start).lt('report_date', end)
+  ]);
+  if (re || pe) {
+    body.innerHTML = '<div style="padding:16px;color:#dc2626;font-size:13px;">读取失败：' + escapeHtml((re || pe).message) + '</div>';
+    return;
+  }
+  const rows = reports || [];
+  const byDay = {};
+  rows.forEach(r => {
+    const d = String(r.report_date).slice(0, 10);
+    if (!byDay[d]) byDay[d] = new Set();
+    byDay[d].add(r.user_id);
+  });
+  const days = Object.keys(byDay).sort();
+  if (!days.length) {
+    dailyMonthCsvRows = [];
+    body.innerHTML = '<div style="text-align:center;padding:36px 0;color:var(--text-secondary);font-size:13.5px;">📭 ' + escapeHtml(mk) + ' 暂无日报记录</div>';
+    return;
+  }
+  // 排除管理员：管理员不填日报，不应出现在「未提交」里
+  const activeProfiles = (profiles || []).filter(p =>
+    p.role !== 'admin' && !((p.status && p.status !== 'active') || p.left_at));
+  const peopleSet = new Set(rows.map(r => r.user_id));
+  const maxN = Math.max.apply(null, days.map(d => byDay[d].size).concat([1]));
+
+  // 按人汇总（导出 CSV 也用这份）
+  const per = activeProfiles.map(p => {
+    const miss = days.filter(d => !byDay[d].has(p.id));
+    return { name: p.name || '未命名', group: p.group_name || '未分组', ok: days.length - miss.length, miss };
+  }).sort((a, b) => b.ok - a.ok || String(a.name).localeCompare(String(b.name), 'zh'));
+
+  dailyMonthCsvRows = [['姓名', '组别', '有日报记录天数', '已提交天数', '提交率', '未提交日期']].concat(
+    per.map(p => [p.name, p.group, days.length, p.ok,
+      (p.ok / days.length * 100).toFixed(1) + '%', p.miss.map(d => d.slice(5)).join(' ')]));
+
+  // 柱状图：点某天直接跳到当日提交情况
+  const bars = days.map(d => {
+    const n = byDay[d].size;
+    const h = Math.max(6, Math.round(n / maxN * 84));
+    return '<div onclick="jumpToDailyTrack(\'' + d + '\')" title="' + d + '：' + n + ' 人提交 · 点击查看当日明细" '
+      + 'style="cursor:pointer;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;min-width:20px;flex:1;">'
+      + '<div style="font-size:9.5px;color:#64748b;margin-bottom:2px;">' + n + '</div>'
+      + '<div style="width:100%;max-width:22px;height:' + h + 'px;background:linear-gradient(180deg,#34d399,#10b981);border-radius:4px 4px 0 0;"></div>'
+      + '<div style="font-size:9.5px;color:#64748b;margin-top:3px;">' + d.slice(8) + '</div></div>';
+  }).join('');
+
+  const statCard = (num, label, color, bg) =>
+    '<div style="flex:1;min-width:96px;background:' + bg + ';border-radius:9px;padding:10px;text-align:center;">'
+    + '<div style="font-size:20px;font-weight:800;color:' + color + ';">' + num + '</div>'
+    + '<div style="font-size:11px;color:#64748b;margin-top:2px;">' + label + '</div></div>';
+
+  let html = '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">'
+    + statCard(days.length, '有日报记录天数', '#2563eb', '#eff6ff')
+    + statCard(rows.length, '累计提交人次', '#16a34a', '#dcfce7')
+    + statCard((rows.length / days.length).toFixed(1), '日均提交人数', '#d97706', '#fff3d4')
+    + statCard(peopleSet.size, '提交过的人数', '#7c3aed', '#f3e8ff')
+    + '</div>';
+
+  html += '<div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;">'
+    + '<div style="font-size:13px;font-weight:700;margin-bottom:10px;">📊 每日提交人数 <span style="font-size:11px;color:var(--text-secondary);font-weight:400;">（点柱子看当天明细）</span></div>'
+    + '<div style="display:flex;align-items:flex-end;gap:2px;overflow-x:auto;padding-bottom:2px;min-height:112px;">' + bars + '</div></div>';
+
+  html += '<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px;">'
+    + '<div style="padding:8px 14px;background:#f8f9ff;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;">👥 按人汇总 · ' + activeProfiles.length + ' 人在册</div>'
+    + '<div style="overflow-x:auto;"><table class="ranking-table" style="min-width:640px;font-size:12px;">'
+    + '<thead><tr><th style="text-align:left;padding:6px 10px;">姓名</th><th style="padding:6px 10px;">组别</th>'
+    + '<th style="padding:6px 10px;">已交</th><th style="padding:6px 10px;">提交率</th><th style="text-align:left;padding:6px 10px;">未提交日期</th></tr></thead><tbody>';
+  per.forEach(p => {
+    const rate = (p.ok / days.length * 100).toFixed(1);
+    const color = p.ok === days.length ? '#16a34a' : (p.ok >= days.length * 0.7 ? '#d97706' : '#dc2626');
+    const missTxt = p.miss.length
+      ? p.miss.slice(0, 8).map(d => d.slice(5)).join('、') + (p.miss.length > 8 ? ' 等 ' + p.miss.length + ' 天' : '')
+      : '<span style="color:#16a34a;">全勤 ✅</span>';
+    html += '<tr><td style="padding:5px 10px;border-bottom:1px solid #f1f5f9;font-weight:600;">' + escapeHtml(p.name) + '</td>'
+      + '<td style="padding:5px 10px;border-bottom:1px solid #f1f5f9;text-align:center;">' + escapeHtml(p.group) + '</td>'
+      + '<td style="padding:5px 10px;border-bottom:1px solid #f1f5f9;text-align:center;">' + p.ok + '/' + days.length + '</td>'
+      + '<td style="padding:5px 10px;border-bottom:1px solid #f1f5f9;text-align:center;font-weight:700;color:' + color + ';">' + rate + '%</td>'
+      + '<td style="padding:5px 10px;border-bottom:1px solid #f1f5f9;color:#64748b;">' + missTxt + '</td></tr>';
+  });
+  html += '</tbody></table></div></div>';
+
+  html += '<div style="font-size:11.5px;color:var(--text-secondary);line-height:1.7;padding:8px 12px;background:#f8fafc;border-radius:8px;">'
+    + '📌 ' + escapeHtml(caliber) + '；基准日共 ' + days.length + ' 天（' + days[0] + ' ~ ' + days[days.length - 1] + '）。'
+    + '「未提交」仅指基准日内查不到该人日报记录，不代表旷工；历史月份无排班时含休息人员。</div>';
+  body.innerHTML = html;
 }
 
 function subscribeDaily() {
@@ -2767,10 +2978,8 @@ function subscribeDaily() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_reports' }, () => {
       if (currentPage === 'daily') {
         loadDailyReports();
-        // 如果正在查看跟踪视图，自动刷新
-        if (document.getElementById('daily-track-area')?.style.display !== 'none') {
-          renderDailyTrack();
-        }
+        if (document.getElementById('daily-track-area')?.style.display !== 'none') renderDailyTrack();
+        if (document.getElementById('daily-month-area')?.style.display !== 'none') renderDailyMonthSummary();
       }
     })
     .subscribe();
