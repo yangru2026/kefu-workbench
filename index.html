@@ -13651,10 +13651,13 @@ function toCdnUrl(url) {
 //    解决：卡片主图走 Supabase 图片转换端点缩到 400px webp（10MB → 约 25KB），
 //    hover / 灯箱走 1200px webp（约 100~200KB）。转换结果由浏览器缓存，不影响清晰度。
 // 把 Supabase Storage 原图 URL 换成「图片转换端点 + 指定宽度 webp」
+// ⚠️ 2026-11-06：当前库 icfgire… 未开通 Image Transformation（render 端点实测 403 FeatureNotEnabled），
+//    极氧 53 张新图全灰即此根因 → 本库一律禁用转换，直接用原图（170~400KB，lazy 加载可接受）；
+//    灯箱 openLightbox 的 large 为空时自动回退 hd 原图，不受影响。
+//    若以后在 Supabase 后台开通了 Image Transformation，把下面的 return '' 恢复为转换逻辑即可。
 function toStorageRender(url, width, quality) {
   if (!url || !url.includes('/storage/v1/object/public/')) return '';
-  return url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/')
-    + '?width=' + width + '&quality=' + (quality || 72) + '&format=webp&resize=contain';
+  return '';   // 未开通 render 端点，禁用（见上方注释）
 }
 // 卡片主图：Storage 原图缩到 400px；仓库相对路径图 → OSS 缩略图（.../thumb/xxx.webp，约 34KB）
 function toThumbUrl(url) {
