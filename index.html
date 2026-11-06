@@ -2165,7 +2165,7 @@ body {
       <div class="nav-group-head" onclick="toggleNavGroup(this)" style="border-left:3px solid #3B82F6;padding-left:8px;color:#1e40af"><span>🔵 极氧专区</span><span class="ng-arrow">▾</span></div>
       <div class="nav-group-body">
         <div class="nav-item" data-page="price-jiyang" title="极氧价格速查"><span class="icon">💰</span><span>极氧价</span></div>
-        <div class="nav-item" onclick="openJiyangCategory()" title="极氧分类与实战接待话术（基础知识里的极氧块）"><span class="icon">🔵</span><span>极氧分类</span></div>
+        <div class="nav-item" data-page="training-jiyang-category" title="极氧基础分类与长周期实战接待话术（含内部须知）"><span class="icon">🔵</span><span>极氧分类</span></div>
         <div class="nav-item" onclick="openJiyangBrandDetail()" title="极氧品牌定位、产品线与价格一站式介绍"><span class="icon">📗</span><span>极氧品牌介绍</span></div>
       </div>
     </div>
@@ -3626,6 +3626,13 @@ body {
       <button class="admin-only-nav" data-tp-edit="training-platform" onclick="openTpEditor('training-platform')" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">✏️ 编辑内容</button>
     </div>
     <div class="tp-body" id="tpc-training-platform"><div style="padding:40px;text-align:center;color:#9ca3af;font-size:13px;">加载中…</div></div>
+  </div>
+  <div class="page" id="page-training-jiyang-category">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div><h1 id="tph-training-jiyang-category">🔵 极氧分类</h1><p id="tps-training-jiyang-category"></p></div>
+      <button class="admin-only-nav" data-tp-edit="training-jiyang-category" onclick="openTpEditor('training-jiyang-category')" style="display:none;padding:8px 16px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;">✏️ 编辑内容</button>
+    </div>
+    <div class="tp-body" id="tpc-training-jiyang-category"><div style="padding:40px;text-align:center;color:#9ca3af;font-size:13px;">加载中…</div></div>
   </div>
 
   <!-- ===== 售前话术（原培训资料页保留话术模块） ===== -->
@@ -5474,6 +5481,7 @@ const TRAIN_PAGE_DEFS = [
   { key: 'training-duties',    icon: '🎯', title: '工作要点与考核' },
   { key: 'training-faq',       icon: '💬', title: '常见问题话术库' },
   { key: 'training-platform',  icon: '🌐', title: '平台规则' },
+  { key: 'training-jiyang-category', icon: '🔵', title: '极氧分类' },
 ];
 window.TRAIN_PAGE_DEFS = TRAIN_PAGE_DEFS;
 let trainingPagesMap = {};          // key → row
@@ -5711,18 +5719,9 @@ function tpApplyPendingFocus(body, key) {
   if (block) { block.open = true; try { block.scrollIntoView({ block: 'start' }); } catch (e) { } }
   _tpPendingFocus = null;
 }
-function openJiyangCategory() {
-  _tpPendingFocus = { key: 'training-basic', tab: '1', brand: 'jiyang' };
-  switchPage('training-basic');
-  let tries = 0;
-  const tick = setInterval(() => {
-    tries++;
-    if (currentPage !== 'training-basic') { _tpPendingFocus = null; clearInterval(tick); return; }  // 被质检门禁拦下就别硬切
-    const body = document.getElementById('tpc-training-basic');
-    if (body) tpApplyPendingFocus(body, 'training-basic');
-    if (!_tpPendingFocus || tries > 40) { _tpPendingFocus = null; clearInterval(tick); }
-  }, 200);
-}
+/* 🔵 极氧分类已独立成培训页 training-jiyang-category（2026-11-06 美瞳分类按品牌拆分），
+   侧栏「极氧专区 → 极氧分类」data-page 直达；旧跳转聚焦入口已删除。
+   _tpPendingFocus / tpApplyPendingFocus 通用机制保留（renderTrainingTopicPage 仍调用）。 */
 
 /* 培训专题页实时订阅：管理员保存后，所有在线成员自动热更新 */
 function subscribeTrainingPages() {
