@@ -14162,12 +14162,16 @@ function renderJiyangFlat(items, canManage) {
   h += '<div class="pp-chiprow"><span class="pp-chip-label">系列</span>'
     + chip('全部 ' + items.length, '', ppJySeries, 'series')
     + [...new Set(items.map(p => p.series).filter(Boolean))].sort().map(s => chip(s + ' ' + cnt(items, 'series', s), s, ppJySeries, 'series')).join('') + '</div>';
+  // ⚠️ 筛选必须在渲染前过滤（2026-11-06：漏了这一步，点 chip 只换高亮不换卡片）
+  let list = items;
+  if (ppJyType) list = list.filter(p => p._type === ppJyType);
+  if (ppJySeries) list = list.filter(p => p.series === ppJySeries);
   const showDisc = !!document.getElementById('pp-show-disc')?.checked;
   const groups = [
-    { label: '⬆ 上新', list: items.filter(p => p.isNewTag && !p.isDiscontinued) },
-    { label: '✅ 在售', list: items.filter(p => !p.isNewTag && !p.isDiscontinued) },
+    { label: '⬆ 上新', list: list.filter(p => p.isNewTag && !p.isDiscontinued) },
+    { label: '✅ 在售', list: list.filter(p => !p.isNewTag && !p.isDiscontinued) },
   ];
-  if (showDisc) groups.push({ label: '⬇ 已清仓', list: items.filter(p => p.isDiscontinued) });
+  if (showDisc) groups.push({ label: '⬇ 已清仓', list: list.filter(p => p.isDiscontinued) });
   let shownAny = false;
   groups.filter(g => g.list.length).forEach(g => {
     shownAny = true;
@@ -14239,7 +14243,9 @@ function renderPatternPricePage() {
   const stats = document.getElementById('pp-stats');
   if (stats) {
     const noTag = items.filter(p => !p.diamGroup || !p.priceTier).length;
-    stats.innerHTML = '共 <b>' + items.length + '</b> 款 · <span style="color:var(--danger,#d9483b)">未打标 ' + noTag + ' 款</span>';
+    stats.innerHTML = ppBrandFilter === '极氧'
+      ? '共 <b>' + items.length + '</b> 款'
+      : '共 <b>' + items.length + '</b> 款 · <span style="color:var(--danger,#d9483b)">未打标 ' + noTag + ' 款</span>';
   }
   const content = document.getElementById('pp-content');
   let html = '';
@@ -17740,7 +17746,8 @@ async function applyInviteClaim() {
     if (!mask) return;
     document.getElementById('spNoticeGo').addEventListener('click', function () { spCloseNotice(true); });
     document.getElementById('spNoticeOk').addEventListener('click', function () { spCloseNotice(false); });
-    // 故意不提供点遮罩/ESC 关闭：必须手动点按钮
+    // 2026-11-06：点遮罩空白也关（原来只能点按钮，没关就全站点击失效，茹姐反馈「分类点不动」）
+    mask.addEventListener('click', function (e) { if (e.target === mask) spCloseNotice(false); });
     // 兜底轮询：万一 updateAuthUI 路径没触发，检测到已登录（侧栏名字非「未登录」）也弹
     var spPollN = 0;
     var spPoll = setInterval(function () {
