@@ -119,6 +119,7 @@
 
 <div class="wrap">
   <div class="chips" id="pfChips"></div>
+  <div id="zoneHint" style="display:none;margin:-2px 0 10px;padding:8px 12px;background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;font-size:13px;color:#9A3412;"></div>
   <div class="stats" id="stats"></div>
   <div id="list"><div class="empty"><span class="big">⏳</span>正在加载平台规则…</div></div>
 </div>
@@ -201,6 +202,13 @@ function activePlatforms(){
   const pre = names.filter(n => n.startsWith(ONLY_PF));
   return pre.length ? pre : [ONLY_PF];
 }
+/* 挪到专区（2026-11-06 茹姐）：拼多多前缀平台的规则只在拼多多专区显示，
+   主「平台规则」页不再出现（数据不动，仍同表同权限，管理员在专区里照样维护） */
+const ZONE_PREFIX = '拼多多';
+function isZoneRule(r){ return ((r.platform||'').trim()).startsWith(ZONE_PREFIX); }
+function visibleRules(){
+  return ONLY_PF ? rules : rules.filter(r => !isZoneRule(r));
+}
 
 /* ==================== 状态 ==================== */
 let rules = [];
@@ -272,16 +280,29 @@ async function loadRules(){
 /* ==================== 渲染 ==================== */
 function renderChips(){
   const scope = activePlatforms();
+  const base = visibleRules();
   // 去重：库里除预置平台外还有「拼多多-平台红线」这类带后缀平台名，直接 concat 会重复出 Tab
   const pfList = scope
     ? [...new Set(scope.filter(p => rules.some(r => r.platform === p)))]
     : [...new Set(
-        PLATFORMS.filter(p => rules.some(r => r.platform === p))
-          .concat(rules.map(r => r.platform).filter(p => !PLATFORMS.includes(p)))
+        PLATFORMS.filter(p => base.some(r => r.platform === p))
+          .concat(base.map(r => r.platform).filter(p => !PLATFORMS.includes(p)))
       )];
   if(!curPlatform || !pfList.includes(curPlatform)) curPlatform = pfList[0] || '';
   $('pfChips').innerHTML = pfList.map(p =>
     `<span class="chip${p===curPlatform?' on':''}" data-pf="${esc(p)}">${esc(p)}</span>`).join('');
+  // 主页面提示：拼多多规则已挪到专区
+  const zh = $('zoneHint');
+  if (zh) {
+    if (scope) { zh.style.display = 'none'; }
+    else {
+      const moved = rules.filter(isZoneRule).length;
+      if (moved) {
+        zh.textContent = '🟠 拼多多相关规则（' + moved + ' 条）已移至侧栏「拼多多专区」查看';
+        zh.style.display = '';
+      } else zh.style.display = 'none';
+    }
+  }
 }
 $('pfChips').addEventListener('click', e => {
   const chip = e.target.closest('.chip'); if(!chip) return;
@@ -294,7 +315,7 @@ let _curList = [];   // 当前渲染的规则列表（供上移/下移定位）
 function renderList(){
   const kw = ($('searchInput').value || '').trim().toLowerCase();
   const scope = activePlatforms();
-  const pool = scope ? rules.filter(r => scope.includes(r.platform)) : rules;
+  const pool = scope ? rules.filter(r => scope.includes(r.platform)) : visibleRules();
   let list = pool.filter(r => r.platform === curPlatform);
   if(kw) list = pool.filter(r =>
       (r.title||'').toLowerCase().includes(kw) ||
@@ -359,7 +380,16 @@ $('btnRefresh').addEventListener('click', () => { toast('刷新中…'); loadRul
 function openModal(r){
   editingId = r ? r.id : null;
   $('modalTitle').textContent = r ? '编辑规则' : '新增规则';
-  $('fPlatform').value = r ? (r.platform||'通用') : (curPlatform && PLATFORMS.includes(curPlatform) ? curPlatform : '通用');
+  const sel = $('fPlatform');
+  const wantPf = r ? (r.platform || '通用') : (curPlatform || '通用');
+  // 专区模式下的「拼多多-平台红线」这类后缀平台不在预置下拉里，动态补一个选项，
+  // 否则编辑会被改回「通用」、新增默认落「通用」→ 规则跑到主页面去
+  if (wantPf && ![...sel.options].some(o => o.value === wantPf)) {
+    const o = document.createElement('option');
+    o.value = wantPf; o.textContent = wantPf + '（当前专区）';
+    sel.appendChild(o);
+  }
+  sel.value = wantPf || '通用';
   $('fLevel').value = r ? (r.level||'提醒') : '提醒';
   $('fTitle').value = r ? (r.title||'') : '';
   $('fContent').value = r ? (r.content||'') : '';
