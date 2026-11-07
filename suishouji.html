@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f6f7f9">
+<title>随手记</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✍️</text></svg>">
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --line:#e8eaee; --txt:#1f2937; --sub:#8b93a1;
+    --primary:#10B981; --primary-d:#059669; --red:#EF4444; --amber:#F59E0B;
+    --shadow:0 1px 2px rgba(16,24,40,.05), 0 6px 18px rgba(16,24,40,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--txt); font-size:14px; line-height:1.6;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:0 16px 80px}
+
+  /* 顶部 */
+  header{
+    position:sticky;top:0;z-index:20;background:rgba(246,247,249,.94);backdrop-filter:blur(10px);
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    padding:12px 0 9px;border-bottom:1px solid var(--line);margin-bottom:12px;
+  }
+  header h1{font-size:17px;margin:0;letter-spacing:.3px;display:flex;align-items:center;gap:7px;white-space:nowrap}
+  header h1 span.dot{width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block}
+  .stats{font-size:12.5px;color:var(--sub);display:flex;gap:9px;flex-wrap:wrap}
+  .stats b{color:var(--txt);font-weight:700}
+  .spacer{flex:1}
+  .btn{
+    border:1px solid var(--line);background:#fff;color:#4b5563;border-radius:9px;cursor:pointer;
+    font-size:12.5px;padding:6px 11px;font-family:inherit;transition:.15s;white-space:nowrap;
+  }
+  .btn:hover{border-color:#cfd6df;color:var(--txt);transform:translateY(-1px)}
+  .btn:active{transform:none}
+  .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+  .btn.primary:hover{background:var(--primary-d);border-color:var(--primary-d)}
+  .btn.tiny{padding:3px 8px;font-size:11.5px;border-radius:7px}
+  .btn.mini{width:30px;height:30px;padding:0;border-radius:8px;font-size:14px;line-height:1}
+
+  /* 同步状态胶囊 */
+  .sync{
+    display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;
+    border-radius:999px;padding:5px 11px;font-size:12px;color:#5b6472;cursor:pointer;font-family:inherit;
+    transition:.15s;
+  }
+  .sync:hover{border-color:#cfd6df}
+  .sync i{width:7px;height:7px;border-radius:50%;background:#cbd5e1;display:inline-block;flex:0 0 7px}
+  .sync.on i{background:var(--primary);box-shadow:0 0 0 3px rgba(16,185,129,.15)}
+  .sync.busy i{background:var(--amber);box-shadow:0 0 0 3px rgba(245,158,11,.18);animation:pulse 1s infinite}
+  .sync.err i{background:var(--red);box-shadow:0 0 0 3px rgba(239,68,68,.15)}
+  @keyframes pulse{50%{opacity:.35}}
+
+  /* 到期提醒条 */
+  .remind{
+    display:none;align-items:center;gap:10px;flex-wrap:wrap;cursor:pointer;
+    background:#fff5f5;border:1px solid #fecaca;color:#b91c1c;border-radius:12px;
+    padding:9px 13px;font-size:13px;margin-bottom:10px;transition:.15s;
+  }
+  .remind.show{display:flex}
+  .remind:hover{background:#fee2e2}
+  .remind b{font-weight:700}
+  .remind .go{margin-left:auto;font-size:12px;color:#dc2626;opacity:.8;white-space:nowrap}
+  .remind.soft{background:#fffbeb;border-color:#fde68a;color:#b45309}
+  .remind.soft .go{color:#b45309}
+
+  /* 输入区 */
+  .composer{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:12px 14px;transition:.15s}
+  .composer:focus-within{border-color:#a7f3d0;box-shadow:0 0 0 3px rgba(16,185,129,.09),var(--shadow)}
+  #input{
+    width:100%;border:none;outline:none;resize:none;font-family:inherit;font-size:15px;line-height:1.7;
+    color:var(--txt);background:transparent;min-height:52px;max-height:240px;padding:2px 0 6px;
+  }
+  #input::placeholder{color:#b6bcc7}
+  .composer-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px dashed #eef0f3}
+  .cats{display:flex;gap:6px;flex-wrap:wrap}
+  .pill{
+    border:1px solid var(--line);background:#fff;border-radius:999px;cursor:pointer;font-family:inherit;
+    font-size:12.5px;padding:5px 11px;color:#5b6472;display:inline-flex;align-items:center;gap:5px;transition:.13s;
+  }
+  .pill:hover{border-color:#cfd6df}
+  .pill.on{color:#fff;border-color:transparent;font-weight:600}
+  #who{
+    display:none;border:1px solid var(--line);border-radius:8px;padding:5px 9px;font-size:12.5px;
+    font-family:inherit;outline:none;width:150px;color:var(--txt);background:#fff;
+  }
+  #who:focus{border-color:#a7f3d0}
+  .duewrap{display:none;align-items:center;gap:5px}
+  .duewrap.show{display:flex}
+  #due{
+    border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:12.5px;
+    font-family:inherit;color:var(--txt);background:#fff;outline:none;
+  }
+  #due:focus{border-color:#a7f3d0}
+  .hint{font-size:11.5px;color:#b0b6c1}
+
+  /* 工具行 */
+  .toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 8px}
+  .search{flex:1;min-width:170px;position:relative}
+  .search input{
+    width:100%;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 11px 8px 30px;
+    font-size:13px;font-family:inherit;outline:none;color:var(--txt);
+  }
+  .search input:focus{border-color:#a7f3d0;box-shadow:0 0 0 3px rgba(16,185,129,.08)}
+  .search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:.45}
+  .seg{display:flex;gap:4px;background:#eef0f3;padding:3px;border-radius:10px;flex-wrap:wrap}
+  .seg button{
+    border:none;background:transparent;font-family:inherit;font-size:12.5px;color:#5b6472;
+    padding:5px 10px;border-radius:8px;cursor:pointer;transition:.13s;
+  }
+  .seg button.on{background:#fff;color:var(--txt);font-weight:600;box-shadow:0 1px 2px rgba(16,24,40,.08)}
+  .toolbar2{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+  .duechip{
+    border:1px solid var(--line);background:#fff;border-radius:999px;cursor:pointer;font-family:inherit;
+    font-size:12px;padding:5px 11px;color:#5b6472;display:inline-flex;align-items:center;gap:5px;transition:.13s;
+  }
+  .duechip:hover{border-color:#cfd6df}
+  .duechip.on{background:#fff1f2;border-color:#fecdd3;color:#be123c;font-weight:600}
+  .duechip b{font-weight:700}
+
+  /* 列表 */
+  #list{display:flex;flex-direction:column;gap:8px}
+  .item{
+    display:flex;gap:0;background:var(--card);border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;box-shadow:var(--shadow);position:relative;transition:.13s;
+  }
+  .item:hover{border-color:#dde2e9}
+  .item .bar{width:4px;flex:0 0 4px;background:#ccc}
+  .item .main{flex:1;padding:11px 12px 10px;min-width:0}
+  .item .text{font-size:14px;line-height:1.72;white-space:pre-wrap;word-break:break-word;margin:0}
+  .item .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:7px;font-size:11.5px;color:var(--sub)}
+  .tag{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:600}
+  .who{background:#f3f4f6;color:#4b5563;border-radius:999px;padding:1px 8px;font-size:11px}
+  .duebadge{border-radius:999px;padding:1px 8px;font-size:11px;font-weight:600;background:#f1f5f9;color:#64748b}
+  .duebadge.over{background:#fee2e2;color:#dc2626}
+  .duebadge.today{background:#ffedd5;color:#c2410c}
+  .duebadge.soon{background:#fef9c3;color:#a16207}
+  .item .ops{display:flex;align-items:flex-start;gap:2px;padding:8px 8px 0 0}
+  .iconbtn{
+    width:28px;height:28px;border:none;background:transparent;border-radius:8px;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;font-size:14px;opacity:0;transition:.13s;color:#9aa2ae;
+  }
+  .item:hover .iconbtn{opacity:1}
+  .iconbtn:hover{background:#f3f4f6;color:var(--txt)}
+  .iconbtn.done:hover{background:#ecfdf5;color:var(--primary-d)}
+  .iconbtn.del:hover{background:#fef2f2;color:#dc2626}
+  .item.done{opacity:.62}
+  .item.done .text{text-decoration:line-through;text-decoration-color:#c3c9d2}
+  .item.editing .text{display:none}
+  .item textarea.edit{
+    width:100%;border:1px solid #a7f3d0;border-radius:8px;padding:8px;font-family:inherit;font-size:14px;
+    line-height:1.7;outline:none;resize:vertical;min-height:70px;color:var(--txt);
+  }
+  .item .dueInline{
+    border:1px solid #a7f3d0;border-radius:7px;padding:1px 6px;font-size:11.5px;font-family:inherit;
+    color:var(--txt);outline:none;background:#fff;
+  }
+  .empty{
+    text-align:center;color:#aab1bc;font-size:13px;padding:56px 20px;background:#fff;
+    border:1px dashed #e3e7ed;border-radius:14px;line-height:2;
+  }
+  .empty .big{font-size:26px;display:block;margin-bottom:6px;opacity:.7}
+
+  footer{margin-top:22px;font-size:11.5px;color:#b0b6c1;text-align:center;line-height:1.9}
+  kbd{background:#eef0f3;border-radius:4px;padding:1px 5px;font-size:10.5px;font-family:inherit;color:#6b7280}
+
+  /* toast */
+  #toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);z-index:99;
+    background:#111827;color:#fff;border-radius:11px;padding:10px 12px 10px 16px;font-size:13px;
+    display:flex;align-items:center;gap:14px;opacity:0;pointer-events:none;transition:.22s;
+    box-shadow:0 10px 30px rgba(0,0,0,.18);max-width:calc(100vw - 32px);
+  }
+  #toast.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+  #toast button{
+    border:none;background:rgba(255,255,255,.14);color:#a7f3d0;font-family:inherit;font-size:12.5px;
+    padding:5px 10px;border-radius:7px;cursor:pointer;font-weight:600;
+  }
+  #toast button:hover{background:rgba(255,255,255,.22)}
+
+  /* 设置弹窗 */
+  .modal{
+    position:fixed;inset:0;z-index:60;background:rgba(17,24,39,.34);display:none;
+    align-items:flex-start;justify-content:center;padding:56px 16px 24px;overflow:auto;
+  }
+  .modal.show{display:flex}
+  .panel{
+    width:100%;max-width:520px;background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(16,24,40,.22);
+    overflow:hidden;animation:pop .16s ease-out;
+  }
+  @keyframes pop{from{transform:translateY(8px);opacity:.6}to{transform:none;opacity:1}}
+  .panel-hd{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .panel-hd b{font-size:14.5px}
+  .panel-hd button{margin-left:auto;border:none;background:transparent;font-size:16px;color:#9aa2ae;cursor:pointer;border-radius:8px;width:28px;height:28px}
+  .panel-hd button:hover{background:#f3f4f6;color:var(--txt)}
+  .panel-bd{padding:6px 16px 18px}
+  .set{padding:13px 0;border-bottom:1px dashed #eef0f3}
+  .set:last-child{border-bottom:none}
+  .set h3{font-size:13px;margin:0 0 5px;font-weight:700}
+  .set .sub{font-size:12px;color:var(--sub);margin:0 0 9px;line-height:1.7;word-break:break-all}
+  .set .sub b{color:var(--txt)}
+  .set .row{display:flex;gap:8px;flex-wrap:wrap}
+  .set input[type=text],.set input[type=email],.set input[type=password]{
+    width:100%;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:13px;
+    font-family:inherit;outline:none;margin-bottom:8px;color:var(--txt);
+  }
+  .set input:focus{border-color:#a7f3d0;box-shadow:0 0 0 3px rgba(16,185,129,.08)}
+  .hide{display:none !important}
+  .dotline{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px}
+
+  @media (max-width:600px){
+    .wrap{padding:0 12px 70px}
+    header h1{font-size:16px}
+    .stats{order:9;width:100%;font-size:12px}
+    #who{width:100%}
+    .duewrap{width:100%}
+    #due{flex:1}
+    .iconbtn{opacity:1}
+    .spacer{display:none}
+    .sync{padding:5px 9px;font-size:11.5px}
+    header .btn.mini{width:32px;height:32px}
+    .modal{padding:24px 10px 10px}
+    .seg button{padding:5px 8px;font-size:12px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1><span class="dot"></span>随手记</h1>
+    <div class="stats">
+      <span>今日 <b id="stToday">0</b></span>
+      <span>未处理 <b id="stOpen">0</b></span>
+    </div>
+    <div class="spacer"></div>
+    <button class="sync" id="btnCloud" title="点开通看同步状态与登录"><i></i><span id="syncTxt">本地</span></button>
+    <button class="btn" id="btnCopy" title="复制当前筛选的内容，方便贴到文档或微信">复制</button>
+    <button class="btn mini" id="btnSet" title="设置">⚙</button>
+  </header>
+
+  <div class="remind" id="remindBar">
+    <span id="remindTxt"></span>
+    <span class="go">只看这些 →</span>
+  </div>
+
+  <section class="composer">
+    <textarea id="input" rows="2" placeholder="想到什么就打什么…  回车保存，Shift+回车换行"></textarea>
+    <div class="composer-row">
+      <div class="cats" id="cats"></div>
+      <input id="who" placeholder="涉及哪位客服（可不填）">
+      <div class="duewrap" id="dueWrap">
+        <input type="date" id="due" title="到期日">
+        <button class="btn tiny" id="dueToday">今天</button>
+        <button class="btn tiny" id="dueTom">明天</button>
+      </div>
+      <div class="spacer"></div>
+      <span class="hint">⌘/Ctrl + 1~5 换分类</span>
+      <button class="btn primary" id="btnSave">记下来 ↵</button>
+    </div>
+  </section>
+
+  <div class="toolbar">
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="q" placeholder="搜一下…（Ctrl+K）">
+    </div>
+    <div class="seg" id="seg">
+      <button data-f="all" class="on">全部</button>
+      <button data-f="open">未处理</button>
+      <button data-f="idea">想法</button>
+      <button data-f="todo">待办</button>
+      <button data-f="memo">备忘</button>
+      <button data-f="review">复盘</button>
+      <button data-f="cs">客服</button>
+    </div>
+  </div>
+  <div class="toolbar2">
+    <div class="seg" id="segTime">
+      <button data-t="all" class="on">全部时间</button>
+      <button data-t="today">今天</button>
+      <button data-t="week">本周</button>
+      <button data-t="month">本月</button>
+    </div>
+    <button class="duechip" id="dueChip">⏰ 到期 <b>0</b></button>
+  </div>
+
+  <section id="list"></section>
+
+  <footer>
+    <span id="footLocal">数据先存本机，登录后自动同步到云端</span><br>
+    双击内容可改 · 点「⏰」设到期 · Ctrl+K 搜索 · Ctrl+1~5 切分类
+  </footer>
+</div>
+
+<div id="toast"></div>
+
+<!-- 设置弹窗 -->
+<div class="modal" id="modal">
+  <div class="panel">
+    <div class="panel-hd"><b>设置</b><button type="button" id="mClose" title="关闭">✕</button></div>
+    <div class="panel-bd">
+
+      <div class="set">
+        <h3>💾 自动备份（存成本地文件）</h3>
+        <p class="sub" id="bkState">未开启。选一个文件夹，之后每次改动都会自动写一份 json 进去，不怕清缓存。</p>
+        <div class="row">
+          <button class="btn primary" id="bkPick">选择备份文件夹</button>
+          <button class="btn" id="bkNow">立即备份一次</button>
+          <button class="btn" id="bkOff">关闭备份</button>
+        </div>
+      </div>
+
+      <div class="set">
+        <h3>⏰ 到期提醒</h3>
+        <p class="sub" id="ntState">页面开着时，顶部会出现红色提醒条；开启桌面通知后还会弹系统提示。</p>
+        <div class="row">
+          <button class="btn" id="ntOn">开启桌面通知</button>
+          <button class="btn" id="ntTest">测试一条</button>
+        </div>
+      </div>
+
+      <div class="set">
+        <h3>☁️ 云同步（电脑和手机共用一份）</h3>
+        <p class="sub" id="clState">未登录。用工作台同一个邮箱密码登录即可。</p>
+
+        <div id="loginBox">
+          <input type="email" id="em" placeholder="登录邮箱" autocomplete="username">
+          <input type="password" id="pw" placeholder="密码" autocomplete="current-password">
+          <button class="btn primary" id="btnLogin">登录并同步</button>
+        </div>
+
+        <div id="signedBox" class="hide">
+          <div class="row">
+            <button class="btn primary" id="btnSync">立即同步</button>
+            <button class="btn" id="btnLogout">退出登录</button>
+          </div>
+          <p class="sub" style="margin-top:10px">手机上打开这个地址就能记：
+            <a id="phoneUrl" href="#" target="_blank" rel="noopener"></a>
+            <button class="btn tiny" id="btnCopyUrl">复制</button>
+          </p>
+        </div>
+      </div>
+
+      <div class="set">
+        <h3>📦 数据</h3>
+        <div class="row">
+          <button class="btn" id="mTxt">导出文本</button>
+          <button class="btn" id="mBak">下载备份 json</button>
+          <button class="btn" id="mImp">导入备份</button>
+        </div>
+        <input type="file" id="fileImp" accept=".json,application/json" hidden>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ================= 常量 ================= */
+  var CATS = [
+    { k:'idea',   n:'奇思妙想', i:'💡', c:'#8B5CF6' },
+    { k:'todo',   n:'待办暂记', i:'✅', c:'#F59E0B' },
+    { k:'memo',   n:'怕忘备忘', i:'📌', c:'#3B82F6' },
+    { k:'review', n:'复盘可说', i:'📊', c:'#EC4899' },
+    { k:'cs',     n:'客服问题', i:'🗣️', c:'#EF4444' }
+  ];
+  var KEY      = 'suishouji.v2';
+  var OLDKEY   = 'suishouji.v1';
+  var DKEY     = 'suishouji.draft';
+  var SKEY     = 'suishouji.set';
+  var SYNCKEY  = 'suishouji.synced';
+  var SESKEY   = 'suishouji.session';
+  var NTKEY    = 'suishouji.notified';
+
+  var SB_URL = 'https://icfgireprowcqwdodfqx.supabase.co';
+  var SB_KEY = 'sb_publishable_LF-obMSRD7DFsY0AcjYZuQ_53P6UlQ8';
+  var TBL    = 'suishouji_items';
+  var PHONE_URL = 'https://kefu-workbench-c9x.pages.dev/suishouji.html';
+
+  /* ================= 状态 ================= */
+  var items = [];
+  var curCat = 'idea';
+  var filter = 'all';
+  var timeFilter = 'all';
+  var dueOnly = false;
+  var q = '';
+  var settings = { backupOn:false, notifyOn:false };
+  var synced = {};         // id -> 已上传过的 updated 时间戳，用来判断哪些还没同步
+  var session = null;      // { access_token, refresh_token, expires_at, user }
+  var syncing = false;
+  var lastSync = 0;
+  var lastErr = '';
+  var backupHandle = null;
+  var backupTimer = null;
+  var backupState = 'off'; // off | ok | need-perm | error | unsupported
+  var lastBackupAt = 0;
+  var lastDeleted = null;
+
+  var $ = function(id){ return document.getElementById(id); };
+  var inputEl = $('input'), whoEl = $('who'), listEl = $('list'), qEl = $('q'),
+      dueEl = $('due'), dueWrap = $('dueWrap');
+
+  /* ================= 基础工具 ================= */
+  function pad(n){ return n<10 ? '0'+n : ''+n; }
+  function startOfToday(){ var d=new Date(); d.setHours(0,0,0,0); return d.getTime(); }
+  function ymd(ts){ var d=new Date(ts); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function ymdToTs(s){
+    if (!s) return 0;
+    var p = String(s).split('-');
+    return new Date(+p[0], (+p[1])-1, +p[2], 0,0,0,0).getTime();
+  }
+  function catOf(k){ for (var i=0;i<CATS.length;i++) if (CATS[i].k===k) return CATS[i]; return CATS[0]; }
+  function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function hexA(hex, a){
+    var h = hex.replace('#','');
+    var r = parseInt(h.substr(0,2),16), g = parseInt(h.substr(2,2),16), b = parseInt(h.substr(4,2),16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+  }
+  function uuid(){
+    try { if (crypto && crypto.randomUUID) return crypto.randomUUID(); } catch(e){}
+    var s = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){
+      var r = Math.random()*16|0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+    return s;
+  }
+  function isUuid(s){ return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(s||'')); }
+  function fmtTime(ts){
+    if (!ts) return '';
+    var d = new Date(ts), now = Date.now(), diff = now - ts;
+    if (diff < 60000) return '刚刚';
+    if (diff < 3600000) return Math.floor(diff/60000) + ' 分钟前';
+    var t0 = startOfToday();
+    if (ts >= t0) return '今天 ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    if (ts >= t0 - 86400000) return '昨天 ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    if (d.getFullYear() === new Date().getFullYear()) return (d.getMonth()+1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+  }
+  function fmtMD(s){ var p=String(s).split('-'); return (+p[1]) + '-' + (+p[2]); }
+
+  var toastTimer = null;
+  function toast(msg, actionText, action){
+    var t = $('toast');
+    t.innerHTML = '';
+    var span = document.createElement('span'); span.textContent = msg; t.appendChild(span);
+    if (actionText && action){
+      var b = document.createElement('button'); b.type='button'; b.textContent = actionText;
+      b.addEventListener('click', function(){ action(); hideToast(); });
+      t.appendChild(b);
+    }
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, actionText ? 6000 : 2400);
+  }
+  function hideToast(){ $('toast').classList.remove('show'); }
+
+  /* ================= 本地存储 ================= */
+  function load(){
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw){
+        var o = JSON.parse(raw);
+        if (o && Array.isArray(o.items)) items = o.items.filter(function(x){ return x && x.id && typeof x.text === 'string'; });
+      } else {
+        migrateV1();
+      }
+    } catch(e){ console.warn('读取失败', e); }
+    // 补全字段 + 老 id 转 uuid
+    var changed = false;
+    items.forEach(function(it){
+      if (!isUuid(it.id)){ it.id = uuid(); changed = true; }
+      if (typeof it.created !== 'number') it.created = Date.now();
+      if (typeof it.updated !== 'number') it.updated = it.doneAt || it.created;
+      if (typeof it.deleted !== 'boolean') it.deleted = false;
+      if (typeof it.due !== 'string') it.due = '';
+    });
+    // 清理 90 天前删掉的
+    var horizon = Date.now() - 90*86400000;
+    var before = items.length;
+    items = items.filter(function(it){ return !(it.deleted && it.updated < horizon); });
+    if (changed || items.length !== before) saveLocalOnly();
+  }
+  function migrateV1(){
+    try {
+      var raw = localStorage.getItem(OLDKEY);
+      if (!raw) return;
+      var o = JSON.parse(raw);
+      if (!o || !Array.isArray(o.items)) return;
+      items = o.items.filter(function(x){ return x && x.text; }).map(function(x){
+        return {
+          id: uuid(), text: String(x.text), cat: x.cat || 'idea', who: x.who || '',
+          due: '', done: !!x.done, doneAt: x.doneAt || null,
+          created: x.created || Date.now(),
+          updated: x.doneAt || x.created || Date.now(),
+          deleted: false
+        };
+      });
+      saveLocalOnly();
+      console.log('已从 v1 迁移 ' + items.length + ' 条');
+    } catch(e){ console.warn('迁移失败', e); }
+  }
+  function saveLocalOnly(){
+    try {
+      localStorage.setItem(KEY, JSON.stringify({ v:2, savedAt: Date.now(), items: items }));
+    } catch(e){ toast('保存失败：浏览器存储可能满了，去设置里清理一下'); }
+  }
+  function saveDraft(){
+    try { localStorage.setItem(DKEY, inputEl.value); } catch(e){}
+  }
+  function loadSettings(){
+    try {
+      var o = JSON.parse(localStorage.getItem(SKEY) || '{}');
+      if (o && typeof o === 'object'){
+        settings.backupOn = !!o.backupOn;
+        settings.notifyOn = !!o.notifyOn;
+      }
+    } catch(e){}
+  }
+  function saveSettings(){
+    try { localStorage.setItem(SKEY, JSON.stringify(settings)); } catch(e){}
+  }
+  function loadSynced(){
+    try {
+      var o = JSON.parse(localStorage.getItem(SYNCKEY) || '{}');
+      if (o && typeof o === 'object') synced = o;
+    } catch(e){ synced = {}; }
+  }
+  function saveSynced(){
+    try { localStorage.setItem(SYNCKEY, JSON.stringify(synced)); } catch(e){}
+  }
+  function pendingList(){
+    return items.filter(function(it){ return synced[it.id] !== it.updated; });
+  }
+
+  /* ================= 统一的保存入口 ================= */
+  function save(opts){
+    opts = opts || {};
+    saveLocalOnly();
+    renderStats();
+    renderRemind();
+    scheduleBackup();
+    if (opts.sync !== false) scheduleSync();
+  }
+  function touch(it){ it.updated = Date.now(); }
+
+  /* ================= IndexedDB（存文件夹句柄） ================= */
+  function idbOpen(){
+    return new Promise(function(res, rej){
+      try {
+        var r = indexedDB.open('suishouji.db', 1);
+        r.onupgradeneeded = function(){ r.result.createObjectStore('kv'); };
+        r.onsuccess = function(){ res(r.result); };
+        r.onerror = function(){ rej(r.error); };
+      } catch(e){ rej(e); }
+    });
+  }
+  function idbSet(k, v){
+    return idbOpen().then(function(db){
+      return new Promise(function(res, rej){
+        var tx = db.transaction('kv','readwrite');
+        tx.objectStore('kv').put(v, k);
+        tx.oncomplete = function(){ db.close(); res(); };
+        tx.onerror = function(){ db.close(); rej(tx.error); };
+      });
+    });
+  }
+  function idbGet(k){
+    return idbOpen().then(function(db){
+      return new Promise(function(res, rej){
+        var tx = db.transaction('kv','readonly');
+        var rq = tx.objectStore('kv').get(k);
+        rq.onsuccess = function(){ db.close(); res(rq.result); };
+        rq.onerror = function(){ db.close(); rej(rq.error); };
+      });
+    });
+  }
+  function idbDel(k){
+    return idbOpen().then(function(db){
+      return new Promise(function(res){
+        var tx = db.transaction('kv','readwrite');
+        tx.objectStore('kv').delete(k);
+        tx.oncomplete = function(){ db.close(); res(); };
+      });
+    });
+  }
+
+  /* ================= 自动备份到本地文件 ================= */
+  function backupSupported(){ return typeof window.showDirectoryPicker === 'function'; }
+
+  function setBackupState(st, extra){
+    backupState = st;
+    var el = $('bkState');
+    if (!el) return;
+    if (!backupSupported()){ el.innerHTML = '这个浏览器不支持自动写文件，用 Chrome / Edge 打开就好。'; return; }
+    if (st === 'ok'){
+      el.innerHTML = '<span class="dotline" style="background:#10B981"></span>已开启 · 文件夹：<b>' + esc(extra || '') + '</b><br>每次改动后自动写入「随手记备份.json」，每天另存一份日期文件。上次写入：' + (lastBackupAt ? fmtTime(lastBackupAt) : '—');
+    } else if (st === 'need-perm'){
+      el.innerHTML = '<span class="dotline" style="background:#F59E0B"></span>备份已暂停：浏览器要重新授权一次。<br>点下面「选择备份文件夹」旁边的授权按钮，或重新选一次文件夹。';
+      el.innerHTML += '<div class="row" style="margin-top:8px"><button class="btn primary" id="bkGrant">恢复备份授权</button></div>';
+      var g = $('bkGrant');
+      if (g) g.addEventListener('click', grantBackup);
+    } else if (st === 'error'){
+      el.innerHTML = '<span class="dotline" style="background:#EF4444"></span>写入失败：' + esc(extra || '') + '<br>可能是文件夹被删除/移动了，重新选一次。';
+    } else {
+      el.innerHTML = '未开启。选一个文件夹，之后每次改动都会自动写一份 json 进去，不怕清缓存。';
+    }
+  }
+
+  function restoreBackupHandle(){
+    if (!backupSupported()){ setBackupState('unsupported'); return; }
+    idbGet('dir').then(function(h){
+      if (!h){ setBackupState('off'); return; }
+      backupHandle = h;
+      return h.queryPermission({ mode:'readwrite' }).then(function(p){
+        if (p === 'granted'){ setBackupState('ok', h.name); writeBackup(false); }
+        else setBackupState('need-perm');
+      });
+    }).catch(function(){ setBackupState('off'); });
+  }
+
+  function grantBackup(){
+    if (!backupHandle){ pickBackupDir(); return; }
+    backupHandle.requestPermission({ mode:'readwrite' }).then(function(p){
+      if (p === 'granted'){ settings.backupOn = true; saveSettings(); setBackupState('ok', backupHandle.name); writeBackup(true); toast('备份已恢复'); }
+      else { pickBackupDir(); }
+    }).catch(function(){ pickBackupDir(); });
+  }
+
+  function pickBackupDir(){
+    if (!backupSupported()){ toast('这个浏览器不支持，请用 Chrome / Edge'); return; }
+    window.showDirectoryPicker({ id:'suishouji', mode:'readwrite' }).then(function(h){
+      backupHandle = h;
+      settings.backupOn = true; saveSettings();
+      return idbSet('dir', h).then(function(){
+        setBackupState('ok', h.name);
+        return writeBackup(true);
+      });
+    }).then(function(){ toast('自动备份已开启'); }).
+    catch(function(e){ if (e && e.name !== 'AbortError') toast('没能选中文件夹：' + (e.message||e)); });
+  }
+
+  function scheduleBackup(){
+    if (!settings.backupOn || !backupHandle) return;
+    clearTimeout(backupTimer);
+    backupTimer = setTimeout(function(){ writeBackup(false); }, 1200);
+  }
+
+  function backupPayload(){
+    var live = items.filter(function(x){ return !x.deleted; });
+    return JSON.stringify({
+      v: 2,
+      app: '随手记',
+      savedAt: new Date().toISOString(),
+      count: live.length,
+      items: live
+    }, null, 2);
+  }
+
+  function writeBackup(force, hOverride){
+    var h = hOverride || backupHandle;
+    if (!h) return Promise.resolve(false);
+    if (!settings.backupOn && !force && !hOverride) return Promise.resolve(false);
+    return h.queryPermission({ mode:'readwrite' }).then(function(p){
+      if (p !== 'granted'){ setBackupState('need-perm'); return false; }
+      var data = backupPayload();
+      var chain = h.getFileHandle('随手记备份.json', { create:true })
+        .then(function(f){ return f.createWritable(); })
+        .then(function(w){ return w.write(data).then(function(){ return w.close(); }); });
+      // 每天另存一份日期文件（当天反复覆盖，保留当天最新）
+      var dayName = '随手记-' + ymd(Date.now()) + '.json';
+      chain = chain.then(function(){
+        return h.getFileHandle(dayName, { create:true });
+      }).then(function(f){
+        return f.createWritable().then(function(w){ return w.write(data).then(function(){ return w.close(); }); });
+      });
+      return chain.then(function(){
+        lastBackupAt = Date.now();
+        setBackupState('ok', h.name);
+        return true;
+      });
+    }).catch(function(e){
+      setBackupState('error', (e && e.message) || String(e));
+      return false;
+    });
+  }
+
+  function turnOffBackup(){
+    settings.backupOn = false; saveSettings();
+    backupHandle = null;
+    idbDel('dir').catch(function(){});
+    setBackupState('off');
+    toast('已关闭自动备份');
+  }
+
+  /* ================= 云端同步 ================= */
+  function apiFetch(path, opts){
+    opts = opts || {};
+    var headers = { apikey: SB_KEY };
+    if (opts.token) headers.Authorization = 'Bearer ' + opts.token;
+    if (opts.body) headers['Content-Type'] = 'application/json';
+    if (opts.prefer) headers.Prefer = opts.prefer;
+    return fetch(SB_URL + path, {
+      method: opts.method || 'GET',
+      headers: headers,
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    }).then(function(r){
+      return r.text().then(function(t){
+        var data = null;
+        try { data = t ? JSON.parse(t) : null; } catch(e){ data = t; }
+        if (!r.ok){
+          var msg = (data && (data.message || data.error_description || data.msg || data.hint)) || ('HTTP ' + r.status);
+          var err = new Error(msg); err.status = r.status; throw err;
+        }
+        return data;
+      });
+    });
+  }
+
+  function readStoredSession(){
+    var raw = null;
+    try { raw = localStorage.getItem(SESKEY); } catch(e){}
+    if (!raw){
+      // 复用工作台已经登录的会话（同域名时直接可用）
+      try {
+        for (var i=0;i<localStorage.length;i++){
+          var k = localStorage.key(i);
+          if (/^sb-.*-auth-token$/.test(k)){ raw = localStorage.getItem(k); break; }
+        }
+      } catch(e){}
+    }
+    if (!raw) return null;
+    try {
+      var o = JSON.parse(raw);
+      if (o && o.currentSession) o = o.currentSession;
+      if (o && o.access_token) return o;
+      if (o && o.user && o.access_token === undefined) return null;
+    } catch(e){}
+    return null;
+  }
+
+  function persistSession(s){
+    session = s;
+    try {
+      if (s) localStorage.setItem(SESKEY, JSON.stringify(s));
+      else localStorage.removeItem(SESKEY);
+    } catch(e){}
+  }
+
+  function login(email, password){
+    return apiFetch('/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      body: { email: email, password: password }
+    }).then(function(d){
+      persistSession(d);
+      updateCloudUI();
+      toast('登录成功，开始同步…');
+      return sync('login');
+    });
+  }
+
+  function refreshToken(){
+    if (!session || !session.refresh_token) return Promise.reject(new Error('没有可用的登录状态'));
+    return apiFetch('/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST',
+      body: { refresh_token: session.refresh_token }
+    }).then(function(d){
+      var merged = Object.assign({}, session, d);
+      if (!merged.user && session.user) merged.user = session.user;
+      persistSession(merged);
+      return merged;
+    });
+  }
+
+  function ensureToken(){
+    if (!session) return Promise.reject(new Error('未登录'));
+    var exp = (session.expires_at || 0) * 1000;
+    if (exp && exp - Date.now() > 120000) return Promise.resolve(session);
+    return refreshToken();
+  }
+
+  function rowToItem(r){
+    return {
+      id: r.id,
+      text: r.text || '',
+      cat: r.cat || 'idea',
+      who: r.who || '',
+      due: r.due || '',
+      done: !!r.done,
+      doneAt: r.done_at ? Date.parse(r.done_at) : null,
+      created: r.created_at ? Date.parse(r.created_at) : Date.now(),
+      updated: r.updated_at ? Date.parse(r.updated_at) : Date.now(),
+      deleted: !!r.deleted
+    };
+  }
+  function itemToRow(it){
+    return {
+      id: it.id,
+      owner: (session && session.user && session.user.id) || undefined,
+      text: it.text,
+      cat: it.cat,
+      who: it.who || '',
+      due: it.due || null,
+      done: !!it.done,
+      done_at: it.doneAt ? new Date(it.doneAt).toISOString() : null,
+      deleted: !!it.deleted,
+      created_at: new Date(it.created || Date.now()).toISOString(),
+      updated_at: new Date(it.updated || Date.now()).toISOString()
+    };
+  }
+
+  function indexById(){
+    var m = {};
+    items.forEach(function(it){ m[it.id] = it; });
+    return m;
+  }
+
+  function mergeRemote(rows){
+    var map = indexById();
+    var added = 0, updated = 0;
+    rows.forEach(function(r){
+      if (!r || !r.id) return;
+      var remote = rowToItem(r);
+      var local = map[remote.id];
+      if (!local){
+        items.push(remote); map[remote.id] = remote;
+        synced[remote.id] = remote.updated;
+        added++;
+      } else if (remote.updated > (local.updated || 0) + 500){
+        local.text = remote.text;
+        local.cat = remote.cat;
+        local.who = remote.who;
+        local.due = remote.due;
+        local.done = remote.done;
+        local.doneAt = remote.doneAt;
+        local.deleted = remote.deleted;
+        local.created = remote.created;
+        local.updated = remote.updated;
+        synced[local.id] = remote.updated;
+        updated++;
+      } else if (local.updated <= remote.updated){
+        // 内容一致，记个账避免下次重复推
+        synced[local.id] = remote.updated;
+      }
+    });
+    if (added || updated){
+      saveLocalOnly(); saveSynced();
+      render();
+    } else {
+      saveSynced();
+    }
+    return { added: added, updated: updated };
+  }
+
+  function pushPending(){
+    var pend = pendingList();
+    if (!pend.length) return Promise.resolve(0);
+    var rows = pend.map(itemToRow);
+    return ensureToken().then(function(){
+      return apiFetch('/rest/v1/' + TBL, {
+        method: 'POST',
+        token: session.access_token,
+        prefer: 'resolution=merge-duplicates,return=minimal',
+        body: rows
+      });
+    }).then(function(){
+      pend.forEach(function(it){ synced[it.id] = it.updated; });
+      saveSynced();
+      return rows.length;
+    });
+  }
+
+  function sync(reason){
+    if (!session || syncing) return Promise.resolve();
+    syncing = true;
+    lastErr = '';
+    setCloudBusy(true);
+    return ensureToken()
+      .then(function(){
+        return apiFetch('/rest/v1/' + TBL + '?select=*&order=updated_at.asc&limit=3000', { token: session.access_token });
+      })
+      .then(function(rows){
+        var st = mergeRemote(rows || []);
+        return pushPending().then(function(n){
+          lastSync = Date.now();
+          setCloudBusy(false);
+          updateCloudUI();
+          if (reason === 'manual') toast('已同步 · 下载 ' + (st.added + st.updated) + ' 条 / 上传 ' + n + ' 条');
+          return st;
+        });
+      })
+      .catch(function(e){
+        setCloudBusy(false);
+        lastErr = e.message || String(e);
+        if (e.status === 401){ persistSession(null); }
+        updateCloudUI(e.message);
+        if (reason === 'manual') toast('同步失败：' + e.message);
+      })
+      .then(function(r){ syncing = false; return r; });
+  }
+
+  var syncTimer = null;
+  function scheduleSync(){
+    if (!session) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(function(){ sync('auto'); }, 2500);
+  }
+
+  function setCloudBusy(on){
+    var el = $('btnCloud');
+    if (!el) return;
+    el.classList.toggle('busy', !!on);
+    if (on) $('syncTxt').textContent = '同步中';
+  }
+
+  function updateCloudUI(errMsg){
+    var el = $('btnCloud'), txt = $('syncTxt'), st = $('clState');
+    if (!el) return;
+    el.classList.remove('busy','on','err');
+    if (!session){
+      txt.textContent = pendingList().length ? ('本地 · 待同步 ' + pendingList().length) : '本地';
+      if (st) st.textContent = '未登录。用工作台同一个邮箱密码登录即可；不登录也能照常用，只是手机看不到。';
+      $('loginBox').classList.remove('hide');
+      $('signedBox').classList.add('hide');
+    } else {
+      var email = (session.user && (session.user.email || session.user.user_metadata && session.user.user_metadata.name)) || '已登录';
+      if (errMsg){
+        el.classList.add('err'); txt.textContent = '同步失败';
+        if (st) st.innerHTML = '<span class="dotline" style="background:#EF4444"></span><b>' + esc(email) + '</b> · ' + esc(errMsg);
+      } else {
+        el.classList.add('on'); txt.textContent = lastSync ? ('已同步 ' + pad(new Date(lastSync).getHours()) + ':' + pad(new Date(lastSync).getMinutes())) : '云端';
+        if (st) st.innerHTML = '<span class="dotline" style="background:#10B981"></span><b>' + esc(email) + '</b>' + (lastSync ? ' · 上次同步 ' + fmtTime(lastSync) : '');
+      }
+      $('loginBox').classList.add('hide');
+      $('signedBox').classList.remove('hide');
+    }
+    var pu = $('phoneUrl');
+    if (pu){ pu.href = PHONE_URL; pu.textContent = PHONE_URL.replace(/^https?:\/\//,''); }
+  }
+
+  function logout(){
+    persistSession(null);
+    lastSync = 0;
+    updateCloudUI();
+    toast('已退出登录，本地数据还在');
+  }
+
+  /* ================= 到期判断 ================= */
+  function dueInfo(it){
+    if (!it.due) return null;
+    if (it.done) return { cls:'', txt:'到期 ' + fmtMD(it.due) };
+    var t = ymdToTs(it.due), t0 = startOfToday();
+    var d = Math.round((t - t0) / 86400000);
+    if (d < 0) return { cls:'over', txt:'已逾期 ' + (-d) + ' 天' };
+    if (d === 0) return { cls:'today', txt:'今天到期' };
+    if (d === 1) return { cls:'soon', txt:'明天到期' };
+    if (d <= 7) return { cls:'soon', txt:d + ' 天后到期' };
+    return { cls:'', txt:'到期 ' + fmtMD(it.due) };
+  }
+  function dueCount(){ 
+    var over = 0, today = 0;
+    var t0 = startOfToday();
+    items.forEach(function(it){
+      if (it.deleted || it.done || !it.due) return;
+      var t = ymdToTs(it.due);
+      if (t < t0) over++;
+      else if (t === t0) today++;
+    });
+    return { over: over, today: today };
+  }
+
+  function renderRemind(){
+    var c = dueCount();
+    var bar = $('remindBar'), txtEl = $('remindTxt');
+    var chip = $('dueChip');
+    if (chip) chip.innerHTML = '⏰ 到期 <b>' + (c.over + c.today) + '</b>';
+    if (!bar) return;
+    if (!c.over && !c.today){ bar.classList.remove('show'); return; }
+    bar.classList.add('show');
+    bar.classList.toggle('soft', !c.over);
+    var parts = [];
+    if (c.over) parts.push('<b>' + c.over + '</b> 项已逾期');
+    if (c.today) parts.push('<b>' + c.today + '</b> 项今天到期');
+    txtEl.innerHTML = '⏰ ' + parts.join(' · ');
+  }
+
+  function refreshTitle(){
+    var c = dueCount();
+    var n = c.over + c.today;
+    document.title = n ? ('⚠️' + n + ' 随手记') : '随手记';
+  }
+
+  /* ================= 通知 ================= */
+  function notifySupported(){ return typeof window.Notification === 'function'; }
+
+  function updateNotifyUI(){
+    var el = $('ntState');
+    if (!el) return;
+    if (!notifySupported()){ el.textContent = '这个环境不支持系统通知，顶部提醒条照常可用。'; return; }
+    var p = Notification.permission;
+    if (p === 'granted'){
+      el.innerHTML = '<span class="dotline" style="background:#10B981"></span>桌面通知已开启' + (settings.notifyOn ? '' : '（未启用，点下面开启）');
+    } else if (p === 'denied'){
+      el.innerHTML = '<span class="dotline" style="background:#EF4444"></span>浏览器已拒绝通知权限。可以到地址栏左侧的站点设置里改，或直接靠顶部红色提醒条。';
+    } else {
+      el.textContent = '页面开着时顶部会有红色提醒条；开启桌面通知后还会弹系统提示。';
+    }
+  }
+
+  function requestNotify(){
+    if (!notifySupported()){ toast('这个环境不支持系统通知'); return; }
+    var done = function(p){
+      settings.notifyOn = (p === 'granted');
+      saveSettings(); updateNotifyUI();
+      if (p === 'granted'){ toast('已开启'); checkNotify(true); }
+      else toast('没有拿到通知权限，顶部提醒条仍然可用');
+    };
+    try {
+      var r = Notification.requestPermission(done);
+      if (r && r.then) r.then(done);
+    } catch(e){ toast('开启失败：' + e.message); }
+  }
+
+  function fireNotify(title, body){
+    try {
+      if (!notifySupported() || Notification.permission !== 'granted') return false;
+      var n = new Notification(title, { body: body, tag: 'suishouji', renotify: true });
+      n.onclick = function(){ try { window.focus(); } catch(e){} n.close(); };
+      return true;
+    } catch(e){ return false; }
+  }
+
+  function checkNotify(force){
+    var c = dueCount();
+    if (!c.over && !c.today) return;
+    var today = ymd(Date.now());
+    var seen = {};
+    try { seen = JSON.parse(localStorage.getItem(NTKEY) || '{}'); } catch(e){ seen = {}; }
+    var pending = items.filter(function(it){
+      if (it.deleted || it.done || !it.due) return false;
+      var t = ymdToTs(it.due);
+      if (t > startOfToday()) return false;
+      var key = it.id + '@' + today;
+      if (seen[key]) return false;
+      seen[key] = 1;
+      return true;
+    });
+    if (!pending.length) return;
+    try { localStorage.setItem(NTKEY, JSON.stringify(seen)); } catch(e){}
+    var first = pending[0];
+    var head = c.over ? (c.over + ' 项已逾期') : (c.today + ' 项今天到期');
+    fireNotify('随手记 · ' + head, (first.text || '').slice(0, 60));
+  }
+
+  /* ================= 渲染 ================= */
+  function weekStart(){
+    var d = new Date(); d.setHours(0,0,0,0);
+    var w = d.getDay(); // 0 周日
+    var back = (w === 0 ? 6 : w - 1);
+    return d.getTime() - back*86400000;
+  }
+  function inTimeRange(ts){
+    if (timeFilter === 'all') return true;
+    var t0 = startOfToday();
+    if (timeFilter === 'today') return ts >= t0;
+    if (timeFilter === 'week') return ts >= weekStart();
+    if (timeFilter === 'month'){ var d = new Date(); return ts >= new Date(d.getFullYear(), d.getMonth(), 1).getTime(); }
+    return true;
+  }
+
+  function renderCats(){
+    var box = $('cats'); box.innerHTML = '';
+    CATS.forEach(function(c){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pill' + (c.k === curCat ? ' on' : '');
+      b.dataset.k = c.k;
+      b.innerHTML = '<span>' + c.i + '</span>' + esc(c.n);
+      if (c.k === curCat){ b.style.background = c.c; b.style.borderColor = c.c; }
+      b.addEventListener('click', function(){ setCat(c.k); });
+      box.appendChild(b);
+    });
+    whoEl.style.display = (curCat === 'cs') ? 'inline-block' : 'none';
+    dueWrap.classList.toggle('show', curCat === 'todo');
+  }
+
+  function setCat(k){
+    curCat = k;
+    renderCats();
+    if (curCat !== 'cs') whoEl.value = '';
+    if (curCat !== 'todo') dueEl.value = '';
+    inputEl.focus();
+  }
+
+  function sortVal(it){
+    if (!it.due || it.done) return Infinity;
+    return ymdToTs(it.due);
+  }
+
+  function visible(){
+    return items.filter(function(it){
+      if (it.deleted) return false;
+      if (filter === 'open' && it.done) return false;
+      if (filter !== 'all' && filter !== 'open' && it.cat !== filter) return false;
+      if (!inTimeRange(it.created || 0)) return false;
+      if (dueOnly){
+        if (it.done || !it.due) return false;
+        if (ymdToTs(it.due) > startOfToday()) return false;
+      }
+      if (q){
+        var s = (it.text + ' ' + (it.who||'')).toLowerCase();
+        if (s.indexOf(q.toLowerCase()) < 0) return false;
+      }
+      return true;
+    }).sort(function(a,b){
+      if (!!a.done !== !!b.done) return a.done ? 1 : -1;
+      var sa = sortVal(a), sb = sortVal(b);
+      if (sa !== sb) return sa - sb;
+      return (b.created||0) - (a.created||0);
+    });
+  }
+
+  function renderStats(){
+    var today = 0, open = 0;
+    var t0 = startOfToday();
+    items.forEach(function(it){
+      if (it.deleted) return;
+      if ((it.created||0) >= t0) today++;
+      if (!it.done) open++;
+    });
+    $('stToday').textContent = today;
+    $('stOpen').textContent = open;
+  }
+
+  function render(){
+    renderStats();
+    renderRemind();
+    refreshTitle();
+    var arr = visible();
+    listEl.innerHTML = '';
+    if (!arr.length){
+      var d = document.createElement('div');
+      d.className = 'empty';
+      var msg;
+      if (!items.filter(function(x){ return !x.deleted; }).length) msg = '还没有记录<br>在上面打一行字，回车就存下来了';
+      else if (dueOnly) msg = '没有到期未处理的事 🎉';
+      else msg = '这个筛选下没有内容';
+      d.innerHTML = '<span class="big">✍️</span>' + msg;
+      listEl.appendChild(d);
+      return;
+    }
+    arr.forEach(function(it){ listEl.appendChild(itemEl(it)); });
+  }
+
+  function itemEl(it){
+    var c = catOf(it.cat);
+    var el = document.createElement('article');
+    el.className = 'item' + (it.done ? ' done' : '');
+    el.dataset.id = it.id;
+
+    var bar = document.createElement('div');
+    bar.className = 'bar';
+    var di = dueInfo(it);
+    bar.style.background = it.done ? '#d5dae1' : (di && di.cls === 'over' ? '#EF4444' : c.c);
+    el.appendChild(bar);
+
+    var main = document.createElement('div');
+    main.className = 'main';
+
+    var p = document.createElement('p');
+    p.className = 'text';
+    p.textContent = it.text;
+    p.title = '双击可以改内容';
+    p.addEventListener('dblclick', function(){ startEdit(el, it); });
+    main.appendChild(p);
+
+    var meta = document.createElement('div');
+    meta.className = 'meta';
+    var tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.textContent = c.i + ' ' + c.n;
+    tag.style.background = it.done ? '#f3f4f6' : hexA(c.c, .12);
+    tag.style.color = it.done ? '#8b93a1' : c.c;
+    meta.appendChild(tag);
+
+    if (it.who){
+      var w = document.createElement('span'); w.className='who'; w.textContent = '👤 ' + it.who; meta.appendChild(w);
+    }
+    if (di){
+      var db = document.createElement('span');
+      db.className = 'duebadge ' + di.cls;
+      db.textContent = '⏰ ' + di.txt;
+      db.title = '点一下改到期日';
+      db.style.cursor = 'pointer';
+      db.addEventListener('click', function(e){ e.stopPropagation(); editDue(meta, db, it); });
+      meta.appendChild(db);
+    }
+    var tm = document.createElement('span'); tm.textContent = fmtTime(it.created); meta.appendChild(tm);
+    main.appendChild(meta);
+    el.appendChild(main);
+
+    var ops = document.createElement('div');
+    ops.className = 'ops';
+    ops.appendChild(iconBtn(it.done ? '↩' : '✓', 'done', it.done ? '标回未处理' : '标记已处理', function(){
+      it.done = !it.done;
+      it.doneAt = it.done ? Date.now() : null;
+      touch(it); markDirty(it.id); save(); render();
+    }));
+    ops.appendChild(iconBtn('⏰', '', '设到期日', function(){ editDue(meta, null, it); }));
+    ops.appendChild(iconBtn('✎', '', '编辑', function(){ startEdit(el, it); }));
+    ops.appendChild(iconBtn('🗑', 'del', '删除', function(){ removeItem(it); }));
+    el.appendChild(ops);
+
+    return el;
+  }
+
+  function editDue(meta, badgeEl, it){
+    if (meta.querySelector('.dueInline')) return;
+    var inp = document.createElement('input');
+    inp.type = 'date';
+    inp.className = 'dueInline';
+    inp.value = it.due || ymd(Date.now());
+    var anchor = badgeEl || null;
+    if (anchor) meta.insertBefore(inp, anchor); else meta.appendChild(inp);
+    inp.focus();
+    try { if (inp.showPicker) inp.showPicker(); } catch(e){}
+    var done = function(commit){
+      var v = inp.value || '';
+      inp.remove();
+      if (commit && v !== (it.due || '')){
+        it.due = v;
+        touch(it); markDirty(it.id); save(); render();
+        toast(v ? ('到期日设为 ' + fmtMD(v)) : '已清除到期日');
+      }
+    };
+    inp.addEventListener('keydown', function(e){
+      if (e.key === 'Enter'){ e.preventDefault(); done(true); }
+      else if (e.key === 'Escape'){ e.preventDefault(); done(false); }
+    });
+    inp.addEventListener('change', function(){ done(true); });
+    inp.addEventListener('blur', function(){ setTimeout(function(){ if (inp.parentNode) done(true); }, 120); });
+  }
+
+  function iconBtn(txt, cls, title, fn){
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'iconbtn ' + (cls||''); b.textContent = txt; b.title = title;
+    b.addEventListener('click', function(e){ e.stopPropagation(); fn(); });
+    return b;
+  }
+
+  function startEdit(el, it){
+    if (el.classList.contains('editing')) return;
+    el.classList.add('editing');
+    var ta = document.createElement('textarea');
+    ta.className = 'edit';
+    ta.value = it.text;
+    var main = el.querySelector('.main');
+    main.insertBefore(ta, main.firstChild);
+    ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+    var finish = function(commit){
+      var v = ta.value.trim();
+      el.classList.remove('editing');
+      if (commit && v && v !== it.text){
+        it.text = v; touch(it); markDirty(it.id); save(); render(); toast('已修改');
+      } else { render(); }
+    };
+    ta.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); finish(true); }
+      else if (e.key === 'Escape'){ e.preventDefault(); finish(false); }
+    });
+    ta.addEventListener('blur', function(){ finish(true); });
+  }
+
+  function markDirty(id){
+    // 现在是按 updated 时间戳比对，这里只需要触发一次同步
+    scheduleSync();
+  }
+
+  function removeItem(it){
+    it.deleted = true;
+    touch(it); markDirty(it.id);
+    save(); render();
+    toast('已删除', '撤销', function(){
+      it.deleted = false;
+      touch(it); markDirty(it.id);
+      save(); render();
+    });
+  }
+
+  /* ================= 新增 ================= */
+  function addItem(){
+    var text = inputEl.value.trim();
+    if (!text){ inputEl.focus(); return; }
+    var now = Date.now();
+    var it = {
+      id: uuid(), text: text, cat: curCat,
+      who: (curCat === 'cs' && whoEl.value.trim()) ? whoEl.value.trim() : '',
+      due: (curCat === 'todo' && dueEl.value) ? dueEl.value : '',
+      created: now, updated: now,
+      done: false, doneAt: null, deleted: false
+    };
+    items.push(it);
+    markDirty(it.id);
+    inputEl.value = ''; whoEl.value = ''; dueEl.value = '';
+    save(); saveDraft();
+    if (filter !== 'all' && filter !== 'open' && filter !== it.cat) setFilter('all');
+    if (dueOnly && !it.due) { /* 保持筛选 */ }
+    render();
+    inputEl.focus();
+    autoGrow();
+  }
+
+  function setFilter(f){
+    filter = f;
+    Array.prototype.forEach.call($('seg').children, function(b){
+      b.classList.toggle('on', b.dataset.f === f);
+    });
+    render();
+  }
+  function setTimeFilter(t){
+    timeFilter = t;
+    Array.prototype.forEach.call($('segTime').children, function(b){
+      b.classList.toggle('on', b.dataset.t === t);
+    });
+    render();
+  }
+  function setDueOnly(v){
+    dueOnly = v;
+    $('dueChip').classList.toggle('on', v);
+    render();
+  }
+
+  function autoGrow(){
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 240) + 'px';
+  }
+
+  /* ================= 导出 / 导入 ================= */
+  function stamp(){
+    var d = new Date();
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + '_' + pad(d.getHours()) + pad(d.getMinutes());
+  }
+  function download(name, text, mime){
+    var blob = new Blob([text], { type: (mime||'text/plain') + ';charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1200);
+  }
+  function filterLabel(){
+    var m = { all:'全部', open:'未处理', idea:'奇思妙想', todo:'待办暂记', memo:'怕忘备忘', review:'复盘可说', cs:'客服问题' };
+    var t = { all:'', today:'·今天', week:'·本周', month:'·本月' };
+    return (m[filter] || '全部') + (t[timeFilter] || '') + (dueOnly ? '·到期' : '');
+  }
+  function exportText(){
+    var arr = visible().filter(function(x){ return !x.done; });
+    if (!arr.length){ toast('当前筛选下没有未完成的内容'); return; }
+    var lines = [];
+    var d = new Date();
+    lines.push('随手记 · ' + d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + '｜' + filterLabel() + '｜共 ' + arr.length + ' 条');
+    lines.push('');
+    CATS.forEach(function(c){
+      var group = arr.filter(function(x){ return x.cat === c.k; });
+      if (!group.length) return;
+      lines.push('【' + c.n + '】');
+      group.forEach(function(x){
+        var due = x.due ? '（' + fmtMD(x.due) + ' 到期）' : '';
+        lines.push('· ' + x.text.replace(/\n/g, '\n  ') + (x.who ? '（' + x.who + '）' : '') + due);
+      });
+      lines.push('');
+    });
+    download('随手记_' + stamp() + '.txt', lines.join('\n'), 'text/plain');
+    toast('已导出 ' + arr.length + ' 条');
+  }
+  function exportBackup(){
+    var live = items.filter(function(x){ return !x.deleted; });
+    if (!live.length){ toast('还没有内容可以备份'); return; }
+    download('随手记备份_' + stamp() + '.json', backupPayload(), 'application/json');
+    toast('备份已下载');
+  }
+  function importBackup(file){
+    var fr = new FileReader();
+    fr.onload = function(){
+      try {
+        var o = JSON.parse(String(fr.result));
+        var arr = o && Array.isArray(o.items) ? o.items : (Array.isArray(o) ? o : null);
+        if (!arr) throw new Error('格式不对');
+        var have = {}; items.forEach(function(x){ have[x.id] = 1; });
+        var added = 0;
+        arr.forEach(function(x){
+          if (!x || !x.text) return;
+          var id = isUuid(x.id) ? x.id : uuid();
+          if (have[id]) return;
+          var now = Date.now();
+          items.push({
+            id: id, text:String(x.text), cat:x.cat||'idea', who:x.who||'', due:x.due||'',
+            created:x.created||now, updated:x.updated||now,
+            done:!!x.done, doneAt:x.doneAt||null, deleted:false
+          });
+          markDirty(id);
+          have[id] = 1; added++;
+        });
+        save(); render();
+        toast(added ? '已导入 ' + added + ' 条' : '没有新内容（都已存在）');
+      } catch(e){ toast('导入失败：不是有效的备份文件'); }
+    };
+    fr.readAsText(file, 'utf-8');
+  }
+
+  function copyVisible(){
+    var arr = visible().filter(function(x){ return !x.done; });
+    if (!arr.length){ toast('当前筛选下没有可复制的内容'); return; }
+    var txt = arr.map(function(x){ return '· ' + x.text + (x.who ? '（' + x.who + '）' : '') + (x.due ? '（' + fmtMD(x.due) + ' 到期）' : ''); }).join('\n');
+    var done = function(){ toast('已复制 ' + arr.length + ' 条'); };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done, function(){ fallbackCopy(txt, done); });
+    } else fallbackCopy(txt, done);
+  }
+  function fallbackCopy(txt, done){
+    var ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position='fixed'; ta.style.left='-9999px';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch(e){ toast('复制失败，请长按选择'); }
+    ta.remove();
+  }
+
+  /* ================= 弹窗 ================= */
+  function openModal(){
+    updateCloudUI(); updateNotifyUI();
+    if (backupState === 'ok' && backupHandle) setBackupState('ok', backupHandle.name);
+    else if (backupState === 'off') setBackupState('off');
+    $('modal').classList.add('show');
+  }
+  function closeModal(){ $('modal').classList.remove('show'); }
+
+  /* ================= 事件 ================= */
+  $('btnSave').addEventListener('click', addItem);
+  $('btnCopy').addEventListener('click', copyVisible);
+  $('btnSet').addEventListener('click', openModal);
+  $('btnCloud').addEventListener('click', function(){
+    openModal();
+    if (session) sync('manual');
+  });
+  $('mClose').addEventListener('click', closeModal);
+  $('modal').addEventListener('click', function(e){ if (e.target === $('modal')) closeModal(); });
+
+  $('remindBar').addEventListener('click', function(){ setDueOnly(true); setFilter('all'); });
+  $('dueChip').addEventListener('click', function(){ setDueOnly(!dueOnly); });
+
+  $('seg').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-f]');
+    if (b) setFilter(b.dataset.f);
+  });
+  $('segTime').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-t]');
+    if (b) setTimeFilter(b.dataset.t);
+  });
+
+  $('dueToday').addEventListener('click', function(){ dueEl.value = ymd(Date.now()); });
+  $('dueTom').addEventListener('click', function(){ dueEl.value = ymd(Date.now()+86400000); });
+
+  $('bkPick').addEventListener('click', pickBackupDir);
+  $('bkNow').addEventListener('click', function(){
+    if (!backupHandle){ pickBackupDir(); return; }
+    writeBackup(true).then(function(ok){ if (ok) toast('已写入备份文件'); });
+  });
+  $('bkOff').addEventListener('click', turnOffBackup);
+  $('ntOn').addEventListener('click', requestNotify);
+  $('ntTest').addEventListener('click', function(){
+    if (!fireNotify('随手记 · 测试提醒', '如果你看到这条，说明桌面通知是通的')) toast('系统通知没有弹出来，顶部提醒条仍然可用');
+  });
+
+  $('btnLogin').addEventListener('click', function(){
+    var em = $('em').value.trim(), pw = $('pw').value;
+    if (!em || !pw){ toast('邮箱和密码都要填'); return; }
+    $('btnLogin').disabled = true;
+    login(em, pw).catch(function(e){
+      toast('登录失败：' + e.message);
+    }).then(function(){ $('btnLogin').disabled = false; });
+  });
+  $('pw').addEventListener('keydown', function(e){ if (e.key === 'Enter') $('btnLogin').click(); });
+  $('btnSync').addEventListener('click', function(){ sync('manual'); });
+  $('btnLogout').addEventListener('click', logout);
+  $('btnCopyUrl').addEventListener('click', function(){
+    var done = function(){ toast('链接已复制'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(PHONE_URL).then(done, function(){ fallbackCopy(PHONE_URL, done); });
+    else fallbackCopy(PHONE_URL, done);
+  });
+
+  $('mTxt').addEventListener('click', exportText);
+  $('mBak').addEventListener('click', exportBackup);
+  $('mImp').addEventListener('click', function(){ $('fileImp').click(); });
+  $('fileImp').addEventListener('change', function(e){
+    var f = e.target.files && e.target.files[0];
+    if (f) importBackup(f);
+    e.target.value = '';
+  });
+
+  inputEl.addEventListener('input', function(){ autoGrow(); saveDraft(); });
+  inputEl.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); addItem(); }
+    else if (e.key === 'Escape'){ inputEl.blur(); }
+  });
+  whoEl.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); addItem(); }
+    else if (e.key === 'Escape'){ whoEl.blur(); }
+  });
+  qEl.addEventListener('input', function(){ q = qEl.value.trim(); render(); });
+
+  document.addEventListener('keydown', function(e){
+    var mod = e.ctrlKey || e.metaKey;
+    if (mod && e.key.toLowerCase() === 'k'){ e.preventDefault(); qEl.focus(); qEl.select(); return; }
+    if (mod && /^[1-5]$/.test(e.key)){ e.preventDefault(); setCat(CATS[+e.key - 1].k); return; }
+    if (e.key === 'Escape'){
+      if ($('modal').classList.contains('show')){ closeModal(); return; }
+      if (document.activeElement === qEl){ qEl.value=''; q=''; render(); qEl.blur(); }
+    }
+  });
+
+  window.addEventListener('storage', function(e){
+    if (e.key === KEY){ load(); render(); }
+  });
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'visible'){ sync('auto'); checkNotify(); }
+  });
+  window.addEventListener('online', function(){ sync('auto'); });
+
+  /* ================= 启动 ================= */
+  loadSettings();
+  loadSynced();
+  load();
+  session = readStoredSession();
+  renderCats();
+  render();
+  updateCloudUI();
+  restoreBackupHandle();
+  try { var dft = localStorage.getItem(DKEY); if (dft) { inputEl.value = dft; autoGrow(); } } catch(e){}
+  inputEl.focus();
+
+  setTimeout(function(){
+    if (session){ sync('boot'); }
+    checkNotify(true);
+    updateNotifyUI();
+  }, 500);
+
+  setInterval(function(){
+    if (document.visibilityState === 'visible'){
+      renderRemind(); refreshTitle(); checkNotify();
+    }
+  }, 60000);
+
+  setInterval(function(){ sync('auto'); }, 120000);
+
+  // 供冒烟测试使用
+  window.__ssj = {
+    items: function(){ return items; },
+    save: save, render: render, add: function(t, c, extra){
+      curCat = c || 'idea';
+      inputEl.value = t;
+      if (extra && extra.who) whoEl.value = extra.who;
+      if (extra && extra.due) dueEl.value = extra.due;
+      addItem();
+      return items[items.length-1];
+    },
+    dueCount: dueCount,
+    login: login, sync: sync, logout: logout,
+    writeBackup: writeBackup, setSync: function(s){ session = s; updateCloudUI(); },
+    syncState: function(){ return { lastSync: lastSync, pending: pendingList().length, session: !!session, err: lastErr, syncing: syncing }; }
+  };
+})();
+</script>
+</body>
+</html>
