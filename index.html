@@ -18484,10 +18484,18 @@ function showVOCReminder(count, remain, sh) {
   document.getElementById('voc-reminder-body').innerHTML =
     `你今天还有 <b style="color:#e67e22;">${remain}</b> 条「客户之声」待录入（已完成 ${count}/${VOC_DAILY_LIMIT}）。<br>请在本班次工作时间内完成（${shiftScheduleText(sh)}），客户原话请一字不改直接粘贴。`;
   m.style.display = 'flex';
+  // ★ 2026-11-07：遮罩是全屏 fixed，不锁滚动的话滚轮会推着后面的长列表乱飞，
+  //   看着像「页面自己满屏跑、鼠标点哪都没反应」。同全站其它弹窗统一处理。
+  document.body.style.overflow = 'hidden';
+  if (!m.__bound) {
+    m.__bound = true;
+    m.addEventListener('click', function (e) { if (e.target === m) closeVOCReminder(); });  // 点空白也能关
+  }
 }
 function closeVOCReminder() {
   const m = document.getElementById('voc-reminder-modal');
   if (m) m.style.display = 'none';
+  document.body.style.overflow = '';
 }
 
 // ===== 客户之声 一键自动解析引擎（本地关键词规则，零成本/离线/可手动改）=====
