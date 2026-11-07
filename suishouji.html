@@ -74,6 +74,7 @@
   /* 输入区 */
   .composer{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:12px 14px;transition:.15s}
   .composer:focus-within{border-color:#a7f3d0;box-shadow:0 0 0 3px rgba(16,185,129,.09),var(--shadow)}
+  .composer.drag{border-color:var(--primary);box-shadow:0 0 0 3px rgba(16,185,129,.16),var(--shadow);background:#f7fffb}
   #input{
     width:100%;border:none;outline:none;resize:none;font-family:inherit;font-size:15px;line-height:1.7;
     color:var(--txt);background:transparent;min-height:52px;max-height:240px;padding:2px 0 6px;
@@ -100,6 +101,52 @@
   }
   #due:focus{border-color:#a7f3d0}
   .hint{font-size:11.5px;color:#b0b6c1}
+
+  /* 待发图片预览条 */
+  .strip{display:none;gap:8px;flex-wrap:wrap;padding:9px 0 2px;border-top:1px dashed #eef0f3;margin-top:8px}
+  .strip.show{display:flex}
+  .thumb{
+    position:relative;width:58px;height:58px;border-radius:9px;overflow:hidden;
+    border:1px solid var(--line);background:#f3f4f6;flex:0 0 auto;
+  }
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb b{
+    position:absolute;right:0;top:0;width:18px;height:18px;background:rgba(17,24,39,.72);color:#fff;
+    font-size:11px;border-radius:0 0 0 8px;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;font-weight:400;
+  }
+  .thumb b:hover{background:#dc2626}
+  .thumb.loading::after{
+    content:'';position:absolute;inset:0;background:linear-gradient(90deg,#f3f4f6,#e9edf2,#f3f4f6);
+    background-size:200% 100%;animation:shimmer 1.1s infinite;
+  }
+  @keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+
+  /* 条目里的图片 */
+  .item .imgs{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+  .item .imgs .thumb{width:66px;height:66px;cursor:zoom-in}
+  .item .imgs .more{
+    width:66px;height:66px;border-radius:9px;background:#f3f4f6;color:#6b7280;font-size:12px;
+    display:flex;align-items:center;justify-content:center;font-weight:600;cursor:zoom-in;
+  }
+
+  /* 大图灯箱 */
+  #lb{position:fixed;inset:0;z-index:80;background:rgba(9,12,18,.93);display:none;align-items:center;justify-content:center}
+  #lb.show{display:flex}
+  #lb img{max-width:92vw;max-height:88vh;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.55);background:#fff}
+  #lb .lbx{
+    position:absolute;top:16px;right:18px;width:38px;height:38px;border:none;border-radius:10px;
+    background:rgba(255,255,255,.14);color:#fff;font-size:17px;cursor:pointer;
+  }
+  #lb .lbx:hover{background:rgba(255,255,255,.26)}
+  #lb .lbnav{
+    position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border:none;border-radius:50%;
+    background:rgba(255,255,255,.14);color:#fff;font-size:24px;line-height:1;cursor:pointer;
+  }
+  #lb .lbnav:hover{background:rgba(255,255,255,.28)}
+  #lb .lbnav.prev{left:16px}
+  #lb .lbnav.next{right:16px}
+  #lb .lbtip{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.6);font-size:12px}
 
   /* 工具行 */
   .toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 8px}
@@ -251,8 +298,9 @@
     <span class="go">只看这些 →</span>
   </div>
 
-  <section class="composer">
-    <textarea id="input" rows="2" placeholder="想到什么就打什么…  回车保存，Shift+回车换行"></textarea>
+  <section class="composer" id="composer">
+    <textarea id="input" rows="2" placeholder="想到什么就打什么…  回车保存，Shift+回车换行（可以直接 Ctrl+V 粘截图）"></textarea>
+    <div class="strip" id="strip"></div>
     <div class="composer-row">
       <div class="cats" id="cats"></div>
       <input id="who" placeholder="涉及哪位客服（可不填）">
@@ -261,8 +309,10 @@
         <button class="btn tiny" id="dueToday">今天</button>
         <button class="btn tiny" id="dueTom">明天</button>
       </div>
+      <button class="btn tiny" id="btnImg" title="选图片 / 拍照（也可以直接 Ctrl+V 粘截图、或把图拖进来）">📷 图片</button>
+      <input type="file" id="fileImg" accept="image/*" multiple hidden>
       <div class="spacer"></div>
-      <span class="hint">⌘/Ctrl + 1~5 换分类</span>
+      <span class="hint">粘贴截图 = Ctrl+V</span>
       <button class="btn primary" id="btnSave">记下来 ↵</button>
     </div>
   </section>
@@ -293,6 +343,14 @@
   </div>
 
   <section id="list"></section>
+
+  <div id="lb" aria-hidden="true">
+    <button class="lbx" id="lbClose" title="关闭">✕</button>
+    <button class="lbnav prev" id="lbPrev" title="上一张">‹</button>
+    <img id="lbImg" alt="">
+    <button class="lbnav next" id="lbNext" title="下一张">›</button>
+    <span class="lbtip" id="lbTip"></span>
+  </div>
 
   <footer>
     <span id="footLocal">数据先存本机，登录后自动同步到云端</span><br>
@@ -404,6 +462,9 @@
   var backupHandle = null;
   var backupTimer = null;
   var backupState = 'off'; // off | ok | need-perm | error | unsupported
+  var pendingImgs = [];    // 待保存的图片 [{id,w,h}]
+  var imgJobs = [];        // 正在从云端落盘的图片任务
+  var lbState = { list: [], idx: 0 };
   var lastBackupAt = 0;
   var lastDeleted = null;
 
@@ -484,6 +545,7 @@
       if (typeof it.updated !== 'number') it.updated = it.doneAt || it.created;
       if (typeof it.deleted !== 'boolean') it.deleted = false;
       if (typeof it.due !== 'string') it.due = '';
+      if (!Array.isArray(it.imgs)) it.imgs = [];
     });
     // 清理 90 天前删掉的
     var horizon = Date.now() - 90*86400000;
@@ -554,46 +616,129 @@
   }
   function touch(it){ it.updated = Date.now(); }
 
-  /* ================= IndexedDB（存文件夹句柄） ================= */
+  /* ================= IndexedDB（文件夹句柄 + 图片 Blob） ================= */
   function idbOpen(){
     return new Promise(function(res, rej){
       try {
-        var r = indexedDB.open('suishouji.db', 1);
-        r.onupgradeneeded = function(){ r.result.createObjectStore('kv'); };
+        var r = indexedDB.open('suishouji.db', 2);
+        r.onupgradeneeded = function(){
+          var db = r.result;
+          if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
+          if (!db.objectStoreNames.contains('imgs')) db.createObjectStore('imgs');
+        };
         r.onsuccess = function(){ res(r.result); };
         r.onerror = function(){ rej(r.error); };
       } catch(e){ rej(e); }
     });
   }
-  function idbSet(k, v){
+  function storeOp(store, mode, fn){
     return idbOpen().then(function(db){
       return new Promise(function(res, rej){
-        var tx = db.transaction('kv','readwrite');
-        tx.objectStore('kv').put(v, k);
-        tx.oncomplete = function(){ db.close(); res(); };
+        var tx = db.transaction(store, mode);
+        var rq = fn(tx.objectStore(store));
+        tx.oncomplete = function(){ db.close(); res(rq && rq.result); };
         tx.onerror = function(){ db.close(); rej(tx.error); };
+        tx.onabort = function(){ db.close(); rej(tx.error); };
       });
     });
   }
-  function idbGet(k){
-    return idbOpen().then(function(db){
-      return new Promise(function(res, rej){
-        var tx = db.transaction('kv','readonly');
-        var rq = tx.objectStore('kv').get(k);
-        rq.onsuccess = function(){ db.close(); res(rq.result); };
-        rq.onerror = function(){ db.close(); rej(rq.error); };
-      });
+  function idbSet(k, v){ return storeOp('kv','readwrite', function(s){ return s.put(v, k); }); }
+  function idbGet(k){ return storeOp('kv','readonly', function(s){ return s.get(k); }); }
+  function idbDel(k){ return storeOp('kv','readwrite', function(s){ return s.delete(k); }); }
+
+  /* ---------- 图片：存 Blob 到 IndexedDB，localStorage 只存引用 ---------- */
+  var imgCache = {};            // imageId -> objectURL
+  var MAX_EDGE = 1100;          // 压缩后最长边
+  var JPEG_Q = 0.82;
+
+  function imgPut(id, blob){ return storeOp('imgs','readwrite', function(s){ return s.put(blob, id); }); }
+  function imgGet(id){ return storeOp('imgs','readonly', function(s){ return s.get(id); }); }
+  function imgDel(id){
+    if (imgCache[id]){ try { URL.revokeObjectURL(imgCache[id]); } catch(e){} delete imgCache[id]; }
+    return storeOp('imgs','readwrite', function(s){ return s.delete(id); }).catch(function(){});
+  }
+  function imgCount(){ return storeOp('imgs','readonly', function(s){ return s.count(); }).catch(function(){ return 0; }); }
+
+  function blobToUrl(id){
+    if (imgCache[id]) return Promise.resolve(imgCache[id]);
+    return imgGet(id).then(function(blob){
+      if (!blob) return '';
+      var u = URL.createObjectURL(blob);
+      imgCache[id] = u;
+      return u;
+    }).catch(function(){ return ''; });
+  }
+  function fillThumb(th, im, id, tries){
+    blobToUrl(id).then(function(u){
+      if (u){ im.src = u; th.classList.remove('loading'); return; }
+      // 图可能还在从云端落盘，稍等重试几次
+      if (tries > 0){ setTimeout(function(){ fillThumb(th, im, id, tries - 1); }, 400); return; }
+      th.classList.remove('loading');
+      th.style.display = 'none';
     });
   }
-  function idbDel(k){
-    return idbOpen().then(function(db){
-      return new Promise(function(res){
-        var tx = db.transaction('kv','readwrite');
-        tx.objectStore('kv').delete(k);
-        tx.oncomplete = function(){ db.close(); res(); };
-      });
+  function blobToDataUrl(blob){
+    return new Promise(function(res, rej){
+      var fr = new FileReader();
+      fr.onload = function(){ res(String(fr.result)); };
+      fr.onerror = function(){ rej(fr.error); };
+      fr.readAsDataURL(blob);
     });
   }
+  function dataUrlToBlob(d){
+    var parts = String(d).split(',');
+    var mime = (parts[0].match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
+    var bin = atob(parts[1] || '');
+    var arr = new Uint8Array(bin.length);
+    for (var i=0;i<bin.length;i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  }
+
+  // 等图片解码 → 等比缩到 MAX_EDGE → 输出 jpeg Blob
+  function compressImage(file){
+    return new Promise(function(res, rej){
+      var url = URL.createObjectURL(file);
+      var im = new Image();
+      im.onload = function(){
+        try {
+          var w = im.naturalWidth, h = im.naturalHeight;
+          var scale = Math.min(1, MAX_EDGE / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+          var cv = document.createElement('canvas');
+          cv.width = cw; cv.height = ch;
+          var ctx = cv.getContext('2d');
+          ctx.fillStyle = '#fff';                 // png 透明底转白
+          ctx.fillRect(0, 0, cw, ch);
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(im, 0, 0, cw, ch);
+          cv.toBlob(function(blob){
+            URL.revokeObjectURL(url);
+            if (!blob){ rej(new Error('图片转换失败')); return; }
+            res({ blob: blob, w: cw, h: ch });
+          }, 'image/jpeg', JPEG_Q);
+        } catch(e){ URL.revokeObjectURL(url); rej(e); }
+      };
+      im.onerror = function(){ URL.revokeObjectURL(url); rej(new Error('图片读不了')); };
+      im.src = url;
+    });
+  }
+
+  // 把若干 File/Blob 压好存进 IDB，返回 [{id,w,h}]
+  function saveImages(files){
+    var out = [];
+    return files.reduce(function(chain, f){
+      return chain.then(function(){
+        return compressImage(f).then(function(r){
+          var id = 'img_' + uuid();
+          return imgPut(id, r.blob).then(function(){
+            imgCache[id] = URL.createObjectURL(r.blob);
+            out.push({ id: id, w: r.w, h: r.h });
+          });
+        }).catch(function(e){ console.warn('单张图片处理失败', e); });
+      });
+    }, Promise.resolve()).then(function(){ return out; });
+  }
+
 
   /* ================= 自动备份到本地文件 ================= */
   function backupSupported(){ return typeof window.showDirectoryPicker === 'function'; }
@@ -656,15 +801,31 @@
     backupTimer = setTimeout(function(){ writeBackup(false); }, 1200);
   }
 
+  // 备份里图片要带上 dataURL，所以整体是异步的
   function backupPayload(){
     var live = items.filter(function(x){ return !x.deleted; });
-    return JSON.stringify({
-      v: 2,
-      app: '随手记',
-      savedAt: new Date().toISOString(),
-      count: live.length,
-      items: live
-    }, null, 2);
+    return Promise.all(live.map(function(it){
+      var list = it.imgs || [];
+      var copy = {};
+      for (var k in it) if (Object.prototype.hasOwnProperty.call(it, k)) copy[k] = it[k];
+      if (!list.length){ copy.imgs = []; return Promise.resolve(copy); }
+      return Promise.all(list.map(function(m){
+        return imgGet(m.id).then(function(b){ return b ? blobToDataUrl(b) : null; })
+          .then(function(d){ return { id: m.id, w: m.w || 0, h: m.h || 0, data: d }; })
+          .catch(function(){ return { id: m.id, w: m.w || 0, h: m.h || 0, data: null }; });
+      })).then(function(arr){
+        copy.imgs = arr.filter(function(x){ return x.data; });
+        return copy;
+      });
+    })).then(function(list){
+      return JSON.stringify({
+        v: 2,
+        app: '随手记',
+        savedAt: new Date().toISOString(),
+        count: list.length,
+        items: list
+      }, null, 2);
+    });
   }
 
   function writeBackup(force, hOverride){
@@ -673,21 +834,22 @@
     if (!settings.backupOn && !force && !hOverride) return Promise.resolve(false);
     return h.queryPermission({ mode:'readwrite' }).then(function(p){
       if (p !== 'granted'){ setBackupState('need-perm'); return false; }
-      var data = backupPayload();
-      var chain = h.getFileHandle('随手记备份.json', { create:true })
-        .then(function(f){ return f.createWritable(); })
-        .then(function(w){ return w.write(data).then(function(){ return w.close(); }); });
-      // 每天另存一份日期文件（当天反复覆盖，保留当天最新）
-      var dayName = '随手记-' + ymd(Date.now()) + '.json';
-      chain = chain.then(function(){
-        return h.getFileHandle(dayName, { create:true });
-      }).then(function(f){
-        return f.createWritable().then(function(w){ return w.write(data).then(function(){ return w.close(); }); });
-      });
-      return chain.then(function(){
-        lastBackupAt = Date.now();
-        setBackupState('ok', h.name);
-        return true;
+      return backupPayload().then(function(data){
+        var chain = h.getFileHandle('随手记备份.json', { create:true })
+          .then(function(f){ return f.createWritable(); })
+          .then(function(w){ return w.write(data).then(function(){ return w.close(); }); });
+        // 每天另存一份日期文件（当天反复覆盖，保留当天最新）
+        var dayName = '随手记-' + ymd(Date.now()) + '.json';
+        chain = chain.then(function(){
+          return h.getFileHandle(dayName, { create:true });
+        }).then(function(f){
+          return f.createWritable().then(function(w){ return w.write(data).then(function(){ return w.close(); }); });
+        });
+        return chain.then(function(){
+          lastBackupAt = Date.now();
+          setBackupState('ok', h.name);
+          return true;
+        });
       });
     }).catch(function(e){
       setBackupState('error', (e && e.message) || String(e));
@@ -790,6 +952,23 @@
   }
 
   function rowToItem(r){
+    // 云端 imgs: [{id,w,h,data}]，本地只留 {id,w,h}，data 落到 IndexedDB
+    var imgs = Array.isArray(r.imgs) ? r.imgs : [];
+    var metas = [];
+    var jobs = [];
+    imgs.forEach(function(m){
+      if (!m || !m.id) return;
+      metas.push({ id: m.id, w: m.w || 0, h: m.h || 0 });
+      if (m.data){
+        jobs.push(
+          imgGet(m.id).then(function(exist){
+            if (exist) return;
+            return imgPut(m.id, dataUrlToBlob(m.data));
+          }).catch(function(){})
+        );
+      }
+    });
+    if (jobs.length) imgJobs.push.apply(imgJobs, jobs);
     return {
       id: r.id,
       text: r.text || '',
@@ -800,9 +979,29 @@
       doneAt: r.done_at ? Date.parse(r.done_at) : null,
       created: r.created_at ? Date.parse(r.created_at) : Date.now(),
       updated: r.updated_at ? Date.parse(r.updated_at) : Date.now(),
-      deleted: !!r.deleted
+      deleted: !!r.deleted,
+      imgs: metas
     };
   }
+
+  // 上传前把 imgs 展开成带 data 的数组
+  function itemRowWithImages(it){
+    var row = itemToRow(it);
+    var list = it.imgs || [];
+    if (!list.length){ row.imgs = []; return Promise.resolve(row); }
+    return Promise.all(list.map(function(m){
+      return imgGet(m.id).then(function(blob){
+        if (!blob) return { id: m.id, w: m.w || 0, h: m.h || 0, data: null };
+        return blobToDataUrl(blob).then(function(d){
+          return { id: m.id, w: m.w || 0, h: m.h || 0, data: d };
+        });
+      }).catch(function(){ return { id: m.id, w: m.w || 0, h: m.h || 0, data: null }; });
+    })).then(function(arr){
+      row.imgs = arr.filter(function(x){ return x.data; });
+      return row;
+    });
+  }
+
   function itemToRow(it){
     return {
       id: it.id,
@@ -815,7 +1014,8 @@
       done_at: it.doneAt ? new Date(it.doneAt).toISOString() : null,
       deleted: !!it.deleted,
       created_at: new Date(it.created || Date.now()).toISOString(),
-      updated_at: new Date(it.updated || Date.now()).toISOString()
+      updated_at: new Date(it.updated || Date.now()).toISOString(),
+      imgs: []
     };
   }
 
@@ -846,6 +1046,7 @@
         local.deleted = remote.deleted;
         local.created = remote.created;
         local.updated = remote.updated;
+        local.imgs = remote.imgs;
         synced[local.id] = remote.updated;
         updated++;
       } else if (local.updated <= remote.updated){
@@ -856,6 +1057,11 @@
     if (added || updated){
       saveLocalOnly(); saveSynced();
       render();
+      if (imgJobs.length){
+        var wait = Promise.all(imgJobs);
+        imgJobs = [];
+        wait.then(function(){ render(); });
+      }
     } else {
       saveSynced();
     }
@@ -865,19 +1071,33 @@
   function pushPending(){
     var pend = pendingList();
     if (!pend.length) return Promise.resolve(0);
-    var rows = pend.map(itemToRow);
-    return ensureToken().then(function(){
-      return apiFetch('/rest/v1/' + TBL, {
-        method: 'POST',
-        token: session.access_token,
-        prefer: 'resolution=merge-duplicates,return=minimal',
-        body: rows
+    var sent = 0, failed = 0;
+    // 带图的行体积大，分批（每批 4 条）上传，避免单次请求过大
+    function batch(list){
+      if (!list.length) return Promise.resolve();
+      var chunk = list.slice(0, 4);
+      var rest = list.slice(4);
+      return Promise.all(chunk.map(itemRowWithImages)).then(function(rows){
+        return ensureToken().then(function(){
+          return apiFetch('/rest/v1/' + TBL, {
+            method: 'POST',
+            token: session.access_token,
+            prefer: 'resolution=merge-duplicates,return=minimal',
+            body: rows
+          });
+        }).then(function(){
+          chunk.forEach(function(it){ synced[it.id] = it.updated; });
+          saveSynced();
+          sent += rows.length;
+          return batch(rest);
+        }).catch(function(e){
+          failed += chunk.length;
+          console.warn('这一批推送失败，稍后重试', e.message);
+          return batch(rest);
+        });
       });
-    }).then(function(){
-      pend.forEach(function(it){ synced[it.id] = it.updated; });
-      saveSynced();
-      return rows.length;
-    });
+    }
+    return batch(pend).then(function(){ return sent; });
   }
 
   function sync(reason){
@@ -1207,6 +1427,37 @@
     }
     var tm = document.createElement('span'); tm.textContent = fmtTime(it.created); meta.appendChild(tm);
     main.appendChild(meta);
+
+    // 图片缩略图
+    if (it.imgs && it.imgs.length){
+      var imgsBox = document.createElement('div');
+      imgsBox.className = 'imgs';
+      var showN = Math.min(it.imgs.length, 4);
+      for (var i = 0; i < showN; i++){
+        (function(idx){
+          var meta0 = it.imgs[idx];
+          var th = document.createElement('div');
+          th.className = 'thumb loading';
+          th.dataset.img = meta0.id;
+          th.title = '点开看大图';
+          var im = document.createElement('img');
+          im.alt = '';
+          th.appendChild(im);
+          fillThumb(th, im, meta0.id, 3);
+          th.addEventListener('click', function(e){ e.stopPropagation(); openLightbox(it, idx); });
+          imgsBox.appendChild(th);
+        })(i);
+      }
+      if (it.imgs.length > 4){
+        var more = document.createElement('div');
+        more.className = 'more';
+        more.textContent = '+' + (it.imgs.length - 4);
+        more.addEventListener('click', function(e){ e.stopPropagation(); openLightbox(it, 4); });
+        imgsBox.appendChild(more);
+      }
+      main.appendChild(imgsBox);
+    }
+
     el.appendChild(main);
 
     var ops = document.createElement('div');
@@ -1297,21 +1548,112 @@
     });
   }
 
+  /* ================= 图片：粘贴 / 拖入 / 选图 ================= */
+  var MAX_PER_ITEM = 6;
+
+  function renderStrip(){
+    var box = $('strip');
+    if (!box) return;
+    if (!pendingImgs.length){ box.classList.remove('show'); box.innerHTML = ''; return; }
+    box.classList.add('show');
+    box.innerHTML = '';
+    pendingImgs.forEach(function(m, i){
+      var th = document.createElement('div');
+      th.className = 'thumb';
+      var im = document.createElement('img');
+      im.alt = '';
+      im.src = imgCache[m.id] || '';
+      th.appendChild(im);
+      var x = document.createElement('b');
+      x.textContent = '×';
+      x.title = '移除这张';
+      x.addEventListener('click', function(e){
+        e.stopPropagation();
+        pendingImgs.splice(i, 1);
+        imgDel(m.id);
+        renderStrip();
+      });
+      th.appendChild(x);
+      box.appendChild(th);
+    });
+    var tip = document.createElement('div');
+    tip.className = 'hint';
+    tip.style.alignSelf = 'center';
+    tip.textContent = '按「记下来」一起保存';
+    box.appendChild(tip);
+  }
+
+  function addImageFiles(files){
+    var list = [];
+    for (var i = 0; i < files.length; i++){
+      var f = files[i];
+      if (!f) continue;
+      if (f.type && f.type.indexOf('image/') === 0) list.push(f);
+      else if (!f.type && /\.(png|jpe?g|gif|webp|bmp)$/i.test(f.name || '')) list.push(f);
+    }
+    if (!list.length) return Promise.resolve(0);
+    var room = MAX_PER_ITEM - pendingImgs.length;
+    if (room <= 0){ toast('一条最多 ' + MAX_PER_ITEM + ' 张图'); return Promise.resolve(0); }
+    if (list.length > room){
+      toast('一条最多 ' + MAX_PER_ITEM + ' 张图，只取前 ' + room + ' 张');
+      list = list.slice(0, room);
+    }
+    return saveImages(list).then(function(arr){
+      arr.forEach(function(m){ pendingImgs.push(m); });
+      renderStrip();
+      if (arr.length) toast('已加入 ' + arr.length + ' 张图，按「记下来」保存');
+      return arr.length;
+    });
+  }
+
+  function openLightbox(it, idx){
+    var list = (it.imgs || []).slice();
+    if (!list.length) return;
+    lbState.list = list;
+    lbState.idx = Math.max(0, Math.min(idx || 0, list.length - 1));
+    $('lb').classList.add('show');
+    paintLb();
+  }
+  function paintLb(){
+    var m = lbState.list[lbState.idx];
+    var img = $('lbImg');
+    img.removeAttribute('src');
+    if (m) blobToUrl(m.id).then(function(u){ if (u) img.src = u; });
+    $('lbTip').textContent = lbState.list.length > 1
+      ? (lbState.idx + 1) + ' / ' + lbState.list.length + '  ·  ← → 切换，Esc 关闭'
+      : '点空白处或按 Esc 关闭';
+    $('lbPrev').style.display = lbState.list.length > 1 ? 'block' : 'none';
+    $('lbNext').style.display = lbState.list.length > 1 ? 'block' : 'none';
+  }
+  function lbStep(d){
+    if (!lbState.list.length) return;
+    lbState.idx = (lbState.idx + d + lbState.list.length) % lbState.list.length;
+    paintLb();
+  }
+  function closeLightbox(){
+    $('lb').classList.remove('show');
+    $('lbImg').removeAttribute('src');
+    lbState.list = [];
+  }
+
   /* ================= 新增 ================= */
   function addItem(){
     var text = inputEl.value.trim();
-    if (!text){ inputEl.focus(); return; }
+    var hasImg = pendingImgs.length > 0;
+    if (!text && !hasImg){ inputEl.focus(); return; }
     var now = Date.now();
     var it = {
-      id: uuid(), text: text, cat: curCat,
+      id: uuid(), text: text || '（图片）', cat: curCat,
       who: (curCat === 'cs' && whoEl.value.trim()) ? whoEl.value.trim() : '',
       due: (curCat === 'todo' && dueEl.value) ? dueEl.value : '',
       created: now, updated: now,
-      done: false, doneAt: null, deleted: false
+      done: false, doneAt: null, deleted: false,
+      imgs: pendingImgs.slice(0)
     };
     items.push(it);
     markDirty(it.id);
     inputEl.value = ''; whoEl.value = ''; dueEl.value = '';
+    pendingImgs = []; renderStrip();
     save(); saveDraft();
     if (filter !== 'all' && filter !== 'open' && filter !== it.cat) setFilter('all');
     if (dueOnly && !it.due) { /* 保持筛选 */ }
@@ -1386,8 +1728,12 @@
   function exportBackup(){
     var live = items.filter(function(x){ return !x.deleted; });
     if (!live.length){ toast('还没有内容可以备份'); return; }
-    download('随手记备份_' + stamp() + '.json', backupPayload(), 'application/json');
-    toast('备份已下载');
+    var totalImg = live.reduce(function(n, x){ return n + ((x.imgs || []).length); }, 0);
+    if (totalImg) toast('正在打包 ' + totalImg + ' 张图…');
+    backupPayload().then(function(data){
+      download('随手记备份_' + stamp() + '.json', data, 'application/json');
+      toast(totalImg ? ('备份已下载（含 ' + totalImg + ' 张图）') : '备份已下载');
+    }).catch(function(e){ toast('打包失败：' + e.message); });
   }
   function importBackup(file){
     var fr = new FileReader();
@@ -1397,22 +1743,31 @@
         var arr = o && Array.isArray(o.items) ? o.items : (Array.isArray(o) ? o : null);
         if (!arr) throw new Error('格式不对');
         var have = {}; items.forEach(function(x){ have[x.id] = 1; });
-        var added = 0;
+        var added = 0, imgJobs = [];
         arr.forEach(function(x){
           if (!x || !x.text) return;
           var id = isUuid(x.id) ? x.id : uuid();
           if (have[id]) return;
           var now = Date.now();
+          var metas = [];
+          (Array.isArray(x.imgs) ? x.imgs : []).forEach(function(m){
+            if (!m || !m.id) return;
+            metas.push({ id: m.id, w: m.w || 0, h: m.h || 0 });
+            if (m.data) imgJobs.push(imgPut(m.id, dataUrlToBlob(m.data)).catch(function(){}));
+          });
           items.push({
             id: id, text:String(x.text), cat:x.cat||'idea', who:x.who||'', due:x.due||'',
             created:x.created||now, updated:x.updated||now,
-            done:!!x.done, doneAt:x.doneAt||null, deleted:false
+            done:!!x.done, doneAt:x.doneAt||null, deleted:false,
+            imgs: metas
           });
           markDirty(id);
           have[id] = 1; added++;
         });
-        save(); render();
-        toast(added ? '已导入 ' + added + ' 条' : '没有新内容（都已存在）');
+        Promise.all(imgJobs).then(function(){
+          save(); render();
+          toast(added ? ('已导入 ' + added + ' 条' + (imgJobs.length ? '，含 ' + imgJobs.length + ' 张图' : '')) : '没有新内容（都已存在）');
+        });
       } catch(e){ toast('导入失败：不是有效的备份文件'); }
     };
     fr.readAsText(file, 'utf-8');
@@ -1470,6 +1825,51 @@
   $('dueToday').addEventListener('click', function(){ dueEl.value = ymd(Date.now()); });
   $('dueTom').addEventListener('click', function(){ dueEl.value = ymd(Date.now()+86400000); });
 
+  /* ---- 图片入口：选图 / 粘贴 / 拖入 / 灯箱 ---- */
+  $('btnImg').addEventListener('click', function(){ $('fileImg').click(); });
+  $('fileImg').addEventListener('change', function(e){
+    var fs = e.target.files;
+    if (fs && fs.length) addImageFiles(fs);
+    e.target.value = '';
+  });
+
+  document.addEventListener('paste', function(e){
+    if (!e.clipboardData) return;
+    var its = e.clipboardData.items || [];
+    var files = [];
+    for (var i = 0; i < its.length; i++){
+      if (its[i].kind === 'file' && (its[i].type || '').indexOf('image/') === 0){
+        var f = its[i].getAsFile();
+        if (f) files.push(f);
+      }
+    }
+    if (!files.length) return;   // 纯文本粘贴照常放行
+    e.preventDefault();
+    addImageFiles(files);
+  });
+
+  (function bindDrop(){
+    var comp = $('composer');
+    ['dragenter','dragover'].forEach(function(t){
+      comp.addEventListener(t, function(e){ e.preventDefault(); comp.classList.add('drag'); });
+    });
+    ['dragleave','drop'].forEach(function(t){
+      comp.addEventListener(t, function(e){ e.preventDefault(); comp.classList.remove('drag'); });
+    });
+    comp.addEventListener('drop', function(e){
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length){
+        addImageFiles(e.dataTransfer.files);
+      }
+    });
+  })();
+
+  $('lbClose').addEventListener('click', closeLightbox);
+  $('lbPrev').addEventListener('click', function(e){ e.stopPropagation(); lbStep(-1); });
+  $('lbNext').addEventListener('click', function(e){ e.stopPropagation(); lbStep(1); });
+  $('lb').addEventListener('click', function(e){
+    if (e.target === $('lb') || e.target === $('lbImg')) closeLightbox();
+  });
+
   $('bkPick').addEventListener('click', pickBackupDir);
   $('bkNow').addEventListener('click', function(){
     if (!backupHandle){ pickBackupDir(); return; }
@@ -1520,6 +1920,11 @@
 
   document.addEventListener('keydown', function(e){
     var mod = e.ctrlKey || e.metaKey;
+    if ($('lb').classList.contains('show')){
+      if (e.key === 'Escape'){ e.preventDefault(); closeLightbox(); return; }
+      if (e.key === 'ArrowLeft'){ e.preventDefault(); lbStep(-1); return; }
+      if (e.key === 'ArrowRight'){ e.preventDefault(); lbStep(1); return; }
+    }
     if (mod && e.key.toLowerCase() === 'k'){ e.preventDefault(); qEl.focus(); qEl.select(); return; }
     if (mod && /^[1-5]$/.test(e.key)){ e.preventDefault(); setCat(CATS[+e.key - 1].k); return; }
     if (e.key === 'Escape'){
@@ -1574,6 +1979,12 @@
       return items[items.length-1];
     },
     dueCount: dueCount,
+    addImages: addImageFiles,
+    pending: function(){ return pendingImgs.slice(0); },
+    openLightbox: openLightbox,
+    imgGet: imgGet,
+    imgCount: imgCount,
+    backupPayload: backupPayload,
     login: login, sync: sync, logout: logout,
     writeBackup: writeBackup, setSync: function(s){ session = s; updateCloudUI(); },
     syncState: function(){ return { lastSync: lastSync, pending: pendingList().length, session: !!session, err: lastErr, syncing: syncing }; }
