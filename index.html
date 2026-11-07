@@ -18391,6 +18391,7 @@ async function qcGateRpc(ids){
 <script>
 let vocData = [];
 let vocLastLoadAt = 0;
+let vocLoading = false;   // 首屏拉数据时列表先显示「正在加载」，别显示「暂无反馈记录」误导人
 let vocSummaryCache = null;
 
 function vocMonthNow() {
@@ -18839,6 +18840,8 @@ async function loadVOCFromDB(force) {
     return;
   }
   vocLastLoadAt = now;
+  vocLoading = true;
+  if (currentPage === 'voc') renderVOCList();   // 先挂「正在加载…」，避免空列表闪一下再暴涨
   try {
     const all = [];
     const pageSize = 1000;
@@ -18853,8 +18856,9 @@ async function loadVOCFromDB(force) {
       offset += pageSize;
     } while (page.length === pageSize);
     vocData = all;
+    vocLoading = false;
     if (currentPage === 'voc') renderVOC();
-  } catch (e) { console.error('客户之声加载异常:', e); }
+  } catch (e) { vocLoading = false; console.error('客户之声加载异常:', e); }
 }
 
 function renderVOC() {
@@ -18909,7 +18913,10 @@ function renderVOCList() {
   );
   if (rows.length === 0) {
     wrap.innerHTML = '';
-    if (empty) empty.style.display = (vocData.length === 0) ? 'block' : 'none';
+    if (empty) {
+      empty.style.display = (vocData.length === 0) ? 'block' : 'none';
+      empty.textContent = vocLoading ? '⏳ 正在加载反馈记录…' : '暂无反馈记录';
+    }
     return;
   }
   if (empty) empty.style.display = 'none';
