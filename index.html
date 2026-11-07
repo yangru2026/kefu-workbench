@@ -275,6 +275,7 @@ body {
   padding: 6px 7px; cursor: pointer;
   font-size: 12px; line-height: 1.3; transition: all 0.15s;
   border-radius: 10px;
+  user-select: none; -webkit-user-select: none;   /* 点菜单时手一抖变成拖选整页文字，像"鼠标失控" */
   background: #F8FAF9;                 /* 卡片浅底 */
   border: 1px solid #E7ECEA;           /* 高亮边框 */
 }
@@ -3016,12 +3017,12 @@ body {
     <div class="card">
       <h3 style="margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">📋 反馈记录
         <span style="flex:1;"></span>
-        <select id="voc-brand-filter" onchange="renderVOCList()" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;">
+        <select id="voc-brand-filter" onchange="vocOnFilterChange()" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;">
           <option value="">全部品牌</option>
           <option>弥生</option>
           <option>极氧</option>
         </select>
-        <input type="search" id="voc-search" placeholder="🔍 搜索原话 / 主题 / 客服" oninput="renderVOCList()" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;width:220px;font-family:inherit;">
+        <input type="search" id="voc-search" placeholder="🔍 搜索原话 / 主题 / 客服" oninput="vocScheduleFilter()" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;width:220px;font-family:inherit;">
       </h3>
       <div id="voc-list" style="display:flex;flex-direction:column;gap:10px;"></div>
       <div id="voc-list-empty" style="text-align:center;padding:24px;color:var(--text-secondary);display:none;">暂无反馈记录</div>
@@ -11927,6 +11928,8 @@ function switchPage(page) {
   }
   if (page === 'voc') {
     // 进入即拉取最新数据并渲染（录入人信息依赖 currentProfile，已就绪）
+    vocRenderLimit = 60;      // 每次进入先只看最近 60 条，别把 2000+ 条一次性铺出来
+    window.scrollTo(0, 0);    // 从别的长页面切过来时回到顶部，避免停在半空看着像“页面乱跑”
     loadVOCFromDB();
     renderVOC();
     restoreVOCDraft(); // 恢复上次未提交的本地草稿（防刷新/断网丢数据）
@@ -18858,6 +18861,28 @@ function renderVOC() {
   updateVOCStatus();
 }
 
+// ★ 2026-11-07：反馈记录不再一次性全量渲染。
+//   原来 2300+ 条一次 innerHTML 全部铺出来，文档高度直接 22 万 px，
+//   切进本页时主线程要卡几百毫秒到 1 秒（慢机器更久），表现就是「点一下鼠标不受控制好几秒」。
+//   现在先渲染最近 60 条，底部点「加载更多」再往下加。
+let vocRenderLimit = 60;
+const VOC_RENDER_STEP = 100;
+let vocFilterTimer = null;
+
+function vocScheduleFilter() {
+  if (vocFilterTimer) clearTimeout(vocFilterTimer);
+  vocFilterTimer = setTimeout(vocOnFilterChange, 200);
+}
+function vocOnFilterChange() {
+  if (vocFilterTimer) { clearTimeout(vocFilterTimer); vocFilterTimer = null; }
+  vocRenderLimit = 60;
+  renderVOCList();
+}
+function vocLoadMore() {
+  vocRenderLimit += VOC_RENDER_STEP;
+  renderVOCList();
+}
+
 function renderVOCList() {
   const wrap = document.getElementById('voc-list');
   const empty = document.getElementById('voc-list-empty');
@@ -18881,7 +18906,7 @@ function renderVOCList() {
   }
   if (empty) empty.style.display = 'none';
   const isAdmin = isFullAdmin();
-  wrap.innerHTML = rows.map(r => {
+  wrap.innerHTML = rows.slice(0, vocRenderLimit).map(r => {
     const dt = r.created_at ? new Date(r.created_at) : null;
     const dtStr = dt ? (dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0') + ' ' + String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0')) : '-';
     const scene = r.scene ? `<span class="voc-tag voc-tag-scene">${vocEsc(r.scene)}</span>` : '';
@@ -18898,6 +18923,16 @@ function renderVOCList() {
       <div class="voc-raw">${vocEsc(r.raw_text || '')}</div>
     </div>`;
   }).join('');
+  // 分页尾部：还有多少条 / 已全部显示
+  const shown = Math.min(vocRenderLimit, rows.length);
+  if (rows.length > shown) {
+    const rest = rows.length - shown;
+    wrap.innerHTML += `<div class="voc-more" style="text-align:center;padding:6px 0 2px;">
+      <button class="btn-sm outline" onclick="vocLoadMore()" style="padding:9px 26px;">↓ 还有 ${rest} 条，加载更多（已显示 ${shown}/${rows.length}）</button>
+    </div>`;
+  } else if (rows.length > 60) {
+    wrap.innerHTML += `<div class="voc-more" style="text-align:center;padding:6px 0 2px;font-size:12px;color:var(--text-secondary);">共 ${rows.length} 条，已全部显示</div>`;
+  }
 }
 
 async function submitVOC() {
