@@ -14410,7 +14410,8 @@ function renderPatternPricePage() {
       html += '</div>';
     }
     // 高价特殊品专区（初音/定轴）：只要当前范围有归属款就单独红卡展示，防客服发错普通备注
-    const spHits = isJiyang ? [] : PP_SPECIALS.filter(s => ppSpecialOwn(s, items).length);
+    // 杨茹 2026-11-11：弥生价格页只看价格，特殊品机制卡也去掉（初音/定轴价格机制仍在花色素材打标与特殊品明细层保留）
+    const spHits = (isJiyang || ppBrandFilter === '弥生') ? [] : PP_SPECIALS.filter(s => ppSpecialOwn(s, items).length);
     if (spHits.length) {
       html += '<div class="pp-special-head">⚠️ 高价特殊品（' + spHits.map(s => s.label).join(' / ') + '）· 价格更高，禁止按普通款发备注，发前务必核对价格！</div><div class="pp-tiercards">' + spHits.map(spCard).join('') + '</div>';
     }
