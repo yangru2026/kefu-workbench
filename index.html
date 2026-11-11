@@ -912,18 +912,20 @@ body {
 .mpo-wrap{margin:4px 0 18px}
 .mpo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px;padding:0 4px}
 .mpo-card{background:#fff;border:1px solid var(--border-soft);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+.mpo-card.mpo-wide{grid-column:1 / -1}
 .mpo-head{background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-weight:800;font-size:14.5px;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
 .mpo-head .mpo-tag{font-size:11px;font-weight:600;background:rgba(255,255,255,.22);border-radius:9px;padding:2px 9px;white-space:nowrap}
-.mpo-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.mpo-table{border-collapse:collapse;width:100%;font-size:12.5px}
-.mpo-table th,.mpo-table td{border:1px solid #eef2f1;padding:6px 9px;text-align:center;white-space:nowrap}
-.mpo-table thead th{background:#ecfdf5;color:#065f46;font-weight:700;font-size:12px}
-.mpo-table tbody td:first-child{background:#f8faf9;font-weight:700;color:#334155;font-size:11.5px}
-.mpo-arrive td:not(:first-child){color:#d9483b;font-weight:800;font-size:14.5px}
+.mpo-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.mpo-scroll::-webkit-scrollbar{display:none;height:0;width:0}
+.mpo-table{border-collapse:collapse;width:100%;font-size:11.5px}
+.mpo-table th,.mpo-table td{border:1px solid #eef2f1;padding:5px 6px;text-align:center;white-space:nowrap}
+.mpo-table thead th{background:#ecfdf5;color:#065f46;font-weight:700;font-size:11px;padding:5px 6px;white-space:normal;min-width:44px;line-height:1.3}
+.mpo-table tbody td:first-child{background:#f8faf9;font-weight:700;color:#334155;font-size:11px;padding:5px 8px}
+.mpo-arrive td:not(:first-child){color:#d9483b;font-weight:800;font-size:13.5px}
 .mpo-avg td:not(:first-child){background:#fef9c3;color:#a16207;font-weight:800}
 .mpo-avg td[data-best]{background:#dcfce7;color:#15803d}
 .mpo-avg td i{font-style:normal;font-size:10px;font-weight:700;background:#16a34a;color:#fff;border-radius:7px;padding:1px 6px;margin-left:4px;vertical-align:1px}
-.mpo-gift td:not(:first-child){color:#4b5563;white-space:normal;min-width:120px;line-height:1.45;font-size:12px}
+.mpo-gift td:not(:first-child){color:#4b5563;white-space:normal;line-height:1.45;font-size:11.5px}
 @media(max-width:620px){.mpo-grid{grid-template-columns:1fr}}
 .pp-special-head{margin:24px 4px 12px;font-size:13px;font-weight:800;color:#be123c;padding:10px 14px;background:#fff1f2;border:1.5px solid #fecdd3;border-radius:12px}
 .pp-special-banner{margin:0 2px 12px;font-size:13px;font-weight:700;color:#9f1239;background:linear-gradient(90deg,#ffe4e6,#fff1f2);border:1px solid #fda4af;border-radius:12px;padding:9px 13px}
@@ -14157,7 +14159,7 @@ function renderMiyangPriceOverview() {
   const card = m => {
     const normal = m.cols.filter(c => !c.chan).map(c => parseFloat(c.avg));
     const minAvg = Math.min.apply(null, normal);
-    return '<div class="mpo-card"><div class="mpo-head"><span>💳 ' + escapeHtml(m.title) + '</span>'
+    return '<div class="mpo-card' + (m.cols.length >= 5 ? ' mpo-wide' : '') + '"><div class="mpo-head"><span>💳 ' + escapeHtml(m.title) + '</span>'
       + '<span class="mpo-tag">' + escapeHtml(m.tag) + '</span></div>'
       + '<div class="mpo-scroll"><table class="mpo-table"><thead><tr><th style="min-width:64px">SKU</th>'
       + m.cols.map(c => '<th>' + escapeHtml(c.n) + '</th>').join('') + '</tr></thead><tbody>'
@@ -14391,23 +14393,28 @@ function renderPatternPricePage() {
       return;
     }
     const dims = PP_DIMS;
-    html = renderMiyangPriceOverview() + '<div class="pp-tiercards">';
-    dims.forEach(def => {
-      const opt = ppDimOptions(def.dim, items);
-      let opts = opt.list.filter(v => items.some(p => opt.get(p) === v)).length;
-      if (items.some(p => !opt.get(p))) opts++;   // 未填类也算一类
-      html += '<div class="pp-tiercard l1" style="--c:' + def.color + '" onclick="openPpDim(\'' + def.dim + '\')">'
-        + '<div class="pp-tiercard-price">' + def.icon + ' ' + def.title + '</div>'
-        + '<div class="pp-tiercard-sub">共 ' + opts + ' 类 · ' + items.length + ' 款花色</div>'
-        + '<div class="pp-tiercard-enter">点击查看分类 →</div></div>';
-    });
-    html += '</div>';
+    if (ppBrandFilter === '弥生') {
+      // 杨茹 2026-11-11：弥生价格页只看价格——保留到手价总览 + 高价特殊品价格机制，去掉按抛型/系列/直径/价格分类入口
+      html = renderMiyangPriceOverview();
+    } else {
+      html = '<div class="pp-tiercards">';
+      dims.forEach(def => {
+        const opt = ppDimOptions(def.dim, items);
+        let opts = opt.list.filter(v => items.some(p => opt.get(p) === v)).length;
+        if (items.some(p => !opt.get(p))) opts++;   // 未填类也算一类
+        html += '<div class="pp-tiercard l1" style="--c:' + def.color + '" onclick="openPpDim(\'' + def.dim + '\')">'
+          + '<div class="pp-tiercard-price">' + def.icon + ' ' + def.title + '</div>'
+          + '<div class="pp-tiercard-sub">共 ' + opts + ' 类 · ' + items.length + ' 款花色</div>'
+          + '<div class="pp-tiercard-enter">点击查看分类 →</div></div>';
+      });
+      html += '</div>';
+    }
     // 高价特殊品专区（初音/定轴）：只要当前范围有归属款就单独红卡展示，防客服发错普通备注
     const spHits = isJiyang ? [] : PP_SPECIALS.filter(s => ppSpecialOwn(s, items).length);
     if (spHits.length) {
       html += '<div class="pp-special-head">⚠️ 高价特殊品（' + spHits.map(s => s.label).join(' / ') + '）· 价格更高，禁止按普通款发备注，发前务必核对价格！</div><div class="pp-tiercards">' + spHits.map(spCard).join('') + '</div>';
     }
-    if (!items.length) html = '<div class="pattern-empty">😕 没有匹配的花色，先到「花色素材」给花色填上抛型/系列/直径/价格档吧</div>';
+    if (!items.length && ppBrandFilter !== '弥生') html = '<div class="pattern-empty">😕 没有匹配的花色，先到「花色素材」给花色填上抛型/系列/直径/价格档吧</div>';
   } else if (!ppDimView.val) {
     // ===== 第二层：该分类下的选项卡片（如各系列 / 各抛型 / 各价格档） =====
     html += '<button class="pp-back" onclick="ppBackToDims()">← 返回分类入口</button>';
