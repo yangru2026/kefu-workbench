@@ -908,6 +908,23 @@ body {
 .pp-disc-badge{position:absolute;top:7px;left:7px;background:#d97706;color:#fff;font-size:11px;padding:1px 8px;border-radius:10px;z-index:2}
 /* 高价特殊品警示（初音/定轴）：价格更高，防止客服发错普通花色备注 */
 .pp-special-badge{position:absolute;bottom:7px;right:7px;background:linear-gradient(135deg,#e11d48,#be123c);color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:11px;z-index:2;box-shadow:0 1px 5px rgba(0,0,0,.3);white-space:nowrap;pointer-events:none}
+/* 弥生到手价总览（2026-11-11）：只放到手价/均价/赠品，内部成本数据不上前端 */
+.mpo-wrap{margin:4px 0 18px}
+.mpo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px;padding:0 4px}
+.mpo-card{background:#fff;border:1px solid var(--border-soft);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+.mpo-head{background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-weight:800;font-size:14.5px;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mpo-head .mpo-tag{font-size:11px;font-weight:600;background:rgba(255,255,255,.22);border-radius:9px;padding:2px 9px;white-space:nowrap}
+.mpo-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.mpo-table{border-collapse:collapse;width:100%;font-size:12.5px}
+.mpo-table th,.mpo-table td{border:1px solid #eef2f1;padding:6px 9px;text-align:center;white-space:nowrap}
+.mpo-table thead th{background:#ecfdf5;color:#065f46;font-weight:700;font-size:12px}
+.mpo-table tbody td:first-child{background:#f8faf9;font-weight:700;color:#334155;font-size:11.5px}
+.mpo-arrive td:not(:first-child){color:#d9483b;font-weight:800;font-size:14.5px}
+.mpo-avg td:not(:first-child){background:#fef9c3;color:#a16207;font-weight:800}
+.mpo-avg td[data-best]{background:#dcfce7;color:#15803d}
+.mpo-avg td i{font-style:normal;font-size:10px;font-weight:700;background:#16a34a;color:#fff;border-radius:7px;padding:1px 6px;margin-left:4px;vertical-align:1px}
+.mpo-gift td:not(:first-child){color:#4b5563;white-space:normal;min-width:120px;line-height:1.45;font-size:12px}
+@media(max-width:620px){.mpo-grid{grid-template-columns:1fr}}
 .pp-special-head{margin:24px 4px 12px;font-size:13px;font-weight:800;color:#be123c;padding:10px 14px;background:#fff1f2;border:1.5px solid #fecdd3;border-radius:12px}
 .pp-special-banner{margin:0 2px 12px;font-size:13px;font-weight:700;color:#9f1239;background:linear-gradient(90deg,#ffe4e6,#fff1f2);border:1px solid #fda4af;border-radius:12px;padding:9px 13px}
 /* 初音联名多盒机制（红卡/明细页复用）：多组机制自适应并排（宽屏多列压高度，窄屏自动回退单列） */
@@ -14103,6 +14120,58 @@ function ppSpecialOwn(s, list) {
   const idx = PP_SPECIALS.indexOf(s);
   return list.filter(p => s.match(p) && !PP_SPECIALS.some((prev, i) => i < idx && prev.match(p)));
 }
+// ==================== 弥生到手价总览（茹姐 2026-11-11 价格表）====================
+// ⚠️ 按茹姐要求：客服只看「到手价 / 每副均价 / 赠品」，产品成本、平台佣金、毛利、最低控价等内部数据一律不放前端
+// best=true 的 SKU 会标「⭐最划算」= 该模块内每副均价最低的普通款（达人渠道价不参与标记）
+// 要改价格/赠品直接改这里的数字；chan:'1' 表示达人渠道专供
+const MIYANG_PRICE_OVERVIEW = [
+  { key: 'bh', title: '普通半年抛', tag: '单副 / 2副 / 3副装', cols: [
+    { n: '普通1 · 1副',  arrive: '49.90',  avg: '49.90', gift: '护理液+伴侣盒' },
+    { n: '普通2 · 2副',  arrive: '69.80',  avg: '34.90', gift: '护理液+伴侣盒*2' },
+    { n: '普通3 · 3副',  arrive: '99.70',  avg: '33.23', gift: '护理液+3联盒', best: true },
+  ] },
+  { key: 'dh', title: '定轴半年抛', tag: '少女漫定轴 · 单副 / 2副 / 3副装', cols: [
+    { n: '定轴1 · 1副',  arrive: '59.90',  avg: '59.90', gift: '护理液+伴侣盒' },
+    { n: '定轴2 · 2副',  arrive: '89.80',  avg: '44.90', gift: '护理液+伴侣盒*2+徽章1' },
+    { n: '定轴3 · 3副',  arrive: '129.70', avg: '43.23', gift: '护理液+3联盒+徽章2', best: true },
+  ] },
+  { key: 'rp', title: '普通日抛', tag: '多副装更划算', cols: [
+    { n: '普通1 · 1副',   arrive: '39.90',  avg: '39.90', gift: '佩戴棒' },
+    { n: '普通2 · 2副',   arrive: '69.80',  avg: '34.90', gift: '佩戴棒' },
+    { n: '普通4 · 4副',   arrive: '119.60', avg: '29.90', gift: '佩戴棒+镜梳' },
+    { n: '普通4（达人）', arrive: '99.60',  avg: '24.90', gift: '佩戴棒+镜梳', chan: '1' },
+    { n: '普通6 · 6副',   arrive: '149.40', avg: '24.90', gift: '佩戴棒+手持镜', best: true },
+    { n: '普通6（超薄）', arrive: '149.40', avg: '24.90', gift: '佩戴棒+手持镜', best: true },
+    { n: '普通10 · 10副', arrive: '249.00', avg: '24.90', gift: '佩戴棒+手持镜+收纳盒', best: true },
+    { n: '普通10（超薄）',arrive: '249.00', avg: '24.90', gift: '佩戴棒+手持镜+收纳盒', best: true },
+  ] },
+  { key: 'rd', title: '定轴日抛', tag: '少女漫定轴 · 多副装', cols: [
+    { n: '定轴1 · 1副',   arrive: '49.90',  avg: '49.90', gift: '佩戴棒' },
+    { n: '定轴2 · 2副',   arrive: '89.80',  avg: '44.90', gift: '佩戴棒+徽章1' },
+    { n: '定轴4 · 4副',   arrive: '139.60', avg: '34.90', gift: '佩戴棒+徽章2' },
+    { n: '定轴6 · 6副',   arrive: '199.40', avg: '33.23', gift: '佩戴棒+徽章2+手持镜' },
+    { n: '定轴10 · 10副', arrive: '329.00', avg: '32.90', gift: '佩戴棒+徽章2+手持镜+收纳盒', best: true },
+  ] },
+];
+function renderMiyangPriceOverview() {
+  const card = m => {
+    const normal = m.cols.filter(c => !c.chan).map(c => parseFloat(c.avg));
+    const minAvg = Math.min.apply(null, normal);
+    return '<div class="mpo-card"><div class="mpo-head"><span>💳 ' + escapeHtml(m.title) + '</span>'
+      + '<span class="mpo-tag">' + escapeHtml(m.tag) + '</span></div>'
+      + '<div class="mpo-scroll"><table class="mpo-table"><thead><tr><th style="min-width:64px">SKU</th>'
+      + m.cols.map(c => '<th>' + escapeHtml(c.n) + '</th>').join('') + '</tr></thead><tbody>'
+      + '<tr class="mpo-arrive"><td>到手价</td>' + m.cols.map(c => '<td>¥' + escapeHtml(c.arrive) + '</td>').join('') + '</tr>'
+      + '<tr class="mpo-avg"><td>均价/副</td>' + m.cols.map(c => {
+          const best = !c.chan && parseFloat(c.avg) === minAvg;
+          return '<td' + (best ? ' data-best="1"' : '') + '>' + (best ? '⭐' : '') + escapeHtml(c.avg) + (best ? '<i>最划算</i>' : '') + '</td>';
+        }).join('') + '</tr>'
+      + '<tr class="mpo-gift"><td>赠品</td>' + m.cols.map(c => '<td>' + escapeHtml(c.gift) + '</td>').join('') + '</tr>'
+      + '</tbody></table></div></div>';
+  };
+  return '<div class="mpo-wrap"><div class="pp-group-title">💰 弥生到手价总览<span class="pp-count">到手价 · 每副均价 · 赠品</span></div>'
+    + '<div class="mpo-grid">' + MIYANG_PRICE_OVERVIEW.map(card).join('') + '</div></div>';
+}
 // 价格显示单位：初音日抛按「盒」，其余（含半年抛）按「副」。只改显示，不动库里的档位名
 function ppTierLabel(p) {
   const t = p.priceTier || '';
@@ -14322,7 +14391,7 @@ function renderPatternPricePage() {
       return;
     }
     const dims = PP_DIMS;
-    html = '<div class="pp-tiercards">';
+    html = renderMiyangPriceOverview() + '<div class="pp-tiercards">';
     dims.forEach(def => {
       const opt = ppDimOptions(def.dim, items);
       let opts = opt.list.filter(v => items.some(p => opt.get(p) === v)).length;
