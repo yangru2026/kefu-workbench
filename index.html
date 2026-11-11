@@ -926,6 +926,17 @@ body {
 .mpo-avg td[data-best]{background:#dcfce7;color:#15803d}
 .mpo-avg td i{font-style:normal;font-size:10px;font-weight:700;background:#16a34a;color:#fff;border-radius:7px;padding:1px 6px;margin-left:4px;vertical-align:1px}
 .mpo-gift td:not(:first-child){color:#4b5563;white-space:normal;line-height:1.45;font-size:11.5px}
+/* 普通vs定轴 对照表（2026-11-11 改版）：每格叠到手价/均价/赠品 */
+.mpo-cmp td{vertical-align:top;text-align:left;padding:7px 10px;white-space:normal}
+.mpo-cmp tbody td:first-child{text-align:center;vertical-align:middle;font-size:12px;white-space:nowrap}
+.mpo-cmp thead th{white-space:nowrap;font-size:12.5px}
+.mpo-price{font-size:14.5px;font-weight:800;color:#d9483b;white-space:nowrap;line-height:1.2}
+.mpo-best{font-style:normal;font-size:10px;font-weight:700;background:#16a34a;color:#fff;border-radius:7px;padding:1px 6px;margin-left:5px;vertical-align:1.5px;white-space:nowrap}
+.mpo-sub{font-size:11px;color:#64748b;white-space:normal;line-height:1.5;margin-top:3px}
+.mpo-sub b{color:#a16207;font-weight:800}
+.mpo-var{font-size:10.5px;color:#b45309;background:#fef9c3;border-radius:6px;padding:1px 6px;display:inline-block;margin-top:3px;white-space:nowrap}
+.mpo-colsub{display:block;font-size:10px;font-weight:600;color:#065f46;background:rgba(255,255,255,.7);border-radius:8px;padding:1px 8px;margin-top:3px;white-space:nowrap}
+.mpo-none{color:#cbd5e1}
 @media(max-width:620px){.mpo-grid{grid-template-columns:1fr}}
 .pp-special-head{margin:24px 4px 12px;font-size:13px;font-weight:800;color:#be123c;padding:10px 14px;background:#fff1f2;border:1.5px solid #fecdd3;border-radius:12px}
 .pp-special-banner{margin:0 2px 12px;font-size:13px;font-weight:700;color:#9f1239;background:linear-gradient(90deg,#ffe4e6,#fff1f2);border:1px solid #fda4af;border-radius:12px;padding:9px 13px}
@@ -14156,23 +14167,55 @@ const MIYANG_PRICE_OVERVIEW = [
   ] },
 ];
 function renderMiyangPriceOverview() {
-  const card = m => {
-    const normal = m.cols.filter(c => !c.chan).map(c => parseFloat(c.avg));
-    const minAvg = Math.min.apply(null, normal);
-    return '<div class="mpo-card' + (m.cols.length >= 5 ? ' mpo-wide' : '') + '"><div class="mpo-head"><span>💳 ' + escapeHtml(m.title) + '</span>'
-      + '<span class="mpo-tag">' + escapeHtml(m.tag) + '</span></div>'
-      + '<div class="mpo-scroll"><table class="mpo-table"><thead><tr><th style="min-width:64px">SKU</th>'
-      + m.cols.map(c => '<th>' + escapeHtml(c.n) + '</th>').join('') + '</tr></thead><tbody>'
-      + '<tr class="mpo-arrive"><td>到手价</td>' + m.cols.map(c => '<td>¥' + escapeHtml(c.arrive) + '</td>').join('') + '</tr>'
-      + '<tr class="mpo-avg"><td>均价/副</td>' + m.cols.map(c => {
-          const best = !c.chan && parseFloat(c.avg) === minAvg;
-          return '<td' + (best ? ' data-best="1"' : '') + '>' + (best ? '⭐' : '') + escapeHtml(c.avg) + (best ? '<i>最划算</i>' : '') + '</td>';
-        }).join('') + '</tr>'
-      + '<tr class="mpo-gift"><td>赠品</td>' + m.cols.map(c => '<td>' + escapeHtml(c.gift) + '</td>').join('') + '</tr>'
-      + '</tbody></table></div></div>';
+  /* 普通 vs 定轴 对照版（2026-11-11）：数据仍取 MIYANG_PRICE_OVERVIEW，按抛型两两配对。
+     行=装数，列=普通款/定轴款，每格叠放到手价 / 均价 / 赠品（渠道变体并入小字），一眼对比 */
+  const specOf = n => (String(n).match(/(?:普通|定轴)(\d+)/) || String(n).match(/(\d+)\s*·/) || [])[1];
+  const pairMap = m => {
+    const map = {};
+    (m.cols || []).forEach(c => {
+      const sp = specOf(c.n);
+      if (!sp) return;
+      if (!map[sp]) map[sp] = { main: c, extra: [] };
+      else map[sp].extra.push(c);
+    });
+    return map;
   };
-  return '<div class="mpo-wrap"><div class="pp-group-title">💰 弥生到手价总览<span class="pp-count">到手价 · 每副均价 · 赠品</span></div>'
-    + '<div class="mpo-grid">' + MIYANG_PRICE_OVERVIEW.map(card).join('') + '</div></div>';
+  const cmpCard = (title, tag, pk, dk) => {
+    const P = MIYANG_PRICE_OVERVIEW.find(m => m.key === pk);
+    const D = MIYANG_PRICE_OVERVIEW.find(m => m.key === dk);
+    if (!P || !D) return '';
+    const pm = pairMap(P), dm = pairMap(D);
+    const specs = [...new Set(Object.keys(pm).concat(Object.keys(dm)))]
+      .sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+    const minAvg = m => Math.min.apply(null, m.cols.filter(c => !c.chan).map(c => parseFloat(c.avg)));
+    const pMin = minAvg(P), dMin = minAvg(D);
+    const cell = (e, min) => {
+      if (!e) return '<td class="mpo-none">—</td>';
+      const c = e.main;
+      const best = !c.chan && parseFloat(c.avg) === min;
+      const varLine = e.extra.map(v => {
+        const nm = (String(v.n).match(/（(.+?)）/) || [])[1] || '其他渠道';
+        return nm + (parseFloat(v.arrive) === parseFloat(c.arrive) ? '同价 ¥' + v.arrive : ' ¥' + v.arrive);
+      }).join('　');
+      return '<td><div class="mpo-price">¥' + escapeHtml(c.arrive) + (best ? '<i class="mpo-best">⭐ 最划算</i>' : '') + '</div>'
+        + '<div class="mpo-sub">均价 <b>' + escapeHtml(c.avg) + '</b>/副 · ' + escapeHtml(c.gift) + '</div>'
+        + (varLine ? '<div class="mpo-var">' + escapeHtml(varLine) + '</div>' : '')
+        + '</td>';
+    };
+    const rows = specs.map(sp => '<tr><td class="mpo-spec">' + escapeHtml(sp) + ' 副装</td>'
+      + cell(pm[sp], pMin) + cell(dm[sp], dMin) + '</tr>').join('');
+    return '<div class="mpo-card mpo-wide"><div class="mpo-head"><span>💳 ' + escapeHtml(title) + '</span>'
+      + '<span class="mpo-tag">' + escapeHtml(tag) + '</span></div>'
+      + '<div class="mpo-scroll"><table class="mpo-table mpo-cmp"><thead><tr><th style="min-width:60px">装数</th>'
+      + '<th>普通款<span class="mpo-colsub">普通款全系列</span></th>'
+      + '<th>定轴款<span class="mpo-colsub">少女漫定轴</span></th></tr></thead>'
+      + '<tbody>' + rows + '</tbody></table></div></div>';
+  };
+  return '<div class="mpo-wrap"><div class="pp-group-title">💰 弥生到手价总览<span class="pp-count">普通款 vs 定轴款 · 到手价 · 均价 · 赠品</span></div>'
+    + '<div class="mpo-grid">'
+    + cmpCard('半年抛 · 普通 vs 定轴', '买 1 发 2 盒（2 片）· 可备注双眼不同度数', 'bh', 'dh')
+    + cmpCard('日抛 · 普通 vs 定轴', '一盒 6 片装 · 双眼同度数', 'rp', 'rd')
+    + '</div></div>';
 }
 // 价格显示单位：初音日抛按「盒」，其余（含半年抛）按「副」。只改显示，不动库里的档位名
 function ppTierLabel(p) {
