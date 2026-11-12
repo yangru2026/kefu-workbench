@@ -866,17 +866,32 @@
   }
 
   /* ================= 云端同步 ================= */
+  // 英文报错对她没意义，统一翻成人话
+  function friendlyErr(e){
+    if (e && e.name === 'AbortError') return '请求超时，请检查网络后重试';
+    var m = (e && (e.message || String(e))) || '未知错误';
+    if (/refresh token|not valid|invalid_grant|invalid token/i.test(m)) return '登录已过期，请点右上角「云端」重新登录';
+    if (/jwt expired|token has expired/i.test(m)) return '登录已过期，请点右上角「云端」重新登录';
+    if (/failed to fetch|networkerror|network request failed|load failed|fetch failed/i.test(m)) return '网络连接失败，检查网络后重试';
+    if (/row-level security|permission denied/i.test(m)) return '没有权限写入，请联系管理员';
+    return m;
+  }
+
   function apiFetch(path, opts){
     opts = opts || {};
     var headers = { apikey: SB_KEY };
     if (opts.token) headers.Authorization = 'Bearer ' + opts.token;
     if (opts.body) headers['Content-Type'] = 'application/json';
     if (opts.prefer) headers.Prefer = opts.prefer;
+    var ctl = (typeof AbortController === 'function') ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function(){ try { ctl.abort(); } catch(e){} }, 25000) : null;
     return fetch(SB_URL + path, {
       method: opts.method || 'GET',
       headers: headers,
-      body: opts.body ? JSON.stringify(opts.body) : undefined
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+      signal: ctl ? ctl.signal : undefined
     }).then(function(r){
+      if (timer) clearTimeout(timer);
       return r.text().then(function(t){
         var data = null;
         try { data = t ? JSON.parse(t) : null; } catch(e){ data = t; }
@@ -889,26 +904,76 @@
     });
   }
 
-  function readStoredSession(){
-    var raw = null;
-    try { raw = localStorage.getItem(SESKEY); } catch(e){}
-    if (!raw){
-      // 复用工作台已经登录的会话（同域名时直接可用）
-      try {
-        for (var i=0;i<localStorage.length;i++){
-          var k = localStorage.key(i);
-          if (/^sb-.*-auth-token$/.test(k)){ raw = localStorage.getItem(k); break; }
-        }
-      } catch(e){}
-    }
+  function parseSession(raw){
     if (!raw) return null;
     try {
       var o = JSON.parse(raw);
       if (o && o.currentSession) o = o.currentSession;
       if (o && o.access_token) return o;
-      if (o && o.user && o.access_token === undefined) return null;
     } catch(e){}
     return null;
+  }
+
+  // 工作台(supabase-js)自己那份登录态：同域名共享 localStorage，它会持续刷新，永远比我们新
+  function wbKeyList(){
+    var ks = [];
+    try {
+      for (var i=0;i<localStorage.length;i++){
+        var k = localStorage.key(i);
+        if (/^sb-.*-auth-token$/.test(k)) ks.push(k);
+      }
+    } catch(e){}
+    return ks;
+  }
+
+  function readWorkbenchSession(){
+    var ks = wbKeyList();
+    for (var i=0;i<ks.length;i++){
+      var o = parseSession(localStorage.getItem(ks[i]));
+      if (o) return o;
+    }
+    return null;
+  }
+
+  function sameUser(a, b){
+    return !!(a && b && a.user && b.user && a.user.id && b.user.id && a.user.id === b.user.id);
+  }
+
+  function readStoredSession(){
+    var raw = null;
+    try { raw = localStorage.getItem(SESKEY); } catch(e){}
+    var own = parseSession(raw);
+    var wb = readWorkbenchSession();
+    if (!wb) return own;
+    // 工作台登的是别的账号时不串号，继续用自己存的
+    if (own && own.user && wb.user && own.user.id && wb.user.id && own.user.id !== wb.user.id) return own;
+    return wb;
+  }
+
+  // 借工作台最新 token：工作台开着时会一直刷新，我们手里那份 refresh_token 会被轮换作废，
+  // 所以每次同步前先取它那份，从根上避开「两边抢同一个 refresh_token」
+  function adoptWorkbenchSession(){
+    var wb = readWorkbenchSession();
+    if (!wb) return false;
+    if (session && session.access_token === wb.access_token) return false;
+    if (session && !sameUser(session, wb)) return false;
+    var merged = Object.assign({}, wb);
+    if (!merged.user && session && session.user) merged.user = session.user;
+    persistSession(merged);
+    return true;
+  }
+
+  // 自己刷新成功后同步回工作台：仅当工作台那份还停在旧 token（说明它没在运行）才写，避免打架
+  function writeBackWorkbench(sess, oldToken){
+    if (!sess || !sess.access_token) return;
+    var ks = wbKeyList();
+    for (var i=0;i<ks.length;i++){
+      var o = parseSession(localStorage.getItem(ks[i]));
+      if (!o) continue;
+      if (o.user && sess.user && o.user.id && sess.user.id && o.user.id !== sess.user.id) continue;
+      if (oldToken && o.access_token && o.access_token !== oldToken) continue;
+      try { localStorage.setItem(ks[i], JSON.stringify(sess)); } catch(e){}
+    }
   }
 
   function persistSession(s){
@@ -932,7 +997,8 @@
   }
 
   function refreshToken(){
-    if (!session || !session.refresh_token) return Promise.reject(new Error('没有可用的登录状态'));
+    if (!session || !session.refresh_token) return Promise.reject(new Error('登录已过期，请点右上角「云端」重新登录'));
+    var oldToken = session.access_token;
     return apiFetch('/auth/v1/token?grant_type=refresh_token', {
       method: 'POST',
       body: { refresh_token: session.refresh_token }
@@ -940,15 +1006,30 @@
       var merged = Object.assign({}, session, d);
       if (!merged.user && session.user) merged.user = session.user;
       persistSession(merged);
+      writeBackWorkbench(merged, oldToken);
       return merged;
     });
   }
 
   function ensureToken(){
-    if (!session) return Promise.reject(new Error('未登录'));
+    adoptWorkbenchSession();
+    if (!session) return Promise.reject(new Error('未登录，请在右上角「云端」登录'));
     var exp = (session.expires_at || 0) * 1000;
     if (exp && exp - Date.now() > 120000) return Promise.resolve(session);
-    return refreshToken();
+    return refreshToken().catch(function(e){
+      // 手里的 refresh_token 可能已被工作台轮换作废 → 再借一次工作台的新会话
+      var wb = readWorkbenchSession();
+      if (wb && wb.access_token && (!session || wb.access_token !== session.access_token) && (!session || !session.user || !wb.user || sameUser(session, wb))){
+        var merged = Object.assign({}, wb);
+        if (!merged.user && session && session.user) merged.user = session.user;
+        persistSession(merged);
+        return merged;
+      }
+      var err = new Error('登录已过期，请点右上角「云端」重新登录');
+      err.status = 401;
+      err.expired = true;
+      throw err;
+    });
   }
 
   function rowToItem(r){
@@ -1101,7 +1182,9 @@
   }
 
   function sync(reason){
-    if (!session || syncing) return Promise.resolve();
+    if (syncing) return Promise.resolve();
+    adoptWorkbenchSession();
+    if (!session) return Promise.resolve();
     syncing = true;
     lastErr = '';
     setCloudBusy(true);
@@ -1121,10 +1204,11 @@
       })
       .catch(function(e){
         setCloudBusy(false);
-        lastErr = e.message || String(e);
-        if (e.status === 401){ persistSession(null); }
-        updateCloudUI(e.message);
-        if (reason === 'manual') toast('同步失败：' + e.message);
+        var msg = friendlyErr(e);
+        lastErr = msg;
+        if (e.expired || e.status === 401 || /登录已过期/.test(msg)){ persistSession(null); }
+        updateCloudUI(msg);
+        if (reason === 'manual') toast('同步失败：' + msg);
       })
       .then(function(r){ syncing = false; return r; });
   }
