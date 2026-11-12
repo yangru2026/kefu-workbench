@@ -570,9 +570,11 @@ async function saveGrades(){
   };
   const btn = $('btnSaveGrades');
   btn.disabled = true; btn.textContent = '💾 保存中…';
-  const { error } = await sb.from('quiz_results').update(patch).eq('id', r.id);
+  // .select('id') 让 0 行更新也能被识别（RLS 拦截时 Supabase 不报错，之前就是静默丢保存）
+  const { data: upRows, error } = await sb.from('quiz_results').update(patch).eq('id', r.id).select('id');
   btn.disabled = false; btn.textContent = '💾 保存人工评分';
   if (error) { alert('保存失败：' + error.message); return; }
+  if (!upRows || !upRows.length) { alert('保存失败：数据库一行都没更新到（权限被拦），评分没有写入。请联系小布排查。'); return; }
   Object.assign(r, patch);
   toast('✅ 评分已保存，总分 ' + patch.score + ' / ' + (r.total || 100));
   renderDetail();
