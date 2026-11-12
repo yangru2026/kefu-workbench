@@ -163,12 +163,24 @@ async function refreshUnlock() {
   const name = ($('examinee').value || '').trim();
   doneKeys = new Set();
   if (name) {
+    // 2026-11-12：RLS 只放 admin 读 quiz_results，匿名直查永远空 → 跨天全锁。
+    // 改走 SECURITY DEFINER RPC（quiz_done_keys），按姓名只返回已考卷标识；失败再兜底直查。
     try {
-      const res = await fetch(SUPA_URL + '/rest/v1/quiz_results?select=quiz_key&examinee=eq.' + encodeURIComponent(name), {
-        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+      const rpc = await fetch(SUPA_URL + '/rest/v1/rpc/quiz_done_keys', {
+        method: 'POST',
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_examinee: name.trim() })
       });
-      const arr = await res.json();
-      (Array.isArray(arr) ? arr : []).forEach(r => doneKeys.add(r.quiz_key));
+      if (rpc.ok) {
+        const rows = await rpc.json();
+        (Array.isArray(rows) ? rows : []).forEach(r => doneKeys.add(typeof r === 'string' ? r : r.quiz_key));
+      } else {
+        const res = await fetch(SUPA_URL + '/rest/v1/quiz_results?select=quiz_key&examinee=eq.' + encodeURIComponent(name), {
+          headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+        });
+        const arr = await res.json();
+        (Array.isArray(arr) ? arr : []).forEach(r => doneKeys.add(r.quiz_key));
+      }
     } catch (e) { console.warn('解锁进度查询失败', e); }
   }
   calcUnlock();
