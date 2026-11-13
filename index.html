@@ -3546,6 +3546,7 @@ body {
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <div><h1>💰 弥生价格速查</h1><p>直径分组 × 价格档，卖货前先核对价格档，防止低价备注高价花色 | 与花色素材库实时同步</p></div>
       <button class="btn-sm primary" id="pp-sync-btn" style="display:none;" onclick="syncPpFromSheets()">🔄 同步飞书表</button>
+      <button class="btn-sm" id="pp-imgsync-btn" style="display:none;" onclick="syncPpFromSheets(true)" title="在飞书表里换了图之后用：重新下载源表图片并覆盖">🖼️ 更新图片</button>
     </div>
     <div class="pp-batch-bar" id="pp-batch-bar">
       <b>✅ 已选 <span id="pp-sel-count">0</span> 款</b>
@@ -14244,30 +14245,35 @@ function ppMechHtml(sp, full) {
  * 按当前品牌入口同步：极氧花色速查 → 极氧花色信息表；弥生价格速查 → 日抛/半年抛明细表。
  * 口径与「花色素材」页同步按钮一致：新增搬图入库、已有花色只补空缺参数。 */
 let _ppSyncing = false;
-async function syncPpFromSheets() {
+async function syncPpFromSheets(forceImages) {
   if (_ppSyncing) return;
   if (!canEdit('patterns')) { showToast('仅管理员可同步'); return; }
   if (!supabase || !supabase.functions || typeof supabase.functions.invoke !== 'function') { showToast('数据服务未就绪'); return; }
   const brand = ppBrandFilter === '极氧' ? '极氧' : '弥生';
   const srcName = brand === '极氧' ? '极氧花色信息表' : '日抛/半年抛花色明细表';
-  if (!confirm('从飞书「' + srcName + '」同步' + brand + '花色：\n\n'
-    + '· 新增表里有、工作台没有的花色（含图片/卖点/参数）\n'
-    + '· 已有花色只补空缺参数；源表新补的图只补到「库里没图」的花色，不覆盖已有图\n\n确定继续吗？')) return;
+  const confirmMsg = forceImages
+    ? '从飞书「' + srcName + '」强制更新' + brand + '图片：\n\n'
+      + '· 源表里有图的花色会全部重新下载并覆盖工作台现有图（含上眼图/镜片图）\n'
+      + '· 用于「在飞书表里换了图」之后；要搬图，速度较慢（每批 5 条）\n\n确定继续吗？'
+    : '从飞书「' + srcName + '」同步' + brand + '花色：\n\n'
+      + '· 新增表里有、工作台没有的花色（含图片/卖点/参数）\n'
+      + '· 已有花色只补空缺参数；源表新补的图只补到「库里没图」的花色，不覆盖已有图\n\n确定继续吗？';
+  if (!confirm(confirmMsg)) return;
   const btn = document.getElementById('pp-sync-btn');
   const setTxt = s => { if (btn) btn.textContent = s; };
   _ppSyncing = true; if (btn) { btn.disabled = true; btn.style.opacity = '.6'; }
   try {
-    const { data: dry, error: de } = await supabase.functions.invoke('pattern-sheets-sync', { body: { dry_run: true, brand: brand } });
+    const { data: dry, error: de } = await supabase.functions.invoke('pattern-sheets-sync', { body: { dry_run: true, brand: brand, force_images: !!forceImages } });
     if (de) throw new Error(de.message || '检查失败');
     if (!dry || !dry.ok) throw new Error((dry && dry.error) || '检查失败');
-    if (!dry.to_insert && !dry.to_update && !dry.to_imgfix) { showToast('✅ 已是最新，飞书表没有新增或参数变化'); await loadPatternsFromDB(); return; }
+    if (!dry.to_insert && !dry.to_update && !dry.to_imgfix) { showToast('✅ 已是最新，飞书表没有需要同步的内容'); await loadPatternsFromDB(); return; }
     const total = dry.feishu_rows || 1;
     const limit = (dry.to_insert > 0 || dry.to_imgfix > 0) ? 5 : 20;   // 有新增/补图要搬图，小批防止函数超时
     let offset = 0, ins = 0, upd = 0, imgs = 0, rounds = 0;
     while (true) {
       setTxt('🔄 同步中 ' + Math.min(offset + limit, total) + '/' + total);
       const { data, error } = await supabase.functions.invoke('pattern-sheets-sync',
-        { body: { dry_run: false, brand: brand, offset: offset, limit: limit } });
+        { body: { dry_run: false, brand: brand, offset: offset, limit: limit, force_images: !!forceImages } });
       if (error) throw new Error(error.message || '同步中断');
       if (!data || !data.ok) throw new Error((data && data.error) || '同步中断');
       ins += data.inserted || 0; upd += data.updated || 0; imgs += data.images_uploaded || 0;
@@ -14356,6 +14362,8 @@ function renderPatternPricePage() {
   const canManage = canEdit('patterns');
   const psb = document.getElementById('pp-sync-btn');
   if (psb) psb.style.display = canManage ? '' : 'none';
+  const pisb = document.getElementById('pp-imgsync-btn');
+  if (pisb) pisb.style.display = canManage ? '' : 'none';
   // 批量打标下拉（管理员可见时才有意义）
   const bp = document.getElementById('pp-batch-price');
   if (bp) bp.innerHTML = '<option value="">（不修改价格档）</option>' + ppTierList().map(t => '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + '</option>').join('') + '<option value="__clear__">✕ 清空价格档</option>';
