@@ -14180,7 +14180,8 @@ function renderMiyangPriceOverview() {
     });
     return map;
   };
-  const cmpCard = (title, tag, pk, dk) => {
+  const cmpCard = (title, tag, pk, dk, unit) => {
+    unit = unit || '副'; // 半年抛按「副」，日抛按「盒」（一盒 6 片）
     const P = MIYANG_PRICE_OVERVIEW.find(m => m.key === pk);
     const D = MIYANG_PRICE_OVERVIEW.find(m => m.key === dk);
     if (!P || !D) return '';
@@ -14198,11 +14199,11 @@ function renderMiyangPriceOverview() {
         return nm + (parseFloat(v.arrive) === parseFloat(c.arrive) ? '同价 ¥' + v.arrive : ' ¥' + v.arrive);
       }).join('　');
       return '<td><div class="mpo-price">¥' + escapeHtml(c.arrive) + (best ? '<i class="mpo-best">⭐ 最划算</i>' : '') + '</div>'
-        + '<div class="mpo-sub">均价 <b>' + escapeHtml(c.avg) + '</b>/副 · ' + escapeHtml(c.gift) + '</div>'
+        + '<div class="mpo-sub">均价 <b>' + escapeHtml(c.avg) + '</b>/' + unit + ' · ' + escapeHtml(c.gift) + '</div>'
         + (varLine ? '<div class="mpo-var">' + escapeHtml(varLine) + '</div>' : '')
         + '</td>';
     };
-    const rows = specs.map(sp => '<tr><td class="mpo-spec">' + escapeHtml(sp) + ' 副装</td>'
+    const rows = specs.map(sp => '<tr><td class="mpo-spec">' + escapeHtml(sp) + ' ' + unit + '装</td>'
       + cell(pm[sp], pMin) + cell(dm[sp], dMin) + '</tr>').join('');
     return '<div class="mpo-card mpo-wide"><div class="mpo-head"><span>💳 ' + escapeHtml(title) + '</span>'
       + '<span class="mpo-tag">' + escapeHtml(tag) + '</span></div>'
@@ -14214,7 +14215,7 @@ function renderMiyangPriceOverview() {
   return '<div class="mpo-wrap"><div class="pp-group-title">💰 弥生到手价总览<span class="pp-count">普通款 vs 定轴款 · 到手价 · 均价 · 赠品</span></div>'
     + '<div class="mpo-grid">'
     + cmpCard('半年抛 · 普通 vs 定轴', '买 1 发 2 盒（2 片）· 可备注双眼不同度数', 'bh', 'dh')
-    + cmpCard('日抛 · 普通 vs 定轴', '一盒 6 片装 · 双眼同度数', 'rp', 'rd')
+    + cmpCard('日抛 · 普通 vs 定轴', '一盒 6 片装 · 双眼同度数', 'rp', 'rd', '盒')
     + '</div></div>';
 }
 // 价格显示单位：初音日抛按「盒」，其余（含半年抛）按「副」。只改显示，不动库里的档位名
