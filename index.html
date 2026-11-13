@@ -3992,13 +3992,9 @@ body {
   </div>
 
   <div class="page" id="page-ranking">
-    <div class="page-header"><h1>客服排名</h1><p>按天看排名 · 转化率 / 销售额 / 满意度 / 响应</p></div>
+    <div class="page-header"><h1>客服排名</h1><p>本月累计排名 · 转化率 / 销售额 / 满意度 / 响应</p></div>
 
     <div class="rk-filter">
-      <div class="rk-seg" id="rk-view-seg">
-        <button class="rk-seg-btn active" data-view="day">日排名</button>
-        <button class="rk-seg-btn" data-view="month">月累计</button>
-      </div>
       <div class="rk-seg" id="rk-group-seg">
         <button class="rk-seg-btn active" data-group="售前1组">A组</button>
         <button class="rk-seg-btn" data-group="售前2组">B组</button>
@@ -5372,7 +5368,7 @@ let quizData = [];
 let scheduleData = {};
 let scheduleMonth = '';  // current viewing month 'YYYY-MM'
 // ★2026-09-21 排名页重做：数据源改为 Supabase ranking_daily（由看板「每日明细·按分组」同步而来）
-let rkView = 'day';          // day=日排名 / month=月累计
+let rkView = 'month';         // 2026-11-13 去掉日排名：固定只看月累计
 let rkGroup = '售前1组';     // 售前1组 / 售前2组 / 售前3组（★ 已去掉「全部」，默认 A组）
 let rkGroupFixed = '售前1组'; // 记忆用户选的组（切「按店看 / 按人看」时保持）
 let rkPrevGroupBy = '';      // 上一次的分组维度，用于判断要不要重置组
@@ -6833,7 +6829,7 @@ function rkCurrentRows() {
 //   客服个人看自己还差多少；排名/数据在最上，分析在下面）
 //   口径：
 //   · 时间 = 当月累计（ranking_daily 按 work_date 前缀归月求和）
-//   · 个人转化目标 = 其所接各店的 shop_targets 转化率目标按询单加权；满意度统一 98%
+//   · 个人转化目标 = 统一目标（shop_targets 的「全渠道」行，默认 52%），全组一致；满意度统一 98%
 //   · 单人视图出诊断卡（进度条+分店明细+主因/对策）；排名视图出全组缺口榜（越接近达标越靠前）
 //   · 店铺达标总览折叠在底部；管理员可在页面直接改目标（每月换目标不用改代码）
 // ═══════════════════════════════════════════════════════════════
@@ -6916,6 +6912,13 @@ function rkTargetOf(shop) {
   const t = T[shop];
   return (t && t.conv_target > 0) ? t.conv_target : 0;
 }
+// ★ 2026-11-13 茹姐：「每人的目标怎么还不一致的」→「统一」。
+//   个人转化目标不再按各店询单加权，全组统一取「全渠道」这一行的目标（没配就 52%）。
+//   管理员在 ⚙ 目标设置 里改「全渠道」的转化率目标，全组目标一起变，不用改代码。
+function rkUnifiedConvTarget() {
+  const t = rkTargetOf('全渠道');
+  return t > 0 ? t : 0.52;
+}
 
 // 个人 × 店铺聚合（当月累计）：每人还差几付款/几条好评
 function rkPersonShopAgg(rows) {
@@ -6932,17 +6935,16 @@ function rkPersonShopAgg(rows) {
     if (!isNaN(b)) o.b += b;
   });
   const byP = new Map();          // 人 → 汇总
+  const uT = rkUnifiedConvTarget();   // ★ 全组统一目标（不再按店加权）
   map.forEach(function(o){
-    if (!byP.has(o.name)) byP.set(o.name, { name: o.name, shops: [], inq: 0, pay: 0, g: 0, b: 0, tW: 0, tN: 0 });
+    if (!byP.has(o.name)) byP.set(o.name, { name: o.name, shops: [], inq: 0, pay: 0, g: 0, b: 0 });
     const p = byP.get(o.name);
     o.hasReview = (o.g + o.b) > 0;
     p.shops.push(o);
     p.inq += o.inq; p.pay += o.pay; p.g += o.g; p.b += o.b;
-    const t = rkTargetOf(o.shop);
-    if (t > 0) { p.tW += t * o.inq; p.tN += o.inq; }   // 加权目标：按询单占比折算
   });
   byP.forEach(function(p){
-    p.convT = p.tN > 0 ? p.tW / p.tN : null;
+    p.convT = uT;
     p.satT = 0.98;
     p.conv = p.inq > 0 ? p.pay / p.inq : null;
     p.sat = (p.g + p.b) > 0 ? p.g / (p.g + p.b) : null;
@@ -6951,7 +6953,7 @@ function rkPersonShopAgg(rows) {
     // 主因：还差付款最多的店
     let worst = null;
     p.shops.forEach(function(o){
-      const cg = rkConvGap(o.pay, o.inq, rkTargetOf(o.shop));
+      const cg = rkConvGap(o.pay, o.inq, p.convT);
       if (cg && cg.need > 0 && (!worst || cg.need > worst.need)) worst = { shop: o.shop, need: cg.need };
     });
     p.worst = worst;
@@ -6985,7 +6987,7 @@ function rkRenderTargets() {
 
   let html = '<div class="rk-target-box">' +
     '<div class="rk-target-head">🎯 个人达标分析（' + month.replace('-', '/') + ' 月累计 · 数据截至 ' + rkDateFmt(rkDate) +
-      '）<span class="rk-sub">转化目标 = 所接各店目标按询单加权 · 满意度统一 98% · 点客服名看单人明细</span>' + adminBtn + '</div>';
+      '）<span class="rk-sub">转化目标 = 全组统一 ' + Math.round(rkUnifiedConvTarget() * 100) + '%（改 ⚙ 目标设置 的「全渠道」即可）· 满意度统一 98% · 点客服名看单人明细</span>' + adminBtn + '</div>';
 
   // 单人视图：重点诊断卡（进度条 + 分店明细 + 主因/对策）
   const one = (rkGroupBy === 'person' && rkPersonFocus) ? people.filter(function(p){ return p.name === rkPersonFocus; }) : [];
@@ -7062,7 +7064,7 @@ function rkPersonDetailHTML(p) {
       : '<b class="na">—</b>') + '</span></div>';
   // 分店明细
   html += '<div class="rk-pt-shops">' + p.shops.map(function(o){
-    const t = rkTargetOf(o.shop);
+    const t = p.convT;
     const cg = rkConvGap(o.pay, o.inq, t);
     const sg = rkSatGap(o.g, o.b, p.satT);
     const cc = cg ? (cg.inq0 ? '<b class="na">询单 0</b>'
