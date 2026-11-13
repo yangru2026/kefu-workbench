@@ -144,6 +144,7 @@
       <option value="off">⬇ 已下架</option>
     </select>
     <button class="btn o" id="btnSync" style="display:none;">🔄 同步明细表</button>
+    <button class="btn" id="btnImgSync" style="display:none;" title="在飞书表里换了图之后用：重新下载源表图片并覆盖">🖼️ 更新图片</button>
     <button class="btn g" id="btnAdd" style="display:none;">＋ 新增</button>
   </div>
   <div class="wrap">
@@ -545,15 +546,22 @@ $('statusFilter').addEventListener('change', renderGrid);
 
 /* ==================== 从飞书花色明细表同步（仅管理员） ==================== */
 let syncing = false;
-async function syncFromSheets(){
+async function syncFromSheets(forceImages){
   if (syncing) return;
   if (!isAdmin) { toast('仅管理员可同步'); return; }
-  if (!confirm('从飞书「日抛 / 半年抛花色明细表」同步到花色素材：\n\n'
-    + '· 新增明细表里有、工作台没有的花色（含图片 / 卖点 / 参数）\n'
-    + '· 已有花色只补空缺参数，不覆盖图片、卖点、下架标记\n\n确定继续吗？')) return;
+  const confirmMsg = forceImages
+    ? '从飞书「日抛 / 半年抛花色明细表」强制更新图片：\n\n'
+      + '· 源表里有图的花色会全部重新下载并覆盖工作台现有图（含上眼图/镜片图）\n'
+      + '· 用于「在飞书表里换了图」之后；要搬图，速度较慢（每批 5 条）\n\n确定继续吗？'
+    : '从飞书「日抛 / 半年抛花色明细表」同步到花色素材：\n\n'
+      + '· 新增明细表里有、工作台没有的花色（含图片 / 卖点 / 参数）\n'
+      + '· 已有花色只补空缺参数，不覆盖图片、卖点、下架标记\n\n确定继续吗？';
+  if (!confirm(confirmMsg)) return;
   const btn = $('btnSync');
+  const btnImg = $('btnImgSync');
   const setTxt = s => { btn.textContent = s; };
-  syncing = true; btn.disabled = true; btn.style.opacity = '.6';
+  syncing = true; btn.disabled = true; btnImg.disabled = true; btn.style.opacity = '.6';
+  if (btnImg) btnImg.style.opacity = '.6';
   try {
     // 先刷新「表格评论里的下架」标记；这一步失败不阻断后面的花色同步
     setTxt('🔄 检查下架…');
@@ -562,17 +570,17 @@ async function syncFromSheets(){
       if (oe) console.warn('[同步] 下架标记刷新失败（不阻断）', oe);
     } catch (e) { console.warn('[同步] 下架标记刷新失败（不阻断）', e); }
     setTxt('🔄 检查中…');
-    const { data: dry, error: de } = await sb.functions.invoke('pattern-sheets-sync', { body: { dry_run: true } });
+    const { data: dry, error: de } = await sb.functions.invoke('pattern-sheets-sync', { body: { dry_run: true, force_images: !!forceImages } });
     if (de) throw new Error(de.message || '检查失败');
     if (!dry || !dry.ok) throw new Error((dry && dry.error) || '检查失败');
-    if (!dry.to_insert && !dry.to_update) { toast('✅ 已是最新，明细表没有新增或参数变化'); await load(); return; }
+    if (!dry.to_insert && !dry.to_update && !dry.to_imgfix) { toast('✅ 已是最新，明细表没有需要同步的内容'); await load(); return; }
     const total = dry.feishu_rows || 1;
-    const limit = dry.to_insert > 0 ? 5 : 20;   // 有新增要搬图，小批防止函数超时
+    const limit = (dry.to_insert > 0 || dry.to_imgfix > 0) ? 5 : 20;   // 有新增/搬图，小批防止函数超时
     let offset = 0, ins = 0, upd = 0, imgs = 0, rounds = 0;
     while (true) {
       setTxt('🔄 同步中 ' + Math.min(offset + limit, total) + '/' + total);
       const { data, error } = await sb.functions.invoke('pattern-sheets-sync',
-        { body: { dry_run: false, offset, limit } });
+        { body: { dry_run: false, offset, limit, force_images: !!forceImages } });
       if (error) throw new Error(error.message || '同步中断');
       if (!data || !data.ok) throw new Error((data && data.error) || '同步中断');
       ins += data.inserted || 0; upd += data.updated || 0; imgs += data.images_uploaded || 0;
@@ -580,16 +588,17 @@ async function syncFromSheets(){
       offset = data.next_offset;
       if (!data.has_more || ++rounds > 40) break;
     }
-    toast('同步完成：新增 ' + ins + '、更新 ' + upd + '、图片 ' + imgs + ' 张');
+    toast((forceImages ? '图片更新完成：' : '同步完成：') + '新增 ' + ins + '、更新 ' + upd + '、图片 ' + imgs + ' 张');
     await load();
   } catch (e) {
     toast('同步失败：' + (e.message || e));
     console.error(e);
   } finally {
-    syncing = false; btn.disabled = false; btn.style.opacity = ''; setTxt('🔄 同步明细表');
+    syncing = false; btn.disabled = false; if (btnImg) btnImg.disabled = false; btn.style.opacity = ''; if (btnImg) btnImg.style.opacity = ''; setTxt('🔄 同步明细表');
   }
 }
-$('btnSync').addEventListener('click', syncFromSheets);
+$('btnSync').addEventListener('click', () => syncFromSheets());
+$('btnImgSync').addEventListener('click', () => syncFromSheets(true));
 $('q').addEventListener('input', renderGrid);
 $('lclose').addEventListener('click', () => $('lmask').classList.remove('show'));
 $('lmask').addEventListener('click', function(e){ if (e.target === this) this.classList.remove('show'); });
@@ -621,6 +630,7 @@ $('fileLens').addEventListener('change', e => { uploadFiles([...e.target.files],
       $('roleBadge').className = 'badge admin'; $('roleBadge').textContent = '👑 管理员 · 可上传';
       $('btnAdd').style.display = '';
       $('btnSync').style.display = '';
+      $('btnImgSync').style.display = '';
     } else {
       $('roleBadge').className = 'badge ro'; $('roleBadge').textContent = '📖 只读查看';
     }
