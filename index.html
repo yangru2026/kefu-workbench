@@ -320,7 +320,7 @@ body {
 
 .page { display: none; padding: 32px 40px; }
 .page.active { display: block; }
-#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active, #page-price-quiz.active, #page-quiz-results.active, #page-huaming.active, #page-restock.active, #page-biz-contacts.active, #page-pdd-rules.active, #page-patterns.active { display: flex; height: 100vh; overflow: hidden; }
+#page-qc.active, #page-gift.active, #page-diversion.active, #page-rules.active, #page-checklist.active, #page-price-quiz.active, #page-quiz-results.active, #page-huaming.active, #page-restock.active, #page-biz-contacts.active, #page-pdd-rules.active, #page-sopguide.active, #page-patterns.active { display: flex; height: 100vh; overflow: hidden; }
 
 /* Header */
 .page-header { margin-bottom: 28px; }
@@ -2170,6 +2170,7 @@ body {
         <div class="nav-item" data-page="patterns" title="花色素材"><span class="icon">🎨</span><span>花色素材</span></div>
         <div class="nav-item" data-page="tools" title="快捷工具"><span class="icon">🛠</span><span>快捷工具</span></div>
         <div class="nav-item" data-page="gift" title="赠品编码查询"><span class="icon">🎁</span><span>赠品编码</span></div>
+        <div class="nav-item" data-page="sopguide" title="接待SOP（场景对照/双轨制/缺货/备注/补差价）"><span class="icon">📕</span><span>接待SOP</span></div>
         <div class="nav-item" data-page="diversion" title="工作表格（飞书）"><span class="icon">📋</span><span>工作表格</span></div>
         <div class="nav-item" data-page="voc" title="客户之声"><span class="icon">📣</span><span>客户之声</span><span class="badge" id="voc-todo-badge" style="display:none;"></span></div>
         <div class="nav-item" data-page="daily" title="汇报"><span class="icon">🌙</span><span>汇报</span></div>
@@ -3858,6 +3859,11 @@ body {
   </div>
   <div class="page" id="page-diversion" style="padding:0;overflow:hidden;flex-direction:column;">
     <iframe id="diversion-iframe" src="about:blank" data-src="diversion.html?v=20261113b" style="flex:1;border:none;width:100%;"></iframe>
+  </div>
+
+  <!-- ===== 接待SOP（2026-11-16，豆包表格同步） ===== -->
+  <div class="page" id="page-sopguide" style="padding:0;overflow:hidden;flex-direction:column;">
+    <iframe id="sopguide-iframe" src="about:blank" data-src="sop.html?v=20261116a" style="flex:1;border:none;width:100%;" allow="clipboard-read;clipboard-write"></iframe>
   </div>
 
   <!-- ===== 拼多多专区 · 平台规则（2026-11-06，?pf=pdd 只看拼多多） ===== -->
@@ -11976,6 +11982,14 @@ function switchPage(page) {
       gifIframe.removeAttribute('data-src');
     }
   }
+  if (page === 'sopguide') {
+    // 接待SOP：延迟加载 iframe（首次点击才加载）
+    const sgIframe = document.getElementById('sopguide-iframe');
+    if (sgIframe && sgIframe.getAttribute('data-src') && sgIframe.src !== sgIframe.getAttribute('data-src')) {
+      sgIframe.src = sgIframe.getAttribute('data-src');
+      sgIframe.removeAttribute('data-src');
+    }
+  }
   if (page === 'huaming') {
     // 特殊花色：延迟加载 iframe（首次点击才加载）
     const hmIframe = document.getElementById('huaming-iframe');
@@ -17511,6 +17525,7 @@ function prefetchSubPages() {
   try {
     if (navigator.connection && navigator.connection.saveData) return;
     var want = ['restock', 'huaming', 'qc', 'gift', 'diversion', 'biz-contacts', 'pdd-rules'];
+    want.splice(5, 0, 'sopguide');
     var urls = [];
     want.forEach(function (key) {
       var f = document.getElementById(key + '-iframe');
