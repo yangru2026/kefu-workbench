@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>接待SOP</title>
+<style>
+  :root{ --primary:#10b981; --primary-dark:#059669; --primary-light:rgba(16,185,129,.1);
+         --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f7f9f8;
+         --red:#dc2626; --red-bg:#fef2f2; --red-bd:#fecaca; --amber:#b45309; --amber-bg:#fffbeb; --amber-bd:#fde68a; }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+       background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+  .topbar{display:flex;align-items:center;gap:12px;padding:13px 20px;background:#fff;
+          border-bottom:1px solid var(--border);flex-wrap:wrap;position:sticky;top:0;z-index:20;}
+  .topbar h1{font-size:18px;font-weight:800;letter-spacing:.5px;}
+  .badge{font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;background:var(--primary-light);color:var(--primary-dark);}
+  .tabs{display:flex;gap:8px;padding:12px 20px 0;background:#fff;border-bottom:1px solid var(--border);
+        overflow-x:auto;position:sticky;top:53px;z-index:19;}
+  .tab{flex:0 0 auto;border:1px solid var(--border);border-bottom:0;background:#f8fafc;color:#475569;
+       font-size:13px;font-weight:700;padding:9px 15px;border-radius:10px 10px 0 0;cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .tab:hover{background:#eef7f3;color:var(--primary-dark);}
+  .tab.on{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .wrap{width:100%;max-width:1180px;margin:0 auto;padding:20px 24px 60px;}
+  .panel{display:none;} .panel.on{display:block;}
+  .lead{background:#fff;border:1px solid var(--border);border-left:4px solid var(--primary);border-radius:12px;
+        padding:12px 16px;font-size:13.5px;line-height:1.75;color:#334155;margin-bottom:18px;}
+  .lead b{color:var(--primary-dark);}
+  h2.sec{font-size:15px;font-weight:800;margin:22px 0 10px;padding-left:10px;border-left:4px solid var(--primary);line-height:1.3;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px 18px;
+        box-shadow:0 3px 14px rgba(31,41,55,.05);margin-bottom:14px;}
+  .card h3{font-size:14.5px;font-weight:800;margin-bottom:4px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .track-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+  .pill{font-size:12px;font-weight:800;padding:3px 12px;border-radius:20px;}
+  .pill.a{background:#ecfdf5;color:#047857;} .pill.b{background:#eff6ff;color:#1d4ed8;}
+  .step{border:1px solid var(--border);border-radius:12px;padding:13px 15px;margin-bottom:10px;background:#fff;}
+  .step:last-child{margin-bottom:0;}
+  .step .h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+  .step .no{font-size:12px;font-weight:800;color:#fff;background:var(--primary);border-radius:8px;padding:2px 9px;}
+  .step .nm{font-size:14px;font-weight:800;}
+  .step .when{font-size:12px;color:var(--muted);background:#f1f5f9;border-radius:20px;padding:2px 10px;}
+  .rowline{font-size:13px;line-height:1.75;color:#334155;margin-top:6px;}
+  .rowline .k{display:inline-block;font-weight:800;color:#0f766e;margin-right:6px;}
+  .say{background:#f0fdf9;border:1px dashed #a7f3d0;border-radius:10px;padding:10px 12px;font-size:13px;
+       line-height:1.8;color:#065f46;margin-top:8px;position:relative;}
+  .bad{background:var(--red-bg);border:1px solid var(--red-bd);border-radius:10px;padding:8px 12px;
+       font-size:12.5px;line-height:1.7;color:#b91c1c;margin-top:8px;}
+  .warnbar{background:var(--red-bg);border:1px solid var(--red-bd);border-radius:12px;padding:12px 15px;
+       font-size:13px;line-height:1.75;color:#b91c1c;font-weight:600;margin-bottom:16px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;background:#fff;}
+  th,td{border:1px solid var(--border);padding:9px 11px;text-align:left;vertical-align:top;line-height:1.7;}
+  th{background:#f8fafc;font-weight:800;color:#334155;white-space:nowrap;}
+  td.k{font-weight:800;color:#0f766e;white-space:nowrap;}
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+  .search{flex:1 1 260px;min-width:200px;border:1px solid var(--border);border-radius:10px;padding:10px 13px;
+          font-size:13.5px;font-family:inherit;outline:none;background:#fff;}
+  .search:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light);}
+  .chips{display:flex;gap:7px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:20px;border:1px solid var(--border);
+        background:#fff;color:#475569;cursor:pointer;font-family:inherit;}
+  .chip.on{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .cnt{font-size:12.5px;color:var(--muted);margin-bottom:12px;}
+  .cj{background:#fff;border:1px solid var(--border);border-radius:12px;padding:13px 16px;margin-bottom:11px;
+      box-shadow:0 2px 10px rgba(31,41,55,.04);}
+  .cj .h{display:flex;align-items:flex-start;gap:9px;flex-wrap:wrap;}
+  .cj .idx{font-size:11px;font-weight:800;color:#fff;background:var(--primary);border-radius:6px;padding:1px 7px;flex:0 0 auto;margin-top:2px;}
+  .cj .nm{font-size:14px;font-weight:800;flex:1 1 auto;}
+  .cj .g{font-size:11.5px;font-weight:700;color:var(--primary-dark);background:var(--primary-light);border-radius:20px;padding:2px 10px;}
+  .cj .ask{font-size:12.5px;color:var(--muted);margin:6px 0 0 0;}
+  .cj .ask b{color:#475569;}
+  .copy{float:right;font-size:11.5px;font-weight:700;border:1px solid #a7f3d0;background:#fff;color:#047857;
+        border-radius:8px;padding:3px 10px;cursor:pointer;font-family:inherit;margin-left:8px;}
+  .copy:hover{background:#ecfdf5;}
+  .meta{display:flex;gap:14px;flex-wrap:wrap;margin-top:9px;font-size:12.5px;color:#475569;line-height:1.7;}
+  .meta div{flex:1 1 240px;min-width:200px;}
+  .meta .k{font-weight:800;color:#0f766e;display:block;margin-bottom:2px;font-size:12px;}
+  .empty{text-align:center;color:var(--muted);font-size:13px;padding:40px 0;}
+  .foot{text-align:center;font-size:12px;color:#94a3b8;padding:22px 0 0;}
+  @media (max-width:820px){ .grid2{grid-template-columns:1fr;} .wrap{padding:16px 13px 44px;} .tabs{padding:10px 13px 0;} }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>接待 SOP</h1>
+    <span class="badge">客服必看 · 7 个专题</span>
+  </div>
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-tab="cj">场景对照（83）</button>
+    <button class="tab" data-tab="sg">双轨制接待流程</button>
+    <button class="tab" data-tab="qh">缺货接待流程</button>
+    <button class="tab" data-tab="bz">备注 SOP（强制）</button>
+    <button class="tab" data-tab="mz">满足不了怎么答</button>
+    <button class="tab" data-tab="bj">补差价活动流程</button>
+    <button class="tab" data-tab="bn">补差价活动备注</button>
+  </div>
+  <div class="wrap">
+    <div class="panel on" id="p-cj">
+      <div class="lead"><b>顺序：</b>先看客户问的是哪一类 → 找到对应场景 → 直接把「照着发」的话术复制过去，再补一句反问/推荐。<b>每个场景都必须带替代方案，不能一句“没有”结束。</b></div>
+      <div class="toolbar">
+        <input class="search" id="q" placeholder="搜场景 / 客户问题 / 话术关键词，例如：直径、滑片、试戴、度数">
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="cnt" id="cnt"></div>
+      <div id="cjlist"></div>
+    </div>
+
+    <div class="panel" id="p-sg">
+      <div class="lead"><b>售前双轨制接待流程（客服必看）：</b>A 轨 = 无明确问题进线；B 轨 = 带具体问题进线。核心一句：绝不当答题机器，答完必推。</div>
+      <div class="grid2">
+        
+        <div class="card">
+          <div class="track-head"><span class="pill a">A 轨</span><span style="font-size:12.5px;color:var(--muted);">（无明确问题，进线问好）</span></div>
+          
+          <div class="step">
+            <div class="h"><span class="no">①</span><span class="nm">破冰探需</span></div>
+            <div class="rowline"><span class="k">什么时候走</span>顾客只发“你好”“在吗”，或发链接进线，没有具体问题</div>
+            <div class="rowline"><span class="k">要做的事</span>先友好回应，再主动问需求，不要干等。<br>· 问：想找自然款还是妆感款？平时戴还是化妆戴？</div>
+            <div class="say">宝你好呀～是想找日常自然款还是妆感款呀？我帮您推荐～</div>
+            <div class="bad">⚠️ 只回“在的”就等着客户说话＝冷场</div>
+          </div>
+          <div class="step">
+            <div class="h"><span class="no">②</span><span class="nm">核对参数</span></div>
+            <div class="rowline"><span class="k">什么时候走</span>顾客说清楚喜好后</div>
+            <div class="rowline"><span class="k">要做的事</span>问关键参数：度数、散光、直径偏好、抛期</div>
+            <div class="say">宝您框架多少度呀？有没有散光？我帮您算好美瞳度数～</div>
+            <div class="bad">⚠️ 不问喜好直接推＝推错人就走</div>
+          </div>
+          <div class="step">
+            <div class="h"><span class="no">③</span><span class="nm">花色推荐</span></div>
+            <div class="rowline"><span class="k">什么时候走</span>根据需求推荐 1-2 款</div>
+            <div class="rowline"><span class="k">要做的事</span>讲清为什么推荐这款（原理），必发实拍图</div>
+            <div class="say">宝~给您推荐这款～<br>您日常戴的话这款上眼自然不夸张，通勤也不突兀，大多数人戴都舒服。<br>上眼效果图发您看看～</div>
+            <div class="bad">⚠️ 只发链接不讲为什么＝像发传单</div>
+          </div>
+          <div class="step">
+            <div class="h"><span class="no">④</span><span class="nm">异议化解</span></div>
+            <div class="rowline"><span class="k">什么时候走</span>顾客犹豫、问“会不会滑片”“会不会不自然”</div>
+            <div class="rowline"><span class="k">要做的事</span>用试戴兜底打消顾虑</div>
+            <div class="say">咱们支持试戴 1 片体验舒适度，戴着不合适，美瞳保留好联系客服反馈支持售后～</div>
+            <div class="bad">⚠️ 只说“放心买”＝没底气</div>
+          </div>
+          <div class="step">
+            <div class="h"><span class="no">⑤</span><span class="nm">引导下单</span></div>
+            <div class="rowline"><span class="k">什么时候走</span>顾客有意向后</div>
+            <div class="rowline"><span class="k">要做的事</span>催单：制造紧迫 + 备注优先发货 + 利益点</div>
+            <div class="say">① 热门花色度数库存走得快，这个度数就剩最后几盒啦～<br>② 现在下单今天还能发，快截单啦～<br>③ 您现在拍我给您备注优先发货，今天就能发～<br>④ 下单再加送眼罩/化妆梳一个哦～</div>
+            <div class="bad">⚠️ 顾客说“好”就没下文＝单子飞了</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="track-head"><span class="pill b">B 轨</span><span style="font-size:12.5px;color:var(--muted);">（带具体问题进线）</span></div>
+          
+          <div class="step">
+            <div class="h"><span class="no">①</span><span class="nm">精准解答</span></div>
+            <div class="rowline"><span class="k">什么时候走</span>客户直接问“几片”“有没有货”“是不是日抛”</div>
+            <div class="rowline"><span class="k">要做的事</span>先直接答问题，不绕弯子。答案要短、要准。</div>
+            <div class="say">宝，这款日抛是 6 片装（3 副）哦。</div>
+            <div class="bad">⚠️ 答完问题就停＝答题机器（红线！）</div>
+          </div>
+          <div class="step">
+            <div class="h"><span class="no">②</span><span class="nm">反客为主</span></div>
+            <div class="rowline"><span class="k">什么时候走</span>★ 答完必须跟一个反问或推荐（不能只答问题）</div>
+            <div class="rowline"><span class="k">要做的事</span>解答完立刻顺势推单，按客户问的问题类型走对应方向（具体话术见「场景对照」）</div>
+            <div class="say">原则：答完问题必须跟一个反问或推荐，不能只给答案就停。具体每个问题怎么反问、怎么推单，查「场景对照」专题。</div>
+            <div class="bad">★ 这一步不做＝整通对话白接</div>
+          </div>
+          <div class="step">
+            <div class="h"><span class="no">③</span><span class="nm">主动核对度数/库存</span></div>
+            <div class="rowline"><span class="k">什么时候走</span>客户有意向后</div>
+            <div class="rowline"><span class="k">要做的事</span>主动帮客户算、主动查库存，不让客户自己拍错：<br>· 帮换算度数（框架度数发我，我直接算）<br>· 查库存系统，确认真有货再让拍<br>· 双眼不同度数的，主动提醒怎么拍</div>
+            <div class="say">① 您把框架度数发我，我帮您算好直接备注，省得您自己拍错～<br>② 您把左眼右眼度数发我，我直接帮您在后台核对好，您直接拍好告诉我就行~<br>③ 我刚查了下库存，这个度数还有现货，现在拍下今天就能发～</div>
+            <div class="bad">⚠️ 让客户自己拍＝容易拍错度数</div>
+          </div>
+          <div class="step">
+            <div class="h"><span class="no">④</span><span class="nm">异议化解</span></div>
+            <div class="rowline"><span class="k">什么时候走</span>客户犹豫、问“会不会滑片/能不能退/贵不贵”</div>
+            <div class="rowline"><span class="k">要做的事</span>用试戴兜底打消顾虑，不用跟客户辩论：<br>· 怕滑片/不舒服 → 试戴 1 片兜底<br>· 怕不能退 → 拆封可试戴，不合适保留美瞳反馈售后<br>· 嫌贵 → 讲活动机制 + 加送赠品</div>
+            <div class="say">① 咱们支持试戴 1 片体验舒适度，戴着不合适，美瞳保留好联系客服反馈售后就可以啦～<br>② 现在拍有 ⬜ 优惠，下单还加送眼罩/化妆梳一个哦～</div>
+            <div class="bad">⚠️ 跟客户辩论“不会滑片”＝客户更犹豫；直接给试戴兜底</div>
+          </div>
+          <div class="step">
+            <div class="h"><span class="no">⑤</span><span class="nm">引导下单（同 A 轨第 5 步）</span></div>
+            <div class="rowline"><span class="k">什么时候走</span>客户有意向后</div>
+            <div class="rowline"><span class="k">要做的事</span>催单：制造紧迫 + 备注优先发货 + 加送赠品</div>
+            <div class="say">同 A 轨第 5 步（紧迫感 + 截单提醒 + 备注优先发货 + 赠品）</div>
+            <div class="bad">⚠️ 不备注＝仓库发错</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="p-qh">
+      <div class="lead"><b>缺货接待流程：</b>缺货不直接说“没有”，每个客户都要引导替代或登记流失。</div>
+      
+      <h2 class="sec">场景 1：缺货会补（这款以后还会到）</h2>
+      <div class="card">
+        
+        <div class="step">
+          <div class="h"><span class="no">第1步</span><span class="nm">问度数 + 查实际库存</span></div>
+          <div class="rowline"><span class="k">具体要求</span>客户说某款没货时，先问客户要的具体度数，再查实际库存——有可能只是部分度数断货，客户要的度数可能还有，不能一上来就说没货</div>
+          <div class="say">宝，您要的这款什么度数呀？我帮您查下有没有现货~</div>
+        </div>
+        <div class="step">
+          <div class="h"><span class="no">第2步</span><span class="nm">有货就引导拍下 + 帮备注</span></div>
+          <div class="rowline"><span class="k">具体要求</span>查到客户要的度数还有现货，引导客户直接拍下，帮客户备注实际需要的度数，不要让客户自己备注</div>
+          <div class="say">宝，您要的度数还有货哦，您直接拍下，我帮您安排占库存，今天就能发~</div>
+        </div>
+        <div class="step">
+          <div class="h"><span class="no">第3步</span><span class="nm">确实没货 → 给预计到货时间</span></div>
+          <div class="rowline"><span class="k">具体要求</span>查完确实没货，必须回复预计到货时间，绝对不能直接说“没有了”就结束</div>
+          <div class="say">宝，您要的这款暂时没货哦，预计 xx 号到~</div>
+        </div>
+        <div class="step">
+          <div class="h"><span class="no">第4步</span><span class="nm">第一时间引导拍下预定</span></div>
+          <div class="rowline"><span class="k">具体要求</span>给完到货时间，第一时间引导客户先拍下预定，到货优先发，锁住客户</div>
+          <div class="say">建议您先拍下预定，到货我第一时间给您发，不用到时候再来抢~</div>
+        </div>
+        <div class="step">
+          <div class="h"><span class="no">第5步</span><span class="nm">预定方法（缺货不能直接下单）</span></div>
+          <div class="rowline"><span class="k">具体要求</span>客户同意预定后，因为缺货不能直接拍这款，引导客户拍同价格的其他花色链接代替，帮客户备注实发客户要的花色。预定的订单到货会优先发货，锁住客户不流失</div>
+          <div class="say">宝宝，因为缺货不能下单，您先拍这个链接同样价格的其他花色代替，帮您备注实发您要的花色，预定的订单到货会优先发货~</div>
+        </div>
+        <div class="step">
+          <div class="h"><span class="no">第6步</span><span class="nm">客户拒绝/没回应 → 推相近花色/接近度数</span></div>
+          <div class="rowline"><span class="k">具体要求</span>客户说“不了谢谢到货再来”，或者等几分钟没回应，必须主动推荐相近花色或接近度数，不能放客户走</div>
+          <div class="say">① 对了，我们家还有一款【XX】上眼效果和这个很像，现在有现货，我发您看看？<br>② 您要的度数没有，不过有【XX度】差一点戴着没差别，您看能接受吗？</div>
+        </div>
+        <div class="step">
+          <div class="h"><span class="no">第7步</span><span class="nm">还是没回应 → 登记缺货流失表</span></div>
+          <div class="rowline"><span class="k">具体要求</span>客户还是没回应或明确不要，登记【缺货流失表】，到货后主动触达</div>
+          <div class="say">（内部操作：登记【缺货流失表】，记录客户花色 + 度数 + 联系方式，到货后通知）</div>
+        </div>
+      </div>
+      <h2 class="sec">场景 2：缺货不补（这款以后不会再到）</h2>
+      <div class="card">
+        
+        <div class="step">
+          <div class="h"><span class="no">第1步</span><span class="nm">问度数 + 查实际库存</span></div>
+          <div class="rowline"><span class="k">具体要求</span>客户说某款没货时，先问客户要的具体度数，再查实际库存——有可能只是部分度数断货，客户要的度数可能还有，不能一上来就说没货</div>
+          <div class="say">宝，您要的这款什么度数呀？我帮您查下有没有现货~</div>
+        </div>
+        <div class="step">
+          <div class="h"><span class="no">第2步</span><span class="nm">有货就引导拍下 + 帮备注</span></div>
+          <div class="rowline"><span class="k">具体要求</span>查到客户要的度数还有现货，引导客户直接拍下，帮客户备注实际需要的度数</div>
+          <div class="say">宝，您要的度数还有货哦，您直接拍下，我帮您备注好【XX度】</div>
+        </div>
+        <div class="step">
+          <div class="h"><span class="no">第3步</span><span class="nm">确实没货 → 直接推相近花色/接近度数</span></div>
+          <div class="rowline"><span class="k">具体要求</span>查完确实没货且这款不补货，不要说“等到货”，必须直接推荐相近花色或接近度数，引导客户转款</div>
+          <div class="say">宝，这款已经停产不补货了哦。不过我们家有一款【XX】上眼效果和这个很像，现在有现货，我发您看看？</div>
+        </div>
+        <div class="step">
+          <div class="h"><span class="no">第4步</span><span class="nm">没回应 → 登记缺货流失表</span></div>
+          <div class="rowline"><span class="k">具体要求</span>客户没回应或明确不要，登记【缺货流失表】做统计，分析哪些款缺货流失最多，反馈给采购</div>
+          <div class="say">（内部操作：登记【缺货流失表】，记录客户花色 + 度数 + 联系方式，统计缺货流失情况）</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="p-bz">
+      <div class="warnbar">⚠️ 处罚标准：未按以下流程或备注操作注意点执行的，查到一单扣罚 5 元/单，上不封顶；若造成严重产品损失（发错货、漏发、错发等），需另行承担对应产品损失。</div>
+      <h2 class="sec">四步闭环流程</h2>
+      <div class="card">
+        
+        <div class="step">
+          <div class="h"><span class="no">第一步</span><span class="nm">认准警报</span><span class="when">识别机器人自动回复</span></div>
+          <div class="rowline"><span class="k">具体要求</span>聊天窗口看到以【为了确保万无一失，已为您呼叫人工客服...】开头的自动回复，说明客户已发送度数/花色等核心备注信息</div>
+          <div class="say">（无需回复，直接进入第二步）</div>
+        </div>
+        <div class="step">
+          <div class="h"><span class="no">第二步</span><span class="nm">人工介入</span><span class="when">翻看聊天记录提取信息</span></div>
+          <div class="rowline"><span class="k">具体要求</span>严禁直接略过！立刻打开客户会话，翻看聊天记录，提取：① 花色 ② 左眼度数 ③ 右眼度数（缺一不可）</div>
+          <div class="say">（内部操作，不对客户说）</div>
+        </div>
+        <div class="step">
+          <div class="h"><span class="no">第三步</span><span class="nm">后台操作</span><span class="when">查库存 + 手动备注</span></div>
+          <div class="rowline"><span class="k">具体要求</span>① 检查客户要求的度数是否有现货（防止缺货发不出）<br>② 在订单上手动帮客户把备注填好（客户已付款，必须客服手动备注）</div>
+          <div class="say">（内部操作，不对客户说）</div>
+        </div>
+        <div class="step">
+          <div class="h"><span class="no">第四步</span><span class="nm">强制核对（闭环）</span><span class="when">发核对话术 + 截图确认</span></div>
+          <div class="rowline"><span class="k">具体要求</span>备注成功后绝对不能直接结束对话！必须给客户发核对话术，配合后台改完备注的截图一起发，做到双重确认，留下证据</div>
+          <div class="say">宝，后台已经帮您手动备注好了，您核对一下【左眼XX度，右眼XX度，花色XX】对吗？<br>（附后台备注截图）</div>
+        </div>
+      </div>
+      <h2 class="sec">备注操作注意点（13 条）</h2>
+      
+      <div class="card">
+        <h3>注意点 1 · 多笔订单不同花色，改某一副必须写清花色名</h3>
+        <div class="rowline">客户多笔订单分开下单、且是不同花色，其中一副要改花色或改度数时，必须备注【具体哪个花色 + 改什么】，不能直接在订单上只备注度数，否则合并后两幅分不清是哪副要改，发错货</div>
+        <div class="bad">❌ 错误示例：直接备注【左眼400右眼425】</div>
+        <div class="say">✅ 正确示例：备注【冷雾茶黑：左眼400右眼425；甜宠学妹：不变】</div>
+      </div>
+      <div class="card">
+        <h3>注意点 2 · 同一花色拍多副，只改其中一副要写清第几副</h3>
+        <div class="rowline">客户同一花色拍了多副（重复下单），只有其中一副要改度数/花色时，不能直接备注花名改，否则仓库会把两副都改了，发错货。必须备注清楚是第几副改、另一副不变</div>
+        <div class="bad">❌ 错误示例：备注【冰岛日记改350/300】→ 两副都被改</div>
+        <div class="say">✅ 正确示例：备注【冰岛日记第1副改350/300，第2副450不变】</div>
+      </div>
+      <div class="card">
+        <h3>注意点 3 · 延期发货必须写明确月日，不能写模糊时间</h3>
+        <div class="rowline">客户要求延期发货时，备注里必须写明确的月日（如 11月20日发），不能写【明天】【后天】【几天后】【星期几发】等模糊表述，否则仓库无法判断具体哪天发，导致提前发或忘发</div>
+        <div class="bad">❌ 错误示例：备注【后天发】【下周三发】【几天后发】</div>
+        <div class="say">✅ 正确示例：备注【11月20日发】【11月15日发】</div>
+      </div>
+      <div class="card">
+        <h3>注意点 4 · 客户分开发的多条消息，必须全部读完再备注</h3>
+        <div class="rowline">客户经常把多副的花色度数分开发（一条一副），客服只读了最近一条就备注，导致漏备注其他副，发错货。必须翻完整个聊天记录，把所有副的花色度数都提取出来再统一备注，并发客户核对</div>
+        <div class="bad">❌ 错误示例：客户分 3 条发了 3 副，客服只读到最后 1 条就备注</div>
+        <div class="say">✅ 正确示例：翻完所有聊天记录，3 副全部备注齐全【国民初恋175/250；她的梨涡175/250；伦敦碎片175/250】</div>
+      </div>
+      <div class="card">
+        <h3>注意点 5 · 部分缺货分订单类型处理：多副先发有货的，单副延迟发货</h3>
+        <div class="rowline">多副订单部分缺货：直接告诉客户哪一副缺货，先发有货的；单副订单缺货：不能拆开发货，订单操作延迟发货客户需同意</div>
+        
+        <div class="say">✅ 正确示例：多副备注【先发有货的】；单副备注【已延迟发货，到货发】</div>
+      </div>
+      <div class="card">
+        <h3>注意点 6 · 三联盒改单盒，统一备注【换单独美瞳盒】</h3>
+        <div class="rowline">客户要求把三联盒换成三个单独美瞳盒时，备注必须统一写【换单独美瞳盒】，不能写【分开盒】【换三个盒】等其他说法，仓库只认【换单独美瞳盒】</div>
+        <div class="bad">❌ 错误示例：备注【分开盒】【换三个美瞳盒】</div>
+        <div class="say">✅ 正确示例：备注【换单独美瞳盒】</div>
+      </div>
+      <div class="card">
+        <h3>注意点 7 · 下链接代替差价，必须备注不发货</h3>
+        <div class="rowline">客户通过拍下低价链接来补差价时，备注必须写清楚【此商品实际不发，代替差价】，否则仓库会按正常订单发货，多寄商品</div>
+        <div class="bad">❌ 错误示例：备注【差价】</div>
+        <div class="say">✅ 正确示例：备注【此商品实际不发，代替差价】</div>
+      </div>
+      <div class="card">
+        <h3>注意点 8 · 保密发货统一备注【隐私发货】</h3>
+        <div class="rowline">客户要求保密/隐私发货时，备注必须统一写【隐私发货】，仓库只认【隐私发货】</div>
+        <div class="bad">❌ 错误示例：备注【保密发货】【隐私】【别写美瞳】</div>
+        <div class="say">✅ 正确示例：备注【隐私发货】</div>
+      </div>
+      <div class="card">
+        <h3>注意点 9 · 三副拆分下单，护理液只发一单</h3>
+        <div class="rowline">三副机制拆分下单时，护理液不叠加（只发一瓶），必须和客户协商护理液发哪一单，两单分别备注，不能两单都发</div>
+        <div class="bad">❌ 错误示例：两单都备注发护理液</div>
+        <div class="say">✅ 正确示例：订单A备注【护理液发这单】；订单B备注【这单不发护理液】</div>
+      </div>
+      <div class="card">
+        <h3>注意点 10 · 备注数量必须和订单数量一致，多备少备都错</h3>
+        <div class="rowline">① 日抛拍1盒=6片=1个度数，不支持备注不同度数<br>② 半年抛拍1盒=2片=1副花色，不支持备注3个花色<br>③ 囤货多盒订单，必须看订单数量、金额、产品名称核对，备注花色数量必须和订单盒数完全一致</div>
+        <div class="bad">❌ 错误示例：囤 10 盒只备注 9 个花色 / 备注了 11 盒</div>
+        <div class="say">✅ 正确示例：囤 10 盒 = 备注 10 个花色/度数，一一对应</div>
+      </div>
+      <div class="card">
+        <h3>注意点 11 · 未确认度数/待选花色，必须限时 + 备注超时规则</h3>
+        <div class="rowline">客户答应先不发、等确认度数或选花色时，不能无限期等（后续没跟进会超时），必须：① 和客户约定限定时间内确认 ② 备注写【未确认，**点未提供，就先按订单拍下的发出】③ 必须明确告诉客户超时规则，让客户有心理预期</div>
+        <div class="bad">❌ 错误示例：只写【等确认】【待选花色】</div>
+        <div class="say">✅ 正确示例：备注【未确认，**点未提供，就先按订单拍下的发出】<br>话术：宝，您今天18点前告诉我选哪个花色哦，订单有规定发货时间，超时的话我们就先按订单拍下的发出啦~</div>
+      </div>
+      <div class="card">
+        <h3>注意点 12 · 已审核订单不能随便驳回，避免超时揽收</h3>
+        <div class="rowline">已审核的订单，即使客户还没确认度数/花色，也不能驳回审核。因为审核通过后订单就同步物流了，驳回后等客户提供信息，客户不及时提供就会超时揽收——平台不仅考核发货时间，也考核揽收时长，超时会被罚。正确做法：让客户退款重新下单</div>
+        <div class="bad">❌ 错误示例：客户未确认就驳回审核，等客户回复</div>
+        <div class="say">✅ 正确示例：让客户退款重新下单（除非客户能马上确认/下午16点截单前确认），确认后把修改内容发集合群</div>
+      </div>
+      <div class="card">
+        <h3>注意点 13 · 不能备注未经换算的度数，必须写最终度数</h3>
+        <div class="rowline">客户报了近视+散光度数时，不能直接把原始度数备注上去（如备注【近视100 散光125】），必须先按规则换算成最终度数再备注：散光≤150度时，散光÷2加到近视里；400以下不换算、400-500减25、500-700减50、700以上减70。仓库只认最终度数，不认识散光</div>
+        <div class="bad">❌ 错误示例：备注【近视100 散光125】</div>
+        <div class="say">✅ 正确示例：散光125÷2=62.5，加到近视100=162.5，按规则换算后备注【左眼150度，右眼150度】（按实际换算结果写）</div>
+      </div>
+    </div>
+
+    <div class="panel" id="p-mz">
+      <div class="lead"><b>满足不了时怎么答：</b>每个问题都给 2 个替代方案，绝不用一句“没有”结束对话。</div>
+      
+      <div class="card">
+        <h3>1. 客户问：你们有 14.0 直径的吗？</h3>
+        <div class="bad">❌ 不能这么答：&quot;没有14.0。&quot;就结束</div>
+        <div class="say"><b>方案一（主推）</b><br>咱们最小是14.2，也属于小直径微扩，肉眼和14.0看不出差别，且支持试戴1片包退换。</div>
+        <div class="say" style="background:#f8fafc;border-color:#e2e8f0;color:#334155;"><b>方案二（备选）</b><br>如果您想要极致自然，我推荐您看着色直径小的款式，我发图上眼参考。</div>
+        <div class="rowline" style="color:var(--muted);"><span class="k" style="color:#94a3b8;">为什么这么说</span>方案一科普 14.2 本身就是小直径，用“肉眼无差+试戴兜底”打消顾虑，主推现有；方案二转移焦点到“着色直径”，用实拍图保底留客。</div>
+      </div>
+      <div class="card">
+        <h3>2. 客户问：这个花色有 14.2 的吗？（只有 14.5）</h3>
+        <div class="bad">❌ 不能这么答：&quot;没有14.2。&quot;就结束</div>
+        <div class="say"><b>方案一（主推）</b><br>这款是14.5哦，放大双眼神采特别好。您可以先购买收到试戴1片，觉得不自然不合适支持售后~</div>
+        <div class="say" style="background:#f8fafc;border-color:#e2e8f0;color:#334155;"><b>方案二（备选）</b><br>如果您习惯小直径，同色系比较接近的有一款14.2的【XX】，我发对比图给您看看。</div>
+        <div class="rowline" style="color:var(--muted);"><span class="k" style="color:#94a3b8;">为什么这么说</span>方案一主推大直径卖点，试戴破顾虑；方案二给自然款退路。</div>
+      </div>
+      <div class="card">
+        <h3>3. 客户问：这个花色有日抛吗？（只有半年抛）</h3>
+        <div class="bad">❌ 不能这么答：&quot;这款只有半年抛。&quot;就结束</div>
+        <div class="say"><b>方案一（主推）</b><br>① 这款是半年抛，半年抛其实性价比特别高，算下来一天不到 5 毛钱，镜片成型好、戴着更舒服，日常通勤戴它最划算～<br>② 宝子~舒适度真的没差的，咱们半年抛也是非离子水凝胶材质，戴起来一样软一样水润，而且镜片成型更好、不容易滑片，日常戴反而更稳～<br>③ 半年抛是咱们家销量最高的品类，花色多、选择广，我按您喜好的风格给您推两款上眼图看看？</div>
+        <div class="say" style="background:#f8fafc;border-color:#e2e8f0;color:#334155;"><b>方案二（备选）</b><br>如果您习惯日抛，我给您推风格极其相似的【XX款】日抛，更卫生免洗。</div>
+        <div class="rowline" style="color:var(--muted);"><span class="k" style="color:#94a3b8;">为什么这么说</span>方案一推长周期优势留客；方案二跨周期找相似平替。</div>
+      </div>
+      <div class="card">
+        <h3>4. 客户问：你们家有月抛吗（只有日抛和半年抛）</h3>
+        <div class="bad">❌ 不能这么答：&quot;没有的，只有日抛和半年抛。&quot;就结束</div>
+        <div class="say"><b>方案一（主推）</b><br>咱们主打日抛和半年抛哦，您是看中免洗方便还是看中性价比？我帮您选。</div>
+        <div class="say" style="background:#f8fafc;border-color:#e2e8f0;color:#334155;"><b>方案二（备选）</b><br>如果您想要性价比更高、耐用一点的，非常推荐您看看咱们的半年抛，镜片成型好，戴着更划算。</div>
+        <div class="rowline" style="color:var(--muted);"><span class="k" style="color:#94a3b8;">为什么这么说</span>方案一挖掘客户真实诉求；方案二推长周期平替。</div>
+      </div>
+      <div class="card">
+        <h3>5. 客户问：特价只有美瞳，能送美瞳盒吗？</h3>
+        <div class="bad">❌ 不能这么答：&quot;特价不送的。&quot;就结束</div>
+        <div class="say"><b>方案一（主推）</b><br>特价已经是亏本清仓啦，确实没法额外赠送。不过您可以按成本价补个差价，给您随单带上伴侣盒或护理液，行吗？</div>
+        <div class="say" style="background:#f8fafc;border-color:#e2e8f0;color:#334155;"><b>方案二（备选）</b><br>您可以看看咱们的正价链接，那个是有直接赠送伴侣盒/护理液的，而且算下来也很划算哦。</div>
+        <div class="rowline" style="color:var(--muted);"><span class="k" style="color:#94a3b8;">为什么这么说</span>方案一成本价补差价送；方案二引导买正价高客单。</div>
+      </div>
+      <div class="card">
+        <h3>6. 客户问：有 850/900 度的吗？（最高 800）</h3>
+        <div class="bad">❌ 不能这么答：&quot;最高800，没有更高了。&quot;就结束</div>
+        <div class="say"><b>方案一（主推）</b><br>美瞳是直接接触眼球的，度数配高了容易头晕。建议您可以选低一点的度数（如800度）先尝试一下。</div>
+        <div class="say" style="background:#f8fafc;border-color:#e2e8f0;color:#334155;"><b>方案二（备选）</b><br>如果您确实需要这么高度数，咱们有三款是有850/900的：小棕环、小黑环、绿野仙棕，我发您看看~</div>
+        <div class="rowline" style="color:var(--muted);"><span class="k" style="color:#94a3b8;">为什么这么说</span>方案一站健康角度劝微调；方案二提供特定高度数款式。</div>
+      </div>
+      <div class="card">
+        <h3>7. 客户问：这款有 525/575 度吗？（缺货）</h3>
+        <div class="bad">❌ 不能这么答：&quot;这个度数没有。&quot;就结束</div>
+        <div class="say"><b>方案一（主推）</b><br>525度缺货了，建议按“就低不就高”拍500度，差25度无影响。</div>
+        <div class="say" style="background:#f8fafc;border-color:#e2e8f0;color:#334155;"><b>方案二（备选）</b><br>同款没货，但相似的另一个款【XX】有这个度数，我发您看看？</div>
+        <div class="rowline" style="color:var(--muted);"><span class="k" style="color:#94a3b8;">为什么这么说</span>方案一科普微调常识；方案二推相似花色平替。</div>
+      </div>
+      <div class="card">
+        <h3>8. 客户问：散光超过 150，怎么办？</h3>
+        <div class="bad">❌ 不能这么答：&quot;不能换算。&quot;就结束</div>
+        <div class="say"><b>方案一（主推）</b><br>散光超过150度一般无法精准换算哦。不过我们可以按最高150度帮您换算，您看这个方案您能接受吗？</div>
+        <div class="say" style="background:#f8fafc;border-color:#e2e8f0;color:#334155;"><b>方案二（备选）</b><br>建议您到专业机构验配专门的散光镜片，或平时搭框架交替戴。</div>
+        <div class="rowline" style="color:var(--muted);"><span class="k" style="color:#94a3b8;">为什么这么说</span>方案一提供极限换算方案；方案二给专业建议防客诉。</div>
+      </div>
+      <div class="card">
+        <h3>9. 客户问：没有近视只有散光，怎么选？</h3>
+        <div class="bad">❌ 不能这么答：&quot;没有纯散光的镜片的。&quot;就结束</div>
+        <div class="say"><b>方案一（主推）</b><br>宝，咱们普通美瞳没有散光度数。如果您只是轻微散光，建议直接拍【0度】平光款就可以了，日常戴不影响。</div>
+        <div class="say" style="background:#f8fafc;border-color:#e2e8f0;color:#334155;"><b>方案二（备选）</b><br>如果您散光度数比较高（比如超过150度），戴0度可能会觉得视物模糊。为了视力健康，建议您到专业机构验配专门的散光镜片，或者平时搭配框架眼镜交替戴。</div>
+        <div class="rowline" style="color:var(--muted);"><span class="k" style="color:#94a3b8;">为什么这么说</span>方案一卖现货，轻微散光拍 0 度够用；方案二讲专业，散光高强行戴会模糊，推验光配镜或框架，避免客诉。</div>
+      </div>
+      <div class="card">
+        <h3>10. 客户问：这款是硅水凝胶材质吗？（不是）</h3>
+        <div class="bad">❌ 不能这么答：&quot;不是，我们不是硅水凝胶。&quot;就结束</div>
+        <div class="say"><b>方案一（主推）</b><br>宝，这款是非离子水凝胶材质，比普通水凝胶更好，不容易吸附蛋白质和杂质，镜片不容易脏，日常戴着干净又舒服，绝对够用啦~</div>
+        <div class="say" style="background:#f8fafc;border-color:#e2e8f0;color:#334155;"><b>方案二（备选）</b><br>您是不是想要高透氧的呀？那我推荐您看咱们的几款超薄款，因为镜片薄，透氧率比较高，我发您看看？</div>
+        <div class="rowline" style="color:var(--muted);"><span class="k" style="color:#94a3b8;">为什么这么说</span>方案一讲非离子卖点；方案二挖掘需求推超薄款。</div>
+      </div>
+      <div class="card">
+        <h3>11. 客户问：能不能再便宜点？</h3>
+        <div class="bad">❌ 不能这么答：&quot;不能便宜了，最低价了。&quot;就结束</div>
+        <div class="say"><b>方案一（主推）</b><br>现在是底价了，建议您拍多盒均价能拉到XX元，更划算。</div>
+        <div class="say" style="background:#f8fafc;border-color:#e2e8f0;color:#334155;"><b>方案二（备选）</b><br>价格这边确实是最低了，但我给您申请多送个化妆梳或眼罩或伴侣盒，您看行吗？</div>
+        <div class="rowline" style="color:var(--muted);"><span class="k" style="color:#94a3b8;">为什么这么说</span>方案一买多算账；方案二实物赠品补偿。（特殊客户及时反馈申请）</div>
+      </div>
+      <div class="card">
+        <h3>12. 客户问：39.9 三副怎么没有？</h3>
+        <div class="bad">❌ 不能这么答：&quot;不是我们店的。&quot;就结束</div>
+        <div class="say"><b>方案一（主推）</b><br>宝，39.9三副是咱们品牌其他店铺的专属机制哦，本店确实没有。不过您可以就在本店拍下，我给您按39.9的机制退差价，帮您选花色拍下给您优先发货！</div>
+        <div class="say" style="background:#f8fafc;border-color:#e2e8f0;color:#334155;"><b>方案二（备选）</b><br>宝，如果不方便到货退差价，您可以直接去咱们品牌的【XX店】购买，店名我发您，您搜一下就能找到啦~</div>
+        <div class="rowline" style="color:var(--muted);"><span class="k" style="color:#94a3b8;">为什么这么说</span>方案一留客不丢单；方案二引导跨店下单。</div>
+      </div>
+      <div class="card">
+        <h3>13. 客户问：能多送一个伴侣盒/护理液吗？</h3>
+        <div class="bad">❌ 不能这么答：&quot;送不了。&quot;就结束</div>
+        <div class="say"><b>方案一（主推）</b><br>宝子~确实没法额外送。不过我可以去给您申请个特殊福利，按成本价给您随单带一个，比您其他地方单买划算，您看行吗？</div>
+        <div class="say" style="background:#f8fafc;border-color:#e2e8f0;color:#334155;"><b>方案二（备选）</b><br>送不了的宝宝，目前这个机制已经是最优惠的价格啦，但我申请按成本价（X元）给您随单带上，行吗？</div>
+        <div class="rowline" style="color:var(--muted);"><span class="k" style="color:#94a3b8;">为什么这么说</span>方案一赠品作促单筹码；方案二成本价购买破冰。（特殊客户及时反馈申请）</div>
+      </div>
+      <div class="card">
+        <h3>14. 客户问：能当天发/马上发吗？（已截单）</h3>
+        <div class="bad">❌ 不能这么答：&quot;发不了。&quot;就结束</div>
+        <div class="say"><b>方案一（主推）</b><br>现在拍下我帮您加急，帮您插队明天第一时间发出~额外加送您一个小礼物随单发~</div>
+        <div class="say" style="background:#f8fafc;border-color:#e2e8f0;color:#334155;"><b>方案二（备选）</b><br>宝子~今天发不了了，如果急用建议补顺丰差价，时效会更快一点~</div>
+        <div class="rowline" style="color:var(--muted);"><span class="k" style="color:#94a3b8;">为什么这么说</span>方案一给加急承诺；方案二推顺丰增值。</div>
+      </div>
+      <div class="card">
+        <h3>15. 客户问：半年抛只能试 1 片，能试 2 片吗？</h3>
+        <div class="bad">❌ 不能这么答：&quot;不能试戴2片。&quot;就结束</div>
+        <div class="say"><b>方案一（主推）</b><br>宝，咱们支持试戴2片的，但建议您先拆1片戴，确认没问题了再拆下一片哦。</div>
+        <div class="say" style="background:#f8fafc;border-color:#e2e8f0;color:#334155;"><b>方案二（备选）</b><br>如果您两片同时拆开戴了，觉得不舒服，只要把美瞳保留好联系我们，依然是可以为您售后的，放心试！</div>
+        <div class="rowline" style="color:var(--muted);"><span class="k" style="color:#94a3b8;">为什么这么说</span>方案一教正确试戴法；方案二保底承诺打消顾虑。</div>
+      </div>
+      <div class="card">
+        <h3>16. 客户问：囤货日抛订单，客户选了定轴花色怎么办？</h3>
+        <div class="bad">❌ 不能这么答：“定轴不能选，换普通的。”就结束</div>
+        <div class="say"><b>方案一（主推）</b><br>囤货装日抛普通款可以补差价升级定轴，按盒数算：<br>① 买4盒及以下：1盒普换定+10元，2盒普换定+20元，以此类推<br>② 买6盒及以上：1盒普换定+8元，2盒普换定+16元，以此类推<br>报完差价问客户是否接受升级</div>
+        <div class="say" style="background:#f8fafc;border-color:#e2e8f0;color:#334155;"><b>方案二（备选）</b><br>客户不接受补差价，再引导更换普通款，做好推荐，选好普通花色后再备注订单</div>
+        <div class="rowline" style="color:var(--muted);"><span class="k" style="color:#94a3b8;">为什么这么说</span>方案一先给加价升级定轴的出路，留住想要定轴的客户；方案二客户不接受加价再退回普通款，不一上来就拒绝放走客户。</div>
+      </div>
+    </div>
+
+    <div class="panel" id="p-bj">
+      <div class="lead"><b>连带补差价活动流程：</b>机器人触达“买 1”客户，客服必须主动跟进、引导成交，不能等客户主动问。</div>
+      <h2 class="sec">一、活动汇总表</h2>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <table>
+          <tr><th>活动名称</th><th>价格</th><th>机制</th></tr>
+          <tr><td class="k">随便花</td><td>99.7 元 / 三幅</td><td>机器人触达买1客户，客服跟进成交</td></tr><tr><td class="k">少女漫</td><td>99.7 元 / 三幅</td><td>同上</td></tr><tr><td class="k">花厨小熊</td><td>99.7 元 / 三幅</td><td>同上</td></tr><tr><td class="k">初音未来联名</td><td>99.8 元 / 两幅</td><td>同上</td></tr><tr><td class="k">女高</td><td>59.9 元 / 三幅</td><td>同上</td></tr><tr><td class="k">心动信号 / 心动调频</td><td>59.9 元 / 三幅</td><td>同上</td></tr><tr><td class="k">日抛</td><td>59.8 元 / 两盒（29.9/盒）</td><td>同上</td></tr>
+        </table>
+      </div>
+      <h2 class="sec">二、通用操作步骤</h2>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <table>
+          <tr><th>步骤</th><th>动作</th><th>具体要求</th></tr>
+          <tr><td class="k">第1步</td><td>机器人触达</td><td>系统自动给“买1”客户发送活动触达消息</td></tr><tr><td class="k">第2步</td><td>客服主动跟进</td><td>看到消息提醒立即人工介入，不能等客户主动问</td></tr><tr><td class="k">第3步</td><td>确认订单/商品</td><td>确认客户当前订单/咨询的商品</td></tr><tr><td class="k">第4步</td><td>发送补差价金额</td><td>根据活动类型发送对应补差价金额，跟进客户是否参与</td></tr><tr><td class="k">第5步</td><td>发送补差价链接</td><td>发链接给客户，说明补多少、得多少</td></tr><tr><td class="k">第6步</td><td>拍下后备注</td><td>客户拍下后按格式备注订单信息</td></tr><tr><td class="k">第7步</td><td>跟进到成交</td><td>主动跟进直到成交，不能发了链接就不管</td></tr>
+        </table>
+      </div>
+      <h2 class="sec">三、各活动详细流程</h2>
+      
+      <div class="card">
+        <h3>活动一：普通款 99.7 三幅</h3>
+        <div class="rowline"><span class="k">开场话术</span>宝宝，看到您购买了一副美瞳，现在我们有一个99.7到手三幅半年抛的活动~</div>
+        <div class="rowline"><span class="k">补差价说明</span>补差价【45】还可以再选【2】副哟宝宝<br>计算方式：99.7 - 客户已付金额（如54.9）= 44.8 ≈ 45</div>
+        <div class="rowline"><span class="k">操作要点</span>1. 引导参与：“参与吗宝宝 还送仙女梳哒~”<br>2. 客户确认后：“我发您宝”，发送补差价链接，您直接支付，我帮您备注再发两幅</div>
+        <div class="say"><b>订单备注</b><br>两单一起实发[花色名+度数] 补差价参与99.7三幅 [店铺:客服名 时间]</div>
+      </div>
+      <div class="card">
+        <h3>活动二：初音未来联名 99.8 两幅</h3>
+        <div class="rowline"><span class="k">开场话术</span>宝宝，看到您购买了一幅美瞳，现在我们有一个99.8到手两幅【初音未来】系列半年抛的活动~~</div>
+        <div class="rowline"><span class="k">补差价说明</span>补差价【36】还可以再选【1】副哟宝宝</div>
+        <div class="rowline"><span class="k">操作要点</span>1. 客户选择花色，确认想要的花色和度数<br>2. 发送接近价格的商品链接（多退少补）</div>
+        <div class="say"><b>订单备注</b><br>两单一起实发[花色名+度数]<br>补差价参与99.8两幅 [店铺:客服名 时间]</div>
+      </div>
+      <div class="card">
+        <h3>活动三：女高 59.9 三幅</h3>
+        <div class="rowline"><span class="k">开场话术</span>宝宝，看到您购买了一副美瞳，现在我们有一个59.9到手三幅半年抛的活动~</div>
+        <div class="rowline"><span class="k">补差价说明</span>补差价【29.9】还可以再选【2】副</div>
+        <div class="rowline"><span class="k">操作要点</span>1. 发送商品链接：“这个链接随便拍一副花色，联系我备注2副就行哟（花色自选）”<br>2. 客户选择花色后，客服确认花色</div>
+        <div class="say"><b>订单备注</b><br>两单一起实发[花色名+度数] 补差价参与59.9三幅 [店铺:客服名 时间]</div>
+      </div>
+      <div class="card">
+        <h3>活动四：心动信号/心动调频 59.9 三幅</h3>
+        <div class="rowline"><span class="k">开场话术</span>同活动三（女高）</div>
+        <div class="rowline"><span class="k">补差价说明</span>同活动三</div>
+        <div class="rowline"><span class="k">操作要点</span>流程同上女高 59.9 三幅</div>
+        <div class="say"><b>订单备注</b><br>同活动三</div>
+      </div>
+      <div class="card">
+        <h3>活动五：日抛 59.8 两盒</h3>
+        <div class="rowline"><span class="k">开场话术</span>宝宝，看到您购买了一盒日抛，现在我们有一个59.8到手两盒日抛的活动~</div>
+        <div class="rowline"><span class="k">补差价说明</span>补差价 26.8 还可以选一盒（6片）哟宝 参与嘛~</div>
+        <div class="rowline"><span class="k">操作要点</span>1. 客户确认后：“您看看需要哪个花色宝，我发您差价链接”<br>2. 客户回复花色和度数后，发送日抛单盒链接（使用客服优惠改价至需要补的金额）</div>
+        <div class="say"><b>订单备注</b><br>两单一起实发[花色名+度数] 补差价参与59.8日抛两盒 [店铺:客服名 时间]<br>如拍下花色就是客户要的花色，只需要备注两单合并发货，参与59.8日抛两盒</div>
+      </div>
+    </div>
+
+    <div class="panel" id="p-bn">
+      <div class="lead"><b>补差价活动备注规则</b></div>
+      <div class="card">
+        <div class="rowline">① 实发内容必须写在最前面，且必须加【实发半年抛】或【实发日抛】标明抛期</div><div class="rowline">② 参加什么活动的说明写在后面</div><div class="rowline">③ 主单 + 副单两单都必须备注合并发货，不能只备注一单</div><div class="rowline">④ 小额打款补差价（不是拍链接）：一单发多副的，主订单必须备注【已小额打款补差价xx订单号】</div>
+      </div>
+      <h2 class="sec">备注模板</h2>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <table>
+          <tr><th>活动名称</th><th>主单备注模板</th><th>副单备注模板</th><th>备注</th></tr>
+          <tr><td class="k">99.9 三副（半年抛）</td><td>两单一起实发半年抛：[花色名+度数] 补差价参与99.9三副</td><td>合并发货</td><td>半年抛活动</td></tr><tr><td class="k">59.9 三副（半年抛）</td><td>两单一起实发半年抛：[花色名+度数] 补差价参与59.9三副</td><td>合并发货</td><td>半年抛活动</td></tr><tr><td class="k">69.8 两盒（日抛）</td><td>两单一起实发日抛：[花色名+度数] 补差价参与69.8日抛两盒</td><td>合并发货</td><td>日抛活动</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="foot">尤赫售前客服工作台 · 接待 SOP（内容源：豆包表格 · 客服接待 SOP）</div>
+  </div>
+
+<script>
+const CJ = [{"group":"规格类","name":"美瞳数量","ask":"\"一盒几片？\" \"能用多久？\"","check":"按当前商品是日抛还是半年抛直接报规格","say":"日抛：宝，一盒 6 片装 = 3 对（3 副）哦～免洗卫生，戴完就丢不用护理～\n半年抛：宝，2 片装 = 1 对（1 副）哦～性价比高，一副能用半年，成型好新手也好戴～","alt":"① 直接报规格\n② 按当前商品讲卖点","wrong":"⚠️ 只说“6 片装”不讲等于几副 = 客户还要再问","bad":false},{"group":"规格类","name":"美瞳赠品","ask":"\"送什么？\" \"有伴侣盒吗？\"","check":"按当前商品是日抛还是半年抛直接报赠品","say":"半年抛：宝，拍一副到手 2 片美瞳，还送护理液 1 瓶 + 美瞳盒 1 个 + 花色便利贴 1 张哦～\n日抛：宝，拍一盒到手 6 片美瞳，还送佩戴工具一套哦～","alt":"① 直接报赠品清单，不说模糊的“有赠品”\n② 半年抛：护理液 1 瓶 + 美瞳盒 1 个 + 花色便利贴 1 张\n③ 日抛：佩戴工具 1 套","wrong":"⚠️ 只说“有赠品”不说具体送什么 = 客户以为不送或送错东西","bad":false},{"group":"参数类","name":"直径怎么选/14.2和14.5区别","ask":"\"14.2和14.5有什么区别？\" \"直径怎么选？\"","check":"客户在选款，讲清两种直径的区别，按佩戴场景推：\n· 14.2：自然小巧，日常通勤刚好\n· 14.5：更显大，妆感强一点\n· 主动问日常戴还是化妆戴","say":"宝，咱们家总直径分 14.2 和 14.5 两种哦～\n14.2 上眼自然小巧，日常通勤戴刚好；14.5 更显大一点，妆感强一点。您平时日常戴还是化妆戴呀？我帮您推荐合适的～","alt":"① 日常/素颜推 14.2\n② 化妆/妆感推 14.5\n③ 发上眼对比图","wrong":"⚠️ 只报数字不讲上眼效果 = 客户没概念","bad":false},{"group":"参数类","name":"这款直径是多少（直接报参数）","ask":"\"这款直径多少？\" \"这款是14.2还是14.5？\"","check":"客户已经看中某款，直接查这款直径报：\n· 不做对比、不反问\n· 报完直径加一句上眼感受","say":"宝，这款总直径是 14.5 哦～上眼有点妆感，日常戴也不夸张，给您看看上眼图？\n（如果是14.2：宝，这款总直径是 14.2 哦～上眼自然小巧，通勤刚好）","alt":"① 直接报这款直径\n② 加一句上眼感受\n③ 发实拍图","wrong":"⚠️ 客户问这款多少，你反问“要日常还是妆感” = 多余","bad":false},{"group":"参数类","name":"含水量怎么选（含义和区别）","ask":"\"含水量是什么？\" \"含水量怎么选？\"","check":"讲清高/低含水区别，按抛型和眼睛状态推：\n· 低含水（38%）：半年抛都是这个，锁水好，眼干/敏感眼适合\n· 高含水（40%/43%/50%）：都是日抛，不同花色和批次可能不同，初戴水润\n· 主动问眼睛会不会干","say":"宝，咱们家半年抛含水量都是 38%，日抛有 40%/43%/50% 几个版本，不同花色和批次会有一点差别。您平时眼睛容易干吗？我帮您推荐合适的～","alt":"① 眼干/敏感推低含水\n② 眼睛健康推高含水\n③ 发佩戴感受对比","wrong":"⚠️ 只报数字不讲区别 = 像念说明书","bad":false},{"group":"参数类","name":"这款含水量多少（直接报参数）","ask":"\"这款含水量多少？\"","check":"客户已看中某款，直接查这款含水量报：\n· 半年抛：都是 38%\n· 日抛：看具体款是 40%/43%/50% 哪个版本\n· 报完加一句适合谁","say":"宝，这款是半年抛，含水量 38% 哦～镜片成型好，适合长周期经常佩戴，戴着很舒服，眼干也能戴。\n（如果是日抛：宝，这款日抛含水量是 ⬜% 哦～戴着很水润舒适）","alt":"① 直接报数值\n② 加一句适合人群\n③ 发实拍","wrong":"⚠️ 客户问这款你反问“眼干吗” = 多余","bad":false},{"group":"参数类","name":"含水量低会不会眼干","ask":"\"含水量这么低会不会戴了更干？\"","check":"讲清原理打消顾虑：\n· 含水量低 ≠ 戴了会干\n· 38% 这种低含水镜片锁水能力强，水分不容易蒸发，眼干反而适合\n· 不要主动提高含水倒吸（客户没问就不说，免得自己打自己脸）\n· 讲完原理用试戴兜底","say":"宝，38% 这个含水量很多人以为会干，其实不是哦～镜片含水量低，锁水能力反而更好，水分不容易蒸发出去，眼干的客人戴下来反馈都很舒服。咱们支持试戴 1 片，您自己戴着感受最准，戴着不舒服保留美瞳联系客服反馈售后就可以啦～","alt":"① 讲清低含水锁水原理\n② 试戴 1 片兜底\n③ 建议搭配润眼液","wrong":"⚠️ 顺着客户说“低含水会干” = 客户不敢买","bad":false},{"group":"参数类","name":"熟手眼干要低含水，但看中高含水款","ask":"\"我眼干要低含水，但看中的这款是50%\" \"有没有40%版本？\"","check":"分抛型处理：\n· 半年抛：都是38%，天然就是低含水，不用换\n· 日抛：有40%/43%/50%三个版本，50%是最高的\n· 客户要40%：查同花色有没有40%版本/批次，问仓库或反馈，不能直接说没有\n· 查不到再推其他低含水款","say":"宝，您眼干要低含水的话，咱们半年抛都是38%的，戴着更舒服～\n这款日抛是50%的，我帮您查下同花色有没有40%的版本哦，您稍等～\n（查到：有40%版本，给您发链接，拍下帮您备注发40%版本～）\n（查不到：这款同花色暂时只有50%，我给您推一款其他款式的有40%的，戴着也好看）","alt":"① 半年抛38%天然低含水\n② 日抛查同花色40%版本/批次，问仓库\n③ 查不到推同色系低含水款\n④ 试戴兜底","wrong":"⚠️ 直接说“那别买这款” = 单子飞了","bad":false},{"group":"参数类","name":"透氧量多少（直接报数值）","ask":"\"透氧量多少？\" \"Dk/t 是多少？\"","check":"分抛型报数值，报完必须引导：\n· 日抛：Dk/t 12 mmHg\n· 半年抛：Dk/t 11.5 mmHg\n· 注意：Dk/t 不是单位，是“透氧量”这个名词的简称\n· 透氧量单位有两种：hPa 和 mmHg，换算公式 hPa/0.75=mmHg\n· 我们宣传统一用 mmHg（行业惯例），说明书标的是 hPa\n· 客户非要 Dk 值：告诉客户 Dk 是材料参数，我们标的是实际佩戴 Dk/t，按自身情况选就行","say":"宝，咱们家半年抛透氧量 Dk/t 是 11.5 mmHg 哦～日抛是 12 mmHg。\n（客户问单位：宝，透氧量单位有 hPa 和 mmHg 两种，换算的，我们统一按行业惯例用 mmHg 给您报～）\n（客户要 Dk 值：宝，Dk 是镜片材料本身的参数，我们标的 Dk/t 是您实际戴上去的透氧量，按自己眼睛情况选适合的就好，您喜欢什么花色？我给您推荐～）","alt":"① 报数值\n② 引导选花色/直径\n③ 不结束对话","wrong":"⚠️ 只回数字不引导 = 答题机器","bad":false},{"group":"参数类","name":"透氧量不到24不达标（科普）","ask":"\"听说透氧量不到24不达标？\"\"你们这个不合格？\"","check":"科普打消顾虑：\n· 国内医疗器械对美瞳没有明确透氧要求\n· 买美瞳重点关注花色、直径、度数\n· 引导客户回到选款","say":"宝，国内医疗器械目前对美瞳没有明确的透氧数值要求哦～咱们家都是合规安全的正规产品，您放心～买美瞳主要看花色喜不喜欢、直径合不合适、度数准不准确，再结合自己眼睛情况选适合的就好啦～您喜欢什么风格的花色？我给您推荐～","alt":"① 讲清国内无强制透氧要求\n② 引导关注花色直径度数\n③ 推款","wrong":"⚠️ 顺着客户说“是不达标” = 单子飞了","bad":false},{"group":"参数类","name":"透氧量低会不会对眼睛不好","ask":"\"透氧量这么低会不会伤眼睛？\"\"是不是不合格？\"","check":"不跟客户辩论数值，用合规+试戴兜底：\n· 我们是正规医疗器械注册产品\n· 按说明佩戴就没问题\n· 不舒服走售后","say":"宝，咱们家都是正规医疗器械注册的产品，正常佩戴就没问题哦～咱们支持试戴 1 片，您自己戴着的感受才是最准，不舒服保留美瞳联系客服反馈售后就可以啦～","alt":"① 正规注册产品\n② 试戴兜底\n③ 不辩论数值","wrong":"⚠️ 跟客户算 Dk/t 数值 = 越说越乱","bad":false},{"group":"参数类","name":"透氧量怎么换算的","ask":"\"Dk/t 怎么算的？\"\"透氧量怎么换算？\"","check":"客户是专业问的，简单讲：\n· Dk 是透氧系数，t 是镜片厚度\n· Dk/t 是单位厚度的透氧量\n· 讲完引导选款","say":"宝，Dk 是镜片本身的透氧系数，t 是镜片厚度，Dk/t 就是单位厚度的透氧量哦～咱们家都是按这个标准标注的。您看您喜欢什么花色？我给您推荐～","alt":"① 简单讲原理\n② 引导选款","wrong":"⚠️ 专业问题讲太复杂 = 客户跑了","bad":false},{"group":"参数类","name":"透氧量说明书上有没有写","ask":"\"透氧量说明书上有吗？\"\"在哪看？\"","check":"· 对客户：说明书上有标注，在盒子内侧\n· 内部知道：说明书标的是 hPa，我们对外报 mmHg（hPa/0.75=mmHg）\n· 不要对着客户讲 hPa/mmHg 换算，客户会懵\n· 不要说详情页有","say":"宝，说明书上有标注的哦～您收到后翻开美瞳盒子内侧就能看到，有任何问题我帮您看～","alt":"① 告诉客户看说明书/详情页\n② 主动帮客户查","wrong":"⚠️ 说“没写” = 客户怀疑资质","bad":false},{"group":"参数类","name":"基弧多少（直接报参数）","ask":"\"基弧多少？\"\"基弧是8.几？\"","check":"· 客户问基弧就是问参数，直接报数值\n\n· 报完加一句大多数人都贴合","say":"宝，咱们家基弧是 8.6 的弹性基弧～大多数人戴都贴合的，您放心～","alt":"① 直接报基弧数值\n② 说大多数人贴合","wrong":"⚠️ 基弧不能挑选，一个花色只有一种基弧、不用特殊测量（8.6 多数人都适配，不用特意挑）","bad":false},{"group":"参数类","name":"这款着色直径多少（直接报）","ask":"\"这款着色直径多少？\"\"显色吗？\"","check":"· 客户已看中某款，直接查这款着色直径报数值\n· 我们家着色直径范围12.9-14.5\n· 按着色大小分三种话术：\n  - 满着色14.5：放大明显\n  - 中间款（13.5-14.2）：日常自然\n  - 小着色12.9：自然融瞳","say":"（满着色14.5）宝，这款着色直径是14.5哦～满着色上眼放大很明显，给您看看自然光实拍～\n\n（中间款）宝，这款着色直径是14.2哦～上眼有点妆感，日常戴也不夸张，给您看看自然光实拍～\n\n（小着色12.9）宝，这款着色直径是12.9哦～上眼很自然融瞳，不仔细看看不出来戴了美瞳，给您看看自然光实拍～","alt":"① 直接报数值\n② 加一句上眼效果\n③ 发实拍","wrong":"⚠️ 客户问这款你反问“要自然还是夸张” = 多余","bad":false},{"group":"知识类","name":"着色直径是什么/上眼效果区别","ask":"\"着色直径是什么？\"\"12.9和14.5上眼有什么区别？\"","check":"· 着色直径=有色部分大小，决定上眼大不大\n· 我们家最小12.9，最大14.5满着色\n· 小着色自然融瞳，大着色有点妆感","say":"宝，着色直径就是有色部分的大小哦～咱们家最小是12.9，上眼比较自然融瞳；最大是14.5满着色，上眼放大很明显。您平时喜欢自然一点还是明显一点？我给您推荐～","alt":"① 讲清着色直径含义\n② 12.9自然 / 14.5满着色放大\n③ 推荐","wrong":"⚠️ 说“有14.0” = 客户找不到会闹","bad":false},{"group":"需求类","name":"要13以下着色（自然款）","ask":"\"有没有13以下的？\"\"要自然一点的\"","check":"· 客户要小着色自然款\n· 推12.9的【甜宠学妹】\n· 上眼自然融瞳","say":"宝，您要自然一点的话，我给您推荐12.9的【甜宠学妹】，上眼很自然融瞳～我把链接发您～","alt":"① 推12.9甜宠学妹\n② 发实拍对比","wrong":"⚠️ 直接说“没有” = 单子飞了","bad":false},{"group":"需求类","name":"要明显放大/满着色","ask":"\"有没有特别放大的？\"\"要显色明显的\"","check":"· 客户要大着色放大效果\n· 推14.5满着色款\n· 满着色=除了光学区其他地方都是有颜色的，镜片直径和着色直径一样","say":"宝，您要明显放大的话，我给您推荐14.5满着色的款～这款除了中间光学区，其他地方都是有颜色的，镜片直径和着色直径一样，上眼放大效果很明显～我发实拍给您看～","alt":"① 推14.5满着色\n② 讲清满着色是什么\n③ 发实拍","wrong":"⚠️ 说“所有款都一样大” = 客户收到发现不大","bad":false},{"group":"需求类","name":"要12以下着色","ask":"\"有没有12以下的？\"\"要超自然的\"","check":"· 我们家最小是12.9，没有12以下的\n· 科普：12以下着色太小，上眼几乎没效果，还可能有异物感\n· 推12.9甜宠学妹（已经是最小最自然的）","say":"宝，咱们家最小是12.9的【甜宠学妹】，已经是最自然融瞳的啦～12以下的着色太小，上眼几乎看不出效果，镜片还容易有异物感，不推荐哦～您先试试12.9这款，自然又舒服～","alt":"① 说没有12以下\n② 科普为什么不推荐\n③ 推12.9甜宠学妹","wrong":"⚠️ 说“有12以下” = 客户收到发现没有","bad":false},{"group":"需求类","name":"光学区","ask":"\"光学区多大？\" \"遮光吗？\"","check":"分新老款：\n· 近期新生产的款：工厂有提供光学区参数，查产品表报具体数值\n· 以前的老款：没有光学区数值，用下面话术\n· 核心：国内对光学区没有硬性规定固定数值，每款花色设计不一样\n· 国内真正有要求的是“光透过率”，不影响透光就是合格\n· 客户说的“6”是检测仪器遮光板测试数值，跟安全没关系","say":"（新款有数值）宝，这款光学区是 ⬜ mm 哦～咱们每款花色设计都不一样，都是测试适合大多数人才生产的，您放心～\n\n（老款无数值）宝子放心哈～国内对镜片的光学区没有硬性规定一个固定数值，每款花色的设计本来就不一样，不能拿一个数字去衡量所有款。咱们的产品每一款都是持证上市、检测合格的，戴起来安全安心。\n\n（客户拿数值问）宝，国内真正有要求的是“光透过率”，也就是光线能不能正常透过镜片，只要不影响透光就是合格的。您说的这个数值只是检测仪器里遮光板的一个测试数值，跟镜片安不安全没有关系，不用担心～","alt":"① 新款报具体数值\n② 老款讲清无硬性规定+持证合格\n③ 客户拿数值问讲光透过率","wrong":"⚠️ 专业问题乱答 = 显得不专业","bad":false},{"group":"需求类","name":"什么是定轴（卖点讲解）","ask":"\"什么是定轴？\"\"定轴是什么意思？\"","check":"· 定轴卖点：镜片下缘微加厚，靠重力自动回正，高光一直停在最好看的角度不转\n· 跟散光没关系（不要关联）\n· 主动讲卖点","say":"宝子~这款美瞳是【定轴设计】哦，设计原理是在镜片下缘做了一丢丢微加厚，戴上靠重力自动回正，高光就一直停在最好看的角度不转~","alt":"① 讲清定轴原理\n② 强调高光不转\n③ 不关联散光","wrong":"⚠️ 跟客户讲“定轴是矫正散光的” = 错误","bad":false},{"group":"顾虑类","name":"定轴加厚会不会不舒服/磨眼","ask":"\"加厚会不会磨眼？\"\"戴着舒服吗？\"","check":"· 加厚只有一丢丢，不影响佩戴\n· 试戴1片兜底","say":"宝，加厚只有一丢丢哦，戴着完全没感觉的，咱们支持试戴1片，您自己戴着感受最准~","alt":"① 强调微加厚不影响\n② 试戴兜底","wrong":"⚠️ 顺着客户说“可能磨眼” = 客户不敢买","bad":false},{"group":"顾虑类","name":"询问是否定轴（非定轴款）","ask":"\"这款是定轴的吗？\"\"有没有非定轴的？\"","check":"· 先确认客户预期：想要定轴还是非定轴\n· 非定轴款是对称双高光，不用担心对眼\n· 直接佩戴就行","say":"宝，这款不是定轴的哦~是对称双高光设计，不用担心对眼问题，直接佩戴就行~您是想要定轴的还是非定轴的呀？我帮您推荐~","alt":"① 确认客户要定轴还是非定轴\n② 非定轴讲对称双高光\n③ 引导选款","wrong":"⚠️ 不说客户预期直接推 = 推错","bad":false},{"group":"顾虑类","name":"有没有高光","ask":"\"这个美瞳有高光吗？\"\"有高光设计吗？\"","check":"· 大多数款都有高光\n· 部分花色没有，具体看款式\n· 高光作用：让眼睛更有神更灵动\n· 先询问客户想要哪种（有高光/无高光）再推荐","say":"宝，您是想要有高光的还是无高光的呀？~\n有高光的眼睛看起来更有神更灵动，无高光的是自然瞳设计更素颜~您看中的这款我帮您查一下~\n（有）这款有的，上眼很有神~\n（没有）这款没有高光哦，我给您推荐一款更自然的素颜款？","alt":"① 大多数有高光\n② 查具体款\n③ 没有就推有高光的","wrong":"⚠️ 说所有款都有 = 客户查到没有会闹","bad":false},{"group":"顾虑类","name":"高光会不会乱转对眼","ask":"\"高光会乱转吗？\"\"会对眼吗？\"","check":"· 非定轴款对称双高光，正常佩戴位置都好看\n· 不用担心对眼\n· 定轴款更稳","say":"宝，咱们大多数款都是对称双高光设计，正常佩戴位置都很好看，不会对眼的~您要是特别在意的话，我给您推荐定轴款，戴上自动回正高光就在中间啦~","alt":"① 对称双高光正常好看\n② 不用担心对眼\n③ 在意推定轴","wrong":"⚠️ 说所有款都不转 = 客户发现转会闹","bad":false},{"group":"顾虑类","name":"有没有无锁边的","ask":"\"有无锁边的吗？\"\"不要锁边的\"","check":"· 暂时没有，咱家基本都是带锁边的\n· 都是自然款锁边，上眼融瞳效果好，不是浓妆感\n· 锁边作用：让眼睛显得更大更有神，不化妆戴也好看，不突兀","say":"宝，咱家基本都是带锁边的哦~不过都是自然款锁边，上眼融瞳效果比较好，不是那种浓妆感的~锁边能让眼睛显得更大更有神，不化妆戴也好看，不会突兀的~","alt":"① 暂时没有无锁边款\n② 自然款锁边不突兀\n③ 锁边显大显有神","wrong":"⚠️ 说有无锁边 = 客户要求找不到","bad":false},{"group":"顾虑类","name":"戴上高光乱转怎么办","ask":"\"戴上高光会转\"\"高光不在中间\"","check":"· 非定轴是主流款，技术更成熟，大多数款都是非定轴\n· 对称双高光设计，正常佩戴高光位置都好看，不会乱转\n· 不要说“普通款会转” = 吓客户\n· 客户在意再推定轴款","say":"宝，咱们大多数款都是非定轴的哦，技术更成熟~对称双高光设计，正常佩戴高光位置都很好看，不用担心的~您要是特别在意高光位置的话，我给您推荐定轴款，戴上自动回正高光就在中间啦~","alt":"① 解释正常现象\n② 推定轴款\n③ 不贬低普通款","wrong":"⚠️ 说“所有款都不转” = 客户收到发现转会闹","bad":false},{"group":"顾虑类","name":"有没有小直径","ask":"\"有没有直径小一点的？\"","check":"· 客户要小直径，先问喜好（自然/混血/甜妹）\n· 再推荐14.2对应风格的花色\n· 发实拍+上眼效果","say":"宝，有的~咱们家14.2的款上眼都很自然融瞳哦~您平时喜欢什么风格的呀？自然一点的还是混血一点的？我给您推荐~","alt":"① 先问客户风格喜好\n② 推荐14.2对应花色\n③ 发实拍对比","wrong":"⚠️ 直接甩14.2链接不问喜好 = 推不准，单子飞了","bad":false},{"group":"顾虑类","name":"有没有14.0直径","ask":"\"有没有14.0的？\"","check":"· 我们家最小14.2，没有14.0\n· 14.2上眼已经很融瞳了\n· 推14.2对应款式","say":"宝，咱们家最小就是14.2哦，没有14.0的~14.2上眼已经很融瞳了，给您看看实拍？","alt":"① 推14.2\n② 发实拍","wrong":"⚠️ 直接说没有 = 客户问下一家","bad":false},{"group":"顾虑类","name":"有没有14以下直径","ask":"\"有没有14以下的？\"\"要超小直径\"","check":"· 我们家最小14.2\n· 14以下市面上很少见，太小效果不明显\n· 14.2已经是小直径了，适合小眼睛","say":"宝，咱们家最小是14.2哦~14以下的市面上很少见的，太小了上眼效果不明显~14.2已经是小直径了，很适合小眼睛，上眼自然融瞳~给您看看实拍？","alt":"① 说没有14以下\n② 科普太小效果不明显\n③ 推14.2适合小眼睛","wrong":"⚠️ 说“有14以下” = 客户收到发现没有","bad":false},{"group":"操作类","name":"能不能备注不同度数","ask":"\"左右眼度数不一样能备注吗？\"","check":"· 日抛：单盒6片都是同一个度数，没法左右混装，所以不支持备注不同度数，要拍2盒（一盒左眼、一盒右眼）\n· 半年抛：拍1副2片，可以左右不同度数备注\n· 主动帮客户核对度数","say":"宝，日抛一盒6片都是同一个度数的哦，没法左右混装~左右度数不一样的话要拍2盒，一盒左眼度数、一盒右眼度数~\n\n半年抛拍1副就可以备注左右不同度数，您下单后把左右度数发我，我直接帮您备注上发您核对~","alt":"① 日抛提醒拍 2 盒\n② 半年抛 1 副即可\n③ 主动帮客户备注","wrong":"⚠️ 让客户自己备注 = 容易拍错","bad":false},{"group":"操作类","name":"半年抛不同度数怎么下单","ask":"\"半年抛左右不一样怎么拍？\"","check":"直接拍 1 副，备注左右度数","say":"宝，您直接拍 1 副就行，付款后把左右度数发我，我帮您备注好发您核对~","alt":"① 引导拍 1 副\n② 代客备注","wrong":"⚠️ 让客户拍 2 副 = 多拍浪费","bad":false},{"group":"操作类","name":"日抛不同度数怎么下单","ask":"\"日抛左右不一样怎么拍？\"","check":"要拍 2 盒起","say":"宝，日抛要拍 2 盒，一盒代表一个度数，您先选择好要买的不同度数分别都加入购物车   然后到购物车里面一起结算提交订单就可以了~","alt":"① 拍 2 盒\n② 代客备注","wrong":"⚠️ 让客户拍 1 盒 = 过度承诺","bad":false},{"group":"操作类","name":"怎么备注","ask":"\"我怎么备注度数？\"\"备注在哪？\"","check":"· 未下单：引导客户下单时自己备注左右度数\n· 已下单：帮客户后台备注\n· 不会备注的：让客户先下单，我们帮备注，减少复杂感","say":"宝，您提交订单的时候下滑到【备注栏】，填写左右度数就行~要是不会备注也没关系，您先下单，把度数发我，我后台帮您备注好~","alt":"① 未下单引导自己备注\n② 已下单帮备注\n③ 不会备注先下单再帮备注","wrong":"⚠️ 让客户研究怎么备注 = 复杂感下单流失","bad":false},{"group":"操作类","name":"提醒别发错","ask":"\"别给我发错了\"\"帮我确认下度数\"","check":"· 主动帮客户核对度数\n· 发货前再核对一遍\n· 不让客户自己操心","say":"宝，后台已经帮您手动备注好了，您核对一下【左眼XX度，右眼XX度，花色XX】对吗？","alt":"① 代客操作\n② 发货前核对","wrong":"⚠️ 让客户自己备注 = 漏备注发错","bad":false},{"group":"售后保障类","name":"能不能试戴/试几片","ask":"\"能试戴吗？\" \"试戴几片？\"","check":"统一口径：支持试戴 1 片","say":"宝，咱们支持试戴1片体验舒适度哦~戴着不合适及时取下来，美瞳保留好联系客服反馈售后就可以啦~","alt":"① 试戴 1 片\n② 不合适走售后","wrong":"⚠️ 分极氧2片/弥生1副说 = 口径乱","bad":false},{"group":"售后保障类","name":"不舒服怎么办","ask":"\"戴着不舒服怎么办？\"","check":"售前还没下单，讲售后规则让客户放心：\n· 支持试戴1片体验舒适度\n· 戴着不合适保留美瞳联系客服反馈售后\n· 让客户知道买错了有保障","say":"宝，您放心拍~咱们支持试戴1片体验舒适度，戴着不合适保留美瞳联系客服反馈售后就可以啦，不会让您白买的~","alt":"① 引导停戴\n② 保留商品走售后","wrong":"⚠️ 直接说“正常现象” = 客户差评","bad":false},{"group":"售后保障类","name":"只试1片怎么知道合不合适","ask":"\"只试1片怎么知道能不能戴？\"","check":"试戴 1 片感受基弧和直径，不合适整副退\n","say":"宝，您先试1片感受下，戴着舒服再拆开另一片戴，不合适【保留美瞳】整副都可以联系客服售后~","alt":"① 试 1 片感受\n② 不合适整副退\n","wrong":"⚠️ 没解释 = 客户不信任","bad":false},{"group":"售后保障类","name":"担心滑片","ask":"\"会不会滑片？\"\"戴上滑\"","check":"· 镜片有一定贴合度，不是一戴就滑\n· 大多数人戴都稳，试戴1片感受最准\n· 不要默认是基弧问题（不能说换基弧）\n· 试戴兜底+保留镜片","say":"宝，咱们这款镜片设计有一定贴合度的哦~不是戴上就滑的那种，大多数人戴都稳~咱们支持试戴1片，您自己戴着感受最准，戴着不舒服保留美瞳联系客服反馈售后就可以~","alt":"① 大多数人贴合\n② 试戴兜底","wrong":"⚠️ 说“换基弧” = 你不知道是不是基弧问题","bad":false},{"group":"售后保障类","name":"担心磨眼","ask":"\"磨眼吗？\"\"戴上会不会异物感？\"","check":"· 卖点是薄透水润，镜片柔软异物感低\n· 试戴兜底","say":"宝，咱们这款镜片很薄很水润哦~戴上软软的，异物感很低，不会磨眼的~咱们支持试戴1片，您自己戴着感受最准，戴着不舒服保留美瞳联系客服反馈售后就可以~","alt":"① 三明治工艺不磨眼\n② 试戴兜底","wrong":"担心不舒服","bad":false},{"group":"售后保障类","name":"\"戴着舒服吗？\"\"会不会难受？\"","ask":"· 直接试戴兜底\n· 不要先讲一堆原理","check":"宝，咱们支持试戴1片体验舒适度哦~试戴后舒服再继续戴，不舒服保留美瞳联系客服反馈售后就可以，您自己戴着感受最准~","say":"① 试戴1片\n② 不舒服走售后","alt":"⚠️ 讲一堆原理客户还是担心","wrong":"","bad":false},{"group":"售后保障类","name":"担心不会戴/戴不进去","ask":"\"第一次戴怕戴不进去\"","check":"发佩戴教程，降低门槛","say":"第一次戴我发您一个佩戴视频，跟着练习几次就会了～咱们镜片成型度好，新手也好戴","alt":"① 发佩戴视频\n② 推成型好款\n③ 护理液赠品","wrong":"⚠️ 只说“很容易戴” = 客户不信","bad":false},{"group":"售后保障类","name":"担心不显色","ask":"\"会不会不显色？\"\"戴了跟没戴一样？\"","check":"· 发自然光实拍+买家秀\n· 不打包票，让客户自己看","say":"给您发自然光实拍看看~这款上眼显色刚刚好，我发几个上眼实拍图您参考下？","alt":"① 发自然光实拍\n② 发买家秀","wrong":"⚠️ 说“肯定显色” = 客户收到不显色会闹","bad":false},{"group":"售后保障类","name":"担心太夸张","ask":"\"会不会太夸张？\"\"日常能戴吗？\"","check":"· 发日常佩戴实拍\n· 强调通勤日常不夸张","say":"给您发自然光实拍看看~这款上眼很自然，通勤日常戴不夸张，我发几个上眼实拍图您参考下？","alt":"① 发日常佩戴实拍\n② 强调自然不夸张","wrong":"⚠️ 说“不夸张”但发精修图 = 客户收到觉得夸张","bad":false},{"group":"售后保障类","name":"担心不好看","ask":"\"会不会不好看？\"\"适合我吗？\"","check":"· 先发实拍让客户看效果\n· 再问客户平时喜欢什么风格\n· 推荐适合的款","say":"给您发实拍看看效果~您平时喜欢什么风格的呀？自然一点还是混血一点的？我给您推荐更适合您的~","alt":"① 发实拍看效果\n② 问风格喜好\n③ 推荐适合的款","wrong":"⚠️ 直接说“好看” = 客户不信","bad":false},{"group":"售后保障类","name":"担心不是正品","ask":"\"你们是正品吗？\" ","check":"· 客户问当前店铺是不是正品，直接回复是正品\n· 第三类医疗器械注册，药监局可查","say":"宝，咱们家是正品哦~正规第三类医疗器械注册产品，药监局官网可查，您放心拍~","alt":"① 发全平台店铺图\n② 本店优惠机制","wrong":"⚠️ 说“别家不是我们的” = 自拆台","bad":false},{"group":"售后保障类","name":"担心临期","ask":"\"会不会临期？\"\"快过期了？\"","check":"· 经常断货补货，都是最近生产的\n· 未拆封保质期5年，放心囤","say":"宝，咱们家经常断货补货，发出来的都是最近生产的，不会临期~未拆封5年保质期，放心囤~","alt":"① 新生产不临期\n② 未拆封5年","wrong":"⚠️ 说“保质期3年” = 说错了","bad":false},{"group":"售后保障类","name":"担心买贵","ask":"\"买贵了怎么办？\"\"以后降价怎么办？\"","check":"· 现在活动价就是最划算的\n· 有价保/保价\n· 平台补贴、红包除外","say":"宝，现在活动价就是最划算的哦~咱们有价保的，买贵了可以补差价（平台补贴、红包除外），您放心拍~","alt":"① 现在最划算\n② 有价保","wrong":"⚠️ 说“以后更便宜” = 客户不买了","bad":false},{"group":"售后保障类","name":"担心色差","ask":"\"会不会和图片不一样？\"\"有色差吗？\"","check":"· 发自然光实拍+买家秀\n· 不打包票\n· 发了实拍还担心：用试戴兜底，收到不满意保留美瞳联系售后","say":"给您发上眼实拍图看看~上眼效果和实拍图基本一致，您参考下~收到后戴着不满意保留美瞳联系客服反馈售后就可以啦~","alt":"","wrong":"⚠️ 说“完全无色差” = 客户收到发现有色差","bad":false},{"group":"售后保障类","name":"担心快递慢/预期时间收不到货","ask":"\"多久发货？\" \"多久到？\"","check":"· 明确时效，不模糊\n· 回复后引导：着急可以补运费发顺丰\n· 顺丰有空运/陆运","say":"宝，现在下单今天还能发，快截单啦~发的⬜快递，一般⬜天到，您留意一下~\n\n要是比较着急的话，可以补运费发顺丰哦，顺丰有空运和陆运，更快一点~","alt":"① 今天能发\n② 明确快递和时效\n③ 补运费发顺丰","wrong":"⚠️ 说“很快/过几天” = 客户不放心","bad":false},{"group":"售后保障类","name":"有没有优惠","ask":"\"能不能优惠？\"\"有券吗？\"","check":"· 客服权限最高3元优惠\n· 可到货退差价\n· 不要主动提优惠\n· 客户继续讨价还价：婉拒，3元已是最大权限\n· 还是不认可：可上报反馈，不一味拒绝","say":"宝，我这边帮您申请个3元优惠，到货后您确认没问题联系我退差价就可以啦~\n（客户继续砍价）宝，3元已经是我最大权限啦，实在没办法再多了~咱们家是第三类医疗器械注册的，镜片薄透水润戴着舒服，花色也是精挑细选的，这个价真的很值~\n（还是不认可）宝，您稍等，我帮您上报反馈一下，看能不能再申请点优惠~","alt":"① 最高3元优惠\n② 到货退差价","wrong":"⚠️ 主动说可以优惠 = 客户一直砍价","bad":false},{"group":"护理类","name":"收到要不要清洗浸泡","ask":"\"收到要泡多久？\" \"要洗吗？\"","check":"· 日抛：不用泡，直接戴\n· 半年抛：建议护理液浸泡6-8小时以上，佩戴体验更好\n· 只是建议，具体看个人情况\n· 着急试戴：先上眼试戴，不舒服及时取下，浸泡后再尝试","say":"日抛的话不用泡，直接戴就可以啦~半年抛建议用护理液浸泡6-8小时以上，佩戴体验更好哟~这个只是建议，具体看个人情况~您要是着急试戴的话，可以先上眼试一下，有不舒服及时取下来，浸泡后再尝试就可以啦~","alt":"① 日抛不用泡\n② 半年抛泡6-8小时减少首次不舒服几率\n③ 着急先试戴不舒服再泡","wrong":"⚠️ 第一次戴泡不够时间 = 磨眼回来闹","bad":false},{"group":"护理类","name":"护理液多久换","ask":"\"护理液多久换一次？\"","check":"· 每天佩戴：护理液每天换一次\n· 不戴的时候：定期更换即可（不用卡2-3天）\n· 护理液主要成分聚氨基丙二胍，能消毒","say":"宝~美瞳每天佩戴的话护理液建议每天更换一次哟，不戴的时候定期更换就可以啦~护理液主要成分是聚氨基丙二胍，能起到消毒效果哦~","alt":"① 每天戴每天换\n② 不戴定期更换\n③ 定期清洁镜盒","wrong":"⚠️ 不告诉客户 = 眼镜发炎回来找","bad":false},{"group":"护理类","name":"一天能戴多久","ask":"\"一天能戴几个小时？\"","check":"· 建议8小时，不要超过10小时\n· 具体看个人眼睛敏感程度","say":"宝，建议每天戴8小时左右哦，最好不要超过10小时~具体要看个人眼睛的敏感程度，眼睛容易干的话可以少戴一会~","alt":"① 建议8小时\n② 不超10小时\n③ 看个人眼睛情况","wrong":"⚠️ 让客户戴太久 = 眼睛出问题","bad":false},{"group":"护理类","name":"睡觉能不能戴","ask":"\"睡觉能戴吗？\"\"戴着睡觉行不行？\"","check":"· 睡觉肯定不能戴\n· 角膜缺氧风险","say":"宝，睡觉肯定不能戴哦~戴着睡觉角膜会缺氧，对眼睛不好的，一定要取下来~","alt":"① 明确不能戴\n② 讲清原因","wrong":"⚠️ 说可以戴着睡 = 出问题","bad":false},{"group":"护理类","name":"午休能不能戴","ask":"\"午休能戴吗？\"\"午睡不摘行不行？\"","check":"· 短时间午休可以不摘\n· 长时间建议取下","say":"宝，短时间午休（半小时内）可以不摘~但午睡时间长的话建议取下来，戴着睡久了眼睛会干哦~","alt":"① 短时间可以\n② 长时间建议取下","wrong":"⚠️ 说绝对不能摘 = 客户嫌麻烦","bad":false},{"group":"护理类","name":"日抛保质期多久","ask":"\"日抛保质期多久？\"\"没拆封能放多久？\"","check":"· 未拆封5年\n· 拆封当天用完就扔\n· 按抛期算","say":"宝，日抛没拆封的话保质期是5年哦~拆封后当天用完就可以扔啦~日抛不用护理，干净卫生~","alt":"① 未拆封5年\n② 拆封当天扔","wrong":"⚠️ 说拆封还能放 = 客户重复用不卫生","bad":false},{"group":"护理类","name":"半年抛保质期多久","ask":"\"半年抛保质期多久？\"\"没拆封能放多久？\"","check":"· 未拆封5年\n· 拆封后按半年算\n· 拆封开始计时","say":"宝，半年抛没拆封的话保质期是5年哦~拆封后从拆封那天开始算，用半年就可以换啦~性价比很高，日常戴很划算~","alt":"① 未拆封5年\n② 拆封后用半年","wrong":"⚠️ 说按生产日期算 = 客户搞错计时","bad":false},{"group":"护理类","name":"游泳能不能戴","ask":"\"游泳能戴吗？\"\"泡温泉呢？\"","check":"· 游泳肯定不能戴\n· 细菌感染风险","say":"宝，游泳肯定不能戴哦~泳池和海水里细菌多，戴着容易感染眼睛的~泡温泉也建议取下来~","alt":"① 明确不能戴\n② 讲清感染风险","wrong":"⚠️ 说可以戴 = 出问题","bad":false},{"group":"护理类","name":"孕妇哺乳期能不能戴","ask":"\"怀孕能戴吗？\"\"哺乳期可以戴吗？\"","check":"· 孕妇哺乳期一般不影响\n· 注意佩戴时间就行","say":"宝，孕妇哺乳期一般不影响戴的哦~注意佩戴时间不要太长，8小时左右就可以啦~","alt":"① 建议先咨询医生\n② 不直接说可以或不可以","wrong":"⚠️ 直接说可以戴 = 出问题","bad":false},{"group":"护理类","name":"吃火锅能不能戴","ask":"\"吃火锅能戴吗？\"\"热气会怎么样？\"","check":"· 可以戴\n· 热气不会让镜片融化","say":"宝，吃火锅可以戴的哦~热气不会让镜片怎么样的，放心戴~","alt":"① 可以戴\n② 热气不影响","wrong":"⚠️ 说不能戴 = 客户觉得奇怪","bad":false},{"group":"推荐类","name":"第一次戴推荐","ask":"\"第一次戴选哪款？\"\"新手推荐？\"","check":"· 推自然款、成型好款\n· 发佩戴教程\n· 大多数人戴都舒服","say":"第一次戴推荐您这款哦~上眼自然不突兀，大多数人戴都舒服~我发您一个佩戴视频，跟着练习就会了~","alt":"① 推自然成型好款\n② 发佩戴教程","wrong":"⚠️ 推夸张款 = 新手戴了不舒服","bad":false},{"group":"推荐类","name":"学生党推荐","ask":"\"学生党推荐？\"\"性价比高的？\"","check":"· 推自然款、性价比高\n· 日常不夸张","say":"学生推荐【花名】哦~上眼很自然，日常戴不夸张，性价比也很高~","alt":"① 推自然高性价比\n② 日常不夸张","wrong":"⚠️ 推太贵的 = 学生买不起","bad":false},{"group":"推荐类","name":"通勤推荐","ask":"\"通勤戴哪款？\"\"上班戴推荐？\"","check":"· 推自然融瞳款\n· 日常不突兀","say":"通勤推荐【花名】哦~上眼很自然融瞳，上班戴不突兀，同事都看不出来您戴了美瞳~","alt":"① 推自然融瞳款\n② 日常不突兀","wrong":"⚠️ 推夸张款 = 上班太显眼","bad":false},{"group":"推荐类","name":"写真推荐","ask":"\"写真戴哪款？\"\"拍照推荐？\"","check":"· 推显色好、放大明显的款\n· 上镜好看","say":"写真推荐【花名】哦~上眼显色很好，放大也明显，拍照上镜特别好看~我发您实拍参考下？","alt":"① 推显色好放大款\n② 上镜好看","wrong":"⚠️ 推自然款 = 拍照看不出来","bad":false},{"group":"推荐类","name":"日常推荐","ask":"\"日常戴哪款？\"\"每天戴推荐？\"","check":"· 推自然舒适款\n· 日常不突兀","say":"日常戴推荐您【花名】哦~上眼很自然，每天戴也不突兀，舒适度很高~","alt":"① 推自然舒适款\n② 日常不突兀","wrong":"⚠️ 推夸张款 = 日常戴太显眼","bad":false},{"group":"推荐类","name":"自然推荐","ask":"\"要自然的推荐？\"\"看不出来戴了推荐？\"","check":"· 推融瞳自然款\n· 伪素颜效果","say":"要自然的话推荐您【花名】哦~上眼很融瞳，伪素颜效果，基本看不出来戴了美瞳~","alt":"① 推融瞳自然款\n② 伪素颜效果","wrong":"⚠️ 推显色款 = 客户要自然不适合","bad":false},{"group":"推荐类","name":"显色推荐","ask":"\"要显色的推荐？\"\"明显一点的？\"","check":"· 推显色好、放大明显款\n· 上镜好看","say":"要显色的话推荐您【花名】哦~上眼显色很好，放大也明显，拍照上镜特别好看~","alt":"① 推显色好款\n② 上镜好看","wrong":"⚠️ 推自然款 = 客户要显色达不到","bad":false},{"group":"工艺类","name":"三明治工艺","ask":"\"是三明治工艺吗？\"\"会不会掉色\"","check":"· 三明治工艺，颜色夹在中间不直接接触眼睛\n· 不会磨眼","say":"宝，咱们是三明治工艺哦~颜色锁在镜片中间，不直接接触眼睛，不会掉色的~","alt":"① 三明治工艺\n② 不磨眼","wrong":"⚠️ 说颜色直接接触 = 客户担心磨眼","bad":false},{"group":"工艺类","name":"材质是什么","ask":"\"什么材质？\"\"镜片是什么做的？\"","check":"· 非离子水凝胶材质\n· 卖点：不易吸附蛋白沉淀，不容易干眼，佩戴更舒适\n· 镜片薄透水润","say":"宝，咱们是非离子水凝胶材质哦~这种材质不容易吸附蛋白沉淀，戴久了也不容易干眼，舒适度很高的~镜片也很薄很水润，戴着很舒服~","alt":"① 水凝胶材质\n② 薄透水润","wrong":"⚠️ 说硅水凝胶 = 不是那个材质","bad":false},{"group":"工艺类","name":"硅水凝胶吗","ask":"\"是硅水凝胶吗？\"\"透氧好的那种？\"","check":"· 我们不是硅水凝胶，是非离子水凝胶\n· 不要误导\n· 突出性价比高","say":"宝，咱们是非离子水凝胶材质哦~不是硅水凝胶，但戴着也很舒服的，透气性也够用~而且性价比很高，日常戴很划算的~","alt":"① 如实说水凝胶\n② 不误导","wrong":"⚠️ 说是硅水凝胶 = 客户发现不是会闹","bad":false},{"group":"度数类","name":"度数怎么选","ask":"\"度数怎么选？\"\"我框架400度买多少？\"","check":"· 低于400度无需换算\n· 400~500度减25\n· 500~700度减50\n· 700度以上减70\n· 常规款最高800度\n· 800度以上推荐：绿野仙棕/小黑环pro/小棕环pro（6片装日抛，有850/900度）\n· 主动问客户度数帮换算\n· 明确说左眼右眼分别选多少","say":"宝，美瞳度数换算规则是这样的~400度以下不用换算，400-500度减25度，500-700度减50度，700度以上减70度~常规款最高800度~您把框架眼镜的左右眼度数告诉我，我帮您算一下~（800度以上）您度数比较高，我给您推荐绿野仙棕/小黑环pro/小棕环pro这三款，有850/900度哦~","alt":"① 帮算度数\n② 发度数表","wrong":"⚠️ 直接按框架度数拍 = 客户晕","bad":false},{"group":"度数类","name":"不近视平光怎么选","ask":"\"不近视戴多少度？\"\"平光买哪种？\"","check":"· 不近视选0度/平光\n· 引导选花色，推荐花色，挖需求\n· 问客户喜欢自然还是显色","say":"不近视的话买0度平光就行啦~您平时喜欢自然一点的还是显色一点的呀？~我给您推荐几款好看的花色~","alt":"① 选0度平光\n② 问风格偏好\n③ 推荐花色","wrong":"⚠️ 只说买0度 = 不推荐花色流失","bad":false},{"group":"度数类","name":"客户要的度数不在生产范围怎么办","ask":"\"我要625度有吗？\"\"675度有吗？\"","check":"· 0-100度：100度跨度，没有50/75度\n· 100-600度：25度一个跨度\n· 600度以上：50度一个跨度\n· 冷雾茶黑/汪汪队/甜断记忆/樱花泪/有点乖：没有525/575度，建议上下25度兼容","say":"宝，咱们度数生产是有跨度的哦~0-100度只有100度跨度，100-600度是25度一跳，600度以上是50度一跳~您要的625度咱们没生产，建议拍600或650度，上下差25度不影响佩戴~\n（冷雾茶黑/汪汪队/甜断记忆/樱花泪/有点乖要525/575）这款没有生产525/575度哦~建议上下浮动25度影响不大，戴600或500度都可以，差一点不影响的~","alt":"① 相近度数现货\n② 登记到货","wrong":"⚠️ 直接说没货 = 流失","bad":false},{"group":"度数类","name":"散光怎么选","ask":"\"我有散光能戴吗？\"\"散光怎么选度数？\"","check":"· 散光≤150度：散光÷2加到近视里，再按换算规则减\n· 主动问客户近视+散光数据帮算\n· 散光>150不建议换算，建议配专门散光眼镜","say":"宝，您把近视度数和散光度数告诉我，我帮您算一下~散光150度以内都可以换算的~（算完）您左眼拍XX度，右眼拍XX度哦~","alt":"① 散光÷2加近视\n② 再按换算规则减\n③ 主动帮算","wrong":"⚠️ 直接说不能戴 = 客户流失","bad":false},{"group":"度数类","name":"散光能不能配（无散光专用款）","ask":"\"散光高了有专用款吗？\"\"有散光专用款吗？\"","check":"· 咱们在售都是普通款、按标准度数制作，没有散光专用款\n· 但可以换算\n· 引导提供近视+散光数据帮忙换算","say":"宝，咱们在售的美瞳都是普通款、按标准度数做的，没有散光专用款哦~不过可以帮您换算成普通款度数戴的~您把近视和散光度数告诉我，我帮您算一下？~","alt":"① 说明是普通款标准度数\n② 但可以换算\n③ 引导接受","wrong":"⚠️ 直接说没有就结束 = 客户走","bad":false},{"group":"度数类","name":"散光超过150度怎么办","ask":"\"我散光200度能戴吗？\"\"散光太高了\"","check":"· 散光超过150度不能换算\n· 按最高150度换算\n· 问客户能不能接受","say":"宝，您散光超过150度了，超过150度不能直接换算哦~我帮您按最高150度换算一下，您看能接受吗？~能接受的话把近视度数告诉我，我帮您算一下？~","alt":"① 按150最高换算\n② 问能不能接受\n③ 不直接拒绝","wrong":"","bad":false},{"group":"催付类","name":"催单流程","ask":"客户有意向后不拍","check":"· 库存紧张\n· 快截单\n· 今天能发\n· 加送赠品","say":"① 热门花色度数库存走得快，这个度数就剩最后几盒啦～\n② 现在下单今天还能发，快截单啦～\n③ 您现在拍我给您备注优先发货，今天就能发～\n④ 下单再加送眼罩/化妆梳一个哦～","alt":"① 紧迫感\n② 截单提醒\n③ 优先发货\n④ 加送赠品","wrong":"⚠️ 客户说“好”就没下文 = 单子飞了","bad":false},{"group":"资质类","name":"其他平台店铺是不是正品","ask":"带图询问\"其他平台也是你们的吗？\"\"其他店是正品吗？\"","check":"· 承认其他平台也是官方店铺\n· 不说不清楚\n· 引导在当前店铺拍下，也能享受其他平台优惠价","say":"宝，我们在各平台都有官方店铺，都是正品哦~只是各店主卖产品不同，您现在在这家店拍现在也可以有优惠，拍下可以帮您加送小礼物和加急发，直接在这拍就可以啦~","alt":"① 承认是官方店铺\n② 同款优惠价\n③ 引导当前店下单","wrong":"⚠️ 说不清楚其他店 = 客户怀疑","bad":false},{"group":"资质类","name":"有没有防伪码","ask":"\"有防伪码吗？\" \"怎么查真假？\"","check":"· 每盒都有医疗器械注册证号\n· 药监局官网可查\n· 直接给注册证号和查询方式","say":"宝，咱们每盒都有医疗器械注册证号哦～国家药监局官网直接可以查到，您收到后可以自己去查一下，放心拍～","alt":"① 告诉防伪码位置\n② 引导官方渠道查","wrong":"⚠️ 说“没有防伪” = 客户怀疑","bad":false},{"group":"资质类","name":"有没有医疗器械注册证","ask":"\"有医疗器械注册证吗？\"\"安全吗？\"","check":"· 正规第三类医疗器械注册产品（最高级别）\n· 注册证号：国械注准20163161745\n· 注册人：吉林瑞尔康光学科技有限公司\n· 药监局官网可查","say":"宝，咱们家是正规第三类医疗器械注册产品（这是最高级别），药监局官网都能查到的，您放心～","alt":"① 正规注册产品\n② 告诉证号位置","wrong":"⚠️ 说“不知道有没有” = 客户不敢买","bad":false},{"group":"资质类","name":"有没有营业执照","ask":"\"你们有营业执照吗？\"\"是正规公司吗？\"","check":"· 天猫/抖音旗舰店都是企业资质入驻\n· 资质在店铺资质页可查","say":"宝，咱们营业执照和资质都在店铺资质公示页可以查到哦～您放心拍～","alt":"① 企业资质入驻\n② 告诉资质页位置","wrong":"⚠️ 支支吾吾 = 客户不放心","bad":false},{"group":"资质类","name":"有没有经营许可证","ask":"\"有医疗器械经营许可证吗？\"\"卖美瞳要资质吧？\"","check":"· 我们有医疗器械经营许可证\n· 资质齐全","say":"宝，咱们是有医疗器械经营许可证的，资质齐全，您可以放心～详情页资质公示里也有哦～","alt":"① 经营许可证齐全\n② 告诉公示位置","wrong":"⚠️ 说“没有” = 违法违规","bad":false}];
+const GROUPS = ["规格类","参数类","知识类","需求类","顾虑类","操作类","售后保障类","护理类","推荐类","工艺类","度数类","催付类","资质类"];
+let curGroup = '全部', kw = '';
+
+const $ = id => document.getElementById(id);
+
+/* 标签切换 */
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b === btn));
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.id === 'p-' + btn.dataset.tab));
+    window.scrollTo(0, 0);
+  });
+});
+
+/* 分组 chips */
+function renderChips() {
+  $('chips').innerHTML = ['全部'].concat(GROUPS).map(g =>
+    '<button class="chip' + (g === curGroup ? ' on' : '') + '" data-g="' + g + '">' + g + '</button>'
+  ).join('');
+  $('chips').querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+    curGroup = c.dataset.g; renderChips(); renderList();
+  }));
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function br(s) { return esc(s).replace(/\n/g, '<br>'); }
+
+function renderList() {
+  const k = kw.trim().toLowerCase();
+  const list = CJ.filter(r => (curGroup === '全部' || r.group === curGroup) &&
+    (!k || (r.name + r.ask + r.say + r.check + r.alt + r.wrong + r.group).toLowerCase().includes(k)));
+  $('cnt').textContent = '共 ' + list.length + ' 条' + (curGroup === '全部' ? '' : '（' + curGroup + '）') + (k ? '，关键词「' + kw + '」' : '');
+  if (!list.length) { $('cjlist').innerHTML = '<div class="empty">没有匹配的场景，换个关键词试试</div>'; return; }
+  $('cjlist').innerHTML = list.map((r, i) => {
+    const idx = CJ.indexOf(r) + 1;
+    return '<div class="cj">' +
+      '<div class="h"><span class="idx">' + idx + '</span><span class="nm">' + esc(r.name) + '</span><span class="g">' + esc(r.group) + '</span></div>' +
+      (r.ask ? '<div class="ask"><b>客户会问：</b>' + esc(r.ask) + '</div>' : '') +
+      '<div class="say" style="margin-top:9px;"><button class="copy" data-i="' + idx + '">复制话术</button>' + br(r.say) + '</div>' +
+      '<div class="meta">' +
+        (r.check ? '<div><span class="k">核实思路</span>' + br(r.check) + '</div>' : '') +
+        (r.alt ? '<div><span class="k">替代方案</span>' + br(r.alt) + '</div>' : '') +
+        (r.wrong ? '<div><span class="k" style="color:#b91c1c;">常见误区</span>' + br(r.wrong) + '</div>' : '') +
+      '</div></div>';
+  }).join('');
+  $('cjlist').querySelectorAll('.copy').forEach(b => b.addEventListener('click', () => copySay(b)));
+}
+
+function copySay(btn) {
+  const idx = +btn.dataset.i;
+  const text = (CJ[idx - 1] || {}).say || '';
+  const done = () => { const t = btn.textContent; btn.textContent = '✓ 已复制'; setTimeout(() => btn.textContent = t, 1400); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallback());
+  } else fallback();
+  function fallback() {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { alert('复制失败，请手动选择文字复制'); }
+    document.body.removeChild(ta);
+  }
+}
+
+$('q').addEventListener('input', () => {
+  kw = $('q').value;
+  clearTimeout(window.__qt);
+  window.__qt = setTimeout(renderList, 160);
+});
+
+renderChips();
+renderList();
+</script>
+</body>
+</html>
