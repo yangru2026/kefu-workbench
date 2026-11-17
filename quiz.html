@@ -141,7 +141,7 @@ const PAPERS = [{"meta":{"key":"exam-一","title":"试卷一 · 美瞳基础知�
 let curPaper = 0;
 let QUIZ = PAPERS[0];
 /* ==================== 收卷配置（交卷后自动上报给主管） ==================== */
-const SUPA_URL = 'https://icfgireprowcqwdodfqx.supabase.co';
+const SUPA_URL = 'https://mpimxskvbbqzvwwehzep.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljZmdpcmVwcm93Y3F3ZG9kZnF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0ODMwNjEsImV4cCI6MjEwODA1OTA2MX0.T8yex8pjNBE0ch3vPKL3xPQPOqw3ExS4mwRsjT2FhzE';
 const QUIZ_KEY = () => QUIZ.meta.key;
 const START_TS = Date.now();
@@ -525,7 +525,7 @@ renderTabs(); renderMeta(); buildPaper();
 /* 管理员不锁卷：主工作台与本页同域，登录态存在 localStorage，读 role=admin 即解锁全部试卷 */
 (async function detectExamAdmin() {
   try {
-    const raw = localStorage.getItem('sb-icfgireprowcqwdodfqx-auth-token');
+    const raw = localStorage.getItem('sb-mpimxskvbbqzvwwehzep-auth-token');
     if (!raw) return;
     const ses = JSON.parse(raw);
     const at = ses && ses.access_token;
