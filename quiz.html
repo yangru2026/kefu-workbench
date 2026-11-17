@@ -522,8 +522,40 @@ $('btnSubmit').addEventListener('click', async () => {
 $('btnReset').addEventListener('click', () => location.reload());
 renderTabs(); renderMeta(); buildPaper();
 
-/* 管理员不锁卷：主工作台与本页同域，登录态存在 localStorage，读 role=admin 即解锁全部试卷 */
-(async function detectExamAdmin() {
+/* 管理员不锁卷 + 试卷按组开放：登录态存 localStorage，读 profiles 的 role/group_name。
+   开放配置存 exam_paper_access 表（主管在「考核成绩」页改，不用发版）：
+   某张卷没有配置行 = 全员可见；有配置行 = 仅勾选的组可见；管理员始终可见全部 */
+let myGroup = '';
+async function loadPaperAccess() {
+  let rows = [];
+  try {
+    const res = await fetch(SUPA_URL + '/rest/v1/exam_paper_access?select=paper_key,group_name', {
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+    });
+    const arr = await res.json();
+    if (Array.isArray(arr)) rows = arr;
+  } catch (e) { console.warn('试卷开放配置读取失败，默认全部显示', e); }
+  return rows;
+}
+function applyPaperAccess(rows) {
+  if (isExamAdmin) return;
+  const restricted = {};
+  (rows || []).forEach(function (r) {
+    if (r && r.paper_key && r.group_name) (restricted[r.paper_key] = restricted[r.paper_key] || []).push(r.group_name);
+  });
+  const vis = PAPERS.filter(function (p) {
+    const g = restricted[p.meta.key];
+    return !g || !g.length || (myGroup && g.indexOf(myGroup) >= 0);
+  });
+  if (vis.length !== PAPERS.length) {
+    PAPERS.length = 0;
+    for (let i = 0; i < vis.length; i++) PAPERS.push(vis[i]);
+    if (curPaper >= PAPERS.length) curPaper = 0;
+    renderTabs(); renderMeta(); buildPaper();
+    console.log('试卷已按分组过滤，当前可见 ' + PAPERS.length + ' 张');
+  }
+}
+(async function detectExamAccess() {
   try {
     const raw = localStorage.getItem('sb-mpimxskvbbqzvwwehzep-auth-token');
     if (!raw) return;
@@ -531,17 +563,22 @@ renderTabs(); renderMeta(); buildPaper();
     const at = ses && ses.access_token;
     const uid = ses && ses.user && ses.user.id;
     if (!at || !uid) return;
-    const res = await fetch(SUPA_URL + '/rest/v1/profiles?select=role&id=eq.' + uid, {
+    const res = await fetch(SUPA_URL + '/rest/v1/profiles?select=role,group_name&id=eq.' + uid, {
       headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + at }
     });
     const arr = await res.json();
-    if (Array.isArray(arr) && arr[0] && arr[0].role === 'admin') {
-      isExamAdmin = true;
-      calcUnlock();
-      renderTabs();
-      console.log('管理员身份：全部试卷已解锁');
+    if (Array.isArray(arr) && arr[0]) {
+      if (arr[0].role === 'admin') {
+        isExamAdmin = true;
+        calcUnlock();
+        renderTabs();
+        console.log('管理员身份：全部试卷已解锁');
+      }
+      myGroup = arr[0].group_name || '';
+      const rows = await loadPaperAccess();
+      applyPaperAccess(rows);
     }
-  } catch (e) { console.warn('管理员检测跳过', e); }
+  } catch (e) { console.warn('身份/分组检测跳过', e); }
 })();
 /* 姓名填入后查她考过哪几份卷，恢复解锁进度 */
 $('examinee').addEventListener('change', refreshUnlock);

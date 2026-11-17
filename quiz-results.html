@@ -202,6 +202,13 @@
     </div>
 
     <div id="list"></div>
+
+    <div id="accessCard" style="display:none;background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-top:18px;">
+      <h3 style="font-size:15px;margin:0 0 4px;">🗂️ 试卷分组开放设置</h3>
+      <p style="font-size:12.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">勾选 = 仅勾选的组可见；一张卷全部不勾 = 全员可见。管理员登录始终能看到全部试卷。保存后客服重新打开考试页即生效（不用发版）。</p>
+      <div id="accessRows"></div>
+      <div style="margin-top:10px;"><button id="accessSave" style="background:var(--primary);color:#fff;border:none;border-radius:20px;padding:8px 22px;font-size:13.5px;font-family:inherit;cursor:pointer;">💾 保存设置</button></div>
+    </div>
   </div>
 </div>
 
@@ -311,6 +318,7 @@ function toast(msg){
     $('roleBadge').className = 'badge admin';
     $('roleBadge').textContent = '👑 主管 · 可查看/删除';
     $('main').style.display = '';
+    initAccessSettings();
     await load();
   }catch(e){
     console.error(e);
@@ -777,6 +785,70 @@ $('btnRefresh').addEventListener('click', () => { load(); toast('已刷新'); })
 $('btnExport').addEventListener('click', exportExcel);
 $('btnRoster').addEventListener('click', rosterCheck);
 $('openQuiz').addEventListener('click', () => window.open(QUIZ_FILE, '_blank'));
+
+/* ==================== 试卷分组开放设置（管理员） ==================== */
+const PAPER_LABELS = {
+  'exam-一': '试卷一 · 美瞳基础知识',
+  'exam-二': '试卷二 · 花色明细 · 抛型与分类 · 价格',
+  'exam-三': '试卷三 · 注意事项 · 拼多多规范',
+  'exam-四': '试卷四 · 发货履约 · 延迟发货 · 合并发货 · 预定缺货',
+  'exam-五': '试卷五 · 销售意识'
+};
+let accessRows = [];
+let accessGroups = ['A组', 'B组', 'C组'];
+async function initAccessSettings() {
+  try {
+    const g = await sb.from('profiles').select('group_name');
+    if (g.data) {
+      (g.data || []).forEach(function (r) {
+        if (r.group_name && accessGroups.indexOf(r.group_name) < 0) accessGroups.push(r.group_name);
+      });
+    }
+    const a = await sb.from('exam_paper_access').select('paper_key,group_name');
+    if (a.error) throw a.error;
+    accessRows = a.data || [];
+    const keys = Object.keys(PAPER_LABELS);
+    accessRows.forEach(function (r) { if (keys.indexOf(r.paper_key) < 0) keys.push(r.paper_key); });
+    const isChecked = function (k, grp) {
+      return accessRows.some(function (r) { return r.paper_key === k && r.group_name === grp; });
+    };
+    $('accessRows').innerHTML = keys.map(function (k) {
+      return '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:8px 0;border-bottom:1px dashed var(--border);">'
+        + '<span style="min-width:250px;font-size:13.5px;font-weight:600;">' + esc(PAPER_LABELS[k] || k) + '</span>'
+        + accessGroups.map(function (grp) {
+            return '<label style="display:inline-flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">'
+              + '<input type="checkbox" data-k="' + esc(k) + '" data-g="' + esc(grp) + '"' + (isChecked(k, grp) ? ' checked' : '') + '>' + esc(grp) + '</label>';
+          }).join('')
+        + '</div>';
+    }).join('');
+    $('accessCard').style.display = '';
+  } catch (e) { console.warn('分组开放设置加载失败', e); }
+}
+$('accessSave').addEventListener('click', async function () {
+  const btn = $('accessSave');
+  btn.disabled = true; btn.textContent = '保存中…';
+  try {
+    const cbs = [...document.querySelectorAll('#accessRows input[type=checkbox]')];
+    const sel = {};
+    cbs.forEach(function (c) { if (c.checked) { (sel[c.dataset.k] = sel[c.dataset.k] || []).push(c.dataset.g); } });
+    if (accessRows.length) {
+      const del = await sb.from('exam_paper_access').delete().in('paper_key', accessRows.map(function (r) { return r.paper_key; }));
+      if (del.error) throw del.error;
+    }
+    const toInsert = [];
+    Object.keys(sel).forEach(function (k) { sel[k].forEach(function (grp) { toInsert.push({ paper_key: k, group_name: grp }); }); });
+    if (toInsert.length) {
+      const ins = await sb.from('exam_paper_access').insert(toInsert);
+      if (ins.error) throw ins.error;
+    }
+    accessRows = toInsert;
+    toast('✅ 试卷分组开放设置已保存，客服重新打开考试页即生效');
+  } catch (e) {
+    toast('❌ 保存失败：' + (e.message || e));
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 保存设置';
+  }
+});
 </script>
 </body>
 </html>
