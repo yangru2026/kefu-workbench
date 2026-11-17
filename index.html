@@ -16701,6 +16701,9 @@ function openLogisticsFreight() {
           </table>
           <p style="font-size:11px;color:#999;margin-top:8px;">* 江浙沪皖顺丰陆运已可次日达，无需补差价升级空运。实际时效可能受天气、航班等因素影响。</p>
         </div>
+        <div id="lf-sf-warn" style="grid-column:1/-1;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.7;color:#92400e;">
+          ⚠️ <b>顺丰特快实名提醒：</b>发顺丰特快<b>必须要问客户要真实手机号码</b>——因顺丰安全管控和物流保障的原因，发特快需实名制，真实手机号码才能出单。
+        </div>
       </div>
     </div>
   `;
@@ -16714,6 +16717,11 @@ function selLFExpress(btn) {
   document.querySelectorAll('.lf-express-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   _lfExpress = btn.dataset.express;
+  const w = document.getElementById('lf-sf-warn');
+  if (w) {
+    if (_lfExpress.indexOf('顺丰') >= 0) { w.style.borderColor = '#ef4444'; w.style.background = '#fef2f2'; w.style.color = '#991b1b'; }
+    else { w.style.borderColor = '#fde68a'; w.style.background = '#fffbeb'; w.style.color = '#92400e'; }
+  }
 }
 
 function queryLF() {
