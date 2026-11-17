@@ -424,7 +424,7 @@ $('quickPreview').addEventListener('change', e => {
   if (e.target.dataset.qk === 'toss') quickRows[+e.target.dataset.i].toss = e.target.value;
 });
 $('quickPreview').addEventListener('click', e => {
-  const el = e.target.closest('[data-qk]');
+  const el = e.target.closest('#quickSave, #quickClear, [data-qk]');
   if (!el) return;
   if (el.dataset.qk === 'del') {
     quickRows.splice(+el.dataset.i, 1);
