@@ -120,8 +120,9 @@
   <div class="mask" id="formMask">
     <div class="modal">
       <h3 id="formTitle">登记补货</h3>
-      <label>📋 一句话识别（从群里复制原话粘到下面，自动拆出花名和时间，不用分开填）</label>
-      <textarea id="fQuick" rows="2" placeholder="如：冰岛日记、窗外樱花 预计11.18左右回货&#10;粘进来自动识别，多个花名、多段时间都能认" style="resize:vertical;" autocomplete="off"></textarea>
+      <label>📋 批量识别（从群里复制原话整段粘到下面，一行一条也行，自动拆出花名/抛型/时间，不用分开填）</label>
+      <textarea id="fQuick" rows="4" placeholder="支持两种粘法：&#10;一行一条：妮妮千金日抛6片装--12.5左右&#10;少女心事半年抛--11.23左右&#10;或一段多个花名共用时间：冰岛日记、窗外樱花 预计11.18左右回货" style="resize:vertical;" autocomplete="off"></textarea>
+      <div id="quickPreview" style="display:none;"></div>
       <label>抛型</label>
       <select id="fToss"><option value="半年抛">半年抛</option><option value="日抛">日抛</option><option value="配件">配件</option></select>
       <label>花名（可批量：一行一个，直接从采购消息里粘贴）</label>
@@ -348,43 +349,107 @@ async function delItem(x){
   toast('已删除'); load();
 }
 
-/* ==================== 一句话智能识别 ====================
-   群里采购消息一般是一句话：花名+预计时间+回货。
-   做法：先整段抠出时间片段（11.18左右 / 12-10号 / 11月18号），再按分隔符拆 token，
-   剥掉首尾的关键词词缀（预计/左右/回货/到货…），剩下的就是花名。 */
-const RQ_TIME_RE = /\d{1,2}\s*[月.．\/\-·]\s*\d{1,2}\s*[号日]?\s*(?:左右)?/g;
+/* ==================== 批量识别（多行逐行解析） ====================
+   支持两种粘法：
+   1) 一行一条，各自带抛型和时间：妮妮千金日抛6片装--12.5左右
+   2) 一段多花名共用时间：冰岛日记、窗外樱花 预计11.18左右回货
+   时间正则兼容 12.5 / 11.23 / 11月18号 / 12-10号左右 / 27年1月左右。 */
+const RQ_TIME_RE = /\d{2,4}\s*年\s*\d{1,2}\s*月(?:\s*\d{1,2}\s*[号日])?\s*(?:左右)?|\d{1,2}\s*[月.．\/\-·]\s*\d{1,2}\s*[号日]?\s*(?:左右)?/g;
 const RQ_PREFIX = /^(回货时间|到货时间|预计到货|预计回货|预计|大概|已回|已拍|回货|到货)+/;
 const RQ_INNER = /(到货后|已潜仓|潜仓|全度数|度数|明天|后天|下周|月底|月初|月中|全部)/g;
 const RQ_SUFFIX = /(回货|到货|预计|大概|左右|已回|回|到|号|日|后)+$/;
 const RQ_NOISE = /^(回|到|到货|回货|预计|左右|补货|潜仓|缺货|入库|物流|待定|等回复|等通知|全度数|近期|尽快|通知|询问|说|了)$/;
-function parseQuick(txt){
-  const t = (txt || '').trim();
+function parseQuickLine(line){
+  const t = (line || '').trim();
   if (!t) return null;
   const times = (t.match(RQ_TIME_RE) || []).map(x => x.replace(/\s+/g, ''));
-  const rest = t.replace(RQ_TIME_RE, '、');
+  const rest = t.replace(RQ_TIME_RE, ' ');
+  let toss = null;
+  if (/配件/.test(rest)) toss = '配件';
+  if (/日抛/.test(rest)) toss = '日抛';
+  if (/半年抛/.test(rest)) toss = '半年抛';
   const names = [];
-  rest.split(/[\n\r]+|、|，|,|;|；|\/|\s+/).forEach(tok => {
+  rest.split(/--+|—+|：|:|、|，|,|;|；|\/|\s+/).forEach(tok => {
     tok = tok.trim();
     if (!tok) return;
     let n = tok.replace(RQ_PREFIX, '').replace(RQ_INNER, '').replace(RQ_SUFFIX, '');
     n = n.replace(/^D(?=[\u4e00-\u9fa5A-Za-z])/, '').trim();
+    n = n.replace(/半年抛|日抛|配件/g, '').trim();
     if (!n || RQ_NOISE.test(n)) return;
     names.push(n);
   });
-  let toss = null;
-  if (/配件/.test(t)) toss = '配件';
-  if (/日抛/.test(t)) toss = '日抛';
-  if (/半年抛/.test(t)) toss = '半年抛';
+  if (!names.length && !toss && !times.length) return null;
   return { names: [...new Set(names)], eta: times.join(' / '), toss };
 }
+let quickRows = [];
 function applyQuick(){
-  const r = parseQuick($('fQuick').value);
-  if (!r || (!r.names.length && !r.eta)) { toast('没识别到花名或时间，检查一下粘贴的内容'); return; }
-  if (r.names.length) $('fName').value = r.names.join('\n');
-  if (r.eta) $('fDate').value = r.eta;
-  if (r.toss) $('fToss').value = r.toss;
+  const lines = ($('fQuick').value || '').split(/[\n\r]+/).map(s => s.trim()).filter(Boolean);
+  if (!lines.length) return;
+  const rows = [];
+  lines.forEach(line => {
+    const r = parseQuickLine(line);
+    if (!r) return;
+    if (r.names.length) {
+      r.names.forEach(n => rows.push({ name: n, toss: r.toss || $('fToss').value, eta: r.eta || '' }));
+    } else if (r.eta && rows.length) {
+      // 只有时间没有花名的行：并进上一条
+      const p = rows[rows.length - 1];
+      p.eta = p.eta ? p.eta + ' / ' + r.eta : r.eta;
+    }
+  });
+  if (!rows.length) { toast('没识别到花名，检查一下粘贴的内容'); return; }
+  renderQuickPreview(rows);
+}
+function renderQuickPreview(rows){
+  quickRows = rows;
+  const wrap = $('quickPreview');
+  const opts = t => ['半年抛','日抛','配件'].map(v => '<option value="'+v+'"'+(v===t?' selected':'')+'>'+v+'</option>').join('');
+  wrap.innerHTML = '<div style="font-size:12px;color:var(--muted);margin:8px 0 6px;">识别到 ' + rows.length + ' 条，核对无误后点「全部登记」（哪里不对直接改）</div>'
+    + rows.map((r,i) => '<div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">'
+      + '<input data-qk="name" data-i="'+i+'" value="'+esc(r.name)+'" style="flex:2;min-width:0;" autocomplete="off">'
+      + '<select data-qk="toss" data-i="'+i+'" style="flex:0 0 84px;">'+opts(r.toss)+'</select>'
+      + '<input data-qk="eta" data-i="'+i+'" value="'+esc(r.eta)+'" placeholder="时间" style="flex:1;min-width:0;" autocomplete="off">'
+      + '<button type="button" data-qk="del" data-i="'+i+'" style="padding:4px 10px;border:1px solid var(--border);background:#fff;border-radius:8px;cursor:pointer;">✕</button>'
+      + '</div>').join('')
+    + '<div class="btns" style="margin-top:4px;"><button class="btn o" id="quickClear">✖ 清空</button><button class="btn g" id="quickSave">✅ 全部登记（' + rows.length + ' 条）</button></div>';
+  wrap.style.display = 'block';
+}
+$('quickPreview').addEventListener('input', e => {
+  const i = e.target.dataset.i;
+  if (i === undefined) return;
+  if (e.target.dataset.qk === 'name') quickRows[+i].name = e.target.value;
+  if (e.target.dataset.qk === 'eta') quickRows[+i].eta = e.target.value;
+});
+$('quickPreview').addEventListener('change', e => {
+  if (e.target.dataset.qk === 'toss') quickRows[+e.target.dataset.i].toss = e.target.value;
+});
+$('quickPreview').addEventListener('click', e => {
+  const el = e.target.closest('[data-qk]');
+  if (!el) return;
+  if (el.dataset.qk === 'del') {
+    quickRows.splice(+el.dataset.i, 1);
+    if (!quickRows.length) { $('quickPreview').style.display = 'none'; $('quickPreview').innerHTML = ''; }
+    else renderQuickPreview(quickRows);
+    return;
+  }
+  if (el.id === 'quickClear') { quickRows = []; $('quickPreview').style.display = 'none'; $('quickPreview').innerHTML = ''; $('fQuick').value = ''; return; }
+  if (el.id === 'quickSave') quickSaveAll();
+});
+async function quickSaveAll(){
+  if (!quickRows.length) return;
+  const rows = quickRows.filter(r => r.name.trim());
+  const dups = rows.filter(r => items.some(x => x.toss === r.toss && x.name === r.name.trim()));
+  const ins = rows.filter(r => !dups.includes(r)).map(r => ({ toss: r.toss, name: r.name.trim(), status: 'restocking', eta_date: r.eta || '', note: '', updated_at: new Date().toISOString() }));
+  if (!ins.length) { toast(dups.length ? '「' + dups.map(r => r.name).join('」「') + '」已登记过，没有重复添加' : '没有可登记的花名'); return; }
+  const { error } = await sb.from('restock_items').insert(ins);
+  if (error) { toast('批量登记失败：' + error.message); return; }
+  quickRows = [];
+  $('quickPreview').style.display = 'none';
+  $('quickPreview').innerHTML = '';
   $('fQuick').value = '';
-  toast('已识别 ' + r.names.length + ' 个花名' + (r.eta ? '，时间 ' + r.eta : '') + (r.toss ? '，抛型 ' + r.toss : '') + '，检查无误后点保存');
+  $('formMask').classList.remove('show');
+  toast('已批量登记 ' + ins.length + ' 条 ✅' + (dups.length ? '（' + dups.map(r => r.name).join('」「') + ' 已登记过，跳过）' : ''));
+  load();
 }
 $('fQuick').addEventListener('paste', () => setTimeout(applyQuick, 60));
 $('fQuick').addEventListener('change', applyQuick);
@@ -399,6 +464,9 @@ function openForm(x){
   $('fDate').value = x ? (x.eta_date||'') : '';
   $('fNote').value = x ? (x.note||'') : '';
   $('fQuick').value = '';
+  quickRows = [];
+  $('quickPreview').style.display = 'none';
+  $('quickPreview').innerHTML = '';
   syncDateLabel();
   $('formMask').classList.add('show');
   setTimeout(()=>{ try{ $('fName').focus(); }catch(e){} }, 60);
