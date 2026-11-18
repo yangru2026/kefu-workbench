@@ -2165,7 +2165,6 @@ body {
       <div class="nav-group-head" onclick="toggleNavGroup(this)"><span>客服常用</span><span class="ng-arrow">▾</span></div>
       <div class="nav-group-body">
         <div class="nav-item active" data-page="home" title="首页"><span class="icon">🏠</span><span>首页</span></div>
-        <div class="nav-item" data-page="ai" title="AI 提问"><span class="icon">🤖</span><span>AI 提问</span></div>
         <div class="nav-item" data-page="converter" title="度数换算"><span class="icon">🔢</span><span>度数换算</span></div>
         <div class="nav-item" data-page="patterns" title="花色素材"><span class="icon">🎨</span><span>花色素材</span></div>
         <div class="nav-item" onclick="openLogisticsFreight()" title="运费时效查询（顺丰补运费标准 + 中通/圆通/申通时效查询）"><span class="icon">🚛</span><span>运费时效查询</span></div>
@@ -2520,7 +2519,6 @@ body {
         <button class="btn btn-outline" onclick="nextPresaleMonth()">下月 ▶</button>
         <div style="flex:1;"></div>
         <button class="collab-btn" id="collab-presale-btn" onclick="openCollabPanel('presale')" style="display:none;">👥 协作者</button>
-        <button class="feishu-sync-btn admin-only-nav" id="presale-monthly-sync-btn" onclick="syncPresaleFromFeishu()" style="display:none;">🔄 从飞书同步</button>
         <button class="btn-sm outline admin-only" id="presale-monthly-import-btn" onclick="openExcelImport('presale_monthly')">📥 导入Excel</button>
         <button class="btn-sm outline admin-only" id="presale-monthly-edit-btn" onclick="togglePresaleMonthlyEdit()">✎ 编辑/补录</button>
         <button class="btn-sm primary admin-only" id="presale-monthly-save-btn" onclick="savePresaleMonthly()" style="display:none;">💾 保存</button>
@@ -2606,7 +2604,6 @@ body {
             <button id="cross-sales-export-more-btn" onclick="toggleCsExportArea();closeCsMoreMenu();">📤 导出Excel</button>
             <button id="cross-sales-locate-btn" onclick="locateCSDuplicates();closeCsMoreMenu();" style="color:#b8860b;font-weight:600;">🔍 筛选重复项</button>
             <button id="cross-sales-qc-btn" onclick="window.open('cs-qc.html','_blank');closeCsMoreMenu();" style="display:none;color:#8e44ad;font-weight:600;">🔍 质检连带明细（新页面）</button>
-            <button class="feishu-sync-btn admin-only-nav" id="cross-sales-sync-btn" onclick="syncCrossSalesFromFeishu();closeCsMoreMenu();" style="display:none;">🔄 从飞书同步</button>
             <button class="collab-btn" id="collab-cross-sales-btn" onclick="openCollabPanel('cross-sales');closeCsMoreMenu();" style="display:none;">👥 协作者</button>
             <button class="admin-only-nav" id="cross-sales-archive-current-btn" onclick="archiveCurrentCsMonth();closeCsMoreMenu();" style="display:none;">🔒 归档本月</button>
             <div style="height:1px;background:var(--border);margin:4px 2px;"></div>
