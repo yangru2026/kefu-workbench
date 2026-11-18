@@ -3463,7 +3463,7 @@ body {
 
   <!-- ===== 花色素材（2026-11-04 重做：独立子页 iframe 版） ===== -->
   <div class="page" id="page-patterns" style="padding:0;overflow:hidden;flex-direction:column;">
-    <iframe id="patterns-iframe" src="about:blank" data-src="pattern.html?v=20261118a" style="flex:1;border:none;width:100%;"></iframe>
+    <iframe id="patterns-iframe" src="about:blank" data-src="pattern.html?v=20261118b" style="flex:1;border:none;width:100%;"></iframe>
   </div>
 
   <style>
@@ -11355,18 +11355,12 @@ function buildPatternTree(flatData) {
 
 // ==================== VISITOR STATS ====================
 async function loadVisitorStats() {
-  try {
-    const today = new Date().toISOString().slice(0, 10);
-    const [totalRes, todayRes] = await Promise.all([
-      fetch('https://api.countapi.xyz/hit/yangru-kefu/workbench').then(r => r.json()),
-      fetch('https://api.countapi.xyz/hit/yangru-kefu/workbench-' + today).then(r => r.json())
-    ]);
-    document.getElementById('vs-total').textContent = (totalRes.value || 0).toLocaleString();
-    document.getElementById('vs-today').textContent = (todayRes.value || 0).toLocaleString();
-  } catch (e) {
-    document.getElementById('vs-total').textContent = '-';
-    document.getElementById('vs-today').textContent = '-';
-  }
+  /* 2026-11-18：原第三方计数器 api.countapi.xyz 已停止服务（域名解析失败），
+     每次打开工作台都会报两次红错、还拖慢首屏，改为直接留占位，不再发任何请求。 */
+  const t = document.getElementById('vs-total');
+  const d = document.getElementById('vs-today');
+  if (t) t.textContent = '-';
+  if (d) d.textContent = '-';
 }
 
 // ==================== NAVIGATION ====================
