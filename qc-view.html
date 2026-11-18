@@ -60,7 +60,7 @@ html,body{margin:0;height:100%;background:#1b2230;overflow:hidden;font-family:sy
     if (logSent) return; logSent = true;
     var sec = Math.round((Date.now() - openT) / 1000);
     try{
-      fetch('https://mpimxskvbbqzvwwehzep.supabase.co/rest/v1/rpc/qc_log_evidence_view', {
+      fetch('https://114-55-96-76.sslip.io/rest/v1/rpc/qc_log_evidence_view', {
         method: 'POST', keepalive: true,
         headers: {
           'Content-Type': 'application/json',
@@ -80,7 +80,7 @@ html,body{margin:0;height:100%;background:#1b2230;overflow:hidden;font-family:sy
     var s = Math.round((Date.now() - t0) / 1000);
     if (s >= 3) msg.textContent = '正在取图…（已 ' + s + ' 秒，截图较大时会稍慢，最多等十几秒）';
   }, 1000);
-  fetch('https://mpimxskvbbqzvwwehzep.supabase.co/functions/v1/qc-evidence?json=1&id=' + encodeURIComponent(id) + '&t=' + encodeURIComponent(t))
+  fetch('https://114-55-96-76.sslip.io/functions/v1/qc-evidence?json=1&id=' + encodeURIComponent(id) + '&t=' + encodeURIComponent(t))
     .then(function(r){ return r.json().catch(function(){ throw new Error('HTTP ' + r.status); }); })
     .then(function(j){
       if (!j.ok) throw new Error(j.error || '取图失败');
@@ -170,7 +170,7 @@ html,body{margin:0;height:100%;background:#1b2230;overflow:hidden;font-family:sy
     }
     sharpening = true; btn.disabled = true; btn.textContent = '✨ 处理中…';
     try{
-      var r = await fetch('https://mpimxskvbbqzvwwehzep.supabase.co/functions/v1/qc-evidence?id=' + encodeURIComponent(id) + '&t=' + encodeURIComponent(t));
+      var r = await fetch('https://114-55-96-76.sslip.io/functions/v1/qc-evidence?id=' + encodeURIComponent(id) + '&t=' + encodeURIComponent(t));
       if (!r.ok) throw new Error('HTTP ' + r.status);
       var bmp = await createImageBitmap(await r.blob());
       var c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;

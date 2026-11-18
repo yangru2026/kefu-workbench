@@ -204,7 +204,7 @@
 
 <script src="vendor/supabase.min.js?v=2"></script>
 <script>
-const SUPABASE_URL = 'https://mpimxskvbbqzvwwehzep.supabase.co';
+const SUPABASE_URL = 'https://114-55-96-76.sslip.io';
 const SUPABASE_KEY = 'sb_publishable_Q-gOzaAv6dOjzhVIHGfhFA_UQho0kfT';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -449,7 +449,7 @@ function filteredDetail(){
    1) 飞书表填了图片链接（文本）→ 直接新窗口打开
    2) 飞书表用「附件」列拖了图 → 同步时把 evidence 写成「附件×N」，
       点按钮走后端 qc-evidence 现场向飞书要一次临时地址再跳转（图片不落工作台） */
-const EVIDENCE_PROXY = 'https://mpimxskvbbqzvwwehzep.supabase.co/functions/v1/qc-evidence';
+const EVIDENCE_PROXY = 'https://114-55-96-76.sslip.io/functions/v1/qc-evidence';
 const EV_KEYS = ['evidence','evidence_url','screenshot','screenshot_url','截图链接','截图','image_url','attach_url'];
 function evUrls(r){
   let v = '';

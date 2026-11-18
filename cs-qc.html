@@ -183,7 +183,7 @@ details.mech summary{cursor:pointer;font-size:13px;font-weight:600}
 <script src="vendor/xlsx.full.min.js?v=2"></script>
 <script>
 /* ==================== Supabase Init ==================== */
-const SUPABASE_URL = 'https://mpimxskvbbqzvwwehzep.supabase.co';
+const SUPABASE_URL = 'https://114-55-96-76.sslip.io';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1waW14c2t2YmJxenZ3d2VoemVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ4NTE4NDMsImV4cCI6MjExMDQyNzg0M30.-drPkW87wRvaaSpdojOPiBH5FupIWWrEenTFAWtQKx4';
 // 关键修复：用独立变量 SB_NS 引用 Supabase UMD 全局命名空间，避免下方 `var supabase` 提升后遮蔽它导致 createClient 报 undefined
 var SB_NS = window.supabase;

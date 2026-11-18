@@ -141,7 +141,7 @@ const PAPERS = [{"meta":{"key":"exam-一","title":"试卷一 · 美瞳基础知�
 let curPaper = 0;
 let QUIZ = PAPERS[0];
 /* ==================== 收卷配置（交卷后自动上报给主管） ==================== */
-const SUPA_URL = 'https://mpimxskvbbqzvwwehzep.supabase.co';
+const SUPA_URL = 'https://114-55-96-76.sslip.io';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1waW14c2t2YmJxenZ3d2VoemVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ4NTE4NDMsImV4cCI6MjExMDQyNzg0M30.-drPkW87wRvaaSpdojOPiBH5FupIWWrEenTFAWtQKx4';
 const QUIZ_KEY = () => QUIZ.meta.key;
 const START_TS = Date.now();
@@ -557,7 +557,7 @@ function applyPaperAccess(rows) {
 }
 (async function detectExamAccess() {
   try {
-    const raw = localStorage.getItem('sb-mpimxskvbbqzvwwehzep-auth-token');
+    const raw = localStorage.getItem('sb-114-55-96-76-auth-token');
     if (!raw) return;
     const ses = JSON.parse(raw);
     const at = ses && ses.access_token;
