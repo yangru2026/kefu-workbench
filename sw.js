@@ -9,9 +9,14 @@
  *   - vendor 库：cache-first；但不再预缓存 xlsx（861KB，导出时才用，改成用时再拉）。
  *   - images/：stale-while-revalidate（缓存名固定，升级不清空）。
  */
-const VERSION = 'kefu-sw-v7';
+const VERSION = 'kefu-sw-v8';
 const LIB_CACHE = VERSION + '-lib';
-const PAGE_CACHE = VERSION + '-page';
+/* ⚠️ 2026-11-18 切换后端后新增：页面缓存名带上 BUILD。
+   原来缓存名只有 VERSION，一旦网络慢（>1.8s 超时）就会回退到「指向旧 Supabase 的旧 HTML」，
+   表现就是花色素材 / 极氧花色速查 / 质检统计「读取失败」——而且请求根本没到新后端。
+   现在只要换 BUILD，旧 HTML 缓存全部作废，永远不会再被回退出来。 */
+const BUILD = '20261118b';
+const PAGE_CACHE = VERSION + '-page-' + BUILD;
 const IMG_CACHE = 'kefu-sw-img-v1';   // 固定名：升级 SW 不清空已缓存花色图
 const IMG_MAX_ENTRIES = 800;
 const HTML_TIMEOUT = 1800;             // HTML 等网络的上限，超时就用缓存
