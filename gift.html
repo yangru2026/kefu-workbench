@@ -16,6 +16,7 @@
   .topbar h1{font-size:18px;font-weight:800;letter-spacing:.5px;}
   .badge{font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;white-space:nowrap;}
   .badge.admin{background:rgba(224,82,82,.1);color:var(--danger);}
+  .badge.editor{background:rgba(16,185,129,.12);color:#059669;}
   .badge.readonly{background:#f1f5f9;color:var(--muted);}
   .search-wrap{flex:1;min-width:200px;max-width:420px;position:relative;}
   .search-wrap input{width:100%;padding:9px 14px 9px 36px;border:1.5px solid var(--border);
@@ -62,6 +63,7 @@
   .card-code .code-text{word-break:break-all;}
   .card-actions{display:none;gap:5px;padding:0 10px 10px;}
   .card.admin .card-actions{display:flex;}
+  .card.editable .card-actions{display:flex;}
   .card-actions .btn{flex:1;padding:4px 0;font-size:11px;}
   .btn-edit{background:var(--primary-light);color:var(--primary-dark);}
   .btn-del{background:rgba(224,82,82,.1);color:var(--danger);}
@@ -218,6 +220,9 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 /* ==================== 状态 ==================== */
 let gifts = [];          // 全量数据
 let isAdmin = false;     // admin 可写；leader/客服只读
+let canEdit = false;     // admin 或授权名单内（可编辑，但删不了）
+let myName = '';         // 当前登录人昵称（profiles.name）
+const GIFT_EDITORS = ['小猫','小念','小暖'];  // 茹姐 2026-11-22 授权：可新增/编辑赠品上传自己手里的图
 let editingId = null;    // 编辑中的记录 id
 let editImages = [];     // 编辑中保留的已有图片路径数组
 let editNewFiles = [];   // 编辑中待上传的新图片 File 对象（含 _url 预览）
@@ -262,11 +267,13 @@ async function copyText(text){
     let role = user.app_metadata && user.app_metadata.role;
     try{
       const { data:p } = await sb.from('profiles').select('role,name,real_name').eq('id', user.id).single();
-      if(p){ role = p.role; }
+      if(p){ role = p.role; myName = p.name || p.real_name || ''; }
     }catch(e){ console.warn('profiles load', e); }
     isAdmin = (role === 'admin');
+    canEdit = isAdmin || GIFT_EDITORS.some(n => (myName||'').includes(n));
     const badge = $('roleBadge');
     if(isAdmin){ badge.className = 'badge admin'; badge.textContent = '👑 管理员 · 可维护'; $('btnAdd').style.display = ''; }
+    else if(canEdit){ badge.className = 'badge editor'; badge.textContent = '✏️ 授权维护 · ' + (myName || '授权账号'); $('btnAdd').style.display = ''; }
     else { badge.className = 'badge readonly'; badge.textContent = '📖 只读查询'; }
     await loadGifts();
   }catch(e){
@@ -320,14 +327,14 @@ function render(){
       (g.name||'').toLowerCase().includes(kw) || (g.merchant_code||'').toLowerCase().includes(kw));
   if(!list.length){
     $('grid').innerHTML = '<div class="empty"><span class="big">🎁</span>' +
-      (kw ? '没有匹配「' + esc(kw) + '」的赠品' : '这个大类下还没有赠品数据' + (isAdmin ? '，点右上角「＋ 新增赠品」添加' : '')) + '</div>';
+      (kw ? '没有匹配「' + esc(kw) + '」的赠品' : '这个大类下还没有赠品数据' + (canEdit ? '，点右上角「＋ 新增赠品」添加' : '')) + '</div>';
     return;
   }
   $('grid').innerHTML = list.map(g => {
     const brand = g.brand || '其他';
     const bCls = brand === '弥生' ? 'b-mi' : (brand === '极氧' ? 'b-ji' : 'b-qt');
     return `
-    <div class="card${isAdmin?' admin':''}" data-id="${g.id}">
+    <div class="card${isAdmin?' admin':(canEdit?' editable':'')}" data-id="${g.id}">
       <div class="card-img" data-act="img">
         ${giftImgs(g).length ? `<img src="${esc(imgUrl(giftImgs(g)[0]))}" loading="lazy" alt="${esc(g.name)}">`
                               : '<span class="placeholder">🎁</span>'}
@@ -341,7 +348,7 @@ function render(){
       </div>
       <div class="card-actions">
         <button class="btn btn-edit" data-act="edit">✏️ 编辑</button>
-        <button class="btn btn-del" data-act="del">🗑 删除</button>
+        ${isAdmin ? '<button class="btn btn-del" data-act="del">🗑 删除</button>' : ''}
       </div>
     </div>`;
   }).join('');
