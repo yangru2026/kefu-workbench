@@ -4645,7 +4645,12 @@ function openStaffDetail(id) {
   if (!s) { showToast('未找到该客服'); return; }
   const val = (v) => (v === null || v === undefined) ? '' : String(v);
   const curGroup = (val(s.group_name)).trim();
-  const groupOpts = ['', 'A组', 'B组', 'C组']
+  // ⚠️ 2026-11-23：原来只有 空/A组/B组/C组 四个选项，遇到自定义组别（如「分流」「D组」）
+  // 下拉会默认落回「未分组」，此时只要顺手改个手机号保存，就会把组别一起洗成空。
+  // 现在把当前组别补进选项，且在保存时「组别没动就不提交」。
+  const groupList = ['', 'A组', 'B组', 'C组'];
+  if (curGroup && groupList.indexOf(curGroup) < 0) groupList.push(curGroup);
+  const groupOpts = groupList
     .map(g => '<option value="' + g + '"' + (g === curGroup ? ' selected' : '') + '>' + (g || '未分组') + '</option>')
     .join('');
   const isAdmin = isFullAdmin();
@@ -4679,6 +4684,8 @@ function openStaffDetail(id) {
     };
     if (!patch.name) { showToast('花名不能为空'); return false; }
     if (patch.phone && !/^1\d{10}$/.test(patch.phone)) { showToast('手机号格式不对（11位数字）'); return false; }
+    // 组别没改动就不提交：这条链路以前会把过期/默认的组别一起写回去，是「分组又变回未分组」的另一条路径
+    if (String(patch.group_name || '') === curGroup) delete patch.group_name;
     try {
       // 兜底：客户端被库覆盖时就地重建（2026-10-31）
       if (!(await ensureSb())) { showToast('数据服务还没连接上，请等几秒再保存'); return false; }
@@ -4691,7 +4698,7 @@ function openStaffDetail(id) {
         return false;
       }
       // 回读一次，把"库里真实存的值"报给她，避免再出现"看着改了其实没写进去"
-      let stored = patch.group_name || '';
+      let stored = patch.group_name || curGroup || '';
       try {
         const re = await supabase.from('profiles').select('group_name,updated_at').eq('id', id).maybeSingle();
         if (re && re.data) stored = re.data.group_name || '';
@@ -17829,30 +17836,43 @@ async function deleteInvite(id) {
 }
 
 // 新人通过邀请链接注册成功后，自动应用邀请里的角色 / 组别
+// ⚠️ 2026-11-23 修：原写法 group_name: inv.group_name || null —— 邀请里没填组别时会把
+// 本人已经设好的组别写成 null（=未分组）。地址栏里 invite 参数一直在，刷新/收藏再打开就再洗一次，
+// 这就是「分组一会儿又变回未分组」的元凶之一。现在只写有值的字段，并记住已领取过。
 async function applyInviteClaim() {
   if (!window.__invite || !window.__invite.token || !currentUser) return;
   if (window.__invite._claimed) return;
+  var claimKey = 'kefu_invite_claimed_' + window.__invite.token + '_' + currentUser.id;
+  try { if (localStorage.getItem(claimKey)) return; } catch (e) {}
   window.__invite._claimed = true;
   var inv = window.__invite;
   try {
     var applied = false;
+    var patch = { name: inv.name || (currentProfile && currentProfile.name) || '' };
+    if (inv.role) patch.role = inv.role;
+    if (inv.group_name) patch.group_name = inv.group_name;   // 没有组别就不写，绝不写 null
     for (var i = 0; i < 6 && !applied; i++) {
       try {
-        var { error } = await supabase.from('profiles').update({
-          name: inv.name || (currentProfile && currentProfile.name) || '',
-          role: inv.role,
-          group_name: inv.group_name || null
-        }).eq('id', currentUser.id);
-        if (!error) { applied = true; break; }
+        var { data: up, error } = await supabase.from('profiles').update(patch).eq('id', currentUser.id).select('id');
+        if (!error && up && up.length) { applied = true; break; }
       } catch (e) {}
       await new Promise(function (r) { setTimeout(r, 400); });
     }
     try { await supabase.rpc('claim_invite', { p_token: inv.token }); } catch (e) {}
     if (applied) {
+      try { localStorage.setItem(claimKey, '1'); } catch (e) {}
       showToast('已为你配置「' + roleText(inv.role) + '」身份' + (inv.group_name ? '（' + inv.group_name + '）' : ''));
       var { data: pf } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
       if (pf) { currentProfile = pf; updateAuthUI(); }
     }
+    // 领完把地址栏里的 invite 参数去掉，避免刷新/收藏再触发一遍
+    try {
+      var u = new URL(location.href);
+      if (u.searchParams.has('invite')) {
+        u.searchParams.delete('invite');
+        history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
+      }
+    } catch (e) {}
   } catch (e) { console.warn('邀请申领失败', e); }
 }
 </script>
