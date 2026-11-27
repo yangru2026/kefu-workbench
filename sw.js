@@ -15,7 +15,7 @@ const LIB_CACHE = VERSION + '-lib';
    原来缓存名只有 VERSION，一旦网络慢（>1.8s 超时）就会回退到「指向旧 Supabase 的旧 HTML」，
    表现就是花色素材 / 极氧花色速查 / 质检统计「读取失败」——而且请求根本没到新后端。
    现在只要换 BUILD，旧 HTML 缓存全部作废，永远不会再被回退出来。 */
-const BUILD = '20261123a';
+const BUILD = '20261127a';
 const PAGE_CACHE = VERSION + '-page-' + BUILD;
 const IMG_CACHE = 'kefu-sw-img-v1';   // 固定名：升级 SW 不清空已缓存花色图
 const IMG_MAX_ENTRIES = 800;
