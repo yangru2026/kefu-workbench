@@ -103,6 +103,15 @@
   a.ev{display:inline-block;font-size:11px;font-weight:800;color:#0369a1;background:#f0f9ff;
        border:1px solid #bae6fd;border-radius:6px;padding:2px 6px;text-decoration:none;white-space:nowrap;}
   a.ev:hover{background:#e0f2fe;border-color:#7dd3fc;}
+  /* 2026-11-27：证据缩略图直接内嵌，客服一眼看到截图、点开即看图留痕 */
+  a.evthumb{display:inline-flex;align-items:center;justify-content:center;border:1.5px solid #bae6fd;
+       border-radius:8px;background:#f0f9ff;padding:3px;overflow:hidden;vertical-align:middle;
+       max-width:172px;min-width:58px;min-height:38px;text-decoration:none;cursor:zoom-in;}
+  a.evthumb:hover{border-color:#0284c7;background:#e0f2fe;box-shadow:0 2px 9px #0284c733;}
+  a.evthumb img{display:block;max-width:164px;max-height:112px;width:auto;height:auto;border-radius:5px;object-fit:contain;}
+  a.evthumb.evthumb-sm{max-width:84px;min-width:44px;min-height:30px;padding:2px;}
+  a.evthumb.evthumb-sm img{max-width:78px;max-height:46px;}
+  a.evthumb .evthumb-fb{font-size:11px;font-weight:800;color:#0369a1;padding:6px 8px;white-space:nowrap;}
   .mine-tip{font-size:12px;color:#0369a1;background:#f0f9ff;border:1px solid #bae6fd;
             border-radius:8px;padding:8px 11px;margin-bottom:10px;}
   /* 正确做法：质检的教学重点，客服视角要醒目 */
@@ -218,6 +227,7 @@ let fStaff = '', fType = '', fSev = '', fKw = '';
 const expanded = {};    // 客服视角：哪条已展开查看
 const readOK = {};      // 展开后多久才允许点确认（防止不点开就确认）
 const viewed = {};      // 2026-11-03 方案A：哪条的截图已点开过（有截图的记录必须点开图才解锁确认）
+const viewLogged = {};  // 2026-11-27：本次会话已把「看图」写进库(JWT 身份)的记录，避免重复上报
 
 const SEV_CLASS = { '一般提醒':'s1', '严重问题':'s2', '严重需整改':'s3' };
 // 质检登记表（飞书）：飞书禁止被 iframe 嵌入，只能新窗口打开
@@ -279,6 +289,7 @@ async function freshToken(){
 }
 
 async function load(){
+  await freshToken();   // 2026-11-27：缩略图内嵌在此刻的 token，先续期避免挂机后缩略图 401
   let q = sb.from('qc_records')
     // 用 * 而不是写死列名：飞书表以后加列（截图链接、扣罚确认人等）页面不会因缺列报错
     .select('*')
@@ -481,6 +492,49 @@ function evCell(r){
   return '<span style="color:#cbd5e1;">—</span>';
 }
 
+/* ===== 2026-11-27 截图更直观 + 看图即留痕 =====
+   1) 客服「我的质检」里直接内嵌证据缩略图：附件图走 qc-evidence 代理直出图(<img>)，
+      外链图直接用原 URL。客服一眼看到截图，不用先点文字链接才知道有没有图。
+   2) 点缩略图/文字链接打开大图时，立即用本人 JWT 上报一条看图留痕(qc_log_evidence_view, sec=5)，
+      配合服务端 qc_confirm_staff 强校验：没点开图就确认 → 被数据库拒绝。
+      留痕函数内部 where staff_name=v_name，天然只写本人的，别人无法代看。 */
+const EV_PROXY = 'https://114-55-96-76.sslip.io/functions/v1/qc-evidence';
+function evThumbSrc(r){
+  const urls = evUrls(r);
+  if (urls.length) return urls[0];                       // 外链图：直接内嵌
+  if (evHasAttach(r)){                                   // 飞书附件：走代理直出图，token 现取
+    return EV_PROXY + '?id=' + encodeURIComponent(r.id || '') + '&t=' + encodeURIComponent(accessToken || '');
+  }
+  return '';
+}
+function evThumb(r){
+  const src = evThumbSrc(r);
+  if (!src) return '';
+  const id = r.feishu_record_id || r.id || '';
+  const external = evUrls(r).length > 0;
+  const href = external ? esc(evUrls(r)[0]) : ('qc-view.html?id=' + encodeURIComponent(id));
+  const attrs = external
+    ? 'target="_blank" rel="noopener noreferrer"'
+    : 'data-evid="'+encodeURIComponent(id)+'" target="_blank" rel="noopener noreferrer"';
+  return '<a class="evthumb" href="'+href+'" '+attrs+' data-qcid="'+esc(r.id)+'"'
+    + ' title="点开看大图（必须看图才能确认）">'
+    + '<img src="'+esc(src)+'" alt="证据截图缩略图" loading="lazy"'
+    + ' onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'inline-block\';"'
+    + '><span class="evthumb-fb" style="display:none;">📷 点开看大图</span></a>';
+}
+/* 客服点开任一看图入口 → 立即上报看图留痕（sec=5 达标），再走原打开大图逻辑 */
+async function logViewAsync(rid){
+  if (!rid || viewLogged[rid]) return;
+  const r = rows.find(x => String(x.id) === String(rid));
+  if (!r || evCount(r) === 0) return;
+  viewLogged[rid] = true;
+  try{
+    await freshToken();
+    const { error } = await sb.rpc('qc_log_evidence_view', { p_id: String(rid), p_sec: 5 });
+    if (error) { console.warn('看图留痕上报失败', error.message); delete viewLogged[rid]; }
+  }catch(e){ console.warn('看图留痕上报失败', e); delete viewLogged[rid]; }
+}
+
 /* 2026-11-03 方案B：看图留痕——qc-view 关闭时把停留秒数写进 evidence_views，
    这里汇总成「看了几次/最长几秒」；没打开过图或打开不到 8 秒的标黄提醒 */
 function evTrail(r){
@@ -591,7 +645,7 @@ function mineRow(r){
     + '<td class="det" style="color:' + (open ? '#475569' : '#94a3b8') + ';">'
     + (open ? (esc(r.detail || '') || '（无描述）') : '🔒 点「展开查看」看问题和正确做法')
     + '</td>'
-    + '<td>' + (open ? evCell(r) : '<span style="color:#cbd5e1;">—</span>') + '</td>'
+    + '<td>' + (evCount(r) ? evThumb(r) : '<span style="color:#cbd5e1;">无图</span>') + '</td>'
     + '<td>' + (confirmed
         ? '<span class="cfm done">已确认 ' + esc(String(r.staff_confirmed_at).slice(5, 10)) + '</span>'
         : (open
@@ -604,8 +658,10 @@ function mineRow(r){
     + '<div class="iss"><span>✘ 问题点</span>' + esc(r.detail || '（无描述）') + '</div>'
     + custIdBlock(r)
     + guidanceBlock(r)
-    + (String(r.evidence || '').trim() ? '<div style="margin-top:8px;font-size:11.5px;color:#64748b;">证据截图：' + evCell(r) + evTrail(r)
-        + '（' + (evCount(r) ? '必须点开看一遍，看完才解锁确认' : '对照着看当时的聊天记录') + '）</div>' : '')
+    + (evCount(r) ? '<div style="margin-top:9px;font-size:11.5px;color:#475569;">'
+        + '<div style="font-weight:700;color:#0369a1;margin-bottom:5px;">📷 证据截图（点开看大图，看完才解锁确认）</div>'
+        + evThumb(r) + ' <span style="margin-left:6px;">' + evCell(r) + '</span> ' + evTrail(r)
+        + '</div>' : '')
     + (r.note ? '<div style="margin-top:7px;font-size:11.5px;color:#94a3b8;">备注：' + esc(r.note) + '</div>' : '')
     + '<div style="margin-top:9px;display:flex;align-items:center;gap:10px;">'
     + (confirmed ? '<span class="cfm done">已确认</span>' : confirmBtn(r))
@@ -621,11 +677,12 @@ function hintView(r){
   return '看清楚再确认（还有 ' + readLeft(r) + ' 秒）';
 }
 
-/* 库里已有看图记录也算看过（页面刷新后 viewed 内存会清空，靠 evidence_views 兜底；
-   2026-11-03 晚：否则客服之前点开过图、刷新页面后按钮又被锁死） */
+/* 库里已有「达标」看图记录才算看过（页面刷新后 viewed 内存会清空，靠 evidence_views 兜底）。
+   2026-11-27 修复：原来 v.length>0 就算看过——qc-view 秒开秒关只留 sec=0/1 也算，形同没看；
+   现改为必须有 sec>=3 的留痕，和服务端 qc_confirm_staff 强校验口径一致。 */
 function evViewedBefore(r){
   const v = Array.isArray(r.evidence_views) ? r.evidence_views : [];
-  return v.length > 0;
+  return v.some(x => Number(x && x.sec) >= 3);
 }
 
 function readReady(r){
@@ -648,11 +705,13 @@ function qcExpand(id){
   // 有截图的：不解锁，等 markViewed（点开截图）后开 5 秒倒计时
   renderMine();
 }
-/* 2026-11-03 方案A：点开任一证据截图 → 5 秒后解锁该条的「我已知晓」 */
+/* 2026-11-03 方案A：点开任一证据截图 → 5 秒后解锁该条的「我已知晓」
+   2026-11-27：同时立即用本人 JWT 上报看图留痕（sec=5），服务端据此放行确认 */
 function markViewed(id){
   if (!id) return;
   viewed[id] = true;
   readOK[id] = Math.max(readOK[id] || 0, Date.now() + 5000);
+  logViewAsync(id);                       // 看图即留痕（异步、幂等）
   renderMine();
   setTimeout(() => { try{ renderMine(); }catch(e){} }, 5100);
 }
@@ -797,7 +856,8 @@ $('btnSync').addEventListener('click', syncNow);
    ★ 2026-11-03 晚修复：任何证据截图（外链/查看器）点开都要 markViewed——
      之前这个监听器只认 data-evid 且没接 markViewed，客服点开图也不解锁「我已知晓」 */
 document.addEventListener('click', async function(e){
-  const ev = e.target && e.target.closest ? e.target.closest('a.ev') : null;
+  // 2026-11-27：文字链接(a.ev)和内嵌缩略图(a.evthumb)都算「点开看图」
+  const ev = e.target && e.target.closest ? e.target.closest('a.ev, a.evthumb') : null;
   if (!ev) return;
   const qcid = ev.dataset.qcid;
   if (qcid) markViewed(qcid);          // 方案A：点开截图 → 5 秒后解锁该条确认
